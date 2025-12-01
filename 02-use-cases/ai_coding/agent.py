@@ -14,27 +14,31 @@
 
 
 import logging
+import os
+import sys
 
+from agentkit.apps import AgentkitAgentServerApp, AgentkitSimpleApp
+from google.adk.planners import BuiltInPlanner
+from google.genai import types
 from veadk import Agent, Runner
 from veadk.memory import ShortTermMemory
 from veadk.tools.builtin_tools.run_code import run_code
 from veadk.tracing.telemetry.exporters.apmplus_exporter import APMPlusExporter
 from veadk.tracing.telemetry.opentelemetry_tracer import OpentelemetryTracer
-from google.genai import types
-
-from agentkit.apps import AgentkitSimpleApp
-from google.adk.planners import BuiltInPlanner
-import logging
-from agentkit.apps import AgentkitAgentServerApp
-import sys
-import os
 
 current_script_path = os.path.abspath(__file__)
 current_dir = os.path.dirname(current_script_path)
 sys.path.append(current_dir)
 print(sys.path)
 
-from tools import upload_frontend_code_to_tos, get_url_of_frontend_code_in_tos
+from tools import get_url_of_frontend_code_in_tos, upload_frontend_code_to_tos
+
+current_script_path = os.path.abspath(__file__)
+current_dir = os.path.dirname(current_script_path)
+sys.path.append(current_dir)
+print(sys.path)
+
+from tools import get_url_of_frontend_code_in_tos, upload_frontend_code_to_tos
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level="INFO")
@@ -44,13 +48,12 @@ short_term_memory = ShortTermMemory(backend="local")
 
 tracer = OpentelemetryTracer(exporters=[APMPlusExporter()])
 
-with open('%s/prompt-zh.md'%current_dir, 'r', encoding='utf-8') as f:
+with open('%s/prompt.zh.md'%current_dir, 'r', encoding='utf-8') as f:
     instruction = f.read()
 root_agent = Agent(
     description="An AI coding agent that helps users solve programming problems",
     instruction=instruction,
     tools=[run_code, upload_frontend_code_to_tos, get_url_of_frontend_code_in_tos],
-    # sub_agents=[code_test_agent],
     tracers=[tracer],
     short_term_memory=short_term_memory,
     planner=BuiltInPlanner(
