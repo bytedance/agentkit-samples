@@ -50,7 +50,6 @@ root_agent = Agent(
     description="An AI coding agent that helps users solve programming problems",
     instruction=instruction,
     tools=[run_code, upload_frontend_code_to_tos, get_url_of_frontend_code_in_tos],
-    # sub_agents=[code_test_agent],
     tracers=[tracer],
     short_term_memory=short_term_memory,
     planner=BuiltInPlanner(
