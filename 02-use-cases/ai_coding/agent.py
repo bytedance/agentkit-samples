@@ -33,6 +33,13 @@ print(sys.path)
 
 from tools import get_url_of_frontend_code_in_tos, upload_frontend_code_to_tos
 
+current_script_path = os.path.abspath(__file__)
+current_dir = os.path.dirname(current_script_path)
+sys.path.append(current_dir)
+print(sys.path)
+
+from tools import get_url_of_frontend_code_in_tos, upload_frontend_code_to_tos
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(level="INFO")
 
