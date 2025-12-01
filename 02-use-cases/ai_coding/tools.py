@@ -10,7 +10,6 @@ bucket_name = os.getenv("DATABASE_TOS_BUCKET")
 
 client: tos.TosClientV2 = None
 
-
 def _init_tos_client():
     global client
     if client is not None:
