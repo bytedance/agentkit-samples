@@ -44,7 +44,7 @@ short_term_memory = ShortTermMemory(backend="local")
 
 tracer = OpentelemetryTracer(exporters=[APMPlusExporter()])
 
-with open('%s/prompt-zh.md'%current_dir, 'r', encoding='utf-8') as f:
+with open('%s/prompt.zh.md'%current_dir, 'r', encoding='utf-8') as f:
     instruction = f.read()
 root_agent = Agent(
     description="An AI coding agent that helps users solve programming problems",
