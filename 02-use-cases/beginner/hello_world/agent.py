@@ -35,8 +35,4 @@ agent_server_app = AgentkitAgentServerApp(
 )
 
 if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(main())
-    # Uncomment the following line to run the agentkit app server
-    # agent_server_app.run(host="0.0.0.0", port=8000)
+    agent_server_app.run(host="0.0.0.0", port=8000)

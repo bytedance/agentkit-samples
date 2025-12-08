@@ -1,7 +1,7 @@
 from veadk.agents.parallel_agent import ParallelAgent
 from veadk.tools.builtin_tools.web_search import web_search
 from veadk import Agent
-from multi_agents.prompts import PARALLEL_GET_INFO_AGENT_PROMPT, RAG_SEARCH_AGENT_PROMPT, WEB_SEARCH_AGENT_PROMPT
+from prompts import PARALLEL_GET_INFO_AGENT_PROMPT, RAG_SEARCH_AGENT_PROMPT, WEB_SEARCH_AGENT_PROMPT
 
 rag_search_agent = Agent(
     name="rag_search_agent",

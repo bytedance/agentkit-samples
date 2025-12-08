@@ -1,7 +1,7 @@
 from veadk.agents.loop_agent import LoopAgent
 from veadk import Agent
 from google.adk.tools.tool_context import ToolContext
-from multi_agents.prompts import JUDGE_AGENT_PROMPT, REFINE_AGENT_PROMPT, LOOP_REFINE_RESPONSE_AGENT_PROMPT
+from prompts import JUDGE_AGENT_PROMPT, REFINE_AGENT_PROMPT, LOOP_REFINE_RESPONSE_AGENT_PROMPT
 
 judge_agent = Agent(
     name="judge_agent",

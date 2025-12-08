@@ -1,8 +1,11 @@
 from veadk.agents.sequential_agent import SequentialAgent
 from veadk import Runner
-from multi_agents.sub_agents.parallel_agent import parallel_get_info_agent
-from multi_agents.sub_agents.loop_agent import loop_refine_response_agent
-from multi_agents.prompts import SEQUENTIAL_SERVICE_AGENT_PROMPT
+from sub_agents.parallel_agent import parallel_get_info_agent
+from sub_agents.loop_agent import loop_refine_response_agent
+from prompts import SEQUENTIAL_SERVICE_AGENT_PROMPT
+from veadk import Runner
+from veadk.memory.short_term_memory import ShortTermMemory
+import asyncio
 
 sequential_service_agent = SequentialAgent(
     name="sequential_service_agent",
@@ -11,9 +14,7 @@ sequential_service_agent = SequentialAgent(
     sub_agents=[parallel_get_info_agent, loop_refine_response_agent]
 )
 
-from veadk import Runner
-from veadk.memory.short_term_memory import ShortTermMemory
-import asyncio
+
 
 app_name = "veadk_playground_app"
 user_id = "veadk_playground_user"

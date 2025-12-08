@@ -8,19 +8,16 @@ import asyncio
 
 if __name__ == "__main__":
     # Step 0: setup running configs
-    app_name = "hello_world"
+    app_name = "tos_mcp_agent"
     user_id = "agentkit_user"
     session_id = "agentkit_session"
     base_url = "http://127.0.0.1:8000"
     api_key = "agentkit test key"
 
-    task_num = 1
-
     # Step 1: create a session
     def create_session():
         create_session_request = CreateSessionRequest(
             session_id=session_id,
-            # session_id = session_id + f"_{random.randint(1, 9999)}",
         )
 
         response = requests.post(
@@ -57,8 +54,6 @@ if __name__ == "__main__":
                 print(line)
 
     async def send_request_parallel():
-        await send_request("我叫VeADK")
-        tasks = [send_request("你还记得我叫什么吗？") for _ in range(task_num)]
-        await asyncio.gather(*tasks)
+        await send_request("我有哪些存储桶,列出最近使用5个存储桶")
 
     asyncio.run(send_request_parallel())

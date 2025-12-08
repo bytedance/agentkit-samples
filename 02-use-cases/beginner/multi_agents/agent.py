@@ -1,6 +1,12 @@
-from veadk import Agent
-from multi_agents.sub_agents.sequential_agent import sequential_service_agent
-from multi_agents.prompts import CUSTOMER_SERVICE_AGENT_PROMPT, PRE_PROCESS_AGENT_PROMPT
+from veadk import Agent, Runner
+from veadk.memory.short_term_memory import ShortTermMemory
+from sub_agents.sequential_agent import sequential_service_agent
+from prompts import CUSTOMER_SERVICE_AGENT_PROMPT, PRE_PROCESS_AGENT_PROMPT
+from agentkit.apps import AgentkitAgentServerApp
+
+short_term_memory = ShortTermMemory(
+    backend="local"
+)  # 指定 local 后端，或直接 ShortTermMemory()
 
 pre_process_agent = Agent(
     name="pre_process_agent",
@@ -16,3 +22,13 @@ customer_service_agent = Agent(
 )
 
 root_agent = customer_service_agent
+
+runner = Runner(agent=root_agent)
+
+agent_server_app = AgentkitAgentServerApp(
+    agent=root_agent,
+    short_term_memory=short_term_memory,
+)
+
+if __name__ == "__main__":
+    agent_server_app.run(host="0.0.0.0", port=8000)
