@@ -1,5 +1,5 @@
 # Ark (OpenAI compatible)
-AGENT_MODEL_API_KEY=
+MODEL_AGENT_API_KEY=
 
 # LAS Seedance Online
 TOOL_LAS_API_KEY=

@@ -1,3 +1,12 @@
+'''
+Author: haoxingjun
+Date: 2025-12-11 02:45:35
+Email: haoxingjun@bytedance.com
+LastEditors: haoxingjun
+LastEditTime: 2025-12-11 11:23:07
+Description: file information
+Company: ByteDance
+'''
 import os
 import json
 from typing import Optional, Tuple
@@ -9,7 +18,7 @@ from volcenginesdkarkruntime import Ark
 console = Console()
 
 # Ark configuration read from environment
-ARK_API_KEY = os.getenv("ARK_API_KEY", "")
+MODEL_AGENT_API_KEY = os.getenv("MODEL_AGENT_API_KEY", "")
 ARK_BASE_URL = os.getenv("ARK_BASE_URL", "https://ark.cn-beijing.volces.com/api/v3")
 ARK_TEXT_EMBEDDING_MODEL = os.getenv("ARK_TEXT_EMBEDDING_MODEL", "doubao-embedding-text-240715")
 ARK_MULTIMODAL_EMBEDDING_MODEL = os.getenv("ARK_MODEL_ID", "doubao-embedding-vision-250615")
@@ -24,10 +33,10 @@ def get_openai_client() -> Tuple[Optional[OpenAI], Optional[str]]:
     if _openai_client is not None:
         return _openai_client, None
 
-    if not ARK_API_KEY:
-        return None, "ARK_API_KEY not set"
+    if not MODEL_AGENT_API_KEY:
+        return None, "MODEL_AGENT_API_KEY not set"
     try:
-        _openai_client = OpenAI(api_key=ARK_API_KEY, base_url=ARK_BASE_URL)
+        _openai_client = OpenAI(api_key=MODEL_AGENT_API_KEY, base_url=ARK_BASE_URL)
         return _openai_client, None
     except Exception as e:
         return None, f"Failed to init OpenAI client: {e}"
@@ -38,10 +47,10 @@ def get_ark_client() -> Tuple[Optional[Ark], Optional[str]]:
     if _ark_client is not None:
         return _ark_client, None
 
-    if not ARK_API_KEY:
-        return None, "ARK_API_KEY not set"
+    if not MODEL_AGENT_API_KEY:
+        return None, "MODEL_AGENT_API_KEY not set"
     try:
-        _ark_client = Ark(api_key=ARK_API_KEY, base_url=ARK_BASE_URL)
+        _ark_client = Ark(api_key=MODEL_AGENT_API_KEY, base_url=ARK_BASE_URL)
         return _ark_client, None
     except Exception as e:
         return None, f"Failed to init Ark client: {e}"
@@ -63,7 +72,7 @@ def get_multimodal_text_vector(text: str) -> Tuple[Optional[list], Optional[str]
     """Get multimodal text vector using Ark client."""
     client, error_msg = get_ark_client()
     if error_msg:
-        return None, "ARK_API_KEY 未设置"
+        return None, "MODEL_AGENT_API_KEY 未设置"
     try:
         resp = client.multimodal_embeddings.create(
             model=ARK_MULTIMODAL_EMBEDDING_MODEL,

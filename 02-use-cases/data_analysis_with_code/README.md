@@ -67,7 +67,7 @@
 编辑 `data_analysis_with_code/agentkit_deploy/settings.txt` 文件，配置以下两个项：
 
 ```
-AGENT_MODEL_API_KEY=your_api_key_here
+MODEL_AGENT_API_KEY=your_api_key_here
 TOOL_LAS_API_KEY=your_api_key_here
 ```
 
