@@ -158,6 +158,11 @@ agentkit launch
 
 # 测试部署的 Agent
 agentkit invoke '请生成古文片段 落霞与孤鹜齐飞，秋水共长天一色 的首帧图片'
+
+# 或使用 client.py 连接云端服务
+# 需要编辑 client.py，将其中的第 14 行和第 15 行的 base_url 和 api_key 修改为 agentkit.yaml 中生成的 runtime_endpoint 和 runtime_apikey 字段
+# 按需修改 client.py，第 56 行，请求的内容
+uv run client.py
 ```
 
 #### 方式二：使用 VeADK Web 调试界面

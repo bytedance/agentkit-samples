@@ -118,7 +118,27 @@ export VOLCENGINE_SECRET_KEY=<Your Secret Key>
 
 ### 运行方式
 
-#### 方式一：命令行测试（推荐入门）
+#### 方式一：部署到 AgentKit 平台（推荐）
+
+```bash
+cd travel_concierge
+
+# 配置部署参数
+agentkit config
+
+# 启动云端服务
+agentkit launch
+
+# 测试部署的 Agent
+agentkit invoke 'What is my habby?'
+
+# 或使用 client.py 连接云端服务
+# 需要编辑 client.py，将其中的第 14 行和第 15 行的 base_url 和 api_key 修改为 agentkit.yaml 中生成的 runtime_endpoint 和 runtime_apikey 字段
+# 按需修改 client.py，第 56 行，请求的内容
+uv run client.py
+```
+
+#### 方式二：命令行测试（推荐入门）
 
 ```bash
 # 启动 Agent 服务
@@ -126,6 +146,7 @@ uv run agent.py
 # 服务将监听 http://0.0.0.0:8000
 
 # 新开终端，运行测试客户端
+# 需要编辑 client.py，将其中的第 14 行和第 15 行的 base_url 和 api_key 修改为 agentkit.yaml 中生成的 runtime_endpoint 和 runtime_apikey 字段
 uv run client.py
 ```
 
@@ -140,7 +161,7 @@ data: {"event":"on_tool_end","tool":"web_search","output":"..."}
 data: {"event":"on_llm_chunk","data":{"content":"为您规划杭州三日游行程..."}}
 ```
 
-#### 方式二：使用 VeADK Web 调试界面
+#### 方式三：使用 VeADK Web 调试界面
 
 ```bash
 # 进入上级目录
@@ -154,7 +175,7 @@ veadk web
 
 Web 界面可以实时查看 Web 搜索的调用和返回结果。
 
-#### 方式三：部署到火山引擎 veFaaS
+#### 方式四：部署到火山引擎 veFaaS
 
 **安全提示**：
 
@@ -177,23 +198,6 @@ veadk deploy \
   --use-adk-web \
   --veapig-instance-name=<Your veaPIG Instance> \
   --iam-role "trn:iam::<Your Account ID>:role/<Your IAM Role>"
-```
-
-#### 方式四：部署到 AgentKit 平台
-
-```bash
-cd travel_concierge
-
-# 配置部署参数
-agentkit config
-
-# 启动云端服务
-agentkit launch
-
-# 编辑client.py，将其中的第14行和第15行的base_url与api_key修改为agentkit.yaml中生成的runtime_endpoint与runtime_apikey字段
-
-# 使用 client.py 连接云端服务
-uv run client.py
 ```
 
 ## 💡 示例对话

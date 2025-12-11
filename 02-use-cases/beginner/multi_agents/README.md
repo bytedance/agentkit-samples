@@ -149,7 +149,27 @@ export VOLCENGINE_SECRET_KEY=<Your Secret Key>
 
 ### 运行方式
 
-#### 方式一：命令行测试（推荐入门）
+#### 方式一：部署到 AgentKit 平台（推荐）
+
+```bash
+cd multi_agents
+
+# 配置部署参数
+agentkit config
+
+# 启动云端服务
+agentkit launch
+
+# 测试部署的 Agent
+agentkit invoke '我想买一台火山引擎虚拟机，用来做图像处理，可以帮我介绍一下哪个规格更适合我吗'
+
+# 或使用 client.py 连接云端服务
+# 需要编辑 client.py，将其中的第 14 行和第 15 行的 base_url 和 api_key 修改为 agentkit.yaml 中生成的 runtime_endpoint 和 runtime_apikey 字段
+# 按需修改 client.py，第 56 行，请求的内容
+uv run client.py
+```
+
+#### 方式二：命令行测试（推荐入门）
 
 ```bash
 # 启动 Agent 服务
@@ -157,6 +177,7 @@ uv run agent.py
 # 服务将监听 http://0.0.0.0:8000
 
 # 新开终端，运行测试客户端
+# 需要编辑 client.py，将其中的第 14 行和第 15 行的 base_url 和 api_key 修改为 agentkit.yaml 中生成的 runtime_endpoint 和 runtime_apikey 字段
 uv run client.py
 ```
 
@@ -172,7 +193,7 @@ data: {"event":"on_tool_start","tool":"web_search"}
 data: {"event":"on_llm_chunk","data":{"content":"根据您的需求..."}}
 ```
 
-#### 方式二：使用 VeADK Web 调试界面
+#### 方式三：使用 VeADK Web 调试界面
 
 ```bash
 # 进入上级目录
@@ -186,7 +207,7 @@ veadk web
 
 Web 界面可以可视化查看多 Agent 协作流程和执行轨迹。
 
-#### 方式三：部署到火山引擎 veFaaS
+#### 方式四：部署到火山引擎 veFaaS
 
 **安全提示**：
 
@@ -209,24 +230,6 @@ veadk deploy \
   --use-adk-web \
   --veapig-instance-name=<Your veaPIG Instance> \
   --iam-role "trn:iam::<Your Account ID>:role/<Your IAM Role>"
-```
-
-#### 方式四：部署到 AgentKit 平台
-
-```bash
-cd multi_agents
-
-# 配置部署参数
-agentkit config
-
-# 启动云端服务
-agentkit launch
-
-# 测试部署的 Agent
-agentkit invoke '我想买一台火山引擎虚拟机，用来做图像处理，可以帮我介绍一下哪个规格更适合我吗'
-
-# 或使用 client.py 连接云端服务
-uv run client.py
 ```
 
 ## 💡 示例对话

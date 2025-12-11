@@ -125,6 +125,7 @@ agentkit launch
 agentkit invoke 'who r u'
 
 # 或使用 client.py 连接云端服务
+# 需要编辑 client.py，将其中的第 14 行和第 15 行的 base_url 和 api_key 修改为 agentkit.yaml 中生成的 runtime_endpoint 和 runtime_apikey 字段
 uv run client.py
 ```
 
@@ -150,6 +151,7 @@ uv run agent.py
 # 服务将监听 http://0.0.0.0:8000
 
 # 新开终端，运行测试客户端
+# 需要编辑 client.py，将其中的第 14 行和第 15 行的 base_url 和 api_key 修改为 agentkit.yaml 中生成的 runtime_endpoint 和 runtime_apikey 字段
 uv run client.py
 ```
 
@@ -186,24 +188,6 @@ veadk deploy \
   --use-adk-web \
   --veapig-instance-name=<Your veaPIG Instance> \
   --iam-role "trn:iam::<Your Account ID>:role/<Your IAM Role>"
-```
-
-#### 方式四：部署到 AgentKit 平台
-
-```bash
-cd hello_world
-
-# 配置部署参数
-agentkit config
-
-# 启动云端服务
-agentkit launch
-
-# 测试部署的 Agent
-agentkit invoke 'who r u'
-
-# 或使用 client.py 连接云端服务
-uv run client.py
 ```
 
 ## 💡 示例对话
