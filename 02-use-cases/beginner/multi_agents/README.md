@@ -201,11 +201,11 @@ export VOLCENGINE_ACCESS_KEY=<Your Access Key>
 export VOLCENGINE_SECRET_KEY=<Your Secret Key>
 
 # 基础部署（快速开始）
-veadk deploy --vefaas-app-name=multi_agent_example --use-adk-web
+veadk deploy --vefaas-app-name=multi-agent-example --use-adk-web
 
 # 生产级部署（推荐）
 veadk deploy \
-  --vefaas-app-name=multi_agent_example \
+  --vefaas-app-name=multi-agent-example \
   --use-adk-web \
   --veapig-instance-name=<Your veaPIG Instance> \
   --iam-role "trn:iam::<Your Account ID>:role/<Your IAM Role>"

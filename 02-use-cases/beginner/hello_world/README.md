@@ -145,6 +145,8 @@ Web 界面提供图形化对话测试环境，支持实时查看消息流和调�
 #### 方式三：命令行测试
 
 ```bash
+cd hello_world
+
 # 启动 Agent 服务
 uv run agent.py
 # 服务将监听 http://0.0.0.0:8000
@@ -186,24 +188,6 @@ veadk deploy \
   --use-adk-web \
   --veapig-instance-name=<Your veaPIG Instance> \
   --iam-role "trn:iam::<Your Account ID>:role/<Your IAM Role>"
-```
-
-#### 方式四：部署到 AgentKit 平台
-
-```bash
-cd hello_world
-
-# 配置部署参数
-agentkit config
-
-# 启动云端服务
-agentkit launch
-
-# 测试部署的 Agent
-agentkit invoke 'who r u'
-
-# 或使用 client.py 连接云端服务
-uv run client.py
 ```
 
 ## 💡 示例对话
