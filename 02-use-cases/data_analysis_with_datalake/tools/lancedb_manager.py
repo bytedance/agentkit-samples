@@ -16,18 +16,6 @@ class LanceDBManager:
         self.lancedb_uri = os.getenv("LANCEDB_URI", "s3://emr-serverless-sdk/lance_catalog/default/imdb_top_1000")
         self.lancedb_metadata_uri = os.getenv("LANCEDB_METADATA_URI", "s3://emr-serverless-sdk/lance_catalog/default/metadata_table")
 
-        # Retrieve STS from IAM Role
-        self.access_key = os.getenv("VOLCENGINE_ACCESS_KEY")
-        self.secret_key = os.getenv("VOLCENGINE_SECRET_KEY")
-        self.session_token = ""
-
-        if not (self.access_key and self.secret_key):
-            # try to get from vefaas iam
-            cred = get_credential_from_vefaas_iam()
-            self.access_key = cred.access_key_id
-            self.secret_key = cred.secret_access_key
-            self.session_token = cred.session_token
-        
         self.tos_region = os.getenv("TOS_REGION", "cn-beijing")
         self.lancedb_aws_endpoint = os.getenv("LANCEDB_AWS_ENDPOINT", "")
         
@@ -58,7 +46,8 @@ class LanceDBManager:
         return db_root_uri, table_name
 
     def _storage_options(self, uri: str) -> dict:
-        """Build storage options for LanceDB connection based on URI and environment variables."""
+        """LanceDB storage_options:
+        Build storage options for LanceDB connection based on URI and environment variables."""
         endpoint = self.lancedb_aws_endpoint
         if not endpoint and uri and (uri.startswith("s3://") or uri.startswith("tos://")):
             no_scheme = uri[len("s3://"):]
@@ -68,6 +57,8 @@ class LanceDBManager:
         opts = {
             "aws_endpoint": endpoint,
             "virtual_hosted_style_request": "true",
+            "aws_unsigned_payload": "true",
+            "skip_signature": "true",
         }
         return opts
 
@@ -76,12 +67,6 @@ class LanceDBManager:
         target_uri = uri or self.lancedb_uri
         cache_key = target_uri + (f":{table_name}" if table_name else "")
         
-        if not self.access_key or not self.secret_key:
-            console.error(
-                "Error: VOLCENGINE_ACCESS_KEY and VOLCENGINE_SECRET_KEY are not provided or IAM Role is not configured."
-            )
-            return None, "Error: VOLCENGINE_ACCESS_KEY and VOLCENGINE_SECRET_KEY are not provided or IAM Role is not configured."
-
         # Return cached table if exists
         if cache_key in self._tables:
             return self._tables[cache_key], None
