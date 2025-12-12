@@ -2,9 +2,11 @@
 
 基于火山引擎 VeADK 和 AgentKit 构建的回调机制示例，全面展示 Agent 生命周期各阶段的回调函数和护栏功能。
 
-## 📋 概述
+## 概述
 
-本示例演示了 VeADK 中完整的 Agent 回调体系：
+本示例演示了 VeADK 中完整的 Agent 回调体系。
+
+## 核心功能
 
 - **六大回调函数**：覆盖 Agent 执行的完整生命周期
 - **护栏机制**：输入输出内容审核、PII 信息过滤
@@ -12,7 +14,7 @@
 - **结果后处理**：统一格式化和规范化输出
 - **全链路日志**：完整记录 Agent 执行轨迹
 
-## 🏗️ 架构
+## Agent 能力
 
 ```
 用户请求
@@ -80,11 +82,30 @@ await runner.run(messages="你好，我想了解一些关于 zanghua 的信息�
 await runner.run(messages="写一篇关于'太空探索'的文章，字数-100。")
 ```
 
-## 🚀 快速开始
+## 目录结构说明
 
-### 前置条件
+```
+callback/
+├── agent.py                    # Agent 应用入口
+├── callbacks/                  # 回调函数实现
+│   ├── __init__.py
+│   ├── before_agent_callback.py    # Agent前回调
+│   ├── after_agent_callback.py     # Agent后回调
+│   ├── before_model_callback.py    # 模型前回调
+│   ├── after_model_callback.py     # 模型后回调
+│   ├── before_tool_callback.py     # 工具前回调
+│   └── after_tool_callback.py      # 工具后回调
+├── tools/                      # 工具定义
+│   ├── __init__.py
+│   └── write_article.py        # 文章撰写工具
+├── requirements.txt            # Python 依赖列表
+├── pyproject.toml              # 项目配置（uv 依赖管理）
+└── README.md                   # 项目说明文档
+```
 
-**重要提示**：在运行本示例之前，请先访问 [AgentKit 控制台授权页面](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) 对所有依赖服务进行授权，确保案例能够正常执行。
+## 本地运行
+
+### 前置准备
 
 **1. 开通火山方舟模型服务**
 
@@ -95,7 +116,7 @@ await runner.run(messages="写一篇关于'太空探索'的文章，字数-100�
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
-### 安装步骤
+### 依赖安装
 
 #### 1. 安装 uv 包管理器
 
@@ -110,16 +131,33 @@ brew install uv
 #### 2. 初始化项目依赖
 
 ```bash
+# 进入项目目录
 cd 02-use-cases/beginner/callback
+```
 
-# 初始化虚拟环境和安装依赖
+您可以通过 `pip` 工具来安装本项目依赖：
+
+```bash
+pip install -r requirements.txt
+```
+
+或者使用 `uv` 工具来安装本项目依赖：
+
+```bash
+# 如果没有 `uv` 虚拟环境，可以使用命令先创建一个虚拟环境
+uv venv --python 3.12
+
+# 使用 `pyproject.toml` 管理依赖
 uv sync
+
+# 使用 `requirements.txt` 管理依赖
+uv pip install -r requirements.txt
 
 # 激活虚拟环境
 source .venv/bin/activate
 ```
 
-#### 3. 配置环境变量
+### 环境准备
 
 ```bash
 # 火山方舟模型名称
@@ -130,27 +168,9 @@ export VOLCENGINE_ACCESS_KEY=<Your Access Key>
 export VOLCENGINE_SECRET_KEY=<Your Secret Key>
 ```
 
-### 运行方式
+### 调试方法
 
-#### 方式一：部署到 AgentKit 平台（推荐）
-
-```bash
-cd callback
-
-# 配置部署参数
-agentkit config
-
-# 启动云端服务
-agentkit launch
-
-# 测试回调功能
-agentkit invoke '请帮我写一篇关于人工智能未来的500字文章'
-
-# 测试护栏功能
-agentkit invoke '你好，我想了解一些关于 zanghua 的信息'
-```
-
-#### 方式二：使用 VeADK Web 调试界面
+#### 方式一：使用 VeADK Web 调试界面
 
 ```bash
 # 进入上级目录
@@ -164,7 +184,7 @@ veadk web --port 8080
 
 Web 界面可以实时查看回调执行顺序和日志输出。
 
-#### 方式三：命令行测试
+#### 方式二：命令行测试
 
 ```bash
 # 启动 Agent 服务并运行测试场景
@@ -189,32 +209,56 @@ uv run agent.py
 [before_tool] 参数校验失败：字数必须为正数
 ```
 
-#### 方式四：部署到火山引擎 veFaaS
+## Agentkit 部署
 
-**安全提示**：
+### 前置准备
 
-> 以下命令仅用于开发测试。生产环境必须启用 `VEFAAS_ENABLE_KEY_AUTH=true`（默认值）并配置 IAM 角色。
+**重要提示**：在运行本示例之前，请先访问 [AgentKit 控制台授权页面](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) 对所有依赖服务进行授权，确保案例能够正常执行。
+
+**1. 开通火山方舟模型服务**
+
+- 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
+- 开通模型服务
+
+**2. 获取火山引擎访问凭证**
+
+- 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
+
+### AgentKit 云上部署
 
 ```bash
 cd callback
 
-# 配置环境变量（仅测试用）
-export VEFAAS_ENABLE_KEY_AUTH=false
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
+# 配置部署参数
+agentkit config
 
-# 基础部署（快速开始）
-veadk deploy --vefaas-app-name=callback_example --use-adk-web
+# 启动云端服务
+agentkit launch
 
-# 生产级部署（推荐）
-veadk deploy \
-  --vefaas-app-name=callback_example \
-  --use-adk-web \
-  --veapig-instance-name=<Your veaPIG Instance> \
-  --iam-role "trn:iam::<Your Account ID>:role/<Your IAM Role>"
+# 测试回调功能
+agentkit invoke '请帮我写一篇关于人工智能未来的500字文章'
+
+# 测试护栏功能
+agentkit invoke '你好，我想了解一些关于 zanghua 的信息'
+
+# 或使用 client.py 连接云端服务
+# 需要编辑 client.py，将其中的第 14 行和第 15 行的 base_url 和 api_key 修改为 agentkit.yaml 中生成的 runtime_endpoint 和 runtime_apikey 字段
+# 按需修改 client.py，第 56 行，请求的内容
+uv run client.py
 ```
 
-## 💡 回调函数详解
+## 示例提示词
+
+完成 Callback 学习后，可以探索：
+
+1. **[Hello World](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/hello_world/README.md)** - 了解基础 Agent
+2. **[Multi Agents](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/multi_agents/README.md)** - 多 Agent 中的回调
+3. **[Travel Concierge](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/travel_concierge/README.md)** - 工具集成
+4. **[Video Generator](../../video_gen/README.md)** - 复杂工作流
+
+## 效果展示
+
+## 回调函数详解
 
 ### 1. before_agent_callback
 
@@ -363,28 +407,7 @@ def after_agent_callback(agent, callback_context, result):
     cleanup_temp_files(callback_context.session_id)
 ```
 
-## 📂 目录结构
-
-```
-callback/
-├── agent.py                    # Agent 应用入口
-├── callbacks/                  # 回调函数实现
-│   ├── __init__.py
-│   ├── before_agent_callback.py    # Agent前回调
-│   ├── after_agent_callback.py     # Agent后回调
-│   ├── before_model_callback.py    # 模型前回调
-│   ├── after_model_callback.py     # 模型后回调
-│   ├── before_tool_callback.py     # 工具前回调
-│   └── after_tool_callback.py      # 工具后回调
-├── tools/                      # 工具定义
-│   ├── __init__.py
-│   └── write_article.py        # 文章撰写工具
-├── requirements.txt            # Python 依赖列表
-├── pyproject.toml              # 项目配置（uv 依赖管理）
-└── README.md                   # 项目说明文档
-```
-
-## 🔍 技术要点
+## 技术要点
 
 ### 回调执行顺序
 
@@ -424,7 +447,7 @@ callback/
 | **性能监控**   | before_agent, after_agent | 统计响应时间       |
 | **结果规范化** | after_tool, after_model   | 统一输出格式       |
 
-## 🎯 扩展方向
+## 扩展方向
 
 ### 1. 增强护栏功能
 
@@ -444,17 +467,12 @@ callback/
 - **A/B 测试**：对比不同策略效果
 - **异常检测**：自动识别异常请求
 
-## 📖 相关示例
-
-完成 Callback 学习后，可以探索：
-
-1. **[Hello World](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/hello_world/README.md)** - 了解基础 Agent
-2. **[Multi Agents](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/multi_agents/README.md)** - 多 Agent 中的回调
-3. **[Travel Concierge](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/travel_concierge/README.md)** - 工具集成
-4. **[Video Generator](../../video_gen/README.md)** - 复杂工作流
-
-## 📖 参考资料
+## 参考资料
 
 - [VeADK 官方文档](https://volcengine.github.io/veadk-python/)
 - [AgentKit 开发指南](https://volcengine.github.io/agentkit-sdk-python/)
 - [火山方舟模型服务](https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new&projectName=default)
+
+## 代码许可
+
+本工程遵循 Apache 2.0 License

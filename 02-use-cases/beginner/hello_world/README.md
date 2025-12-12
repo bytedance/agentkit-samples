@@ -2,16 +2,18 @@
 
 基于火山引擎 VeADK 和 AgentKit 构建的入门级对话智能体，展示如何创建一个具备短期记忆能力的基础 AI Agent。
 
-## 📋 概述
+## 概述
 
-本示例是 AgentKit 的 "Hello World"，展示最基本的 Agent 构建流程：
+本示例是 AgentKit 的 "Hello World"，展示最基本的 Agent 构建流程。
+
+## 核心功能
 
 - 创建一个简单的对话 Agent
 - 使用本地短期记忆维护对话上下文
 - 实现多轮对话中的信息记忆
 - 支持本地调试和云端部署
 
-## 🏗️ 架构
+## Agent 能力
 
 ```
 用户消息
@@ -58,11 +60,22 @@ async def main():
     response2 = await runner.run(messages="你还记得我叫什么吗？", session_id=session_id)
 ```
 
-## 🚀 快速开始
+## 目录结构说明
 
-### 前置条件
+```
+hello_world/
+├── agent.py           # Agent 应用入口
+├── client.py          # 测试客户端（SSE 流式调用）
+├── requirements.txt   # Python 依赖列表 （agentkit部署时需要指定依赖文件)
+├── pyproject.toml     # 项目配置（uv 依赖管理）
+├── agentkit.yaml      # AgentKit 部署配置（运行agentkit config之后会自动生成）
+├── Dockerfile         # Docker 镜像构建文件（运行agentkit config之后会自动生成）
+└── README.md          # 项目说明文档
+```
 
-**重要提示**：在运行本示例之前，请先访问 [AgentKit 控制台授权页面](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) 对所有依赖服务进行授权，确保案例能够正常执行。
+## 本地运行
+
+### 前置准备
 
 **1. 开通火山方舟模型服务**
 
@@ -73,7 +86,7 @@ async def main():
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
-### 安装步骤
+### 依赖安装
 
 #### 1. 安装 uv 包管理器
 
@@ -88,16 +101,33 @@ brew install uv
 #### 2. 初始化项目依赖
 
 ```bash
+# 进入项目目录
 cd 02-use-cases/beginner/hello_world
+```
 
-# 初始化虚拟环境和安装依赖
+您可以通过 `pip` 工具来安装本项目依赖：
+
+```bash
+pip install -r requirements.txt
+```
+
+或者使用 `uv` 工具来安装本项目依赖：
+
+```bash
+# 如果没有 `uv` 虚拟环境，可以使用命令先创建一个虚拟环境
+uv venv --python 3.12
+
+# 使用 `pyproject.toml` 管理依赖
 uv sync
+
+# 使用 `requirements.txt` 管理依赖
+uv pip install -r requirements.txt
 
 # 激活虚拟环境
 source .venv/bin/activate
 ```
 
-#### 3. 配置环境变量
+### 环境准备
 
 ```bash
 # 火山方舟模型名称
@@ -108,9 +138,62 @@ export VOLCENGINE_ACCESS_KEY=<Your Access Key>
 export VOLCENGINE_SECRET_KEY=<Your Secret Key>
 ```
 
-### 运行方式
+### 调试方法
 
-#### 方式一：部署到 AgentKit 平台（推荐）
+#### 方式一：使用 VeADK Web 调试界面
+
+```bash
+# 进入上级目录
+cd ..
+
+# 启动 VeADK Web 界面
+veadk web --port 8080
+
+# 在浏览器访问：http://127.0.0.1:8080
+```
+
+Web 界面提供图形化对话测试环境，支持实时查看消息流和调试信息。
+
+#### 方式二：命令行测试
+
+```bash
+cd hello_world
+
+# 启动 Agent 服务
+uv run agent.py
+# 服务将监听 http://0.0.0.0:8000
+
+# 新开终端，运行测试客户端
+# 需要编辑 client.py，将其中的第 14 行和第 15 行的 base_url 和 api_key 修改为 agentkit.yaml 中生成的 runtime_endpoint 和 runtime_apikey 字段
+uv run client.py
+```
+
+**运行效果**：
+
+```
+[create session] Response from server: {"session_id": "agentkit_session"}
+[run agent] Event from server:
+data: {"event":"on_agent_start",...}
+data: {"event":"on_llm_chunk","data":{"content":"你好VeADK！很高兴认识你。"}}
+data: {"event":"on_llm_chunk","data":{"content":"当然记得，你叫VeADK。"}}
+```
+
+## Agentkit 部署
+
+### 前置准备
+
+**重要提示**：在运行本示例之前，请先访问 [AgentKit 控制台授权页面](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) 对所有依赖服务进行授权，确保案例能够正常执行。
+
+**1. 开通火山方舟模型服务**
+
+- 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
+- 开通模型服务
+
+**2. 获取火山引擎访问凭证**
+
+- 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
+
+### AgentKit 云上部署
 
 ```bash
 cd hello_world
@@ -125,72 +208,11 @@ agentkit launch
 agentkit invoke 'who r u'
 
 # 或使用 client.py 连接云端服务
+# 需要编辑 client.py，将其中的第 14 行和第 15 行的 base_url 和 api_key 修改为 agentkit.yaml 中生成的 runtime_endpoint 和 runtime_apikey 字段
 uv run client.py
 ```
 
-#### 方式二：使用 VeADK Web 调试界面
-
-```bash
-# 进入上级目录
-cd ..
-
-# 启动 VeADK Web 界面
-veadk web --port 8080
-
-# 在浏览器访问：http://127.0.0.1:8080
-```
-
-Web 界面提供图形化对话测试环境，支持实时查看消息流和调试信息。
-
-#### 方式三：命令行测试
-
-```bash
-cd hello_world
-
-# 启动 Agent 服务
-uv run agent.py
-# 服务将监听 http://0.0.0.0:8000
-
-# 新开终端，运行测试客户端
-uv run client.py
-```
-
-**运行效果**：
-
-```
-[create session] Response from server: {"session_id": "agentkit_session"}
-[run agent] Event from server:
-data: {"event":"on_agent_start",...}
-data: {"event":"on_llm_chunk","data":{"content":"你好VeADK！很高兴认识你。"}}
-data: {"event":"on_llm_chunk","data":{"content":"当然记得，你叫VeADK。"}}
-```
-
-#### 方式四：部署到火山引擎 veFaaS
-
-**安全提示**：
-
-> 以下命令仅用于开发测试。生产环境必须启用 `VEFAAS_ENABLE_KEY_AUTH=true`（默认值）并配置 IAM 角色。
-
-```bash
-cd hello_world
-
-# 配置环境变量（仅测试用）
-export VEFAAS_ENABLE_KEY_AUTH=false
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
-
-# 基础部署（快速开始）
-veadk deploy --vefaas-app-name=hello-world --use-adk-web
-
-# 生产级部署（推荐）
-veadk deploy \
-  --vefaas-app-name=hello-world \
-  --use-adk-web \
-  --veapig-instance-name=<Your veaPIG Instance> \
-  --iam-role "trn:iam::<Your Account ID>:role/<Your IAM Role>"
-```
-
-## 💡 示例对话
+## 示例提示词
 
 ### 基础对话测试
 
@@ -226,20 +248,9 @@ Agent：明白了，你在北京工作，在互联网公司。
 Agent：知道的，你叫VeADK，25岁，喜欢编程，在北京的一家互联网公司工作。
 ```
 
-## 📂 目录结构
+## 效果展示
 
-```
-hello_world/
-├── agent.py           # Agent 应用入口
-├── client.py          # 测试客户端（SSE 流式调用）
-├── requirements.txt   # Python 依赖列表 （agentkit部署时需要指定依赖文件)
-├── pyproject.toml     # 项目配置（uv 依赖管理）
-├── agentkit.yaml      # AgentKit 部署配置（运行agentkit config之后会自动生成）
-├── Dockerfile         # Docker 镜像构建文件（运行agentkit config之后会自动生成）
-└── README.md          # 项目说明文档
-```
-
-## 🔍 技术要点
+## 技术要点
 
 ### 短期记忆
 
@@ -265,7 +276,7 @@ agent_server_app = AgentkitAgentServerApp(
 )
 ```
 
-## 🎯 下一步
+## 下一步
 
 完成 Hello World 后，可以探索更多功能：
 
@@ -274,8 +285,12 @@ agent_server_app = AgentkitAgentServerApp(
 3. **[Travel Concierge](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/travel_concierge/README.md)** - 使用 Web 搜索工具规划旅行
 4. **[Video Generator](../../video_gen/README.md)** - 生成故事绘本视频
 
-## 📖 参考资料
+## 参考资料
 
 - [VeADK 官方文档](https://volcengine.github.io/veadk-python/)
 - [AgentKit 开发指南](https://volcengine.github.io/agentkit-sdk-python/)
 - [火山方舟模型服务](https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new&projectName=default)
+
+## 代码许可
+
+本工程遵循 Apache 2.0 License

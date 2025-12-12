@@ -2,16 +2,18 @@
 
 基于火山引擎 VeADK 和 AgentKit 构建的 MCP (Model Context Protocol) 集成示例，展示如何通过 MCP 协议让 Agent 调用火山引擎 TOS 对象存储服务。
 
-## 📋 概述
+## 概述
 
-本示例展示 Agent 如何集成 MCP 工具，实现对火山引擎对象存储（TOS）的智能化管理：
+本示例展示 Agent 如何集成 MCP 工具，实现对火山引擎对象存储（TOS）的智能化管理。
+
+## 核心功能
 
 - 集成火山 MCP Server 作为 Agent 工具
 - 通过自然语言操作对象存储（列举存储桶、查询文件、读取内容等）
 - 使用 MCPToolset 管理工具连接和调用
 - 展示生产级工具集成模式
 
-## 🏗️ 架构
+## Agent 能力
 
 ```
 用户自然语言指令
@@ -64,11 +66,23 @@ root_agent = Agent(
 )
 ```
 
-## 🚀 快速开始
+## 目录结构说明
 
-### 前置条件
+```
+mcp_simple/
+├── agent.py           # Agent 应用入口（含 MCP 集成）
+├── client.py          # 测试客户端（SSE 流式调用）
+├── requirements.txt   # Python 依赖列表 （agentkit部署时需要指定依赖文件)
+├── pyproject.toml     # 项目配置（uv 依赖管理）
+├── .python-version    # Python 版本声明（3.12）
+├── agentkit.yaml      # AgentKit 部署配置 （运行agentkit config之后会自动生成）
+├── Dockerfile         # Docker 镜像构建文件 （运行agentkit config之后会自动生成）
+└── README.md          # 项目说明文档
+```
 
-**重要提示**：在运行本示例之前，请先访问 [AgentKit 控制台授权页面](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) 对所有依赖服务进行授权，确保案例能够正常执行。
+## 本地运行
+
+### 前置准备
 
 **1. 开通火山方舟模型服务**
 
@@ -85,7 +99,7 @@ root_agent = Agent(
 - 找到 [TOS MCP](https://www.volcengine.com/mcp-marketplace/detail?name=TOS%20MCP) 服务
 - 获取服务访问端点（包含 token 的 URL）
 
-### 安装步骤
+### 依赖安装
 
 #### 1. 安装 uv 包管理器
 
@@ -100,16 +114,33 @@ brew install uv
 #### 2. 初始化项目依赖
 
 ```bash
+# 进入项目目录
 cd 02-use-cases/beginner/mcp_simple
+```
 
-# 初始化虚拟环境和安装依赖
+您可以通过 `pip` 工具来安装本项目依赖：
+
+```bash
+pip install -r requirements.txt
+```
+
+或者使用 `uv` 工具来安装本项目依赖：
+
+```bash
+# 如果没有 `uv` 虚拟环境，可以使用命令先创建一个虚拟环境
+uv venv --python 3.12
+
+# 使用 `pyproject.toml` 管理依赖
 uv sync
+
+# 使用 `requirements.txt` 管理依赖
+uv pip install -r requirements.txt
 
 # 激活虚拟环境
 source .venv/bin/activate
 ```
 
-#### 3. 配置环境变量
+### 环境准备
 
 ```bash
 # 火山方舟模型名称
@@ -125,7 +156,7 @@ export TOOL_TOS_URL=https://tos.mcp.volcbiz.com/mcp?token=xxxxxx
 
 **说明**：`TOOL_TOS_URL` 需要包含完整的认证 token，从火山 MCP Marketplace 获取。
 
-### 运行方式
+### 调试方法
 
 #### 方式一：命令行测试（推荐入门）
 
@@ -135,6 +166,7 @@ uv run agent.py
 # 服务将监听 http://0.0.0.0:8000
 
 # 新开终端，运行测试客户端
+# 需要编辑 client.py，将其中的第 14 行和第 15 行的 base_url 和 api_key 修改为 agentkit.yaml 中生成的 runtime_endpoint 和 runtime_apikey 字段
 uv run client.py
 ```
 
@@ -162,33 +194,28 @@ veadk web
 
 Web 界面可以实时查看 MCP 工具调用过程和返回结果。
 
-#### 方式三：部署到火山引擎 veFaaS
+## Agentkit 部署
 
-**安全提示**：
+### 前置准备
 
-> 以下命令仅用于开发测试。生产环境必须启用 `VEFAAS_ENABLE_KEY_AUTH=true`（默认值）并配置 IAM 角色。
+**重要提示**：在运行本示例之前，请先访问 [AgentKit 控制台授权页面](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) 对所有依赖服务进行授权，确保案例能够正常执行。
 
-```bash
-cd mcp_simple
+**1. 开通火山方舟模型服务**
 
-# 配置环境变量（仅测试用）
-export VEFAAS_ENABLE_KEY_AUTH=false
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
-export TOOL_TOS_URL=<Your MCP Service URL>
+- 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
+- 开通模型服务
 
-# 基础部署（快速开始）
-veadk deploy --vefaas-app-name=mcp-simple-example --use-adk-web
+**2. 获取火山引擎访问凭证**
 
-# 生产级部署（推荐）
-veadk deploy \
-  --vefaas-app-name=mcp-simple-example \
-  --use-adk-web \
-  --veapig-instance-name=<Your veaPIG Instance> \
-  --iam-role "trn:iam::<Your Account ID>:role/<Your IAM Role>"
-```
+- 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
-#### 方式四：部署到 AgentKit 平台
+**3. 获取 TOS MCP 服务 URL**
+
+- 访问 [火山 MCP Marketplace](https://www.volcengine.com/mcp-marketplace)
+- 找到 [TOS MCP](https://www.volcengine.com/mcp-marketplace/detail?name=TOS%20MCP) 服务
+- 获取服务访问端点（包含 token 的 URL）
+
+### AgentKit 云上部署
 
 ```bash
 cd mcp_simple
@@ -203,10 +230,12 @@ agentkit launch
 agentkit invoke '当前账号下有哪些存储桶'
 
 # 或使用 client.py 连接云端服务
+# 需要编辑 client.py，将其中的第 14 行和第 15 行的 base_url 和 api_key 修改为 agentkit.yaml 中生成的 runtime_endpoint 和 runtime_apikey 字段
+# 按需修改 client.py，第 56 行，请求的内容
 uv run client.py
 ```
 
-## 💡 示例对话
+## 示例提示词
 
 ### 查询存储桶列表
 
@@ -260,21 +289,9 @@ Agent：好的，我来统计一下...
       总计: 246 个文件
 ```
 
-## 📂 目录结构
+## 效果展示
 
-```
-mcp_simple/
-├── agent.py           # Agent 应用入口（含 MCP 集成）
-├── client.py          # 测试客户端（SSE 流式调用）
-├── requirements.txt   # Python 依赖列表 （agentkit部署时需要指定依赖文件)
-├── pyproject.toml     # 项目配置（uv 依赖管理）
-├── .python-version    # Python 版本声明（3.12）
-├── agentkit.yaml      # AgentKit 部署配置 （运行agentkit config之后会自动生成）
-├── Dockerfile         # Docker 镜像构建文件 （运行agentkit config之后会自动生成）
-└── README.md          # 项目说明文档
-```
-
-## 🔍 技术要点
+## 技术要点
 
 ### MCP 协议集成
 
@@ -330,7 +347,7 @@ agent = Agent(tools=[tos_mcp_runner])
 - **访问控制**：get_object_acl, set_object_acl
 - **更多操作**：参考 [TOS API 文档](https://www.volcengine.com/docs/tos)
 
-## 🎯 下一步
+## 下一步
 
 完成 MCP 集成后，可以探索：
 
@@ -339,7 +356,7 @@ agent = Agent(tools=[tos_mcp_runner])
 3. **[Travel Concierge](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/travel_concierge/README.md)** - 结合其他工具类型
 4. **[Video Generator](../../video_gen/README.md)** - 复杂工具链编排
 
-## 📖 参考资料
+## 参考资料
 
 - [VeADK 官方文档](https://volcengine.github.io/veadk-python/)
 - [AgentKit 开发指南](https://volcengine.github.io/agentkit-sdk-python/)
@@ -347,3 +364,7 @@ agent = Agent(tools=[tos_mcp_runner])
 - [MCP 协议规范](https://modelcontextprotocol.io)
 - [火山 MCP Marketplace](https://www.volcengine.com/mcp-marketplace)
 - [TOS 对象存储文档](https://www.volcengine.com/docs/tos)
+
+## 代码许可
+
+本工程遵循 Apache 2.0 License

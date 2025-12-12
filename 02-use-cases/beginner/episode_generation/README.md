@@ -2,16 +2,18 @@
 
 基于火山引擎 VeADK 和多媒体生成工具构建的创意内容生成示例，展示如何通过多智能体协作生成图片和视频内容。
 
-## 📋 概述
+## 概述
 
-本示例演示如何使用 VeADK 构建多智能体系统，根据文本描述生成图片或视频：
+本示例演示如何使用 VeADK 构建多智能体系统，根据文本描述生成图片或视频。
+
+## 核心功能
 
 - 多智能体架构：主 Agent 协调多个子 Agent
 - 图像生成：将文字描述转换为图片
 - 视频生成：基于图片或文字生成视频
 - 内容搜索：使用 Web 搜索增强创作能力
 
-## 🏗️ 架构
+## Agent 能力
 
 ```
 用户输入（文本描述）
@@ -88,9 +90,19 @@ asyncio.run(main([
 ]))
 ```
 
-## 🚀 快速开始
+## 目录结构说明
 
-### 前置条件
+```
+episode_generation/
+├── agent.py                    # Agent 应用入口
+├── requirements.txt            # Python 依赖列表
+├── pyproject.toml              # 项目配置（uv 依赖管理）
+└── README.md                   # 项目说明文档
+```
+
+## 本地运行
+
+### 前置准备
 
 **重要提示**：在运行本示例之前，请先访问 [AgentKit 控制台授权页面](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) 对所有依赖服务进行授权，确保案例能够正常执行。
 
@@ -108,7 +120,7 @@ asyncio.run(main([
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
-### 安装步骤
+### 依赖安装
 
 #### 1. 安装 uv 包管理器
 
@@ -123,16 +135,33 @@ brew install uv
 #### 2. 初始化项目依赖
 
 ```bash
+# 进入项目目录
 cd 02-use-cases/beginner/episode_generation
+```
 
-# 初始化虚拟环境和安装依赖
+您可以通过 `pip` 工具来安装本项目依赖：
+
+```bash
+pip install -r requirements.txt
+```
+
+或者使用 `uv` 工具来安装本项目依赖：
+
+```bash
+# 如果没有 `uv` 虚拟环境，可以使用命令先创建一个虚拟环境
+uv venv --python 3.12
+
+# 使用 `pyproject.toml` 管理依赖
 uv sync
+
+# 使用 `requirements.txt` 管理依赖
+uv pip install -r requirements.txt
 
 # 激活虚拟环境
 source .venv/bin/activate
 ```
 
-#### 3. 配置环境变量
+### 环境准备
 
 ```bash
 # 火山方舟模型名称
@@ -143,24 +172,9 @@ export VOLCENGINE_ACCESS_KEY=<Your Access Key>
 export VOLCENGINE_SECRET_KEY=<Your Secret Key>
 ```
 
-### 运行方式
+### 调试方法
 
-#### 方式一：部署到 AgentKit 平台（推荐）
-
-```bash
-cd episode_generation
-
-# 配置部署参数
-agentkit config
-
-# 启动云端服务
-agentkit launch
-
-# 测试部署的 Agent
-agentkit invoke '请生成古文片段 落霞与孤鹜齐飞，秋水共长天一色 的首帧图片'
-```
-
-#### 方式二：使用 VeADK Web 调试界面
+#### 方式一：使用 VeADK Web 调试界面
 
 ```bash
 # 进入上级目录
@@ -174,7 +188,7 @@ veadk web
 
 Web 界面提供图形化对话测试环境，支持实时查看生成的图片和视频。
 
-#### 方式三：命令行测试（推荐学习）
+#### 方式二：命令行测试（推荐学习）
 
 ```bash
 # 运行示例脚本
@@ -185,32 +199,42 @@ uv run agent.py
 # 2. 基于图片生成视频
 ```
 
-#### 方式四：部署到火山引擎 veFaaS
+## Agentkit 部署
 
-**安全提示**：
+### 前置准备
 
-> 以下命令仅用于开发测试。生产环境必须启用 `VEFAAS_ENABLE_KEY_AUTH=true`（默认值）并配置 IAM 角色。
+**重要提示**：在运行本示例之前，请先访问 [AgentKit 控制台授权页面](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) 对所有依赖服务进行授权，确保案例能够正常执行。
+
+**1. 开通火山方舟模型服务**
+
+- 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
+- 开通模型服务
+
+**2. 获取火山引擎访问凭证**
+
+- 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
+
+### AgentKit 云上部署
 
 ```bash
 cd episode_generation
 
-# 配置环境变量（仅测试用）
-export VEFAAS_ENABLE_KEY_AUTH=false
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
+# 配置部署参数
+agentkit config
 
-# 基础部署（快速开始）
-veadk deploy --vefaas-app-name=episode-gen-agent --use-adk-web
+# 启动云端服务
+agentkit launch
 
-# 生产级部署（推荐）
-veadk deploy \
-  --vefaas-app-name=episode-gen-agent \
-  --use-adk-web \
-  --veapig-instance-name=<Your veaPIG Instance> \
-  --iam-role "trn:iam::<Your Account ID>:role/<Your IAM Role>"
+# 测试部署的 Agent
+agentkit invoke '请生成古文片段 落霞与孤鹜齐飞，秋水共长天一色 的首帧图片'
+
+# 或使用 client.py 连接云端服务
+# 需要编辑 client.py，将其中的第 14 行和第 15 行的 base_url 和 api_key 修改为 agentkit.yaml 中生成的 runtime_endpoint 和 runtime_apikey 字段
+# 按需修改 client.py，第 56 行，请求的内容
+uv run client.py
 ```
 
-## 💡 示例对话
+## 示例提示词
 
 ### 图像生成
 
@@ -257,17 +281,9 @@ Agent：[调用 web_search 搜索富士山信息]
       已为您生成富士山的图片，展现了雪山、樱花等特征。
 ```
 
-## 📂 目录结构
+## 效果展示
 
-```
-episode_generation/
-├── agent.py           # Agent 应用入口（多智能体系统）
-├── requirements.txt   # Python 依赖列表
-├── pyproject.toml     # 项目配置（uv 依赖管理）
-└── README.md          # 项目说明文档
-```
-
-## 🔍 技术要点
+## 技术要点
 
 ### 多智能体架构
 
@@ -310,7 +326,7 @@ from veadk.tools.builtin_tools.web_search import web_search
 4. **工具执行**：子 Agent 调用生成工具
 5. **结果返回**：生成的图片/视频返回给用户
 
-## 🎯 下一步
+## 下一步
 
 完成 Episode Generation 示例后,可以探索更多功能：
 
@@ -319,9 +335,13 @@ from veadk.tools.builtin_tools.web_search import web_search
 3. **[Travel Concierge](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/travel_concierge/README.md)** - 使用 Web 搜索工具规划旅行
 4. **[Video Generator](../../video_gen/README.md)** - 高级视频生成示例
 
-## 📖 参考资料
+## 参考资料
 
 - [VeADK 官方文档](https://volcengine.github.io/veadk-python/)
 - [AgentKit 开发指南](https://volcengine.github.io/agentkit-sdk-python/)
 - [火山方舟模型服务](https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new&projectName=default)
 - [视频生成工具文档](https://volcengine.github.io/veadk-python/tools/builtin/#video-generate)
+
+## 代码许可
+
+本工程遵循 Apache 2.0 License

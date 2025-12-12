@@ -2,9 +2,11 @@
 
 基于火山引擎 VeADK 构建的高级点餐 Agent，展示如何实现复杂业务流程、异步工具调用、上下文管理和自定义插件等高级特性。
 
-## 📋 概述
+## 概述
 
-本示例是一个功能完善的餐厅点餐助手，展示 VeADK 的多项高级能力：
+本示例是一个功能完善的餐厅点餐助手，展示 VeADK 的多项高级能力。
+
+## 核心功能
 
 - 异步工具与并行调用：同时处理多个菜品订单
 - 高级上下文管理：事件压缩和上下文过滤
@@ -12,7 +14,7 @@
 - 自定义插件：监控 Agent 运行次数和 LLM 调用
 - Web 搜索集成：处理菜单外的特殊需求
 
-## 🏗️ 架构
+## Agent 能力
 
 ```
 用户点餐请求
@@ -130,11 +132,19 @@ app = App(
 )
 ```
 
-## 🚀 快速开始
+## 目录结构说明
 
-### 前置条件
+```
+restaurant_ordering/
+├── agent.py           # Agent 应用入口（高级特性示例）
+├── main.py            # 完整的点餐流程演示脚本
+├── requirements.txt   # Python 依赖列表 （agentkit部署时需要指定依赖文件)
+└── README.md          # 项目说明文档
+```
 
-**重要提示**：在运行本示例之前，请先访问 [AgentKit 控制台授权页面](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) 对所有依赖服务进行授权，确保案例能够正常执行。
+## 本地运行
+
+### 前置准备
 
 **1. 开通火山方舟模型服务**
 
@@ -145,7 +155,7 @@ app = App(
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
-### 安装步骤
+### 依赖安装
 
 #### 1. 安装 uv 包管理器
 
@@ -160,14 +170,33 @@ brew install uv
 #### 2. 初始化项目依赖
 
 ```bash
+# 进入项目目录
 cd 02-use-cases/beginner/restaurant_ordering
-
-# 安装 VeADK 和 AgentKit SDK
-uv pip install veadk-python
-uv pip install agentkit-sdk-python
 ```
 
-#### 3. 配置环境变量
+您可以通过 `pip` 工具来安装本项目依赖：
+
+```bash
+pip install -r requirements.txt
+```
+
+或者使用 `uv` 工具来安装本项目依赖：
+
+```bash
+# 如果没有 `uv` 虚拟环境，可以使用命令先创建一个虚拟环境
+uv venv --python 3.12
+
+# 使用 `pyproject.toml` 管理依赖
+uv sync
+
+# 使用 `requirements.txt` 管理依赖
+uv pip install -r requirements.txt
+
+# 激活虚拟环境
+source .venv/bin/activate
+```
+
+### 环境准备
 
 ```bash
 # 火山方舟模型名称
@@ -178,24 +207,9 @@ export VOLCENGINE_ACCESS_KEY=<Your Access Key>
 export VOLCENGINE_SECRET_KEY=<Your Secret Key>
 ```
 
-### 运行方式
+### 调试方法
 
-#### 方式一：部署到 AgentKit 平台（推荐）
-
-```bash
-cd restaurant_ordering
-
-# 配置部署参数
-agentkit config
-
-# 启动云端服务
-agentkit launch
-
-# 测试部署的 Agent
-agentkit invoke '你好，我想吃点辣的。'
-```
-
-#### 方式二：使用 VeADK Web 调试界面
+#### 方式一：使用 VeADK Web 调试界面
 
 ```bash
 # 进入上级目录
@@ -209,7 +223,7 @@ veadk web
 
 Web 界面提供图形化对话测试环境，支持实时查看订单状态和调试信息。
 
-#### 方式三：命令行测试（推荐学习）
+#### 方式二：命令行测试（推荐学习）
 
 ```bash
 # 运行完整的点餐流程演示
@@ -220,32 +234,42 @@ python agent.py
 # 服务将监听 http://0.0.0.0:8000
 ```
 
-#### 方式四：部署到火山引擎 veFaaS
+## Agentkit 部署
 
-**安全提示**：
+### 前置准备
 
-> 以下命令仅用于开发测试。生产环境必须启用 `VEFAAS_ENABLE_KEY_AUTH=true`（默认值）并配置 IAM 角色。
+**重要提示**：在运行本示例之前，请先访问 [AgentKit 控制台授权页面](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) 对所有依赖服务进行授权，确保案例能够正常执行。
+
+**1. 开通火山方舟模型服务**
+
+- 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
+- 开通模型服务
+
+**2. 获取火山引擎访问凭证**
+
+- 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
+
+### AgentKit 云上部署
 
 ```bash
 cd restaurant_ordering
 
-# 配置环境变量（仅测试用）
-export VEFAAS_ENABLE_KEY_AUTH=false
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
+# 配置部署参数
+agentkit config
 
-# 基础部署（快速开始）
-veadk deploy --vefaas-app-name=order-agent --use-adk-web
+# 启动云端服务
+agentkit launch
 
-# 生产级部署（推荐）
-veadk deploy \
-  --vefaas-app-name=order-agent \
-  --use-adk-web \
-  --veapig-instance-name=<Your veaPIG Instance> \
-  --iam-role "trn:iam::<Your Account ID>:role/<Your IAM Role>"
+# 测试部署的 Agent
+agentkit invoke '你好，我想吃点辣的。'
+
+# 或使用 client.py 连接云端服务
+# 需要编辑 client.py，将其中的第 14 行和第 15 行的 base_url 和 api_key 修改为 agentkit.yaml 中生成的 runtime_endpoint 和 runtime_apikey 字段
+# 按需修改 client.py，第 56 行，请求的内容
+uv run client.py
 ```
 
-## 💡 示例对话
+## 示例提示词
 
 ### 基础点餐流程
 
@@ -331,17 +355,9 @@ prompts = [
 - Kung Pao Chicken
 ```
 
-## 📂 目录结构
+## 效果展示
 
-```
-restaurant_ordering/
-├── agent.py           # Agent 应用入口（高级特性示例）
-├── main.py            # 完整的点餐流程演示脚本
-├── requirements.txt   # Python 依赖列表 （agentkit部署时需要指定依赖文件)
-└── README.md          # 项目说明文档
-```
-
-## 🔍 技术要点
+## 技术要点
 
 ### 1. 异步工具与并行调用
 
@@ -421,7 +437,7 @@ agent_server_app = AgentkitAgentServerApp(
 )
 ```
 
-## 🎯 下一步
+## 下一步
 
 完成 Restaurant Ordering 示例后，可以探索更多功能：
 
@@ -430,9 +446,13 @@ agent_server_app = AgentkitAgentServerApp(
 3. **[Travel Concierge](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/travel_concierge/README.md)** - 使用 Web 搜索工具规划旅行
 4. **[Video Generator](../../video_gen/README.md)** - 高级视频生成示例
 
-## 📖 参考资料
+## 参考资料
 
 - [VeADK 官方文档](https://volcengine.github.io/veadk-python/)
 - [AgentKit 开发指南](https://volcengine.github.io/agentkit-sdk-python/)
 - [火山方舟模型服务](https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new&projectName=default)
 - [Google ADK 上下文压缩](https://google.github.io/adk-docs/context/compaction/)
+
+## 代码许可
+
+本工程遵循 Apache 2.0 License

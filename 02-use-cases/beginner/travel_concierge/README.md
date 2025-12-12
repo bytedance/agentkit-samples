@@ -2,16 +2,18 @@
 
 基于火山引擎 VeADK 和 AgentKit 构建的智能旅游规划助手，展示如何结合 Web 搜索工具和专业领域知识，自动规划完整的旅行行程。
 
-## 📋 概述
+## 概述
 
-本示例构建了一个专业的旅游行程规划师 Agent：
+本示例构建了一个专业的旅游行程规划师 Agent。
+
+## 核心功能
 
 - **智能规划**：根据用户需求自动规划旅行行程
 - **全面覆盖**：包含自然景点、人文景点、当地美食三个维度
 - **工具增强**：使用 Web 搜索获取最新的旅游信息
 - **专业指导**：遵循专业的旅游规划流程和约束
 
-## 🏗️ 架构
+## Agent 能力
 
 ```
 用户旅行需求
@@ -66,11 +68,20 @@ root_agent = Agent(
 - **约束**：必须包含三个方面，符合实际，使用工具
 - **输出格式**：清晰有条理的行程安排
 
-## 🚀 快速开始
+## 目录结构说明
 
-### 前置条件
+```
+travel_concierge/
+├── agent.py           # Agent 应用入口（含专业指令系统）
+├── client.py          # 测试客户端（SSE 流式调用）
+├── requirements.txt   # Python 依赖列表 （agentkit部署时需要指定依赖文件)
+├── pyproject.toml     # 项目配置（uv 依赖管理）
+└── README.md          # 项目说明文档
+```
 
-**重要提示**：在运行本示例之前，请先访问 [AgentKit 控制台授权页面](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) 对所有依赖服务进行授权，确保案例能够正常执行。
+## 本地运行
+
+### 前置准备
 
 **1. 开通火山方舟模型服务**
 
@@ -81,7 +92,7 @@ root_agent = Agent(
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
-### 安装步骤
+### 依赖安装
 
 #### 1. 安装 uv 包管理器
 
@@ -96,16 +107,33 @@ brew install uv
 #### 2. 初始化项目依赖
 
 ```bash
+# 进入项目目录
 cd 02-use-cases/beginner/travel_concierge
+```
 
-# 初始化虚拟环境和安装依赖
+您可以通过 `pip` 工具来安装本项目依赖：
+
+```bash
+pip install -r requirements.txt
+```
+
+或者使用 `uv` 工具来安装本项目依赖：
+
+```bash
+# 如果没有 `uv` 虚拟环境，可以使用命令先创建一个虚拟环境
+uv venv --python 3.12
+
+# 使用 `pyproject.toml` 管理依赖
 uv sync
+
+# 使用 `requirements.txt` 管理依赖
+uv pip install -r requirements.txt
 
 # 激活虚拟环境
 source .venv/bin/activate
 ```
 
-#### 3. 配置环境变量
+### 环境准备
 
 ```bash
 # 火山方舟模型名称
@@ -116,7 +144,7 @@ export VOLCENGINE_ACCESS_KEY=<Your Access Key>
 export VOLCENGINE_SECRET_KEY=<Your Secret Key>
 ```
 
-### 运行方式
+### 调试方法
 
 #### 方式一：命令行测试（推荐入门）
 
@@ -126,6 +154,7 @@ uv run agent.py
 # 服务将监听 http://0.0.0.0:8000
 
 # 新开终端，运行测试客户端
+# 需要编辑 client.py，将其中的第 14 行和第 15 行的 base_url 和 api_key 修改为 agentkit.yaml 中生成的 runtime_endpoint 和 runtime_apikey 字段
 uv run client.py
 ```
 
@@ -154,32 +183,22 @@ veadk web
 
 Web 界面可以实时查看 Web 搜索的调用和返回结果。
 
-#### 方式三：部署到火山引擎 veFaaS
+## Agentkit 部署
 
-**安全提示**：
+### 前置准备
 
-> 以下命令仅用于开发测试。生产环境必须启用 `VEFAAS_ENABLE_KEY_AUTH=true`（默认值）并配置 IAM 角色。
+**重要提示**：在运行本示例之前，请先访问 [AgentKit 控制台授权页面](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) 对所有依赖服务进行授权，确保案例能够正常执行。
 
-```bash
-cd travel_concierge
+**1. 开通火山方舟模型服务**
 
-# 配置环境变量（仅测试用）
-export VEFAAS_ENABLE_KEY_AUTH=false
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
+- 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
+- 开通模型服务
 
-# 基础部署（快速开始）
-veadk deploy --vefaas-app-name=travel-example --use-adk-web
+**2. 获取火山引擎访问凭证**
 
-# 生产级部署（推荐）
-veadk deploy \
-  --vefaas-app-name=travel-example \
-  --use-adk-web \
-  --veapig-instance-name=<Your veaPIG Instance> \
-  --iam-role "trn:iam::<Your Account ID>:role/<Your IAM Role>"
-```
+- 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
-#### 方式四：部署到 AgentKit 平台
+### AgentKit 云上部署
 
 ```bash
 cd travel_concierge
@@ -190,13 +209,16 @@ agentkit config
 # 启动云端服务
 agentkit launch
 
-# 编辑client.py，将其中的第14行和第15行的base_url与api_key修改为agentkit.yaml中生成的runtime_endpoint与runtime_apikey字段
+# 测试部署的 Agent
+agentkit invoke 'What is my habby?'
 
-# 使用 client.py 连接云端服务
+# 或使用 client.py 连接云端服务
+# 需要编辑 client.py，将其中的第 14 行和第 15 行的 base_url 和 api_key 修改为 agentkit.yaml 中生成的 runtime_endpoint 和 runtime_apikey 字段
+# 按需修改 client.py，第 56 行，请求的内容
 uv run client.py
 ```
 
-## 💡 示例对话
+## 示例提示词
 
 ### 示例一：杭州三日游
 
@@ -448,18 +470,9 @@ Agent：根据您的需求，为您推荐北京周边一日游：
 您更偏好哪一个？我可以为您详细规划行程！
 ```
 
-## 📂 目录结构
+## 效果展示
 
-```
-travel_concierge/
-├── agent.py           # Agent 应用入口（含专业指令系统）
-├── client.py          # 测试客户端（SSE 流式调用）
-├── requirements.txt   # Python 依赖列表 （agentkit部署时需要指定依赖文件)
-├── pyproject.toml     # 项目配置（uv 依赖管理）
-└── README.md          # 项目说明文档
-```
-
-## 🔍 技术要点
+## 技术要点
 
 ### 专业指令系统
 
@@ -550,7 +563,7 @@ Agent 会：
 - **行程提醒**：发送行程提醒和注意事项
 - **导游服务**：提供实时导览和讲解
 
-## 📖 相关示例
+## 相关示例
 
 完成 Travel Concierge 后，可以探索：
 
@@ -559,8 +572,12 @@ Agent 会：
 3. **[Multi Agents](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/multi_agents/README.md)** - 构建多Agent协作
 4. **[Video Generator](../../video_gen/README.md)** - 复杂工具链编排
 
-## 📖 参考资料
+## 参考资料
 
 - [VeADK 官方文档](https://volcengine.github.io/veadk-python/)
 - [AgentKit 开发指南](https://volcengine.github.io/agentkit-sdk-python/)
 - [火山方舟模型服务](https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new&projectName=default)
+
+## 代码许可
+
+本工程遵循 Apache 2.0 License

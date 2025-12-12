@@ -2,16 +2,18 @@
 
 基于火山引擎 VeADK 和 AgentKit 构建的多智能体协作示例，展示如何通过层级结构和专业分工实现复杂任务的智能化处理。
 
-## 📋 概述
+## 概述
 
-本示例构建了一个智能客服系统，展示多 Agent 协作的典型场景：
+本示例构建了一个智能客服系统，展示多 Agent 协作的典型场景。
+
+## 核心功能
 
 - **层级架构**：主 Agent 负责任务分发，子 Agent 负责具体执行
 - **三种协作模式**：顺序执行（Sequential）、并行执行（Parallel）、循环优化（Loop）
 - **专业分工**：预处理、信息检索、回复优化等专项能力
 - **工具集成**：Web 搜索、知识库检索等外部工具
 
-## 🏗️ 架构
+## Agent 能力
 
 ```
 用户请求
@@ -97,11 +99,28 @@ loop_refine_response_agent = LoopAgent(
 )
 ```
 
-## 🚀 快速开始
+## 目录结构说明
 
-### 前置条件
+```
+multi_agents/
+├── agent.py                      # 主 Agent 应用入口
+├── client.py                     # 测试客户端（SSE 流式调用）
+├── prompts.py                    # 各 Agent 的系统指令
+├── sub_agents/                   # 子 Agent 定义
+│   ├── __init__.py
+│   ├── sequential_agent.py       # 顺序执行 Agent
+│   ├── parallel_agent.py         # 并行执行 Agent
+│   └── loop_agent.py             # 循环优化 Agent
+├── requirements.txt              # Python 依赖列表 （agentkit部署时需要指定依赖文件)
+├── pyproject.toml                # 项目配置（uv 依赖管理）
+├── agentkit.yaml                 # AgentKit 部署配置 （运行agentkit config之后会自动生成）
+├── Dockerfile                    # Docker 镜像构建文件 （运行agentkit config之后会自动生成）
+└── README.md                     # 项目说明文档
+```
 
-**重要提示**：在运行本示例之前，请先访问 [AgentKit 控制台授权页面](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) 对所有依赖服务进行授权，确保案例能够正常执行。
+## 本地运行
+
+### 前置准备
 
 **1. 开通火山方舟模型服务**
 
@@ -112,7 +131,7 @@ loop_refine_response_agent = LoopAgent(
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
-### 安装步骤
+### 依赖安装
 
 #### 1. 安装 uv 包管理器
 
@@ -127,16 +146,33 @@ brew install uv
 #### 2. 初始化项目依赖
 
 ```bash
+# 进入项目目录
 cd 02-use-cases/beginner/multi_agents
+```
 
-# 初始化虚拟环境和安装依赖
+您可以通过 `pip` 工具来安装本项目依赖：
+
+```bash
+pip install -r requirements.txt
+```
+
+或者使用 `uv` 工具来安装本项目依赖：
+
+```bash
+# 如果没有 `uv` 虚拟环境，可以使用命令先创建一个虚拟环境
+uv venv --python 3.12
+
+# 使用 `pyproject.toml` 管理依赖
 uv sync
+
+# 使用 `requirements.txt` 管理依赖
+uv pip install -r requirements.txt
 
 # 激活虚拟环境
 source .venv/bin/activate
 ```
 
-#### 3. 配置环境变量
+### 环境准备
 
 ```bash
 # 火山方舟模型名称
@@ -147,7 +183,7 @@ export VOLCENGINE_ACCESS_KEY=<Your Access Key>
 export VOLCENGINE_SECRET_KEY=<Your Secret Key>
 ```
 
-### 运行方式
+### 调试方法
 
 #### 方式一：命令行测试（推荐入门）
 
@@ -157,6 +193,7 @@ uv run agent.py
 # 服务将监听 http://0.0.0.0:8000
 
 # 新开终端，运行测试客户端
+# 需要编辑 client.py，将其中的第 14 行和第 15 行的 base_url 和 api_key 修改为 agentkit.yaml 中生成的 runtime_endpoint 和 runtime_apikey 字段
 uv run client.py
 ```
 
@@ -186,32 +223,22 @@ veadk web
 
 Web 界面可以可视化查看多 Agent 协作流程和执行轨迹。
 
-#### 方式三：部署到火山引擎 veFaaS
+## Agentkit 部署
 
-**安全提示**：
+### 前置准备
 
-> 以下命令仅用于开发测试。生产环境必须启用 `VEFAAS_ENABLE_KEY_AUTH=true`（默认值）并配置 IAM 角色。
+**重要提示**：在运行本示例之前，请先访问 [AgentKit 控制台授权页面](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) 对所有依赖服务进行授权，确保案例能够正常执行。
 
-```bash
-cd multi_agents
+**1. 开通火山方舟模型服务**
 
-# 配置环境变量（仅测试用）
-export VEFAAS_ENABLE_KEY_AUTH=false
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
+- 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
+- 开通模型服务
 
-# 基础部署（快速开始）
-veadk deploy --vefaas-app-name=multi-agent-example --use-adk-web
+**2. 获取火山引擎访问凭证**
 
-# 生产级部署（推荐）
-veadk deploy \
-  --vefaas-app-name=multi-agent-example \
-  --use-adk-web \
-  --veapig-instance-name=<Your veaPIG Instance> \
-  --iam-role "trn:iam::<Your Account ID>:role/<Your IAM Role>"
-```
+- 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
-#### 方式四：部署到 AgentKit 平台
+### AgentKit 云上部署
 
 ```bash
 cd multi_agents
@@ -226,10 +253,12 @@ agentkit launch
 agentkit invoke '我想买一台火山引擎虚拟机，用来做图像处理，可以帮我介绍一下哪个规格更适合我吗'
 
 # 或使用 client.py 连接云端服务
+# 需要编辑 client.py，将其中的第 14 行和第 15 行的 base_url 和 api_key 修改为 agentkit.yaml 中生成的 runtime_endpoint 和 runtime_apikey 字段
+# 按需修改 client.py，第 56 行，请求的内容
 uv run client.py
 ```
 
-## 💡 示例对话
+## 示例提示词
 
 ### 场景一：简单打招呼
 
@@ -326,26 +355,9 @@ Agent：非常抱歉让您久等了！
       如有其他问题，我随时为您服务！
 ```
 
-## 📂 目录结构
+## 效果展示
 
-```
-multi_agents/
-├── agent.py                      # 主 Agent 应用入口
-├── client.py                     # 测试客户端（SSE 流式调用）
-├── prompts.py                    # 各 Agent 的系统指令
-├── sub_agents/                   # 子 Agent 定义
-│   ├── __init__.py
-│   ├── sequential_agent.py       # 顺序执行 Agent
-│   ├── parallel_agent.py         # 并行执行 Agent
-│   └── loop_agent.py             # 循环优化 Agent
-├── requirements.txt              # Python 依赖列表 （agentkit部署时需要指定依赖文件)
-├── pyproject.toml                # 项目配置（uv 依赖管理）
-├── agentkit.yaml                 # AgentKit 部署配置 （运行agentkit config之后会自动生成）
-├── Dockerfile                    # Docker 镜像构建文件 （运行agentkit config之后会自动生成）
-└── README.md                     # 项目说明文档
-```
-
-## 🔍 技术要点
+## 技术要点
 
 ### 三种协作模式
 
@@ -462,7 +474,7 @@ def exit_tool(tool_context: ToolContext) -> str:
     return {}
 ```
 
-## 🎯 扩展方向
+## 扩展方向
 
 ### 1. 增加更多专业 Agent
 
@@ -482,7 +494,7 @@ def exit_tool(tool_context: ToolContext) -> str:
 - **智能路由**：根据负载均衡分配任务
 - **结果聚合**：智能合并多个 Agent 的结果
 
-## 📖 相关示例
+## 相关示例
 
 完成 Multi Agents 后，可以探索：
 
@@ -491,8 +503,12 @@ def exit_tool(tool_context: ToolContext) -> str:
 3. **[Travel Concierge](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/travel_concierge/README.md)** - 单 Agent 多工具
 4. **[Video Generator](../../video_gen/README.md)** - 复杂工具链编排
 
-## 📖 参考资料
+## 参考资料
 
 - [VeADK 官方文档](https://volcengine.github.io/veadk-python/)
 - [AgentKit 开发指南](https://volcengine.github.io/agentkit-sdk-python/)
 - [火山方舟模型服务](https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new&projectName=default)
+
+## 代码许可
+
+本工程遵循 Apache 2.0 License
