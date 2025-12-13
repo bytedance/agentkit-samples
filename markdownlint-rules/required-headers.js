@@ -7,10 +7,16 @@ module.exports = {
 
   function: function rule(params, onError) {
     const requiredHeaders = [
-      "# 项目介绍",
-      "## 安装",
-      "## 使用方法",
-      "## 运行结果"
+      "## 概述",
+      "## 核心功能",
+      "## Agent 能力",
+      "## 目录结构说明",
+      "## 本地运行",
+      "## AgentKit 部署",
+      "## 示例提示词",
+      "## 效果展示",
+      "## 常见问题",
+      "## 代码许可"
     ];
 
     const content = params.lines.join("\n");

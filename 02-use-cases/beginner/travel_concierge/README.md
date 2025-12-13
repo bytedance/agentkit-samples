@@ -15,7 +15,7 @@
 
 ## Agent 能力
 
-```
+```text
 用户旅行需求
     ↓
 AgentKit 运行时
@@ -35,14 +35,14 @@ Travel Agent（旅游规划师）
 
 ### 核心组件
 
-| 组件                 | 描述                                                |
-| -------------------- | --------------------------------------------------- |
-| **Agent 服务** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/travel_concierge/agent.py) - 旅游规划 Agent 应用             |
-| **专业指令**   | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/travel_concierge/agent.py#L21-L94) - 详细的角色定义和工作流程  |
-| **测试客户端** | [client.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/travel_concierge/client.py) - SSE 流式调用客户端            |
-| **项目配置**   | [pyproject.toml](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/travel_concierge/pyproject.toml) - 依赖管理（uv 工具） |
-| **Web 搜索**   | `web_search` - 内置的网络搜索工具                 |
-| **短期记忆**   | 本地后端存储会话上下文                              |
+| 组件 | 描述 |
+| - | - |
+| **Agent 服务** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/travel_concierge/agent.py) - 旅游规划 Agent 应用 |
+| **专业指令** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/travel_concierge/agent.py#L21-L94) - 详细的角色定义和工作流程 |
+| **测试客户端** | [client.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/travel_concierge/client.py) - SSE 流式调用客户端 |
+| **项目配置** | [pyproject.toml](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/travel_concierge/pyproject.toml) - 依赖管理（uv 工具） |
+| **Web 搜索** | `web_search` - 内置的网络搜索工具 |
+| **短期记忆** | 本地后端存储会话上下文 |
 
 ### 代码特点
 
@@ -70,7 +70,7 @@ root_agent = Agent(
 
 ## 目录结构说明
 
-```
+```bash
 travel_concierge/
 ├── agent.py           # Agent 应用入口（含专业指令系统）
 ├── client.py          # 测试客户端（SSE 流式调用）
@@ -83,12 +83,12 @@ travel_concierge/
 
 ### 前置准备
 
-**1. 开通火山方舟模型服务**
+**1. 开通火山方舟模型服务：**
 
 - 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
 - 开通模型服务
 
-**2. 获取火山引擎访问凭证**
+**2. 获取火山引擎访问凭证：**
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
@@ -160,7 +160,7 @@ uv run client.py
 
 **运行效果**：
 
-```
+```bash
 [create session] Response from server: {"session_id": "agentkit_session"}
 [run agent] Event from server:
 data: {"event":"on_agent_start",...}
@@ -183,18 +183,18 @@ veadk web
 
 Web 界面可以实时查看 Web 搜索的调用和返回结果。
 
-## Agentkit 部署
+## AgentKit 部署
 
 ### 前置准备
 
 **重要提示**：在运行本示例之前，请先访问 [AgentKit 控制台授权页面](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) 对所有依赖服务进行授权，确保案例能够正常执行。
 
-**1. 开通火山方舟模型服务**
+**1. 开通火山方舟模型服务：**
 
 - 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
 - 开通模型服务
 
-**2. 获取火山引擎访问凭证**
+**2. 获取火山引擎访问凭证：**
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
@@ -222,7 +222,7 @@ uv run client.py
 
 ### 示例一：杭州三日游
 
-```
+```text
 用户：我想在杭州进行一次为期3天的旅行，喜欢自然风光和历史文化，预算中等。
 
 Agent 执行流程：
@@ -324,7 +324,7 @@ Agent 回复：
 
 ### 示例二：成都四日游
 
-```
+```text
 用户：我打算去成都玩4天，喜欢美食和休闲的氛围，预算充足。
 
 Agent 执行流程：
@@ -442,7 +442,7 @@ Agent 回复：
 
 ### 示例三：周末短途游
 
-```
+```text
 用户：周末想去北京周边玩一天，喜欢历史古迹，有什么推荐吗？
 
 Agent：根据您的需求，为您推荐北京周边一日游：
@@ -480,7 +480,7 @@ Agent：根据您的需求，为您推荐北京周边一日游：
 
 **1. 角色定义**：
 
-```
+```text
 你是一名专业的旅游行程规划师，擅长根据用户需求，结合当地实际情况，
 规划出包含自然景点、人文景点和当地美食的旅游行程
 ```
@@ -571,6 +571,10 @@ Agent 会：
 2. **[MCP Simple](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/mcp_simple/README.md)** - 集成更多专业工具
 3. **[Multi Agents](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/multi_agents/README.md)** - 构建多Agent协作
 4. **[Video Generator](../../video_gen/README.md)** - 复杂工具链编排
+
+## 常见问题
+
+无。
 
 ## 参考资料
 

@@ -15,7 +15,7 @@
 
 ## Agent 能力
 
-```
+```text
 用户输入（文本描述）
     ↓
 主 Agent (eposide_generator)
@@ -31,13 +31,13 @@
 
 ### 核心组件
 
-| 组件                     | 描述                                                      |
-| ------------------------ | --------------------------------------------------------- |
-| **主 Agent**       | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/episode_generation/agent.py#L37-L43) - eposide_generator，协调子 Agent |
-| **图像生成 Agent** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/episode_generation/agent.py#L30-L35) - image_generator，生成图片       |
-| **视频生成 Agent** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/episode_generation/agent.py#L23-L28) - video_generator，生成视频       |
-| **内置工具**       | image_generate, video_generate, web_search                |
-| **项目配置**       | [pyproject.toml](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/episode_generation/pyproject.toml) - 依赖管理（uv 工具）       |
+| 组件 | 描述 |
+| - | - |
+| **主 Agent** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/episode_generation/agent.py#L37-L43) - eposide_generator，协调子 Agent |
+| **图像生成 Agent** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/episode_generation/agent.py#L30-L35) - image_generator，生成图片 |
+| **视频生成 Agent** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/episode_generation/agent.py#L23-L28) - video_generator，生成视频 |
+| **内置工具** | `image_generate`, `video_generate`, `web_search` |
+| **项目配置** | [pyproject.toml](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/episode_generation/pyproject.toml) - 依赖管理（uv 工具） |
 
 ### 代码特点
 
@@ -92,7 +92,7 @@ asyncio.run(main([
 
 ## 目录结构说明
 
-```
+```bash
 episode_generation/
 ├── agent.py                    # Agent 应用入口
 ├── requirements.txt            # Python 依赖列表
@@ -106,17 +106,17 @@ episode_generation/
 
 **重要提示**：在运行本示例之前，请先访问 [AgentKit 控制台授权页面](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) 对所有依赖服务进行授权，确保案例能够正常执行。
 
-**1. 开通火山方舟模型服务**
+**1. 开通火山方舟模型服务：**
 
 - 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
 - 开通模型服务
 
-**2. 开通多媒体生成服务**
+**2. 开通多媒体生成服务：**
 
 - 确保已开通图像生成和视频生成服务
 - 参考 [视频生成文档](https://www.volcengine.com/docs/6791/1106485)
 
-**3. 获取火山引擎访问凭证**
+**3. 获取火山引擎访问凭证：**
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
@@ -199,18 +199,18 @@ uv run agent.py
 # 2. 基于图片生成视频
 ```
 
-## Agentkit 部署
+## AgentKit 部署
 
 ### 前置准备
 
 **重要提示**：在运行本示例之前，请先访问 [AgentKit 控制台授权页面](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) 对所有依赖服务进行授权，确保案例能够正常执行。
 
-**1. 开通火山方舟模型服务**
+**1. 开通火山方舟模型服务：**
 
 - 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
 - 开通模型服务
 
-**2. 获取火山引擎访问凭证**
+**2. 获取火山引擎访问凭证：**
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
@@ -240,7 +240,7 @@ uv run client.py
 
 **基于文字描述生成图片**：
 
-```
+```text
 用户：请生成古文片段 落霞与孤鹜齐飞，秋水共长天一色 的首帧图片
 Agent：我来为您生成这个古文场景的图片...
       [调用 image_generator → image_generate 工具]
@@ -251,7 +251,7 @@ Agent：我来为您生成这个古文场景的图片...
 
 **基于图片生成视频**：
 
-```
+```text
 用户：刚才的首帧图，生成视频。
 Agent：我来基于刚才的图片生成视频...
       [调用 video_generator → video_generate 工具]
@@ -262,7 +262,7 @@ Agent：我来基于刚才的图片生成视频...
 
 **宇宙科幻场景**：
 
-```
+```text
 用户：生成一个宇宙飞船在星际航行的场景图片
 Agent：[生成科幻风格的宇宙飞船图片]
 
@@ -274,7 +274,7 @@ Agent：[生成宇宙飞船航行的动态视频]
 
 **基于搜索结果生成内容**：
 
-```
+```text
 用户：搜索一下富士山的特点，然后生成一张富士山的图片
 Agent：[调用 web_search 搜索富士山信息]
       [基于搜索结果，调用 image_generate 生成富士山图片]
@@ -334,6 +334,10 @@ from veadk.tools.builtin_tools.web_search import web_search
 2. **[Multi Agents](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/multi_agents/README.md)** - 更复杂的多智能体协作
 3. **[Travel Concierge](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/travel_concierge/README.md)** - 使用 Web 搜索工具规划旅行
 4. **[Video Generator](../../video_gen/README.md)** - 高级视频生成示例
+
+## 常见问题
+
+无。
 
 ## 参考资料
 

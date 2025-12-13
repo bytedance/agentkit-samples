@@ -1,147 +1,56 @@
-<div align="center">
-  <h1>
-    AgentKit Platform Python Samples
-  </h1>
+# AgentKit 代码工坊
 
-  <div align="center">
-    <a href="https://github.com/volcengine/agentkit-samples/graphs/commit-activity"><img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/m/volcengine/agentkit-samples"/></a>
-    <a href="https://github.com/volcengine/agentkit-samples/pulls"><img alt="GitHub open pull requests" src="https://img.shields.io/github/issues-pr/volcengine/agentkit-samples"/></a>
-    <a href="https://github.com/volcengine/agentkit-samples/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/volcengine/agentkit-samples"/></a>
-    <a href="https://python.org"><img alt="Python versions" src="https://img.shields.io/pypi/pyversions/agentkit-sdk-python"/></a>
-  </div>
+欢迎来到 AgentKit 代码工坊（Samples）仓库！
 
-  <p>
-  <a href="https://console.volcengine.com/agentkit/"> Volcengine AgentKit</a>
-    ◆ <a href="https://volcengine.github.io/agentkit-sdk-python/">SDK/CLI Documentation</a>
-    ◆ <a href="https://github.com/volcengine/agentkit-samples/tree/main">Samples</a>
-    ◆ <a href="https://pypi.org/project/agentkit-sdk-python/">PyPI Package</a>
-    ◆ <a href="https://github.com/volcengine/agentkit-sdk-python">SDK/CLI GitHub</a>
+AgentKit 是火山引擎推出的企业级 AI Agent 开发平台，为开发者提供完整的 Agent 构建、部署和运维解决方案。平台通过标准化的开发工具链和云原生基础设施，显著降低复杂智能体应用的开发部署门槛。
 
-  </p>
-</div>
+本代码库包含了一系列示例和教程，帮助您理解、实现和集成 AgentKit 的各项功能到您的应用中。
 
-# AgentKit Samples
+## ➤ 项目结构
 
-Welcome to the AgentKit Samples repository!
+AgentKit 代码工坊为让您快速上手 AgentKit 平台，提供了不同入门等级的示例和教程：
 
-AgentKit is an enterprise-level AI Agent development platform launched by Volcengine, providing developers with complete solutions for Agent construction, deployment, and operation. Through standardized development toolchains and cloud-native infrastructure, the platform significantly lowers the development and deployment threshold for complex intelligent agent applications.
+- **基础教程**：包含了简单的 Agent 示例，能够帮助您快速理解 AgentKit 的基本概念和使用方法
+- **使用案例**：针对有一定经验的开发者，提供了较为复杂的 Agent 实现和定制化示例
 
-This repository contains a collection of examples and tutorials to help you understand, implement, and integrate AgentKit functionalities into your applications.
+## ➤ 前置准备
 
-## Project Structure
+| **环境要求** | **说明** |
+| -------- | -------- |
+| Python 3.10+ | 确保您的开发环境中安装了 Python 3.10 或更高版本 |
+| `veadk-python` | 您需要安装 `veadk-python` 来执行代码 |
+| `agentkit-sdk-python` | 您需要安装 `agentkit-sdk-python` 来与 AgentKit 平台进行交互 |
+| Docker（可选） | 用于本地容器构建 |
 
-```bash
-.
-├── 01-tutorials
-│   └── README.md
-├── 02-use-cases
-│   ├── ai_coding
-│   ├── beginner
-│   │   ├── a2a_simple
-│   │   ├── callback
-│   │   ├── episode_generation
-│   │   ├── hello_world
-│   │   ├── mcp_simple
-│   │   ├── multi_agents
-│   │   ├── restaurant_ordering
-│   │   ├── travel_concierge
-│   │   ├── vikingdb
-│   │   ├── vikingmem
-│   │   └── README.md
-│   ├── customer_support
-│   └── video_gen
-├── template/ # Template project for AgentKit samples
-├── README.md
-└── README.zh.md
-```
+## ➤ 样例列表
 
-### 01-tutorials/ - Interactive Learning & Fundamentals (Coming Soon)
+| **名称** | **描述** |
+| -------- | -------- |
+| `ai_coding` | AI 编程助手，帮助开发者编写和优化代码 |
+| `customer_support` | 客户服务智能体，提供自动的售后咨询和售前导购 |
+| `video_gen` | 视频生成智能体，结合多种工具实现视频内容创作 |
 
-This folder will contain tutorial-based learning materials that teach AgentKit's core functionalities through practical examples.
+每个用例都包含完整的实现，并详细说明如何结合 AgentKit 组件构建应用。
 
-**Component Categories:**
+## ➤ 贡献
 
-- **Runtime**: AgentKit runtime environment, providing secure and scalable agent deployment capabilities
-- **Gateway**: Tool gateway, automatically converting APIs and external services into agent-usable tools
-- **Memory**: Agent memory management, supporting cross-session, context-aware, and personalized interactions
-- **Identity**: Agent identity authentication and permission control, building security trust mechanisms across the user→Agent→tool chain
-- **Tools**: Built-in toolset, including code interpreter and browser tools
-- **Observability**: Agent observability, providing tracing, debugging, and monitoring capabilities
+欢迎您提交您的 Agent 到本仓库！详细的贡献指南请参考 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
-These examples are perfect for beginners and users who want to understand core concepts before building actual agent applications.
+## ➤ 问题反馈
 
-### 02-use-cases/ - End-to-End Application Examples
+- **文档**: 查看 [AgentKit 官方文档](https://www.volcengine.com/docs/86681/1844823?lang=zh)
+- **问题**: 在 GitHub Issues 中报告问题
 
-Explore practical business scenario implementations that demonstrate how to apply AgentKit functionalities to solve real-world business problems.
+## ➤ 相关资源
 
-**Current Use Cases:**
+- [AgentKit 官方网站](https://www.volcengine.com/docs/86681/1844823?lang=zh)
+- [AgentKit SDK/CLI文档](https://volcengine.github.io/agentkit-sdk-python/)
+- [VeADK 官方文档](https://volcengine.github.io/veadk-python/)
 
-- **ai_coding/**: AI coding assistant, helping developers write and optimize code
-- **beginner/**: Beginner-level examples, from basic to advanced agent development
-- **customer_support/**: Customer support agent, providing automated after-sales consulting and pre-sales guidance
-- **video_gen/**: Video generation agent, combining multiple tools for video content creation
+## ➤ 许可证
 
-Each use case includes complete implementations with detailed explanations on how to combine AgentKit components to build applications.
-
-## Quick Start
-
-### Prerequisites
-
-- Python 3.10+
-- AgentKit SDK
-- Optional: Docker (for containerized deployment)
-
-### Installation
-
-All examples require you to first install the AgentKit SDK [Installation Reference](https://volcengine.github.io/agentkit-sdk-python/content/1.introduction/2.installation.html)
-
-## Development Guide
-
-### Code Structure
-
-Each example follows the standard AgentKit application structure:
-
-```text
-Example Directory/
-├── agent.py          # Agent main program
-├── requirements.txt  # Dependency list
-├── config/           # Configuration files
-└── README.md         # Detailed instructions
-```
-
-### Best Practices
-
-1. **Modular Design**: Separate tools, agents, and configurations
-2. **Error Handling**: Implement comprehensive exception handling
-3. **Logging**: Use structured logging for easier debugging
-4. **Configuration Management**: Use environment variables and config files
-
-## Contributing
-
-We welcome community contributions! If you have new examples or improvement suggestions, please:
-
-1. Fork this repository
-2. Create a feature branch (`git checkout -b feature/amazing-example`)
-3. **Copy the template directory**: Copy the `template/` directory as your new example directory, and rename it to your example name
-4. Commit your changes (`git commit -m 'Add amazing example'`)
-5. Push to the branch (`git push origin feature/amazing-example`)
-6. Create a Pull Request
-
-## Support & Feedback
-
-- **Documentation**: Check [AgentKit Official Documentation](https://www.volcengine.com/docs/86681/1844823?lang=zh)
-- **Issues**: Report problems in GitHub Issues
-
-## Related Resources
-
-- [AgentKit Official Website](https://www.volcengine.com/docs/86681/1844823?lang=zh)
-- [AgentKit SDK/CLI Documentation](https://volcengine.github.io/agentkit-sdk-python/)
-- [veadk Official Documentation](https://volcengine.github.io/veadk-python/)
-
-## License
-
-This project is licensed under the [Apache 2.0 License](./LICENSE)
+本项目采用 [Apache 2.0 许可证](LICENSE) 开源。
 
 ---
 
-**Start exploring the powerful capabilities of AgentKit! Choose an example that interests you, follow the tutorials, and build your own agent applications.**
+*Happy AgentKit!*

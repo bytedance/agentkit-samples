@@ -14,14 +14,12 @@ repos:
   rev: v8.24.2
   hooks:
     - id: gitleaks
-# - repo: local
-#   hooks:
-#     - id: markdownlint-cli2
-#       name: markdownlint-cli2
-#       entry: npx
-#       args:
-#         - markdownlint-cli2
-#         - "**/*.md"
-#       language: system
-#       pass_filenames: true
-#       types: [markdown]
+- repo: local
+  hooks:
+    - id: markdownlint-cli2
+      name: markdownlint-cli2
+      entry: npx
+      args:
+        - markdownlint-cli2
+      language: system
+      pass_filenames: false

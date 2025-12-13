@@ -16,7 +16,7 @@
 
 ## Agent 能力
 
-```
+```text
 用户点餐请求
     ↓
 Restaurant Ordering Agent
@@ -37,13 +37,13 @@ Restaurant Ordering Agent
 
 ### 核心组件
 
-| 组件                 | 描述                                             |
-| -------------------- | ------------------------------------------------ |
+| 组件 | 描述 |
+| - | - |
 | **Agent 服务** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/restaurant_ordering/agent.py#L82-L117) - order_agent，点餐助手 |
-| **测试脚本**   | [main.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/restaurant_ordering/main.py) - 完整的点餐流程演示             |
-| **自定义工具** | add_to_order, summarize_order                    |
-| **自定义插件** | CountInvocationPlugin - 统计调用次数             |
-| **上下文管理** | EventsCompactionConfig + ContextFilterPlugin     |
+| **测试脚本** | [main.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/restaurant_ordering/main.py) - 完整的点餐流程演示 |
+| **自定义工具** | add_to_order, summarize_order |
+| **自定义插件** | CountInvocationPlugin - 统计调用次数 |
+| **上下文管理** | EventsCompactionConfig + ContextFilterPlugin |
 
 ### 代码特点
 
@@ -134,7 +134,7 @@ app = App(
 
 ## 目录结构说明
 
-```
+```bash
 restaurant_ordering/
 ├── agent.py           # Agent 应用入口（高级特性示例）
 ├── main.py            # 完整的点餐流程演示脚本
@@ -146,12 +146,12 @@ restaurant_ordering/
 
 ### 前置准备
 
-**1. 开通火山方舟模型服务**
+**1. 开通火山方舟模型服务：**
 
 - 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
 - 开通模型服务
 
-**2. 获取火山引擎访问凭证**
+**2. 获取火山引擎访问凭证：**
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
@@ -234,18 +234,18 @@ python agent.py
 # 服务将监听 http://0.0.0.0:8000
 ```
 
-## Agentkit 部署
+## AgentKit 部署
 
 ### 前置准备
 
 **重要提示**：在运行本示例之前，请先访问 [AgentKit 控制台授权页面](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) 对所有依赖服务进行授权，确保案例能够正常执行。
 
-**1. 开通火山方舟模型服务**
+**1. 开通火山方舟模型服务：**
 
 - 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
 - 开通模型服务
 
-**2. 获取火山引擎访问凭证**
+**2. 获取火山引擎访问凭证：**
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
@@ -275,7 +275,7 @@ uv run client.py
 
 **单品点餐**：
 
-```
+```text
 用户：你好，我想吃点辣的。
 Agent：我推荐宫保鸡丁，这是一道经典的辣味菜品。
       [调用 add_to_order("Kung Pao Chicken")]
@@ -297,7 +297,7 @@ Agent：[调用 summarize_order]
 
 **一次点多个菜品**：
 
-```
+```text
 用户：我要一个宫保鸡丁和一份饺子。
 Agent：好的！
       [并行调用 add_to_order("Kung Pao Chicken")]
@@ -309,7 +309,7 @@ Agent：好的！
 
 **特殊菜品查询**：
 
-```
+```text
 用户：你们有螃蟹做的菜吗？
 Agent：[调用 web_search 搜索螃蟹菜品信息]
       我们的菜单上没有螃蟹菜品，但我可以为您向厨房询问是否可以制作。
@@ -336,7 +336,7 @@ prompts = [
 
 输出：
 
-```
+```bash
 [Plugin] Agent run count: 1
 [Plugin] LLM request count: 1
 ** User says: 你好，我想吃点辣的。
@@ -371,7 +371,7 @@ async def add_to_order(dish_name: str, tool_context: ToolContext = None) -> str:
 
 **并行调用提示**：
 
-```
+```text
 You can using parallel invocations to add multiple dishes to the order.
 ```
 
@@ -445,6 +445,10 @@ agent_server_app = AgentkitAgentServerApp(
 2. **[Multi Agents](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/multi_agents/README.md)** - 构建更复杂的多智能体协作系统
 3. **[Travel Concierge](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/travel_concierge/README.md)** - 使用 Web 搜索工具规划旅行
 4. **[Video Generator](../../video_gen/README.md)** - 高级视频生成示例
+
+## 常见问题
+
+无。
 
 ## 参考资料
 

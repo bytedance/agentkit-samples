@@ -16,7 +16,7 @@
 
 ## Agent 能力
 
-```
+```text
 用户请求
     ↓
 before_agent_callback（输入护栏、日志记录）
@@ -42,13 +42,13 @@ after_agent_callback（收尾、日志汇总）
 
 ### 核心组件
 
-| 组件                 | 描述                                                         |
-| -------------------- | ------------------------------------------------------------ |
-| **Agent 服务** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/callback/agent.py) - 配置回调和护栏的主 Agent                 |
-| **回调函数**   | [callbacks/](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/callback/callbacks) - 六个回调函数实现                     |
-| **工具定义**   | [tools/write_article.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/callback/tools/write_article.py) - 文章撰写工具 |
-| **项目配置**   | [pyproject.toml](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/callback/pyproject.toml) - 依赖管理                     |
-| **短期记忆**   | 本地后端存储会话上下文                                       |
+| 组件 | 描述 |
+| - | - |
+| **Agent 服务** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/callback/agent.py) - 配置回调和护栏的主 Agent |
+| **回调函数** | [callbacks/](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/callback/callbacks) - 六个回调函数实现 |
+| **工具定义** | [tools/write_article.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/callback/tools/write_article.py) - 文章撰写工具 |
+| **项目配置** | [pyproject.toml](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/callback/pyproject.toml) - 依赖管理 |
+| **短期记忆** | 本地后端存储会话上下文 |
 
 ### 代码特点
 
@@ -84,7 +84,7 @@ await runner.run(messages="写一篇关于'太空探索'的文章，字数-100�
 
 ## 目录结构说明
 
-```
+```bash
 callback/
 ├── agent.py                    # Agent 应用入口
 ├── callbacks/                  # 回调函数实现
@@ -107,12 +107,12 @@ callback/
 
 ### 前置准备
 
-**1. 开通火山方舟模型服务**
+**1. 开通火山方舟模型服务：**
 
 - 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
 - 开通模型服务
 
-**2. 获取火山引擎访问凭证**
+**2. 获取火山引擎访问凭证：**
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
@@ -193,7 +193,7 @@ uv run agent.py
 
 **运行效果**：
 
-```
+```bash
 ==================== 场景1: 正常调用，触发工具和PII过滤 ====================
 [before_agent] 开始处理请求...
 [before_model] 准备调用模型...
@@ -209,18 +209,18 @@ uv run agent.py
 [before_tool] 参数校验失败：字数必须为正数
 ```
 
-## Agentkit 部署
+## AgentKit 部署
 
 ### 前置准备
 
 **重要提示**：在运行本示例之前，请先访问 [AgentKit 控制台授权页面](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) 对所有依赖服务进行授权，确保案例能够正常执行。
 
-**1. 开通火山方舟模型服务**
+**1. 开通火山方舟模型服务：**
 
 - 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
 - 开通模型服务
 
-**2. 获取火山引擎访问凭证**
+**2. 获取火山引擎访问凭证：**
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
@@ -411,7 +411,7 @@ def after_agent_callback(agent, callback_context, result):
 
 ### 回调执行顺序
 
-```
+```text
 1. before_agent_callback      → 检查输入，初始化
 2. before_model_callback       → 准备模型请求
 3. [LLM 调用]                 → 模型生成响应
@@ -439,13 +439,13 @@ def after_agent_callback(agent, callback_context, result):
 
 ### 使用场景
 
-| 场景                 | 使用的回调                | 目的               |
-| -------------------- | ------------------------- | ------------------ |
-| **内容审核**   | before_agent, after_model | 过滤敏感和有害内容 |
-| **参数校验**   | before_tool               | 确保工具参数合法   |
-| **日志记录**   | 所有回调                  | 追踪完整执行轨迹   |
-| **性能监控**   | before_agent, after_agent | 统计响应时间       |
-| **结果规范化** | after_tool, after_model   | 统一输出格式       |
+| 场景 | 使用的回调 | 目的 |
+| - | - | - |
+| **内容审核** | before_agent, after_model | 过滤敏感和有害内容 |
+| **参数校验** | before_tool | 确保工具参数合法 |
+| **日志记录** | 所有回调 | 追踪完整执行轨迹 |
+| **性能监控** | before_agent, after_agent | 统计响应时间 |
+| **结果规范化** | after_tool, after_model | 统一输出格式 |
 
 ## 扩展方向
 
@@ -466,6 +466,10 @@ def after_agent_callback(agent, callback_context, result):
 - **自适应参数**：根据历史表现调整模型参数
 - **A/B 测试**：对比不同策略效果
 - **异常检测**：自动识别异常请求
+
+## 常见问题
+
+无。
 
 ## 参考资料
 

@@ -16,7 +16,7 @@
 
 ## Agent 能力
 
-```
+```text
 方式一：直接客户端调用
 本地客户端 (local_client.py)
     ↓
@@ -38,7 +38,7 @@ A2A 协议 (HTTP/JSONRPC)
 
 ## 目录结构说明
 
-```
+```bash
 a2a_simple/
 ├── agent.py                 # 本地 Agent 服务（端口 8000，可调用远程 Agent）
 ├── local_client.py          # A2A 客户端实现
@@ -58,7 +58,7 @@ a2a_simple/
 ### 核心组件
 
 | 组件 | 描述 |
-|-----------|-------------|
+| - | - |
 | **远程 Agent** | [remote/agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/a2a_simple/remote/agent.py#L14-L40) - hello_world_agent，提供工具服务（端口 8001） |
 | **本地 Agent** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/a2a_simple/agent.py#L16-L21) - a2a_sample_agent，具有 add 工具和 sub_agents（端口 8000） |
 | **本地客户端** | [local_client.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/a2a_simple/local_client.py) - A2ASimpleClient，调用远程服务 |
@@ -70,6 +70,7 @@ a2a_simple/
 ### 代码特点
 
 **本地 Agent 定义**（[agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/a2a_simple/agent.py#L16-L21)）:
+
 ```python
 agent = Agent(
     name="a2a_sample_agent",
@@ -80,6 +81,7 @@ agent = Agent(
 ```
 
 **远程 Agent 定义**（[remote/agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/a2a_simple/remote/agent.py#L14-L40)）：
+
 ```python
 root_agent = Agent(
     name='hello_world_agent',
@@ -98,6 +100,7 @@ root_agent = Agent(
 ```
 
 **AgentCard 配置**（[remote/agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/a2a_simple/remote/agent.py#L48-L58)）：
+
 ```python
 agent_card = AgentCard(
   capabilities=AgentCapabilities(streaming=True),
@@ -113,6 +116,7 @@ agent_card = AgentCard(
 ```
 
 **本地客户端调用**（[local_client.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/a2a_simple/local_client.py#L32-L97)）：
+
 ```python
 async def create_task(self, agent_url: str, message: str) -> str:
     # 获取 Agent Card
@@ -131,6 +135,7 @@ async def create_task(self, agent_url: str, message: str) -> str:
 ```
 
 **工具状态管理**（[remote/tools/roll_die.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/a2a_simple/remote/tools/roll_die.py#L4-L18)）：
+
 ```python
 def roll_die(sides: int, tool_context: ToolContext) -> int:
     result = random.randint(1, sides)
@@ -147,12 +152,12 @@ def roll_die(sides: int, tool_context: ToolContext) -> int:
 
 ### 前置准备
 
-**1. 开通火山方舟模型服务**
+**1. 开通火山方舟模型服务：**
 
 - 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
 - 开通模型服务
 
-**2. 获取火山引擎访问凭证**
+**2. 获取火山引擎访问凭证：**
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
@@ -223,7 +228,8 @@ Web 界面提供图形化对话测试环境，支持实时查看远程调用过�
 
 #### 方式二：命令行测试（推荐学习）
 
-**步骤 1：启动远程 Agent 服务**
+**步骤 1：启动远程 Agent 服务：**
+
 ```bash
 # 在终端窗口 1 中运行
 cd 02-use-cases/beginner/a2a_simple
@@ -233,14 +239,16 @@ uv run uvicorn remote.agent:a2a_app --host localhost --port 8001
 # http://localhost:8001/.well-known/agent-card.json
 ```
 
-**步骤 2：运行本地客户端**
+**步骤 2：运行本地客户端：**
+
 ```bash
 # 在终端窗口 2 中运行
 cd 02-use-cases/beginner/a2a_simple
 python local_client.py
 ```
 
-**步骤 3（可选）：启动本地 Agent 服务**
+**步骤 3（可选）：启动本地 Agent 服务：**
+
 ```bash
 # 在终端窗口 3 中运行（需要先启动远程 Agent）
 cd 02-use-cases/beginner/a2a_simple
@@ -251,21 +259,22 @@ python agent.py
 ```
 
 此时您有两个 Agent 服务：
+
 - **远程 Agent**（端口 8001）：提供 roll_die 和 check_prime 工具
 - **本地 Agent**（端口 8000）：提供 add 工具，并可调用远程 Agent
 
-## Agentkit 部署
+## AgentKit 部署
 
 ### 前置准备
 
 **重要提示**：在运行本示例之前，请先访问 [AgentKit 控制台授权页面](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) 对所有依赖服务进行授权，确保案例能够正常执行。
 
-**1. 开通火山方舟模型服务**
+**1. 开通火山方舟模型服务：**
 
 - 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
 - 开通模型服务
 
-**2. 获取火山引擎访问凭证**
+**2. 获取火山引擎访问凭证：**
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
@@ -287,7 +296,8 @@ agentkit launch
 agentkit invoke 'Hello, show me one number.'
 ```
 
-**重要提示**：
+**重要提示：**
+
 - 务必确保 `agentkit.yaml` 中的 `common.agent_type` 配置值为 `a2a`
 - 否则无法成功部署 A2A 类型的 Agent
 
@@ -296,7 +306,8 @@ agentkit invoke 'Hello, show me one number.'
 ### 基础能力测试
 
 **投掷骰子**：
-```
+
+```text
 用户：Hello, show me one number.
 Agent：I'll roll a die for you.
       [调用 roll_die(sides=6)]
@@ -305,8 +316,9 @@ Agent：I'll roll a die for you.
 
 ### 复合任务
 
-**多次投掷并统计**：
-```
+**多次投掷并统计：**
+
+```text
 用户：Please roll 10 times, show counts, and tell me which results are prime.
 Agent：[连续调用 roll_die 10 次]
       Results: 3, 7, 2, 5, 8, 1, 9, 4, 6, 3
@@ -316,8 +328,9 @@ Agent：[连续调用 roll_die 10 次]
 
 ### 指定参数
 
-**自定义骰子面数**：
-```
+**自定义骰子面数：**
+
+```text
 用户：Roll a 12-sided die.
 Agent：[调用 roll_die(sides=12)]
       I rolled an 8 on a 12-sided die.
@@ -325,8 +338,9 @@ Agent：[调用 roll_die(sides=12)]
 
 ### 状态记忆
 
-**查询历史记录**：
-```
+**查询历史记录：**
+
+```text
 用户：Show previous roll history.
 Agent：[读取 tool_context.state['rolls']]
       Your previous rolls: [4, 8, 3, 7, 2]
@@ -335,7 +349,8 @@ Agent：[读取 tool_context.state['rolls']]
 ### 实际运行输出
 
 运行 `local_client.py` 的示例输出：
-```
+
+```text
 5 are prime numbers.
 No prime numbers found.
 3 are prime numbers.
@@ -362,13 +377,15 @@ No prime numbers found.
 ### Agent Card
 
 Agent Card 提供以下信息：
+
 - **基本信息**：名称、描述、版本
 - **能力**：支持的功能（如流式输出）
 - **技能**：Agent 可以执行的任务
 - **接口**：输入输出模式（文本、图片等）
 
 访问方式：
-```
+
+```bash
 # 远程 Agent Card
 http://localhost:8001/.well-known/agent-card.json
 
@@ -378,7 +395,8 @@ http://localhost:8000/.well-known/agent-card.json
 
 ### 工具状态管理
 
-**ToolContext.state**：
+`ToolContext.state`
+
 - 在工具调用之间持久化状态
 - 支持复杂的状态管理逻辑
 - 示例：记录投掷历史
@@ -389,13 +407,15 @@ tool_context.state['rolls'] = tool_context.state['rolls'] + [result]
 
 ### 远程调用流程
 
-**方式一：直接客户端调用（local_client.py）**
+**方式一：直接客户端调用（local_client.py）：**
+
 1. **获取 Agent Card**：了解远程 Agent 的能力
 2. **创建客户端**：基于 Agent Card 创建 A2A 客户端
 3. **发送消息**：通过 A2A 协议发送请求
 4. **接收响应**：处理远程 Agent 的响应
 
-**方式二：Agent 级联调用（agent.py）**
+**方式二：Agent 级联调用（agent.py）：**
+
 1. **定义 RemoteVeAgent**：配置远程 Agent 的 URL
 2. **注册为 sub_agents**：将远程 Agent 注册到本地 Agent
 3. **自动路由**：本地 Agent 自动将任务委派给合适的 Agent
@@ -420,7 +440,8 @@ agent = Agent(
 )
 ```
 
-**优势**：
+**优势：**
+
 - 本地 Agent 可以同时使用本地工具和远程 Agent 的工具
 - 自动处理工具路由和调用
 - 支持多个远程 Agent 级联
@@ -448,6 +469,10 @@ a2a_app.run(agent_card=agent_card, host="0.0.0.0", port=8000)
 2. **[Restaurant Ordering](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/restaurant_ordering/README.md)** - 高级 Agent 特性
 3. **[Travel Concierge](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/travel_concierge/README.md)** - 使用 Web 搜索工具
 4. **分布式系统**：部署多个 A2A Agent 构建分布式智能体网络
+
+## 常见问题
+
+无。
 
 ## 参考资料
 

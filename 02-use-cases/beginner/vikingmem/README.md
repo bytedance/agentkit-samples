@@ -15,7 +15,7 @@
 
 ## Agent 能力
 
-```
+```text
 用户交互
     ↓
 Agent + Runner
@@ -31,13 +31,13 @@ Agent + Runner
 
 ### 核心组件
 
-| 组件                 | 描述                                                |
-| -------------------- | --------------------------------------------------- |
-| **Agent 服务** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/vikingmem/agent.py) - 主应用程序，集成短期和长期记忆  |
-| **测试脚本**   | [local_test.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/vikingmem/local_test.py) - 完整的记忆功能演示    |
-| **短期记忆**   | ShortTermMemory - 会话级别的临时存储                |
-| **长期记忆**   | LongTermMemory - VikingDB 持久化存储                |
-| **项目配置**   | [pyproject.toml](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/vikingmem/pyproject.toml) - 依赖管理（uv 工具） |
+| 组件 | 描述 |
+| - | - |
+| **Agent 服务** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/vikingmem/agent.py) - 主应用程序，集成短期和长期记忆 |
+| **测试脚本** | [local_test.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/vikingmem/local_test.py) - 完整的记忆功能演示 |
+| **短期记忆** | ShortTermMemory - 会话级别的临时存储 |
+| **长期记忆** | LongTermMemory - VikingDB 持久化存储 |
+| **项目配置** | [pyproject.toml](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/vikingmem/pyproject.toml) - 依赖管理（uv 工具） |
 
 ### 代码特点
 
@@ -75,7 +75,7 @@ agent2 = Agent(
 
 ## 目录结构说明
 
-```
+```text
 vikingmem/
 ├── agent.py           # Agent 应用入口
 ├── local_test.py      # 完整的记忆功能演示脚本
@@ -88,17 +88,17 @@ vikingmem/
 
 ### 前置准备
 
-**1. 开通火山方舟模型服务**
+**1. 开通火山方舟模型服务：**
 
 - 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
 - 开通模型服务
 
-**2. 开通 VikingDB 记忆库**
+**2. 开通 VikingDB 记忆库：**
 
 - 访问 [VikingDB 控制台](https://console.volcengine.com/vikingdb/region:vikingdb+cn-beijing/home?projectName=default)
 - 创建记忆库实例
 
-**3. 获取火山引擎访问凭证**
+**3. 获取火山引擎访问凭证：**
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
@@ -181,23 +181,23 @@ uv run agent.py
 # 服务将监听 http://0.0.0.0:8000
 ```
 
-## Agentkit 部署
+## AgentKit 部署
 
 ### 前置准备
 
 **重要提示**：在运行本示例之前，请先访问 [AgentKit 控制台授权页面](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) 对所有依赖服务进行授权，确保案例能够正常执行。
 
-**1. 开通火山方舟模型服务**
+**1. 开通火山方舟模型服务：**
 
 - 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
 - 开通模型服务
 
-**2. 开通 VikingDB 记忆库**
+**2. 开通 VikingDB 记忆库：**
 
 - 访问 [VikingDB 控制台](https://console.volcengine.com/vikingdb/region:vikingdb+cn-beijing/home?projectName=default)
 - 创建记忆库实例
 
-**3. 获取火山引擎访问凭证**
+**3. 获取火山引擎访问凭证：**
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
@@ -227,7 +227,7 @@ uv run client.py
 
 **存入信息到短期记忆**：
 
-```
+```text
 用户：My habby is 0xabcd
 Agent：Got it! Your hobby is 0xabcd.
 （信息存储在 session: history_session）
@@ -235,7 +235,7 @@ Agent：Got it! Your hobby is 0xabcd.
 
 **同会话查询（成功）**：
 
-```
+```text
 用户：What is my habby?
 Agent：Your hobby is 0xabcd.
 （使用相同的 session_id: history_session）
@@ -243,7 +243,7 @@ Agent：Your hobby is 0xabcd.
 
 **新会话查询（失败）**：
 
-```
+```text
 用户：What is my habby?
 Agent：I don't have that information.
 （使用不同的 session_id: new_session，短期记忆不可用）
@@ -260,7 +260,7 @@ await runner1.save_session_to_long_term_memory(session_id=history_session_id)
 
 **跨会话查询（成功）**：
 
-```
+```text
 用户：What is my habby?
 Agent：Based on my memory, your hobby is 0xabcd.
 （使用新的 session_id: new_session，长期记忆生效）
@@ -271,7 +271,7 @@ Agent：Based on my memory, your hobby is 0xabcd.
 
 运行 `local_test.py` 可以看到完整的记忆功能演示：
 
-```
+```text
 Response 1: Got it! Your hobby is 0xabcd.
 
 Response 2: Your hobby is 0xabcd.
@@ -343,6 +343,10 @@ agent_server_app = AgentkitAgentServerApp(
 2. **[Episode Generation](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/episode_generation/README.md)** - 生成图片和视频内容
 3. **[Restaurant Ordering](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/restaurant_ordering/README.md)** - 构建复杂的业务流程 Agent
 4. **[Multi Agents](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/multi_agents/README.md)** - 构建多智能体协作系统
+
+## 常见问题
+
+无。
 
 ## 参考资料
 

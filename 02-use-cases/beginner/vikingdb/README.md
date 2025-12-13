@@ -15,7 +15,7 @@
 
 ## Agent 能力
 
-```
+```text
 用户查询
     ↓
 Agent (知识问答)
@@ -31,7 +31,7 @@ LLM 生成回答
 ### 核心组件
 
 | 组件 | 描述 |
-|-----------|-------------|
+| - | - |
 | **Agent 服务** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/vikingdb/agent.py) - 主应用程序，集成 KnowledgeBase 和 VikingDB |
 | **知识库** | VikingDB 向量数据库，存储文档向量索引 |
 | **文档源** | tech.txt（技术文档）、products.txt（产品信息） |
@@ -41,6 +41,7 @@ LLM 生成回答
 ### 代码特点
 
 **知识库创建**（[agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/vikingdb/agent.py#L22-L29)）:
+
 ```python
 # 准备知识源
 with open("/tmp/tech.txt", "w") as f:
@@ -54,6 +55,7 @@ kb.add_from_files(files=["/tmp/tech.txt", "/tmp/products.txt"])
 ```
 
 **Agent 配置**（[agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/vikingdb/agent.py#L31-L36)）：
+
 ```python
 root_agent = Agent(
     name="test_agent",
@@ -64,7 +66,7 @@ root_agent = Agent(
 
 ## 目录结构说明
 
-```
+```text
 vikingdb/
 ├── agent.py           # Agent 应用入口（集成 VikingDB）
 ├── requirements.txt   # Python 依赖列表
@@ -76,22 +78,22 @@ vikingdb/
 
 ### 前置准备
 
-**1. 开通火山方舟模型服务**
+**1. 开通火山方舟模型服务：**
 
 - 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
 - 开通模型服务
 
-**2. 开通 VikingDB 服务**
+**2. 开通 VikingDB 服务：**
 
 - 访问 [VikingDB 控制台](https://console.volcengine.com/vikingdb/region:vikingdb+cn-beijing/home?projectName=default)
 - 创建知识库/Collection
 
-**3. 开通对象存储服务（TOS）**
+**3. 开通对象存储服务（TOS）：**
 
 - VikingDB 需要将本地文件上传到 TOS，因此需要开通对象存储服务
 - 访问 [TOS 控制台](https://console.volcengine.com/tos)
 
-**4. 获取火山引擎访问凭证**
+**4. 获取火山引擎访问凭证：**
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
@@ -197,28 +199,28 @@ veadk deploy \
   --iam-role "trn:iam::<Your Account ID>:role/<Your IAM Role>"
 ```
 
-## Agentkit 部署
+## AgentKit 部署
 
 ### 前置准备
 
 **重要提示**：在运行本示例之前，请先访问 [AgentKit 控制台授权页面](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) 对所有依赖服务进行授权，确保案例能够正常执行。
 
-**1. 开通火山方舟模型服务**
+**1. 开通火山方舟模型服务：**
 
 - 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
 - 开通模型服务
 
-**2. 开通 VikingDB 服务**
+**2. 开通 VikingDB 服务：**
 
 - 访问 [VikingDB 控制台](https://console.volcengine.com/vikingdb/region:vikingdb+cn-beijing/home?projectName=default)
 - 创建知识库/Collection
 
-**3. 开通对象存储服务（TOS）**
+**3. 开通对象存储服务（TOS）：**
 
 - VikingDB 需要将本地文件上传到 TOS，因此需要开通对象存储服务
 - 访问 [TOS 控制台](https://console.volcengine.com/tos)
 
-**4. 获取火山引擎访问凭证**
+**4. 获取火山引擎访问凭证：**
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
@@ -247,7 +249,8 @@ uv run client.py
 ### 技术知识查询
 
 **基于 tech.txt 的检索回答**：
-```
+
+```text
 用户：What is Python?
 Agent：Python is a programming language.
 
@@ -258,7 +261,8 @@ Agent：JavaScript is primarily used for web development.
 ### 产品价格查询
 
 **基于 products.txt 的数据检索**：
-```
+
+```text
 用户：Which is more expensive, Laptop or Phone?
 Agent：Laptop is more expensive. It costs $1200, while Phone costs $800.
 
@@ -268,16 +272,18 @@ Agent：The cheapest product is Tablet at $600.
 
 ### 上下文关联查询
 
-**复用前文上下文的连续问答**：
-```
+**复用前文上下文的连续问答：**
+
+```text
 用户：What's the price difference with the cheapest one?
 Agent：The Laptop is $600 more expensive than the cheapest product (Tablet).
 ```
 
 ### 复合查询
 
-**跨文档的综合查询**：
-```
+**跨文档的综合查询：**
+
+```text
 用户：I want to learn Python, do you have any related products?
 Agent：Based on our documents, Python is a programming language. We have a Laptop ($1200) which would be suitable for programming.
 ```
@@ -321,6 +327,10 @@ agent_server_app = AgentkitAgentServerApp(
 2. **[Episode Generation](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/episode_generation/README.md)** - 生成图片和视频内容
 3. **[Restaurant Ordering](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/restaurant_ordering/README.md)** - 构建复杂的业务流程 Agent
 4. **[Travel Concierge](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/travel_concierge/README.md)** - 使用 Web 搜索工具规划旅行
+
+## 常见问题
+
+无。
 
 ## 参考资料
 

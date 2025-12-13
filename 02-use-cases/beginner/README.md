@@ -6,37 +6,37 @@
 
 ### 基础入门
 
-| 案例                                                                                                             | 描述                 | 核心能力                         |
-| ---------------------------------------------------------------------------------------------------------------- | -------------------- | -------------------------------- |
-| **[Hello World](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/hello_world)** | 最简单的对话 Agent   | 基础对话、短期记忆               |
-| **[Callback](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/callback)**       | Agent 回调与护栏演示 | 生命周期回调、内容审核、PII 过滤 |
+| 案例 | 描述 | 核心能力 |
+| - | - | - |
+| **[Hello World](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/hello_world)** | 最简单的对话 Agent | 基础对话、短期记忆 |
+| **[Callback](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/callback)** | Agent 回调与护栏演示 | 生命周期回调、内容审核、PII 过滤 |
 
 ### 工具集成
 
-| 案例                                                                                                                             | 描述             | 核心能力                       |
-| -------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ------------------------------ |
-| **[MCP Simple](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/mcp_simple)**                   | MCP 协议工具集成 | MCP 工具、对象存储管理         |
-| **[Travel Concierge](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/travel_concierge)**       | 旅游行程规划助手 | Web 搜索、专业指令系统         |
-| **[Restaurant Ordering](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/restaurant_ordering)** | 餐厅点餐助手     | 异步工具、并行调用、上下文压缩 |
+| 案例 | 描述 | 核心能力 |
+| - | - | - |
+| **[MCP Simple](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/mcp_simple)** | MCP 协议工具集成 | MCP 工具、对象存储管理 |
+| **[Travel Concierge](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/travel_concierge)** | 旅游行程规划助手 | Web 搜索、专业指令系统 |
+| **[Restaurant Ordering](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/restaurant_ordering)** | 餐厅点餐助手 | 异步工具、并行调用、上下文压缩 |
 
 ### 记忆与知识库
 
-| 案例                                                                                                         | 描述           | 核心能力                       |
-| ------------------------------------------------------------------------------------------------------------ | -------------- | ------------------------------ |
-| **[VikingDB](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/vikingdb)**   | 知识库检索增强 | RAG、向量检索、文档问答        |
+| 案例 | 描述 | 核心能力 |
+| - | - | - |
+| **[VikingDB](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/vikingdb)** | 知识库检索增强 | RAG、向量检索、文档问答 |
 | **[VikingMem](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/vikingmem)** | 长短期记忆管理 | 短期记忆、长期记忆、跨会话记忆 |
 
 ### 多智能体
 
-| 案例                                                                                                               | 描述                | 核心能力                     |
-| ------------------------------------------------------------------------------------------------------------------ | ------------------- | ---------------------------- |
-| **[Multi Agents](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/multi_agents)** | 多智能体协作系统    | 顺序执行、并行执行、循环优化 |
-| **[A2A Simple](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/a2a_simple)**     | Agent-to-Agent 通信 | A2A 协议、远程 Agent 调用    |
+| 案例 | 描述 | 核心能力 |
+| - | - | - |
+| **[Multi Agents](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/multi_agents)** | 多智能体协作系统 | 顺序执行、并行执行、循环优化 |
+| **[A2A Simple](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/a2a_simple)** | Agent-to-Agent 通信 | A2A 协议、远程 Agent 调用 |
 
 ### 内容生成
 
-| 案例                                                                                                                           | 描述         | 核心能力                     |
-| ------------------------------------------------------------------------------------------------------------------------------ | ------------ | ---------------------------- |
+| 案例 | 描述 | 核心能力 |
+| - | - | - |
 | **[Episode Generation](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/episode_generation)** | 图片视频生成 | 子 Agent、图像生成、视频生成 |
 
 ## 🚀 快速开始
@@ -45,15 +45,15 @@
 
 **重要提示**：在运行任何示例之前，请先访问 [AgentKit 控制台授权页面](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) 对所有依赖服务进行授权，确保案例能够正常执行。
 
-**1. 开通火山方舟模型服务**
+**1. 开通火山方舟模型服务：**
 
 - 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)开通模型服务
 
-**2. 获取火山引擎访问凭证**
+**2. 获取火山引擎访问凭证：**
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
-**3. 安装必要工具**
+**3. 安装必要工具：**
 
 ```bash
 # 安装 uv 包管理器（推荐）
@@ -370,11 +370,12 @@ Agent-to-Agent 协议，展示：
 
 1. **AgentKit 平台部署**（推荐）：
 
-   ```bash
-   agentkit config
-   agentkit launch
-   ```
-2. **veFaaS 部署**（需要更多配置）：
+```bash
+agentkit config
+agentkit launch
+```
+
+1. **veFaaS 部署**（需要更多配置）：
 
    ```bash
    veadk deploy --vefaas-app-name=<name> --use-adk-web \

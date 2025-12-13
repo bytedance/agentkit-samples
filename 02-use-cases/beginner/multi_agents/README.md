@@ -15,7 +15,7 @@
 
 ## Agent 能力
 
-```
+```text
 用户请求
     ↓
 Customer Service Agent（客服主 Agent）
@@ -35,15 +35,15 @@ Customer Service Agent（客服主 Agent）
 
 ### 核心组件
 
-| 组件                   | 描述                                                                |
-| ---------------------- | ------------------------------------------------------------------- |
-| **主 Agent**     | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/multi_agents/agent.py) - 客服主 Agent，负责整体调度                      |
-| **子 Agent**     | [sub_agents/](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/multi_agents/sub_agents) - 三个专业子 Agent                          |
+| 组件 | 描述 |
+| - | - |
+| **主 Agent** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/multi_agents/agent.py) - 客服主 Agent，负责整体调度 |
+| **子 Agent** | [sub_agents/](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/multi_agents/sub_agents) - 三个专业子 Agent |
 | **- Sequential** | [sequential_agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/multi_agents/sub_agents/sequential_agent.py) - 顺序执行工作流 |
-| **- Parallel**   | [parallel_agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/multi_agents/sub_agents/parallel_agent.py) - 并行信息获取       |
-| **- Loop**       | [loop_agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/multi_agents/sub_agents/loop_agent.py) - 循环优化回复质量           |
-| **Prompts**      | [prompts.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/multi_agents/prompts.py) - 各 Agent 的系统指令                         |
-| **测试客户端**   | [client.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/multi_agents/client.py) - SSE 流式调用客户端                            |
+| **- Parallel** | [parallel_agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/multi_agents/sub_agents/parallel_agent.py) - 并行信息获取 |
+| **- Loop** | [loop_agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/multi_agents/sub_agents/loop_agent.py) - 循环优化回复质量 |
+| **Prompts** | [prompts.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/multi_agents/prompts.py) - 各 Agent 的系统指令 |
+| **测试客户端** | [client.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/multi_agents/client.py) - SSE 流式调用客户端 |
 
 ### 代码特点
 
@@ -101,7 +101,7 @@ loop_refine_response_agent = LoopAgent(
 
 ## 目录结构说明
 
-```
+```bash
 multi_agents/
 ├── agent.py                      # 主 Agent 应用入口
 ├── client.py                     # 测试客户端（SSE 流式调用）
@@ -122,12 +122,12 @@ multi_agents/
 
 ### 前置准备
 
-**1. 开通火山方舟模型服务**
+**1. 开通火山方舟模型服务：**
 
 - 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
 - 开通模型服务
 
-**2. 获取火山引擎访问凭证**
+**2. 获取火山引擎访问凭证：**
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
@@ -199,7 +199,7 @@ uv run client.py
 
 **运行效果**：
 
-```
+```bash
 [create session] Response from server: {"session_id": "agentkit_session"}
 [run agent] Event from server:
 data: {"event":"on_agent_start","agent":"customer_service_agent"}
@@ -223,18 +223,18 @@ veadk web
 
 Web 界面可以可视化查看多 Agent 协作流程和执行轨迹。
 
-## Agentkit 部署
+## AgentKit 部署
 
 ### 前置准备
 
 **重要提示**：在运行本示例之前，请先访问 [AgentKit 控制台授权页面](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) 对所有依赖服务进行授权，确保案例能够正常执行。
 
-**1. 开通火山方舟模型服务**
+**1. 开通火山方舟模型服务：**
 
 - 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
 - 开通模型服务
 
-**2. 获取火山引擎访问凭证**
+**2. 获取火山引擎访问凭证：**
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
@@ -262,7 +262,7 @@ uv run client.py
 
 ### 场景一：简单打招呼
 
-```
+```text
 用户：你好，你能提供什么帮助？
 Agent：[Pre-process Agent 分析需求]
       您好！我是智能客服助手，我可以帮您：
@@ -277,7 +277,7 @@ Agent：[Pre-process Agent 分析需求]
 
 ### 场景二：产品咨询（并行搜索）
 
-```
+```text
 用户：我想买一台火山引擎虚拟机，用来做图像处理，可以帮我介绍一下哪个规格更适合我吗？
 
 Agent 执行流程：
@@ -321,7 +321,7 @@ Agent：根据您的图像处理需求，我为您推荐以下规格：
 
 ### 场景三：订单问题（完整流程）
 
-```
+```text
 用户：我的订单 12345 什么时候发货？已经等了 3 天了
 
 Agent 执行流程：
@@ -439,17 +439,17 @@ agent = LoopAgent(
 
 ### 专业分工
 
-| Agent                        | 职责       | 特点                       |
-| ---------------------------- | ---------- | -------------------------- |
-| **Customer Service**   | 总调度     | 理解用户意图，分派任务     |
-| **Pre-process**        | 预处理     | 提取关键信息，标准化输入   |
-| **Sequential Service** | 工作流控制 | 协调子 Agent 顺序执行      |
-| **Parallel Get Info**  | 信息获取   | 并行搜索多个数据源         |
-| **RAG Search**         | 知识库检索 | 查询内部文档和数据         |
-| **Web Search**         | 网络搜索   | 查询互联网最新信息         |
-| **Loop Refine**        | 质量控制   | 循环优化回复质量           |
-| **Judge**              | 评价       | 评估回复质量，给出改进建议 |
-| **Refine**             | 改写       | 根据评价优化回复内容       |
+| Agent | 职责 | 特点 |
+| - | - | - |
+| **Customer Service** | 总调度 | 理解用户意图，分派任务 |
+| **Pre-process** | 预处理 | 提取关键信息，标准化输入 |
+| **Sequential Service** | 工作流控制 | 协调子 Agent 顺序执行 |
+| **Parallel Get Info** | 信息获取 | 并行搜索多个数据源 |
+| **RAG Search** | 知识库检索 | 查询内部文档和数据 |
+| **Web Search** | 网络搜索 | 查询互联网最新信息 |
+| **Loop Refine** | 质量控制 | 循环优化回复质量 |
+| **Judge** | 评价 | 评估回复质量，给出改进建议 |
+| **Refine** | 改写 | 根据评价优化回复内容 |
 
 ### 工具集成
 
@@ -502,6 +502,10 @@ def exit_tool(tool_context: ToolContext) -> str:
 2. **[MCP Simple](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/mcp_simple/README.md)** - 集成远程工具服务
 3. **[Travel Concierge](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/travel_concierge/README.md)** - 单 Agent 多工具
 4. **[Video Generator](../../video_gen/README.md)** - 复杂工具链编排
+
+## 常见问题
+
+无。
 
 ## 参考资料
 

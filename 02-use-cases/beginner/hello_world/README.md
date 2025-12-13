@@ -15,7 +15,7 @@
 
 ## Agent 能力
 
-```
+```text
 用户消息
     ↓
 AgentKit 运行时
@@ -28,13 +28,13 @@ Hello World Agent
 
 ### 核心组件
 
-| 组件                    | 描述                                                  |
-| ----------------------- | ----------------------------------------------------- |
-| **Agent 服务**    | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/hello_world/agent.py) - 主应用程序，定义 Agent 和记忆组件 |
-| **测试客户端**    | [client.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/hello_world/client.py) - SSE 流式调用客户端              |
-| **项目配置**      | [pyproject.toml](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/hello_world/pyproject.toml) - 依赖管理（uv 工具）   |
-| **AgentKit 配置** | agentkit.yaml - 云端部署配置文件                      |
-| **短期记忆**      | 使用本地后端存储会话上下文                            |
+| 组件 | 描述 |
+| - | - |
+| **Agent 服务** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/hello_world/agent.py) - 主应用程序，定义 Agent 和记忆组件 |
+| **测试客户端** | [client.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/hello_world/client.py) - SSE 流式调用客户端 |
+| **项目配置** | [pyproject.toml](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/hello_world/pyproject.toml) - 依赖管理（uv 工具） |
+| **AgentKit 配置** | agentkit.yaml - 云端部署配置文件 |
+| **短期记忆** | 使用本地后端存储会话上下文 |
 
 ### 代码特点
 
@@ -62,7 +62,7 @@ async def main():
 
 ## 目录结构说明
 
-```
+```bash
 hello_world/
 ├── agent.py           # Agent 应用入口
 ├── client.py          # 测试客户端（SSE 流式调用）
@@ -77,12 +77,12 @@ hello_world/
 
 ### 前置准备
 
-**1. 开通火山方舟模型服务**
+**1. 开通火山方舟模型服务：**
 
 - 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
 - 开通模型服务
 
-**2. 获取火山引擎访问凭证**
+**2. 获取火山引擎访问凭证：**
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
@@ -170,7 +170,7 @@ uv run client.py
 
 **运行效果**：
 
-```
+```bash
 [create session] Response from server: {"session_id": "agentkit_session"}
 [run agent] Event from server:
 data: {"event":"on_agent_start",...}
@@ -178,18 +178,18 @@ data: {"event":"on_llm_chunk","data":{"content":"你好VeADK！很高兴认识�
 data: {"event":"on_llm_chunk","data":{"content":"当然记得，你叫VeADK。"}}
 ```
 
-## Agentkit 部署
+## AgentKit 部署
 
 ### 前置准备
 
 **重要提示**：在运行本示例之前，请先访问 [AgentKit 控制台授权页面](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) 对所有依赖服务进行授权，确保案例能够正常执行。
 
-**1. 开通火山方舟模型服务**
+**1. 开通火山方舟模型服务：**
 
 - 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
 - 开通模型服务
 
-**2. 获取火山引擎访问凭证**
+**2. 获取火山引擎访问凭证：**
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
@@ -218,7 +218,7 @@ uv run client.py
 
 **测试短期记忆**：
 
-```
+```text
 用户：我叫VeADK
 Agent：你好VeADK！很高兴认识你。
 
@@ -230,7 +230,7 @@ Agent：当然记得，你叫VeADK。
 
 **测试信息记忆**：
 
-```
+```text
 用户：我今年25岁，喜欢编程
 Agent：收到！你25岁，喜欢编程，很棒的爱好。
 
@@ -240,7 +240,7 @@ Agent：你今年25岁，喜欢编程。
 
 **测试上下文关联**：
 
-```
+```text
 用户：我住在北京，在一家互联网公司工作
 Agent：明白了，你在北京工作，在互联网公司。
 
@@ -284,6 +284,10 @@ agent_server_app = AgentkitAgentServerApp(
 2. **[Multi Agents](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/multi_agents/README.md)** - 构建多智能体协作系统
 3. **[Travel Concierge](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/travel_concierge/README.md)** - 使用 Web 搜索工具规划旅行
 4. **[Video Generator](../../video_gen/README.md)** - 生成故事绘本视频
+
+## 常见问题
+
+无。
 
 ## 参考资料
 

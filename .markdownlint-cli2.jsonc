@@ -1,0 +1,23 @@
+{
+  "customRules": [
+    "markdownlint-rules/required-headers.js"
+    // "markdownlint-rules/result-section-has-image.js"
+  ],
+  "globs": [
+    "01-tutorials/**/README.md",
+    "02-use-cases/**/README.md"
+  ],
+  "ignores": [
+    "01-tutorials/workshop/README.md",
+    "01-tutorials/README.md",
+    "02-use-cases/beginner/README.md"
+  ],
+  "config": {
+    // allow HTML
+    "MD033": false,
+    // disable line length check
+    "MD013": false,
+    // allow multiple headers with the same content
+    "MD024": false
+  }
+}

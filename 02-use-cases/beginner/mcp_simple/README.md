@@ -15,7 +15,7 @@
 
 ## Agent 能力
 
-```
+```text
 用户自然语言指令
     ↓
 AgentKit 运行时
@@ -33,13 +33,13 @@ TOS MCP Agent
 
 ### 核心组件
 
-| 组件                 | 描述                                                |
-| -------------------- | --------------------------------------------------- |
-| **Agent 服务** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/mcp_simple/agent.py) - 集成 MCP 工具的 Agent 应用      |
-| **测试客户端** | [client.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/mcp_simple/client.py) - SSE 流式调用客户端            |
-| **项目配置**   | [pyproject.toml](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/mcp_simple/pyproject.toml) - 依赖管理（uv 工具） |
-| **MCP 连接**   | `MCPToolset` - 通过 HTTP 连接火山 MCP Server      |
-| **短期记忆**   | 本地后端存储会话上下文                              |
+| 组件 | 描述 |
+| - | - |
+| **Agent 服务** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/mcp_simple/agent.py) - 集成 MCP 工具的 Agent 应用 |
+| **测试客户端** | [client.py](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/mcp_simple/client.py) - SSE 流式调用客户端 |
+| **项目配置** | [pyproject.toml](https://github.com/volcengine/agentkit-samples/blob/main/02-use-cases/beginner/mcp_simple/pyproject.toml) - 依赖管理（uv 工具） |
+| **MCP 连接** | `MCPToolset` - 通过 HTTP 连接火山 MCP Server |
+| **短期记忆** | 本地后端存储会话上下文 |
 
 ### 代码特点
 
@@ -68,7 +68,7 @@ root_agent = Agent(
 
 ## 目录结构说明
 
-```
+```bash
 mcp_simple/
 ├── agent.py           # Agent 应用入口（含 MCP 集成）
 ├── client.py          # 测试客户端（SSE 流式调用）
@@ -84,16 +84,16 @@ mcp_simple/
 
 ### 前置准备
 
-**1. 开通火山方舟模型服务**
+**1. 开通火山方舟模型服务：**
 
 - 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
 - 开通模型服务
 
-**2. 获取火山引擎访问凭证**
+**2. 获取火山引擎访问凭证：**
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
-**3. 获取 TOS MCP 服务 URL**
+**3. 获取 TOS MCP 服务 URL：**
 
 - 访问 [火山 MCP Marketplace](https://www.volcengine.com/mcp-marketplace)
 - 找到 [TOS MCP](https://www.volcengine.com/mcp-marketplace/detail?name=TOS%20MCP) 服务
@@ -172,7 +172,7 @@ uv run client.py
 
 **运行效果**：
 
-```
+```bash
 [create session] Response from server: {"session_id": "agentkit_session"}
 [run agent] Event from server:
 data: {"event":"on_agent_start",...}
@@ -194,22 +194,22 @@ veadk web
 
 Web 界面可以实时查看 MCP 工具调用过程和返回结果。
 
-## Agentkit 部署
+## AgentKit 部署
 
 ### 前置准备
 
 **重要提示**：在运行本示例之前，请先访问 [AgentKit 控制台授权页面](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) 对所有依赖服务进行授权，确保案例能够正常执行。
 
-**1. 开通火山方舟模型服务**
+**1. 开通火山方舟模型服务：**
 
 - 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
 - 开通模型服务
 
-**2. 获取火山引擎访问凭证**
+**2. 获取火山引擎访问凭证：**
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
-**3. 获取 TOS MCP 服务 URL**
+**3. 获取 TOS MCP 服务 URL：**
 
 - 访问 [火山 MCP Marketplace](https://www.volcengine.com/mcp-marketplace)
 - 找到 [TOS MCP](https://www.volcengine.com/mcp-marketplace/detail?name=TOS%20MCP) 服务
@@ -239,7 +239,7 @@ uv run client.py
 
 ### 查询存储桶列表
 
-```
+```text
 用户：当前账号下有哪些存储桶？
 Agent：正在查询存储桶列表...
       [调用 MCP 工具：list_buckets]
@@ -251,7 +251,7 @@ Agent：正在查询存储桶列表...
 
 ### 查询对象列表
 
-```
+```text
 用户：bucket-prod 里面有哪些文件？
 Agent：正在查询 bucket-prod 的文件列表...
       [调用 MCP 工具：list_objects]
@@ -263,7 +263,7 @@ Agent：正在查询 bucket-prod 的文件列表...
 
 ### 读取文件内容
 
-```
+```text
 用户：读取 bucket-prod 中 files 目录下 config.txt 的内容
 Agent：正在读取文件内容...
       [调用 MCP 工具：get_object]
@@ -277,7 +277,7 @@ Agent：正在读取文件内容...
 
 ### 复杂查询
 
-```
+```text
 用户：帮我统计一下所有存储桶的总文件数量
 Agent：好的，我来统计一下...
       [调用 MCP 工具：list_buckets]
@@ -310,14 +310,14 @@ connection_params = StreamableHTTPConnectionParams(
 )
 ```
 
-2. **工具注册**：
+1. **工具注册**：
 
 ```python
 tos_mcp_runner = MCPToolset(connection_params=connection_params)
 agent = Agent(tools=[tos_mcp_runner])
 ```
 
-3. **自动工具发现**：MCPToolset 会自动发现 MCP Server 提供的所有工具
+1. **自动工具发现**：MCPToolset 会自动发现 MCP Server 提供的所有工具
 
 ### 工具调用流程
 
@@ -330,12 +330,12 @@ agent = Agent(tools=[tos_mcp_runner])
 
 ### 与普通工具的区别
 
-| 特性               | 普通工具             | MCP 工具                 |
-| ------------------ | -------------------- | ------------------------ |
+| 特性 | 普通工具 | MCP 工具 |
+| - | - | - |
 | **定义方式** | 在代码中直接定义函数 | 通过 MCP Server 远程提供 |
-| **工具发现** | 需要手动注册         | 自动发现所有可用工具     |
-| **扩展性**   | 需要修改代码         | 只需更新 MCP Server      |
-| **适用场景** | 简单、本地工具       | 复杂、远程服务           |
+| **工具发现** | 需要手动注册 | 自动发现所有可用工具 |
+| **扩展性** | 需要修改代码 | 只需更新 MCP Server |
+| **适用场景** | 简单、本地工具 | 复杂、远程服务 |
 
 ### 火山 TOS MCP 支持的操作
 
@@ -355,6 +355,10 @@ agent = Agent(tools=[tos_mcp_runner])
 2. **[Multi Agents](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/multi_agents/README.md)** - 在多智能体系统中使用 MCP 工具
 3. **[Travel Concierge](https://github.com/volcengine/agentkit-samples/tree/main/02-use-cases/beginner/travel_concierge/README.md)** - 结合其他工具类型
 4. **[Video Generator](../../video_gen/README.md)** - 复杂工具链编排
+
+## 常见问题
+
+无。
 
 ## 参考资料
 
