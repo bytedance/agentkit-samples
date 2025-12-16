@@ -10,7 +10,7 @@ from veadk.memory.short_term_memory import ShortTermMemory
 
 short_term_memory = ShortTermMemory(backend="local")
 
-###Shopping cart MCP Server
+# Shopping cart MCP Server
 shopping_mcp_tools_url = getenv("SHOPPING_CART_MCP_TOOLS_URL")
 shopping_api_key = getenv("SHOPPING_CART_MCP_API_KEY")
 mcp_shopping_cart = MCPToolset(
