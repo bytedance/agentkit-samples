@@ -1,0 +1,3 @@
+agentkit-sdk-python
+veadk-python
+veadk-python[extensions]
