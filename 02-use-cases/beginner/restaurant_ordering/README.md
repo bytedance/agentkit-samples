@@ -181,7 +181,7 @@ cd 02-use-cases/beginner/restaurant_ordering
 uv venv --python 3.12
 
 # 使用 `pyproject.toml` 管理依赖
-uv sync
+uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
 # 激活虚拟环境
 source .venv/bin/activate

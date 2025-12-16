@@ -41,7 +41,7 @@ veadk_agent_deploy_sample/
 首先确保安装项目依赖：
 
 ```bash
-uv sync
+uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
 source .venv/bin/activate
 
 # 火山引擎访问凭证（必需）

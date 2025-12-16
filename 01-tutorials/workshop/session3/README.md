@@ -66,7 +66,7 @@ irm https://force-workshop.tos-cn-beijing.volces.com/uv-latest/uv-installer.ps1 
 export UV_PYTHON_INSTALL_MIRROR=https://force-workshop.tos-cn-beijing.volces.com/python-build-standalone
 export UV_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple/
 uv venv --python 3.12
-uv sync --force-reinstall
+uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple --force-reinstall
 ```
 
 ### 环境准备

@@ -100,7 +100,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 cd 02-use-cases/video_gen
 
 # create virtual environment
-uv sync
+uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
 **注意:** MCP 视频工具 (`@pickstar-2002/video-clip-mcp`) 在智能体运行时会通过 `npx` 自动启动。无需手动安装。
@@ -345,7 +345,7 @@ video_gen/
 
 - 确保已安装 Python 3.12+
 - 检查 `.python-version` 文件与您的 Python 安装版本是否匹配
-- 尝试使用 `uv sync --refresh` 重新构建依赖
+- 尝试使用 `uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple --refresh` 重新构建依赖
 
 ## 🔗 相关资源
 

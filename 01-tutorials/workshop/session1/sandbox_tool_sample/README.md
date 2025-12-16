@@ -50,7 +50,7 @@ sandbox_tool_sample/
 环境配置：确保已安装 `uv` 并配置好环境变量。
 
 ```bash
-uv sync
+uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
 source .venv/bin/activate
 cp .env.sample .env
 # 编辑 .env 文件，填入必要的 AGENTKIT_TOOL_ID 环境变量

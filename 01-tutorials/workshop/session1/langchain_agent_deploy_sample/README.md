@@ -73,7 +73,7 @@ session1/
 1. **依赖安装**
 
    ```bash
-   uv sync
+   uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
    source .venv/bin/activate
    ```
 

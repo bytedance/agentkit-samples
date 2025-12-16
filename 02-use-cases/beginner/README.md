@@ -83,7 +83,7 @@ export TOOL_TOS_URL=https://tos.mcp.volcbiz.com/mcp\?token\=xxxxx  # 可选，�
 cd 02-use-cases/beginner
 
 # 安装所有案例的依赖（使用 uv）
-uv sync
+uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
 # 启动 VeADK Web 调试界面
 veadk web --port 8080
@@ -117,7 +117,7 @@ veadk web --port 8080
 cd <案例目录>
 
 # 初始化虚拟环境和安装依赖
-uv sync
+uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
 # 激活虚拟环境
 source .venv/bin/activate

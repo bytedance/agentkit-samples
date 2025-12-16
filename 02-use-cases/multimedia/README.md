@@ -55,7 +55,7 @@ git clone https://github.com/volcengine/veadk-ecommerce-video.git
 cd veadk-ecommerce-video
 
 # 安装项目依赖
-uv sync
+uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
 #### 2. 配置环境变量

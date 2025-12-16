@@ -69,7 +69,7 @@ pip install -r requirements.txt
 
 ```bash
 # 使用 `pyproject.toml` 管理依赖
-uv sync
+uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
 # 使用 `requirements.txt` 管理依赖
 uv pip install -r requirements.txt
