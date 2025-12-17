@@ -95,7 +95,7 @@ async def test_trending_topics() -> None:
     """Test news topics agent."""
     for i in range(0, 10):
         trending_topics = await a2a_client.create_task(
-            "http://localhost:8001", "hello , show me one number of 6-sided"
+            "http://localhost:8000", "hello , show me one number of 6-sided"
         )
         print(trending_topics)
 
