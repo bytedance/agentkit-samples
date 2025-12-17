@@ -262,8 +262,8 @@ uv run client.py
 | ------------------------- | -------------- | -------------- |
 | 使用内置 skills             | 产物不上传 tos  | 使用 internal-comms skill 帮我写一个3p沟通材料，通知3p团队项目进度更新。关于产品团队，主要包括过去一周问题和未来一周计划，具体包括问题：写产品团队遇到的客户问题 (1. GPU+模型推理框架性能低于开源版本，比如时延高、吞吐低；2. GPU推理工具易用性差)，以及如何解决的；计划：明年如何规划GPU产品功能和性能优化 (1. 发力GPU基础设施对生图生视频模型的支持；2. GPU推理相关工具链路易用性提升)。其他内容，可以酌情组织。
 | 使用内置 skills             | 产物上传 tos    | 请运行以下工作流程：1. 使用 canvas-design skill 帮我创作一件基于几何图形的艺术绘图。2. 使用 tos-file-access skill 把产物上传到存储桶 {YOUR_TOS_BUCKET_NAME} 里。
-| 下载自己 tos 中的 skills     | 产物不上传 tos  | 我需要一个2人份的纯素高蛋白食谱，目标增肌。每周预算350元，喜欢30分钟内的快手菜。不喜欢蘑菇。使用 healthy-meal-planner skill 帮我制订一周的食谱。
-| 下载自己 tos 中的 skills     | 产物上传 tos    | 请运行以下工作流程：1. 我需要一个2人份的纯素高蛋白食谱，目标增肌。每周预算350元，喜欢30分钟内的快手菜。不喜欢蘑菇。使用 healthy-meal-planner skill 帮我制订一周的食谱。2. 将制订好的食谱写入文件 recipe.md，然后使用 tos-file-access skill 把这个文件上传到存储桶 {YOUR_TOS_BUCKET_NAME}，最后把上传后的文件链接发给我。
+| 下载自己 tos 中的 skills (注意，这里需要自己在 `agentkit-platform-{your_account_id}` bucket 中新建一个 skills 文件夹，并将需要的 skills，比如本例中的 `healthy-meal-planner` 上传到这个文件夹)      | 产物不上传 tos  | 我需要一个2人份的纯素高蛋白食谱，目标增肌。每周预算350元，喜欢30分钟内的快手菜。不喜欢蘑菇。使用 healthy-meal-planner skill 帮我制订一周的食谱。
+| 下载自己 tos 中的 skills (注意，这里需要自己在 `agentkit-platform-{your_account_id}` bucket 中新建一个 skills 文件夹，并将需要的 skills，比如本例中的 `healthy-meal-planner` 上传到这个文件夹)      | 产物上传 tos    | 请运行以下工作流程：1. 我需要一个2人份的纯素高蛋白食谱，目标增肌。每周预算350元，喜欢30分钟内的快手菜。不喜欢蘑菇。使用 healthy-meal-planner skill 帮我制订一周的食谱。2. 将制订好的食谱写入文件 recipe.md，然后使用 tos-file-access skill 把这个文件上传到存储桶 {YOUR_TOS_BUCKET_NAME}，最后把上传后的文件链接发给我。
 | 下载自己 tos 中一些文件       | 产物不上传 tos  | 请运行以下工作流程：1. 使用 tos-file-access 从 https://agentkit-skills.tos-cn-beijing.volces.com/upload/sample3_20251209_192229.xlsx 下载一个 sample3_20251209_192229.xlsx 文件。2. 使用 xlsx 解析文件 sample3_20251209_192229.xlsx 的内容。3. 总结文件内容中的统计信息
 | 下载自己 tos 中一些文件       | 产物上传 tos    | 请运行以下工作流程：1. 使用 tos-file-access 从 https://agentkit-skills.tos-cn-beijing.volces.com/upload/topk_benchmark.cpp 下载一个 topk_benchmark.cpp 代码文件。2. 使用 code-optimization 完善这个代码，把my_topk_inplace函数写好，要求性能要非常好，要比代码里面的标准库还要好。3. 使用 tos-file-access 将最终输出目录（包括最终代码和报告）上传到存储桶 {YOUR_TOS_BUCKET_NAME}。
 
