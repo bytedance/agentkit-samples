@@ -1,0 +1,43 @@
+name: agentkit-build
+
+on:
+  pull_request:
+    types:
+      - closed
+
+jobs:
+  agentkit-build:
+    if: ${{ github.event.pull_request.merged == true }}
+    runs-on: ubuntu-latest
+
+    env:
+      VOLCENGINE_ACCESS_KEY: ${{ secrets.VOLCENGINE_ACCESS_KEY }}
+      VOLCENGINE_SECRET_KEY: ${{ secrets.VOLCENGINE_SECRET_KEY }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install AgentKit CLI
+        run: |
+          python -m pip install --upgrade pip
+          pip install agentkit-sdk-python
+
+      - name: Generate .env for CI
+        run: |
+          cat > .env << 'EOF'
+          EOF
+
+      - name: Run main.py in changed use-case directories (build)
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          AGENTKIT_COMMAND: build
+        run: |
+          python -m samples_check.check_usecases
