@@ -1,5 +1,3 @@
-import asyncio
-
 from agentkit.apps import AgentkitAgentServerApp
 from veadk import Agent, Runner
 from veadk.memory import ShortTermMemory
@@ -50,5 +48,5 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
-    # agent_server_app.run(host="0.0.0.0", port=8000)
+    # asyncio.run(main())
+    agent_server_app.run(host="0.0.0.0", port=8000)
