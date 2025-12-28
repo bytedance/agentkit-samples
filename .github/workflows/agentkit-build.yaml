@@ -4,10 +4,19 @@ on:
   pull_request:
     types:
       - closed
+  workflow_dispatch:
+    inputs:
+      base_sha:
+        description: "Base commit SHA (optional)"
+        required: false
+      head_sha:
+        description: "Head commit SHA (optional)"
+        required: false
 
 jobs:
   agentkit-build:
-    if: ${{ github.event.pull_request.merged == true }}
+    if: >
+      ${{ (github.event_name == 'pull_request' && github.event.pull_request.merged == true) || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
 
     env:
@@ -36,8 +45,8 @@ jobs:
 
       - name: Run main.py in changed use-case directories (build)
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.inputs.base_sha }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.event.inputs.head_sha }}
           AGENTKIT_COMMAND: build
         run: |
           python -m workflow_utils.check_usecases

@@ -2,6 +2,14 @@ name: agentkit-check
 
 on:
   pull_request:
+  workflow_dispatch:
+    inputs:
+      base_sha:
+        description: "Base commit SHA (optional)"
+        required: false
+      head_sha:
+        description: "Head commit SHA (optional)"
+        required: false
 
 jobs:
   agentkit-launch:
@@ -33,7 +41,7 @@ jobs:
 
       - name: Run main.py in changed use-case directories
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.inputs.base_sha }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.event.inputs.head_sha }}
         run: |
           python -m workflow_utils.check_usecases
