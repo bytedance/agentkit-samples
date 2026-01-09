@@ -1,0 +1,95 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="900" height="600" fill="#f8f9fa"/>
+  
+  <!-- 火山引擎云边框 -->
+  <rect x="300" y="50" width="550" height="500" rx="10" fill="#e8f4fd" stroke="#333" stroke-width="2"/>
+  <text x="575" y="80" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333">火山引擎云</text>
+  
+  <!-- AgentKit Runtime 区域 -->
+  <rect x="320" y="100" width="510" height="150" rx="8" fill="#e6f7ff" stroke="#1890ff" stroke-width="2"/>
+  <text x="575" y="125" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#1890ff">AgentKit Runtime</text>
+  
+  <!-- Agent -->
+  <rect x="340" y="140" width="100" height="80" rx="8" fill="#333" stroke="#333" stroke-width="2"/>
+  <text x="390" y="165" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">Agent</text>
+  <text x="390" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">&lt;/&gt;</text>
+  <text x="390" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">task</text>
+  
+  <!-- Tool -->
+  <rect x="470" y="150" width="340" height="60" rx="5" fill="#fff" stroke="#666" stroke-width="1"/>
+  <text x="640" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#333">Tool: lark_document_query()</text>
+  
+  <!-- veIdentity 区域 -->
+  <rect x="320" y="280" width="240" height="120" rx="8" fill="#f6ffed" stroke="#52c41a" stroke-width="2"/>
+  <text x="440" y="305" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#52c41a">veIdentity</text>
+  
+  <!-- Resource Credential Provider -->
+  <rect x="340" y="320" width="200" height="60" rx="5" fill="#fff" stroke="#666" stroke-width="1"/>
+  <text x="440" y="345" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#333">Resource Credential</text>
+  <text x="440" y="360" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#333">Provider</text>
+  <text x="440" y="375" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#666">(Lark OAuth2)</text>
+  
+  <!-- 火山方舟 区域 -->
+  <rect x="590" y="280" width="240" height="120" rx="8" fill="#fff2e8" stroke="#fa8c16" stroke-width="2"/>
+  <text x="710" y="305" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#fa8c16">火山方舟</text>
+  
+  <!-- Ark LLMs -->
+  <rect x="610" y="320" width="200" height="60" rx="5" fill="#fa8c16" stroke="#333" stroke-width="1"/>
+  <text x="710" y="345" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">Doubao LLMs</text>
+  <text x="710" y="365" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Doubao-Seed-1.6</text>
+  
+  <!-- 用户 -->
+  <circle cx="80" cy="180" r="40" fill="#4A90E2" stroke="#333" stroke-width="2"/>
+  <text x="80" y="190" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">User</text>
+  
+  <!-- veIdentity 用户池 (外部) -->
+  <rect x="50" y="320" width="120" height="80" rx="8" fill="#ff4d4f" stroke="#333" stroke-width="2"/>
+  <text x="110" y="345" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">veIdentity</text>
+  <text x="110" y="365" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">用户池</text>
+  <text x="110" y="385" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">JWT Token</text>
+  
+  <!-- Lark -->
+  <rect x="50" y="460" width="120" height="80" rx="8" fill="#00D4AA" stroke="#333" stroke-width="2"/>
+  <text x="110" y="485" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">Lark</text>
+  <text x="110" y="505" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Document API</text>
+  <text x="110" y="525" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">飞书文档</text>
+  
+  <!-- 箭头定义 -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#333"/>
+    </marker>
+    <marker id="arrowhead-dashed" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#666"/>
+    </marker>
+  </defs>
+  
+  <!-- 用户请求 -->
+  <path d="M 120 160 L 330 160" stroke="#333" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="225" y="150" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#333">User question</text>
+  
+  <!-- 用户响应 -->
+  <path d="M 330 200 L 120 200" stroke="#333" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="225" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#333">Agent response</text>
+  
+  <!-- 用户认证 -->
+  <path d="M 80 220 L 80 310" stroke="#333" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  
+  <!-- Agent 到 veIdentity 凭据获取 (从下面走) -->
+  <path d="M 390 220 L 390 260 L 440 260 L 440 280" stroke="#666" stroke-width="2" fill="none" stroke-dasharray="5,5" marker-end="url(#arrowhead-dashed)"/>
+  <text x="415" y="250" text-anchor="left" font-family="Arial, sans-serif" font-size="9" fill="#666">Get Credentials</text>
+  
+  <!-- Agent 到 LLM (从下面走) -->
+  <path d="M 390 220 L 390 260 L 710 260 L 710 280" stroke="#666" stroke-width="2" fill="none" stroke-dasharray="5,5" marker-end="url(#arrowhead-dashed)"/>
+  <text x="550" y="250" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#666">LLM Processing</text>
+  
+  <!-- Agent 到 Lark API 调用 (从下面走) -->
+  <path d="M 390 220 L 390 260 L 200 260 L 200 500 L 170 500" stroke="#666" stroke-width="2" fill="none" stroke-dasharray="5,5" marker-end="url(#arrowhead-dashed)"/>
+  <text x="295" y="250" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#666">API Call</text>
+  
+  <!-- veIdentity 到 Lark 凭据流程 -->
+  <path d="M 320 350 L 250 350 L 250 480 L 170 480" stroke="#52c41a" stroke-width="2" fill="none" stroke-dasharray="5,5" marker-end="url(#arrowhead-dashed)"/>
+  <text x="245" y="415" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#52c41a" transform="rotate(-90 245 415)">OAuth2 Credentials</text>
+  
+</svg>

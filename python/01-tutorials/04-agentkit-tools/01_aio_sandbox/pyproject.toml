@@ -1,0 +1,14 @@
+[project]
+name = "sandbox_tool_sample"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "langchain>=0.1.0",
+    "langchain-openai>=0.1.0",
+    "python-dotenv>=1.2.1",
+    "agentkit-sdk-python>=0.2.0",
+    "veadk-python>=0.2.29",
+    "google-genai",
+]
