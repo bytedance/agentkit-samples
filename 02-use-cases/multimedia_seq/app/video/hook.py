@@ -59,7 +59,7 @@ def get_callback_agent_output(success_list: list[dict[str, Any]]) -> str:
     for shot_idx, codes in enumerate(code_list):
         if not codes:
             continue
-        html_parts.append(f"#### Shot_{shot_idx + 1}**\n")
+        html_parts.append(f"#### Shot_{shot_idx + 1}\n")
         for video_idx, code in enumerate(codes):
             video_url = url_shortener.code2url(code)
             html_parts.append(f"{video_url} \n\n")
