@@ -1,0 +1,24 @@
+model:
+  agent:
+    provider: openai
+    name: doubao-seed-1-6-251015
+    api_base: https://ark.cn-beijing.volces.com/api/v3/
+    api_key:
+    image:
+      name: doubao-seedream-4-5-251128
+      api_base: https://ark.cn-beijing.volces.com/api/v3/
+      api_key:
+    video:
+      name: doubao-seedance-1-5-pro-251215
+      api_base: https://ark.cn-beijing.volces.com/api/v3/
+      api_key:
+    evaluate:
+      name: doubao-seed-1-6-251015    # 必须是一个支持图片输入的模型
+volcengine:
+  access_key:
+  secret_key:
+
+database:
+  tos:
+    bucket:
+
