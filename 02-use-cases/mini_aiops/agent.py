@@ -10,9 +10,12 @@ from google.genai import types
 from veadk import Agent
 from veadk.auth.veauth.utils import get_credential_from_vefaas_iam
 from veadk.config import getenv  # noqa
-from veadk.knowledgebase.knowledgebase import KnowledgeBase
+
+# from veadk.knowledgebase.knowledgebase import KnowledgeBase
 from veadk.memory.short_term_memory import ShortTermMemory
 from agentkit.apps import AgentkitAgentServerApp
+# from veadk.knowledgebase.backends.in_memory_backend import InMemoryKnowledgeBackend
+# from veadk.configs.model_configs import EmbeddingModelConfig
 
 env_dict = {
     "VOLCENGINE_ACCESS_KEY": os.getenv("VOLCENGINE_ACCESS_KEY"),
@@ -27,10 +30,12 @@ if not (env_dict["VOLCENGINE_ACCESS_KEY"] and env_dict["VOLCENGINE_SECRET_KEY"])
 short_term_memory = ShortTermMemory(backend="local")
 
 ### Auto create knowledgebase if not exist for aiops
-knowledgebase = KnowledgeBase(backend="local", index="aiops_kb", top_k=3)
+# name = "doubao-embedding-text-240715"
+# embedding_model_config = EmbeddingModelConfig(name=name, dim=2048, api_base="https://ark.cn-beijing.volces.com/api/v3/")
+# knowledgebase = KnowledgeBase(backend=InMemoryKnowledgeBackend(index="aiops_kb", embedding_config=embedding_model_config), index="aiops_kb", top_k=3)
 
-file_path = os.path.join(os.path.dirname(__file__), "sop_aiops.md")
-knowledgebase.add_from_files(files=[file_path])
+# file_path = os.path.join(os.path.dirname(__file__), "sop_aiops.md")
+# knowledgebase.add_from_files(files=[file_path])
 
 ### control center mcp server
 server_parameters = StdioServerParameters(
@@ -55,7 +60,7 @@ agent: Agent = Agent(
     model_name="deepseek-v3-2-251201",
     description="云资源管控智能体",
     instruction="你是一个云资源管控专家，擅长通过 CCAPI 管理各类云资源",
-    knowledgebase=knowledgebase,
+    # knowledgebase=knowledgebase,
     tools=[ccapi_mcp_toolset],
     planner=BuiltInPlanner(
         thinking_config=types.ThinkingConfig(

@@ -1,0 +1,12 @@
+[project]
+name = "tutorial-3-feishu-outbound"
+version = "0.1.0"
+description = "实验3: 以飞书为例，安全访问外部工具 (Outbound 凭证托管)"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "veadk-python @ https://force-workshop.tos-cn-beijing.volces.com/veadk_python-0.2.22.tar.gz",
+    "volcengine-python-sdk>=4.0.36",
+    "agentkit-sdk-python>=0.1.11",
+    "lark_oapi",
+]
