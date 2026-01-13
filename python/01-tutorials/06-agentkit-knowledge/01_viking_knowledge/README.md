@@ -201,7 +201,7 @@ cd python/01-tutorials/06-agentkit-knowledge/01_viking_knowledge
 agentkit config \
 --agent_name vikingdb_agent \
 --entry_point 'agent.py' \
---runtime_envs DATABASE_TOS_BUCKET=agentkit-platform-2107625663 \
+--runtime_envs DATABASE_TOS_BUCKET=agentkit-platform-<your-acount-id> \
 --runtime_envs DATABASE_VIKING_COLLECTION=agentkit_knowledge_app \
 --launch_type cloud
 

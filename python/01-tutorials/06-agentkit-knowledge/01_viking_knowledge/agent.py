@@ -29,11 +29,14 @@ with open("/tmp/service_policy.txt", "w") as f:
         "售后服务政策：\n1. 质保期：所有电子产品提供1年免费质保。\n2. 退换货：购买后7天内无理由退货，15天内有质量问题换货。\n3. 客服支持：提供7x24小时在线客服咨询。"
     )
 
-    # 创建知识库
-kb = KnowledgeBase(
-    backend="viking",
-    app_name=os.getenv("DATABASE_VIKING_COLLECTION", "agentkit_knowledge_app"),
-)
+# 创建知识库
+knowledge_collection_name = os.getenv("DATABASE_VIKING_COLLECTION", "")
+if knowledge_collection_name != "":
+    # 使用用户指定的知识库
+    kb = KnowledgeBase(backend="viking", index=knowledge_collection_name)
+else:
+    raise ValueError("DATABASE_VIKING_COLLECTION environment variable is not set")
+
 kb.add_from_files(
     files=["/tmp/product_info.txt", "/tmp/service_policy.txt"],
     tos_bucket_name=os.environ.get("DATABASE_TOS_BUCKET"),
