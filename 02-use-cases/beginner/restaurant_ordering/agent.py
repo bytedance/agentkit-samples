@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import os
 import logging
 
 # Deploy the agent as AgentkitAgentServerApp into the agentkit platform
@@ -21,7 +21,6 @@ from google.adk.agents.callback_context import CallbackContext
 from google.adk.apps import App
 from google.adk.apps.app import EventsCompactionConfig
 from google.adk.models.llm_request import LlmRequest
-from google.adk.planners.built_in_planner import BuiltInPlanner
 from google.adk.plugins.base_plugin import BasePlugin
 from google.adk.plugins.context_filter_plugin import ContextFilterPlugin
 from google.adk.plugins.save_files_as_artifacts_plugin import (
@@ -83,6 +82,7 @@ async def summarize_order(tool_context: ToolContext = None) -> str:
 
 order_agent = Agent(
     name="restaurant_ordering_agent",
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
     description=("An agent that takes customer orders at a restaurant."),
     instruction=f"""
         You are a friendly and efficient order-taking assistant for a restaurant.
@@ -99,11 +99,6 @@ order_agent = Agent(
         **Rules:**
         - Do NOT provide recipes or cooking instructions.
     """,
-    planner=BuiltInPlanner(
-        thinking_config=types.ThinkingConfig(
-            include_thoughts=True,
-        ),
-    ),
     generate_content_config=types.GenerateContentConfig(
         safety_settings=[
             types.SafetySetting(

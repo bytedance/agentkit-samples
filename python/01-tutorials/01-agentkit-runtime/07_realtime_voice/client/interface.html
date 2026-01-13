@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navigo AI</title>
+    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
+    <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Google Sans', sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        :root {
+            --google-blue: #4285F4;
+            --google-red: #DB4437;
+            --google-yellow: #F4B400;
+            --google-green: #0F9D58;
+            --google-grey: #5f6368;
+            --google-light-grey: #e8eaed;
+            --google-dark-grey: #202124;
+        }
+
+        .mic-button-base {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            background-color: var(--google-blue);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .mic-active {
+            background-color: var(--google-red) !important;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .mic-button-base:not(.mic-active):hover {
+            background-color: #3367d6;
+        }
+
+        .mic-button-base .mic-icon {
+            color: white;
+        }
+
+        .audio-wave {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 24px;
+            margin: 10px 0;
+        }
+
+        .audio-wave span {
+            display: inline-block;
+            width: 4px;
+            height: 100%;
+            margin: 0 2px;
+            background-color: var(--google-blue);
+            border-radius: 3px;
+            animation: wave 1.2s infinite ease-in-out;
+        }
+
+        .audio-wave span:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
+        .audio-wave span:nth-child(3) {
+            animation-delay: 0.2s;
+        }
+
+        .audio-wave span:nth-child(4) {
+            animation-delay: 0.3s;
+        }
+
+        .audio-wave span:nth-child(5) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes wave {
+
+            0%,
+            40%,
+            100% {
+                transform: scaleY(0.4);
+            }
+
+            20% {
+                transform: scaleY(1);
+            }
+        }
+
+        #transcript-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #transcript-container::-webkit-scrollbar-track {
+            background: var(--google-light-grey);
+            border-radius: 10px;
+        }
+
+        #transcript-container::-webkit-scrollbar-thumb {
+            background: var(--google-grey);
+            border-radius: 10px;
+        }
+
+        #transcript-container::-webkit-scrollbar-thumb:hover {
+            background: #4a4e51;
+        }
+    </style>
+</head>
+
+<body class="text-gray-800">
+    <header class="bg-white shadow-md">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4 text-center">
+            <h1 class="text-4xl font-bold text-gray-800">
+                <span class="text-blue-600">N</span><span class="text-red-500">a</span><span
+                    class="text-yellow-500">v</span><span class="text-blue-600">i</span><span
+                    class="text-green-500">g</span><span class="text-red-500">o</span>
+                <span>AI</span>
+            </h1>
+            <p class="text-lg text-gray-600">Personal Travel Agent</p>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-3xl">
+        <div class="bg-white rounded-2xl p-6 shadow-lg flex flex-col">
+            <div id="transcript-container" class="bg-gray-50 rounded-lg p-4 flex-grow h-96 overflow-y-auto">
+                <div id="transcript" class="space-y-4">
+                    <div class="text-gray-500 text-center py-10">Start a conversation to see the transcript.</div>
+                </div>
+            </div>
+
+            <div id="audio-indicator" class="px-4 mt-4 flex justify-center items-center h-10 hidden">
+                <div class="audio-wave">
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-8">
+            <div class="flex flex-col items-center justify-center">
+                <button id="mic-button" class="mic-button-base">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mic-icon" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    </svg>
+                </button>
+                <p id="mic-status" class="text-sm font-medium text-gray-600 mt-3">Click the icon to start recording</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="sound_handler.js"></script>
+    <script src="stream_manager.js"></script>
+
+    <script>
+        // Initialize variables
+        const stream = new StreamManager('ws://localhost:8000');
+        stream.maxReconnectAttempts = 0;
+        let isRecording = false;
+        // DOM elements
+        const micButton = document.getElementById('mic-button');
+        const micStatus = document.getElementById('mic-status');
+        const transcriptContainer = document.getElementById('transcript');
+        const transcriptOuterContainer = document.getElementById('transcript-container');
+        const audioIndicator = document.getElementById('audio-indicator');
+        const micIcon = micButton.querySelector('.mic-icon');
+
+
+        // Function to add message to transcript
+        function updateTranscript(text, sender, isPartial = false) {
+            const initialPlaceholder = transcriptContainer.querySelector('.text-gray-500.text-center.py-10');
+            if (initialPlaceholder) {
+                initialPlaceholder.remove();
+            }
+
+            let messageElement;
+            const lastMessage = transcriptContainer.lastElementChild;
+
+            if (sender === 'user' && lastMessage && lastMessage.dataset.sender === 'user' && lastMessage.dataset.partial === 'true') {
+                messageElement = lastMessage;
+            }
+            else if (sender === 'assistant' && lastMessage && lastMessage.dataset.sender === 'assistant' && lastMessage.dataset.partial === 'true') {
+                messageElement = lastMessage;
+            }
+            else {
+                messageElement = document.createElement('div');
+                let bgColor, textColor, alignment;
+                if (sender === 'user') {
+                    bgColor = 'bg-blue-100';
+                    textColor = 'text-blue-900';
+                    alignment = 'text-right';
+                } else {
+                    bgColor = 'bg-gray-100';
+                    textColor = 'text-gray-800';
+                    alignment = 'text-left';
+                }
+                messageElement.className = `p-3 rounded-lg shadow-sm ${bgColor} ${textColor} ${alignment}`;
+                messageElement.dataset.sender = sender;
+                transcriptContainer.appendChild(messageElement);
+            }
+
+            messageElement.textContent = text;
+            messageElement.dataset.partial = isPartial;
+
+            if (!isPartial) {
+                delete messageElement.dataset.partial;
+            }
+
+            transcriptOuterContainer.scrollTop = transcriptOuterContainer.scrollHeight;
+        }
+
+
+        // Microphone button handler
+        micButton.addEventListener('click', async () => {
+            if (isRecording) {
+                stopStream();
+            } else {
+                await startStream();
+            }
+        });
+
+        // Start recording
+        async function startStream() {
+            try {
+                const success = await stream.start();
+                if (success) {
+                    isRecording = true;
+                    micButton.classList.add('mic-active');
+                    micStatus.textContent = 'Recording...';
+                }
+            } catch (error) {
+                console.error('Error starting recording:', error);
+                micStatus.textContent = 'Error starting. Try again.';
+            }
+        }
+
+        // Stop recording
+        function stopStream() {
+            stream.stop();
+            isRecording = false;
+            micButton.classList.remove('mic-active');
+            micStatus.textContent = 'Click the icon to start recording';
+        }
+
+        // Initialize multimodal client
+        async function initializeStream() {
+            try {
+                await stream.openConnection();
+                let currentResponseText = '';
+                let isFirstChunk = true;
+
+                stream.onReady = () => {
+                    console.log('Stream ready');
+                };
+
+                stream.onAudioReceived = (audioData) => {
+                    audioIndicator.classList.remove('hidden');
+                };
+
+                stream.onUserTranscript = (text) => {
+                    if (text && text.trim()) {
+                        updateTranscript(text, 'user', true);
+                    }
+                };
+
+                stream.onTextReceived = (text) => {
+                    if (text && text.trim()) {
+                        if (isFirstChunk) {
+                            currentResponseText = text;
+                            updateTranscript(text, "assistant", true);
+                            isFirstChunk = false;
+                        } else {
+                            currentResponseText += text;
+                            updateTranscript(currentResponseText, "assistant", true);
+                        }
+                    }
+                };
+
+                stream.onTurnComplete = () => {
+                    console.log('Turn complete, preparing for next turn');
+                    audioIndicator.classList.add('hidden');
+                    currentResponseText = '';
+                    isFirstChunk = true;
+
+                    const lastMessage = transcriptContainer.lastElementChild;
+                    if (lastMessage && lastMessage.dataset.partial === 'true') {
+                        delete lastMessage.dataset.partial;
+                    }
+                };
+
+                stream.onError = (error) => {
+                    console.error('Stream error:', error);
+                    updateTranscript("Sorry, an error occurred. Please try again.", "assistant");
+                    currentResponseText = ''; isFirstChunk = true;
+                };
+
+                stream.onInterrupted = () => {
+                    console.log('Stream interrupted');
+                    audioIndicator.classList.add('hidden');
+                    stream.interrupt();
+                    currentResponseText = ''; isFirstChunk = true;
+                };
+            } catch (error) {
+                console.error('Failed to initialize stream:', error);
+                updateTranscript("Sorry, connection failed. Please try again later.", "assistant");
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            initializeStream();
+        });
+
+        // Add unload handler
+        window.addEventListener('beforeunload', () => {
+            stream.closeConnection();
+        });
+    </script>
+</body>
+
+</html>

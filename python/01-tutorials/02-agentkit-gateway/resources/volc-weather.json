@@ -1,0 +1,127 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "volc-weather",
+    "version": "0.0.1"
+  },
+  "paths": {
+    "/weather": {
+      "get": {
+        "operationId": "weather",
+        "summary": "查看天气情况。",
+        "parameters": [
+          {
+            "name": "city",
+            "description": "城市。",
+            "type": "string",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "天气情况。",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "city": {
+                  "description": "城市。",
+                  "type": "string"
+                },
+                "weather": {
+                  "description": "天气。",
+                  "type": "string"
+                },
+                "temperature": {
+                  "description": "温度，单位摄氏度。",
+                  "type": "number"
+                },
+                "humidity": {
+                  "description": "湿度，单位百分比。",
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/precipitation": {
+      "post": {
+        "operationId": "precipitation",
+        "summary": "查看降水情况。",
+        "consumes": ["application/json"],
+        "parameters": [
+          {
+            "name": "Body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "city": {
+                  "description": "城市。",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "降水情况。",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "city": {
+                  "description": "城市。",
+                  "type": "string"
+                },
+                "humidity": {
+                  "description": "湿度，单位百分比。",
+                  "type": "number"
+                },
+                "probability": {
+                  "description": "降水概率，单位百分比。",
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/warnings": {
+      "get": {
+        "operationId": "warnings",
+        "summary": "查看气象预警。",
+        "responses": {
+          "200": {
+            "description": "气象预警。",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "warnings": {
+                  "description": "预警。",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "description": "预警名称。",
+                        "type": "string"
+                      },
+                      "city": {
+                        "description": "预警城市。",
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,4 @@
+veadk-python==0.2.27
+agentkit-sdk-python==0.1.15
+tos>=2.8.7
+google-adk==1.18.0
