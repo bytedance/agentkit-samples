@@ -7,11 +7,13 @@
 企业已经在使用飞书作为统一通讯和办公平台，员工都有飞书账号。现在要部署 AI 智能体，如何让员工使用飞书账号直接登录，而不是再创建一套新的账号？
 
 **传统方案的问题：**
+
 - 每个系统维护独立用户库 → 用户需要记忆多套密码
 - 用户离职/入职需要多个系统同步 → 管理成本高、遗漏风险
 - 无法利用飞书的 MFA/安全策略 → 安全合规难以统一
 
 **Agent Identity 解决方案：**
+
 - 飞书作为身份源(IdP)，用户池作为服务提供者(SP)
 - 一键登录，无需额外注册
 - 继承飞书的安全策略和审计能力
@@ -19,7 +21,7 @@
 ## 与实验1的区别
 
 | 对比项 | 实验1 (用户池登录) | 实验2 (飞书联合登录) |
-|--------|-------------------|---------------------|
+| ------ | ------------------- | --------------------- |
 | 账号来源 | 用户池本地创建 | 飞书通讯录 |
 | 登录方式 | 用户名/密码 | 飞书授权 |
 | 适用场景 | 独立用户管理 | 企业统一身份 |
@@ -58,7 +60,7 @@ sequenceDiagram
 ### 前置条件
 
 - 完成实验1的用户池创建和客户端配置
-- 拥有飞书开放平台账号（https://open.feishu.cn/）
+- 拥有飞书开放平台账号 [飞书开放平台](https://open.feishu.cn/)
 
 ---
 
@@ -68,7 +70,7 @@ sequenceDiagram
 
    访问 [飞书开放平台](https://open.feishu.cn/) → 点击「创建应用」
 
-![飞书开放平台](./assets/images/image.png)
+   ![飞书开放平台](images/image.png)
 
 2. **创建企业自建应用**
    - 应用类型：企业自建应用
@@ -81,7 +83,7 @@ sequenceDiagram
    - **App ID**（客户端 ID）
    - **App Secret**（客户端密钥）
 
-![获取应用凭证](./assets/images/image-1.png)
+   ![获取应用凭证](images/image-1.png)
 
 4. **⚠️ 配置安全设置（最关键的一步！）**
 
@@ -95,7 +97,8 @@ sequenceDiagram
    > 4. **直接复制该地址**，粘贴到飞书的「安全设置」中
 
    回调 URL 格式类似：
-   ```
+
+   ```bash
    https://userpool-<用户池UID>.userpool.auth.id.cn-beijing.volces.com/login/generic_oauth/callback
    ```
 
@@ -104,14 +107,14 @@ sequenceDiagram
    > - 不要漏掉 `/login/generic_oauth/callback` 路径
    > - URL 必须与控制台显示的完全一致，包括协议 `https://`
 
-![配置安全设置](./assets/images/image-2.png)
+   ![配置安全设置](images/image-2.png)
 
 5. **网页应用配置（可选，非必须）**
 
    飞书可能提示配置「网页应用」，这是**可选的**：
 
    | 配置项 | 说明 | 是否必须 |
-   |--------|------|----------|
+   | -------- | ------ | ---------- |
    | 安全设置 → 重定向 URL | OAuth 回调地址 | ✅ 必须 |
    | 网页应用 → 桌面端主页 | 从飞书打开应用的地址 | ❌ 可选 |
 
@@ -125,7 +128,7 @@ sequenceDiagram
    进入「权限管理」→ 搜索并申请以下权限：
 
    | 权限 | 说明 | 是否必须 |
-   |------|------|----------|
+   | ------ | ------ | ---------- |
    | `contact:user.base:readonly` | 获取用户基本信息 | ✅ 必须 |
    | `contact:contact.base:readonly` | 获取通讯录基本信息 | ✅ 必须 |
    | `contact:user.employee_id:readonly` | 获取用户工号 | ❌ 可选 |
@@ -135,7 +138,7 @@ sequenceDiagram
    > - **如果不申请这个权限，登录时会报错 `20027 当前应用未申请相关权限`**
    > - 两个必须权限缺一不可！
 
-![添加权限](./assets/images/image-3.png)
+   ![添加权限](images/image-3.png)
 
 7. **发布应用**
 
@@ -158,8 +161,9 @@ sequenceDiagram
    左侧菜单 →「外部身份供应商」→「添加供应商」
 
    填写信息：
+
    | 字段 | 值 | 说明 |
-   |------|------|------|
+   | ------ | ------ | ------ |
    | 供应商类型 | 飞书 | 选择飞书 |
    | 供应商名称 | feishu | 自定义名称 |
    | 客户端 ID | 步骤1获取的 App ID | 从飞书应用凭证复制 |
@@ -170,8 +174,8 @@ sequenceDiagram
 
    > 保存后，页面会显示「重定向 URI」，确认这个 URL 已经添加到飞书应用的「安全设置」中。
 
-![配置飞书 IdP](./assets/images/image-4.png)
-![保存配置](./assets/images/image-5.png)
+![配置飞书 IdP](images/image-4.png)
+![保存配置](images/image-5.png)
 
 配置完成后，用户池登录页面将显示「使用飞书登录」按钮。
 
@@ -181,7 +185,7 @@ sequenceDiagram
 
 ```bash
 # 进入教程目录
-cd python/01-tutorials/03-agentkit-identity/02_feishu_idp
+cd 01-tutorials/identity/tutorial-2-feishu-idp
 
 # 复制环境变量模板
 cp .env.example .env
@@ -205,9 +209,10 @@ uv run veadk web
 
 > **端口冲突？** 如果提示 `address already in use`，说明端口 8000 被占用。
 > 运行以下命令清理：
-> ```bash
-> lsof -i :8000 | grep -v "^COMMAND" | awk '{print $2}' | xargs kill -9
-> ```
+
+```bash
+lsof -i :8000 | grep -v "^COMMAND" | awk '{print $2}' | xargs kill -9
+```
 
 ---
 
@@ -219,12 +224,12 @@ uv run veadk web
 4. 返回应用后，点击 **「允许访问」**
 5. 成功登录，开始与 Agent 对话
 
-![飞书登录按钮](./assets/images/image-6.png)
-![飞书授权页面](./assets/images/image-7.png)
+![飞书登录按钮](images/image-6.png)
+![飞书授权页面](images/image-7.png)
 
 ## 测试提示词
 
-```
+```bash
 你好，我是通过飞书登录的，请介绍一下你自己
 ```
 
@@ -239,7 +244,7 @@ uv run veadk web
 ### 错误速查表
 
 | 错误码/现象 | 原因 | 解决方法 |
-|-------------|------|----------|
+| ------------- | ------ | ---------- |
 | `20029` redirect_uri 请求不合法 | 飞书安全设置中的重定向 URL 与实际请求不匹配 | 从用户池控制台复制正确的「重定向 URI」到飞书安全设置 |
 | `20027` 当前应用未申请相关权限 | 缺少 `contact:contact.base:readonly` 权限 | 在飞书权限管理中申请该权限，然后重新发布应用 |
 | 飞书登录按钮不显示 | 未在用户池配置外部身份供应商 | 在用户池添加飞书 IdP 配置 |
@@ -278,9 +283,32 @@ uv run veadk web
 
 完成联合登录后，如果需要让 Agent **代表用户**安全访问飞书文档等外部资源，请继续：
 
-→ [实验3: Outbound 凭证托管 - 让 Agent 安全访问飞书文档](../tutorial_3_feishu_outbound/)
+→ [实验3: Outbound 凭证托管 - 让 Agent 安全访问飞书文档](../tutorial-3-feishu-outbound/)
 
 在实验3中，你将学习：
+
 - 如何让 Agent 获取用户授权的飞书 Token
 - 凭证托管的安全最佳实践
 - 实现"凭证不落地"的 Outbound 访问模式
+
+## 概述
+
+## 核心功能
+
+## Agent 能力
+
+## 目录结构说明
+
+## 本地运行
+
+## AgentKit 部署
+
+## 示例提示词
+
+## 效果展示
+
+## 常见问题
+
+## 代码许可
+
+本工程遵循 Apache 2.0 License

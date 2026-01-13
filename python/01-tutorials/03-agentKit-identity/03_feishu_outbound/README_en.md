@@ -15,7 +15,7 @@ Imagine this scenario:
 > A user says to the Agent: "Help me summarize the content of that Feishu document."
 >
 > The Agent needs to access the user's Feishu document, but...
-
+>
 > - **The Feishu API requires authorization.**
 > - **Each user's authorization is independent.**
 > - **How to manage credentials securely?**
@@ -55,7 +55,7 @@ flowchart LR
 ### Core Advantages
 
 | Feature | Description |
-|---|---|
+| ------------------ | ----------- |
 | **Credentials don't land** | AK/SK are managed uniformly by the platform and do not appear in the code. |
 | **User-level isolation** | Each user's Feishu authorization is managed independently. |
 | **OAuth automation** | Guides authorization on first use, automatically refreshes tokens subsequently. |
@@ -180,12 +180,12 @@ RUNTIME_IAM_ROLE_TRN=trn:iam::<account_id>:role/<role_name>
     Go to "Security Settings" → Add a redirect URL:
 
     > **Important: Credential hosting uses a different callback URL!**
-
-    > ```
+    >
+    > ```bash
     > https://auth.id.cn-beijing.volces.com/api/v1/oauth2callback
     > ```
 
-![alt text](./assets/images/image.png)
+    ![alt text](./assets/images/image.png)
 4. **⚠️ Add Document Access Permissions (Key step!)**
 
     Go to "Permission Management" → Search for and apply for the following permissions:
@@ -236,13 +236,13 @@ RUNTIME_IAM_ROLE_TRN=trn:iam::<account_id>:role/<role_name>
     > 🚨 **Common Mistakes**:
     > - ❌ Setting the callback URL to the Runtime URL (e.g., `https://xxx.apigateway-cn-beijing.volceapi.com/...`)
     > - ❌ Using standard OIDC scopes like `openid`, `profile` (Feishu does not support this)
-![alt text](./assets/images/image-2.png)
+    ![alt text](./assets/images/image-2.png)
 4. **Verify Configuration**
 
     Click the "Test" button to verify the OAuth flow:
     - ✅ Success: Can jump to the Feishu authorization page and get a token after authorization.
     - ❌ Failure: Check the callback URL and permission scope configuration.
-![alt text](./assets/images/image-3.png)
+    ![alt text](./assets/images/image-3.png)
 5. **Save Configuration**
 
     Remember the credential provider name (e.g., `feishu`), as it will be needed for subsequent configuration.
@@ -337,7 +337,7 @@ After successful deployment, the access address of the Agent will be output.
 
     Enter in the dialog box:
 
-    ```
+    ```bash
     Summarize the document content for me: https://feishu.feishu.cn/docx/xxxxxxxxxxxxxxxx
     ```
 
@@ -377,7 +377,7 @@ flowchart LR
 
 ## Test Prompts
 
-```
+```bash
 # Query document
 Summarize the document content for me: <Feishu Document URL>
 
@@ -614,7 +614,6 @@ The configuration method is similar, just create the corresponding Credential Pr
 ---
 
 ## Core Functionality Review
-
 
 > "Agent Identity's credential hosting feature allows your intelligent agent to **securely and seamlessly** access
 > external tools like Feishu and Notion, with credentials managed uniformly by the platform, **saying goodbye to the risk of AK/SK leakage**.

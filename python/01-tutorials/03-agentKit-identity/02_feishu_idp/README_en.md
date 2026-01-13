@@ -60,7 +60,7 @@ sequenceDiagram
 ### Prerequisites
 
 - Completed the user pool creation and client configuration from Experiment 1.
-- Have a Feishu Open Platform account (https://open.feishu.cn/).
+- Have a Feishu Open Platform account [Feishu Open Platform](https://open.feishu.cn/).
 
 ---
 
@@ -70,7 +70,7 @@ sequenceDiagram
 
     Visit the [Feishu Open Platform](https://open.feishu.cn/) → Click "Create Application".
 
-![Feishu Open Platform](./assets/images/image.png)
+    ![Feishu Open Platform](./assets/images/image.png)
 
 2. **Create a Custom App**
     - Application Type: Custom App
@@ -83,7 +83,7 @@ sequenceDiagram
     - **App ID** (Client ID)
     - **App Secret** (Client Secret)
 
-![Get Application Credentials](./assets/images/image-1.png)
+    ![Get Application Credentials](./assets/images/image-1.png)
 
 4. **⚠️ Configure Security Settings (The most critical step!)**
 
@@ -97,7 +97,8 @@ sequenceDiagram
     > 4. **Copy this address directly** and paste it into Feishu's "Security Settings".
 
     The callback URL format is similar to:
-    ```
+
+    ```bash
     https://userpool-<userpool-uid>.userpool.auth.id.cn-beijing.volces.com/login/generic_oauth/callback
     ```
 
@@ -106,7 +107,7 @@ sequenceDiagram
     > - Do not omit the `/login/generic_oauth/callback` path.
     > - The URL must be exactly the same as the one displayed in the console, including the `https://` protocol.
 
-![Configure Security Settings](./assets/images/image-2.png)
+    ![Configure Security Settings](./assets/images/image-2.png)
 
 5. **Web App Configuration (Optional, not required)**
 
@@ -137,7 +138,7 @@ sequenceDiagram
     > - **If you do not apply for this permission, you will get an error `20027 The current application has not applied for the relevant permissions` when logging in.**
     > - Both required permissions are indispensable!
 
-![Add Permissions](./assets/images/image-3.png)
+    ![Add Permissions](./assets/images/image-3.png)
 
 7. **Publish the Application**
 
@@ -208,6 +209,7 @@ uv run veadk web
 
 > **Port conflict?** If you get an `address already in use` error, it means that port 8000 is occupied.
 > Run the following command to clean it up:
+>
 > ```bash
 > lsof -i :8000 | grep -v "^COMMAND" | awk '{print $2}' | xargs kill -9
 > ```
@@ -227,7 +229,7 @@ uv run veadk web
 
 ## Test Prompt
 
-```
+```bash
 Hello, I logged in through Feishu, please introduce yourself.
 ```
 

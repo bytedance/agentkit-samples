@@ -27,11 +27,11 @@ Agent Identity is specifically designed to solve the above problems. It is not a
 ![alt text](image.png)
 Agent Identity governs the "user → application → Agent → resource" link separately and provides a set of reusable security components:
 
-- **Inbound Authentication**: Integrates with existing enterprise IdPs (user pools / OAuth / SSO, etc.), making "who can call the Agent" configurable and auditable.
-- **Agent Authoritative Identity**: Provides a unique and verifiable identity principal for the Agent, which is convenient for policy binding and audit attribution.
-- **Outbound Credential Hosting (Token Vault)**: Separates the storage, refresh, and minimization of authorization of OAuth / API Keys from the business code; by default, "credentials do not land on the ground."
-- **Fine-grained Permission Control**: Combines and verifies "user permissions" and "Agent permissions" based on the delegation chain, denying by default and opening up as needed.
-- **Observability and Auditing**: Precipitates "who, on behalf of whom, called which tool/resource at what time" into audit events, which is convenient for troubleshooting, compliance, and internal control.
+**Inbound Authentication**: Integrates with existing enterprise IdPs (user pools / OAuth / SSO, etc.), making "who can call the Agent" configurable and auditable.
+**Agent Authoritative Identity**: Provides a unique and verifiable identity principal for the Agent, which is convenient for policy binding and audit attribution.
+**Outbound Credential Hosting (Token Vault)**: Separates the storage, refresh, and minimization of authorization of OAuth / API Keys from the business code; by default, "credentials do not land on the ground."
+**Fine-grained Permission Control**: Combines and verifies "user permissions" and "Agent permissions" based on the delegation chain, denying by default and opening up as needed.
+**Observability and Auditing**: Precipitates "who, on behalf of whom, called which tool/resource at what time" into audit events, which is convenient for troubleshooting, compliance, and internal control.
 
 ## Experiment List
 
@@ -43,14 +43,13 @@ Agent Identity governs the "user → application → Agent → resource" link se
 
 ## Core Features
 
-- **Identity Authentication (Inbound)**: Verify user identity, only authorized users can access the Agent
-- **Credential Hosting (Outbound)**: The Agent securely accesses external services such as Feishu, and the credentials are managed by the platform
-- **Permission Control**: Fine-grained permissions based on the delegation chain to control the resources that the Agent can access
-
+**Identity Authentication (Inbound)**: Verify user identity, only authorized users can access the Agent
+**Credential Hosting (Outbound)**: The Agent securely accesses external services such as Feishu, and the credentials are managed by the platform
+**Permission Control**: Fine-grained permissions based on the delegation chain to control the resources that the Agent can access
 
 ## Directory Structure Description
 
-```
+```bash
 03-agentkit-identity/
 ├── README.md                           # This file
 ├── 01_userpool_inbound/        # Experiment 1: Inbound Authentication

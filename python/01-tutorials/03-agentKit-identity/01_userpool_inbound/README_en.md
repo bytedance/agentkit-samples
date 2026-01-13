@@ -12,7 +12,7 @@ At this point, you'll encounter a fundamental problem: **Who can call your Agent
 
 ### What happens without authentication?
 
-**Scenario 1: The Naked Agent**
+- **Scenario 1: The Naked Agent**
 
 ```mermaid
 flowchart LR
@@ -28,7 +28,7 @@ Consequences:
 - Competitors reverse-engineer your Agent.
 - If a security incident occurs, you don't know who did it.
 
-**Scenario 2: The Agent doesn't know "who you are"**
+- **Scenario 2: The Agent doesn't know "who you are"**
 
 Many Agents need to provide personalized services based on user identity:
 
@@ -38,7 +38,7 @@ Many Agents need to provide personalized services based on user identity:
 
 Without identity information, the Agent either has to refuse service or can only provide the most basic public functions.
 
-**Scenario 3: Auditing and Compliance**
+- **Scenario 3: Auditing and Compliance**
 
 The security team and CISO will ask you:
 
@@ -110,7 +110,7 @@ flowchart TB
     - Select login attributes: Username + Phone Number
     - Click "Confirm"
 
-![Create New User Pool](./assets/images/image-2.png)
+    ![Create New User Pool](./assets/images/image-2.png)
 
 3. **Create a New Client**
     - Go to the user pool details → Click "New Client"
@@ -119,7 +119,7 @@ flowchart TB
     - Callback URL: `http://127.0.0.1:8000/api/v1/oauth2callback`
     - **Record the Client ID and Client Secret**
 
-![Create New Client](./assets/images/image-3.png)
+    ![Create New Client](./assets/images/image-3.png)
 
 4. **Create a Test User**
     - In the user pool, select "User Management" → "New User"
@@ -160,11 +160,11 @@ uv sync
 uv run veadk web
 ```
 
-After the service starts, access http://127.0.0.1:8000
+After the service starts, access <http://127.0.0.1:8000>
 
 ### Step 4: User Login Experience
 
-1. **Access the Application** - Open http://127.0.0.1:8000 in your browser
+1. **Access the Application** - Open <http://127.0.0.1:8000> in your browser
 2. **Redirect to Login** - You will be automatically redirected to the user pool login page
 3. **Enter Credentials** - Log in with the user created in Step 1
 4. **Change Password on First Login** - If required, set a new password
