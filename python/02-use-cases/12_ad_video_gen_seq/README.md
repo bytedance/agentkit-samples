@@ -63,7 +63,7 @@
 ```bash
 # 克隆代码仓库
 git clone https://github.com/volcengine/agentkit-samples.git
-cd agentkit-samples/02-use-cases/multimedia_seq
+cd agentkit-samples/python/02-use-cases/12_ad_video_gen_seq
 
 # 安装项目依赖
 uv sync --index-url https://mirrors.aliyun.com/pypi/simple
@@ -164,6 +164,7 @@ agentkit launch
 │   └── utils.py              # URL code 映射、TOS 上传等公共方法
 ├── config.yaml.example       # 配置文件示例
 ├── debug.py                  # 本地调试脚本（不启动服务）
+├── model.py                  # Agent Model
 ├── main.py                   # 本地启动服务入口（AgentkitAgentServerApp）
 ├── pyproject.toml            # 依赖管理（uv）
 └── requirements.txt          # 依赖管理（pip/uv pip）
@@ -172,10 +173,9 @@ agentkit launch
 ## 示例提示词
 
 以下是一些常用的提示词示例：
-
-- `帮我生成杨梅饮料的宣传视频（商品展示视频），图片素材为：https://.../xxx.jpg 每个分镜两个首帧图，两条视频`
-- `给我做一个15秒的新品手机壳展示视频，风格清爽，强调防摔与轻薄`
-- `用“新年促销”主题写一个商品展示视频脚本，并生成对应视频`
+- `请生成一条巧克力的圣诞节营销视频。商品名：圣诞限定黑巧克力礼盒装。适用场景和人群：适合所有巧克力爱好者，特别是追求圣诞节极致口感、甜蜜分享与能量补充的消费者；适用于圣诞下午茶时光、节日亲友聚会、温馨赠礼或任何需要增添节日氛围的愉悦时刻。主要成分：精选可可豆、纯可可脂、优质牛奶、天然香草，无添加人工色素和防腐剂，富含抗氧化剂。口味/特点：入口即化，丝滑醇厚，浓郁可可香，微苦回甘中带有节日限定的暖心回味 http://lf3-static.bytednsdoc.com/obj/eden-cn/lm_sth/ljhwZthlaukjlkulzlp/ark/assistant/images/ad_chocolate.png`
+- `请生成一条面包营销视频。商品名：奶香松软拉丝吐司；适用场景和人群：场景：早餐配餐、下午茶点、日常代餐，人群：上班族、学生党、家庭群体（偏好松软口感的面包爱好者）；主要成分：高筋面粉、牛奶、鸡蛋、黄油、酵母、白砂糖；口味 / 特点：口味：浓郁奶香，搭配黄油 + 蜂蜜后口感香甜柔润，特点：面包质地松软、切面蜂窝气孔均匀，烤后表皮带焦脆斑点，兼具松软内里与香脆外皮的双重口感 http://lf3-static.bytednsdoc.com/obj/eden-cn/lm_sth/ljhwZthlaukjlkulzlp/ark/assistant/images/ad_bread.jpeg`
+- `生成一条侘寂风香薰蜡烛的商品图电商营销视频。商品名：侘寂风香薰蜡烛；适用场景和人群：场景：居家客厅装饰、卧室助眠、书房放松、极简风空间氛围营造，人群：喜欢极简 / 侘寂美学的家居爱好者、追求松弛感的都市白领、香薰收藏者；主要成分：天然大豆蜡、植物精油、水泥罐身、纸质标识贴；气味 / 特点：气味：可选木质调（雪松 / 檀香）、草本调（鼠尾草 / 尤加利）等中性舒缓香型，特点：水泥罐身带原生肌理质感，搭配黑白极简花纹标识，烛火柔和不刺眼；罐身可重复利用，整体风格低调质朴，契合侘寂美学的调性 http://lf3-static.bytednsdoc.com/obj/eden-cn/lm_sth/ljhwZthlaukjlkulzlp/ark/assistant/images/ad_candle.jpeg`
 
 ## 效果展示
 
