@@ -76,7 +76,7 @@ agent2 = Agent(
 ## Directory Structure
 
 ```text
-0_viking_memory/
+01_viking_memory/
 ├── agent.py           # Agent application entry point
 ├── local_test.py      # Complete memory function demonstration script
 ├── requirements.txt   # Python dependency list (required for agentkit deployment)

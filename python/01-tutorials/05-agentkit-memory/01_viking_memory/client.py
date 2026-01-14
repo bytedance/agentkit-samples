@@ -53,6 +53,6 @@ if __name__ == "__main__":
                 print(line)
 
     async def send_request_parallel():
-        await send_request("My habby is 0xabcd")
+        await send_request("My hobby is 0xabcd")
 
     asyncio.run(send_request_parallel())

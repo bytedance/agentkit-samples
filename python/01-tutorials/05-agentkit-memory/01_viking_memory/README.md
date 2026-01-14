@@ -209,7 +209,7 @@ agentkit config \
 agentkit launch
 
 # 测试部署的 Agent
-agentkit invoke 'What is my habby?'
+agentkit invoke 'What is my hobby?'
 ```
 
 ## 示例提示词

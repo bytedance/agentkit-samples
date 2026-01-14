@@ -233,7 +233,7 @@ agentkit invoke '请帮我写一篇关于人工智能未来的500字文章'
 agentkit invoke '你好，我想了解一些关于 zanghua 的信息'
 
 # 或使用 client.py 连接云端服务
-# 需要编辑 client.py，将其中的第 14 行和第 15 行的 base_url 和 api_key 修改为 agentkit.yaml 中生成的 runtime_endpoint 和 runtime_apikey 字段
+# 需要编辑 client.py，将其中的第 13 行和第 14 行的 base_url 和 api_key 修改为 agentkit.yaml 中生成的 runtime_endpoint 和 runtime_apikey 字段
 # 按需修改 client.py，第 56 行，请求的内容
 uv run client.py
 ```

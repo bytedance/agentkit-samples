@@ -238,10 +238,6 @@ agentkit invoke 'Hello, I would like to know some information about zanghua'
 uv run client.py
 ```
 
-## Example Prompts
-
-## Effect Demonstration
-
 ## Detailed Explanation of Callback Functions
 
 ### 1. before_agent_callback

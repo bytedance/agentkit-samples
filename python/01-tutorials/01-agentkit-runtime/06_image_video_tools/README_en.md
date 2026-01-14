@@ -1,6 +1,6 @@
 # Image and Video Tools - Image and Video Generation Agent
 
-A creative content generation example based on Volcano Engine VeADK and multimedia generation tools, demonstrating how to generate image and video content through multi-agent collaboration.
+A creative content generation example based on Volcano Engine VeADK and multimedia generation tools, demonstrating how to generate image and video content through Agent.
 
 ## Overview
 
@@ -8,7 +8,7 @@ This example demonstrates how to use VeADK to build a multi-agent system to gene
 
 ## Core Functions
 
-- Multi-agent architecture: The main Agent coordinates multiple sub-Agents
+- Single Agent architecture: Use a single Agent to coordinate all tools
 - Image generation: Convert text descriptions into images
 - Video generation: Generate videos based on images or text
 - Content search: Use Web search to enhance creative capabilities
@@ -18,60 +18,73 @@ This example demonstrates how to use VeADK to build a multi-agent system to gene
 ```text
 User Input (text description)
     ↓
-Main Agent (eposide_generator)
-    ├── Image Generator (image generation sub-Agent)
-    │   └── image_generate tool
-    │
-    ├── Video Generator (video generation sub-Agent)
-    │   └── video_generate tool
-    │
-    └── Web Search (content search)
-        └── web_search tool
+Main Agent (image_video_tools_agent)
+    ├── web_search tool (search background information)
+    ├── image_generate tool (generate images)
+    └── video_generate tool (generate videos)
 ```
 
 ### Core Components
 
 | Component | Description |
 | - | - |
-| **Main Agent** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/agent.py#L37-L43) - eposide_generator, coordinates sub-Agents |
-| **Image Generation Agent** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/agent.py#L30-L35) - image_generator, generates images |
-| **Video Generation Agent** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/agent.py#L23-L28) - video_generator, generates videos |
+| **Main Agent** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/agent.py#L38-L69) - image_video_tools_agent, responsible for understanding user intent and calling tools |
 | **Built-in Tools** | `image_generate`, `video_generate`, `web_search` |
-| **Project Configuration** | [pyproject.toml](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/pyproject.toml) - dependency management (uv tool) |
+| **Service Framework** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/agent.py#L81-L89) - AgentkitAgentServerApp, provides HTTP service interface |
+| **Client Test** | [client.py](https://github.com/volcengine/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/client.py) - Test client, used to call deployed cloud service |
+| **Project Configuration** | [pyproject.toml](https://github.com/volcengine/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/pyproject.toml) - dependency management |
 
 ### Code Features
 
-**Sub-Agent Definition** ([agent.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/agent.py#L23-L35)):
-
-```python
-video_generator = Agent(
-    name="video_generator",
-    description="Video Generation Agent",
-    instruction="You are an atomic Agent with video generation capabilities. After each execution, consider returning to the main Agent.",
-    tools=[video_generate],
-)
-
-image_generator = Agent(
-    name="image_generator",
-    description="Image Generation Agent",
-    instruction="You are an atomic Agent with image generation capabilities. After each execution, consider returning to the main Agent.",
-    tools=[image_generate],
-)
-```
-
-**Main Agent Configuration** ([agent.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/agent.py#L37-L43)):
+**Main Agent Configuration** ([agent.py](https://github.com/volcengine/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/agent.py#L38-L69)):
 
 ```python
 root_agent = Agent(
-    name="eposide_generator",
-    description="Call sub-Agents to generate images or videos",
-    instruction="""You can generate videos or images based on a short piece of text entered by the user""",
-    sub_agents=[image_generator, video_generator],
-    tools=[web_search],
+    name="image_video_tools_agent",
+    description="Call tools to generate images or videos",
+    instruction="""
+    You are an image and video generation assistant with image generation and video generation capabilities. There are three available tools:
+    - web_search: Used to search for relevant information.
+    - image_generate: Used to generate images.
+    - video_generate: Used to generate videos.
+
+    ### Workflow:
+
+    1. When the user provides input, prepare relevant background information based on the user input:
+       - If the user input is a story or plot, directly call the web_search tool;
+       - If the user input is of other types (such as questions or requests), call the web_search tool first (up to 2 times) to find suitable information.
+    2. Based on the prepared background information, call the image_generate tool to generate storyboard images. After generation, return them in Markdown image list format, for example:
+        ```
+        ![Storyboard Image 1](https://example.com/image1.png)
+        ```
+    3. Based on the user input, determine whether to call the video_generate tool to generate videos. When returning video URLs, use Markdown video link list format, for example:
+        ```
+        <video src="https://example.com/video1.mp4" width="640" controls>Storyboard Video 1</video>
+        ```
+    
+    ### Notes:
+    - In any input and output, any URLs involving images or videos, **absolutely prohibit any form of modification, truncation, stitching, or replacement**, must maintain 100% the completeness and accuracy of the original content.
+    """,
+    tools=[web_search, image_generate, video_generate],
 )
 ```
 
-**Usage Example** ([agent.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/agent.py#L47-L67)):
+**Service Startup** ([agent.py](https://github.com/volcengine/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/agent.py#L81-L89)):
+
+```python
+short_term_memory = ShortTermMemory(backend="local")
+
+agent_server_app = AgentkitAgentServerApp(
+    agent=root_agent,
+    short_term_memory=short_term_memory,
+)
+
+if __name__ == "__main__":
+    agent_server_app.run(host="0.0.0.0", port=8000)
+```
+
+**Usage Example** ([agent.py](https://github.com/volcengine/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/agent.py#L71-L79)):
+
 
 ```python
 async def main(prompts: list[str]):
@@ -85,7 +98,7 @@ async def main(prompts: list[str]):
 
 # Example prompts
 asyncio.run(main([
-    "Please generate the first frame image of the ancient Chinese prose 'Luoxia yu guwu qifei, qiushui gong changtian yise' (Rosy clouds and solitary ducks fly together, autumn water merges with the vast sky).",
+    "Please generate the first frame image of the ancient Chinese prose 'Luoxia yu guwu qifei, qiushui gong changtian yise' (落霞与孤鹜齐飞，秋水共长天一色).",
     "Generate a video from the first frame image just now.",
 ]))
 ```
@@ -114,7 +127,7 @@ asyncio.run(main([
 **2. Activate Multimedia Generation Service:**
 
 - Ensure that image generation and video generation services have been activated
-- Refer to [Video Generation Documentation](https://www.volcengine.com/docs/6791/1106485)
+- Refer to [Video Generation Documentation](https://www.volcengine.com/docs/82379/1366799)
 
 **3. Obtain Volcano Engine Access Credentials:**
 
@@ -136,16 +149,9 @@ brew install uv
 
 ```bash
 # Enter the project directory
-cd python/01-tutorials/01-agentkit-runtime/06_image_video_tools
-```
+cd 01-tutorials/01-agentkit-runtime/06_image_video_tools
 
-Use the `uv` tool to install the project dependencies:
-
-```bash
-# If there is no `uv` virtual environment, you can use the command to create a virtual environment first
-uv venv --python 3.12
-
-# Use `pyproject.toml` to manage dependencies
+# Use uv to install dependencies
 uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
 # Activate the virtual environment
@@ -163,9 +169,20 @@ export VOLCENGINE_ACCESS_KEY=<Your Access Key>
 export VOLCENGINE_SECRET_KEY=<Your Secret Key>
 ```
 
-### Debugging Methods
+### Start Service
 
-#### Method 1: Use the VeADK Web debugging interface
+#### Method 1: Run service directly (recommended)
+
+```bash
+# Start Agent service (default port 8000)
+uv run agent.py
+
+# After service starts, you can test it in the following ways:
+# 1. Use client.py for testing
+# 2. Use VeADK Web debugging interface
+```
+
+#### Method 2: Use VeADK Web debugging interface
 
 ```bash
 # Go to the parent directory
@@ -178,17 +195,6 @@ veadk web
 ```
 
 The Web interface provides a graphical dialogue testing environment, supporting real-time viewing of generated images and videos.
-
-#### Method 2: Command line testing (recommended for learning)
-
-```bash
-# Run the example script
-uv run agent.py
-
-# The script will execute two tasks in sequence:
-# 1. Generate an image of the ancient Chinese prose
-# 2. Generate a video based on the image
-```
 
 ## AgentKit Deployment
 
@@ -218,10 +224,20 @@ agentkit launch
 
 # Test the deployed Agent
 agentkit invoke 'Please generate the first frame image of the ancient Chinese prose "Luoxia yu guwu qifei, qiushui gong changtian yise"'
+```
 
-# Or use client.py to connect to the cloud service
-# You need to edit client.py and change the base_url and api_key in lines 14 and 15 to the runtime_endpoint and runtime_apikey fields generated in agentkit.yaml
-# Modify client.py as needed, line 56, the content of the request
+### Use Client for Testing
+
+Edit [client.py](client.py#L14-L16), change `base_url` and `api_key` to the `runtime_endpoint` and `runtime_apikey` fields generated in `agentkit.yaml`:
+
+```python
+base_url = "http://<runtime_endpoint>"
+api_key = "<runtime_apikey>"
+```
+
+Run client for testing:
+
+```bash
 uv run client.py
 ```
 
@@ -234,31 +250,22 @@ uv run client.py
 ```text
 User: Please generate the first frame image of the ancient Chinese prose "Luoxia yu guwu qifei, qiushui gong changtian yise"
 Agent: I will generate an image of this ancient Chinese scene for you...
-      [Call image_generator → image_generate tool]
+      [Call web_search to search background information]
+      [Call image_generate to generate image]
       The image has been generated, showing the artistic conception of rosy clouds, solitary ducks, and autumn water merging with the vast sky.
+      ![Storyboard Image 1](https://example.com/image1.png)
 ```
 
 ### Video Generation
 
-**Generate a video based on an image**:
+**Generate a video based on a text description**:
 
 ```text
-User: Generate a video from the first frame image just now.
-Agent: I will generate a video based on the image just now...
-      [Call video_generator → video_generate tool]
-      The video has been generated, presenting you with a dynamic artistic conception of ancient Chinese prose.
-```
-
-### Creative Scenes
-
-**Cosmic science fiction scene**:
-
-```text
-User: Generate a scene picture of a spaceship sailing in interstellar space
-Agent: [Generate a science fiction style spaceship picture]
-
-User: Make this picture into a video
-Agent: [Generate a dynamic video of the spaceship sailing]
+User: Generate a video of a spaceship sailing in interstellar space
+Agent: [Call web_search to search for relevant background]
+      [Call video_generate to generate video]
+      The video has been generated, presenting you with the scene of a spaceship sailing in interstellar space.
+      <video src="https://example.com/video1.mp4" width="640" controls>Spaceship Sailing Video</video>
 ```
 
 ### Enhanced with Search
@@ -268,7 +275,7 @@ Agent: [Generate a dynamic video of the spaceship sailing]
 ```text
 User: Search for the characteristics of Mount Fuji, and then generate a picture of Mount Fuji
 Agent: [Call web_search to search for information about Mount Fuji]
-      [Generate a picture of Mount Fuji based on the search results by calling image_generate]
+      [Based on search results, call image_generate to generate Mount Fuji picture]
       A picture of Mount Fuji has been generated for you, showing features such as snow-capped mountains and cherry blossoms.
 ```
 
@@ -276,12 +283,11 @@ Agent: [Call web_search to search for information about Mount Fuji]
 
 ## Technical Points
 
-### Multi-agent Architecture
+### Single Agent Architecture
 
-- **Main Agent**: Responsible for understanding user intent and coordinating sub-Agents
-- **Sub-Agent**: Focus on a single function (image or video generation)
-- **Atomic design**: Each sub-Agent returns to the main Agent after completing its task
-- **Tool isolation**: Each sub-Agent only has specific tools
+- **Main Agent**: Responsible for understanding user intent, directly calling all tools
+- **Tool integration**: All tools (web_search, image_generate, video_generate) are integrated in the main Agent
+- **Workflow**: Search background information → Generate images → Generate videos as needed
 
 ### Built-in Tools
 
@@ -306,16 +312,23 @@ from veadk.tools.builtin_tools.web_search import web_search
 ### Multi-turn Dialogue Context
 
 - Use `session_id` to maintain session context
-- Support continuous generation (image first, then video)
-- The Agent can understand contextual references such as "the image just now"
+- Use `ShortTermMemory` to store conversation history
+- The Agent can understand contextual references
+
+### HTTP Service Interface
+
+- Use `AgentkitAgentServerApp` to provide HTTP service
+- Default port 8000
+- Support SSE streaming response
 
 ### Workflow
 
 1. **User input**: Provide a text description
-2. **Main Agent understanding**: Analyze whether it is an image or video request
-3. **Delegate to sub-Agent**: Call the corresponding sub-Agent
-4. **Tool execution**: The sub-Agent calls the generation tool
-5. **Result return**: The generated image/video is returned to the user
+2. **Agent understanding**: Analyze user intent, determine which tools to call
+3. **Background search** (as needed): Call web_search to search for relevant information
+4. **Image generation**: Call image_generate to generate images
+5. **Video generation** (as needed): Call video_generate to generate videos
+6. **Result return**: Return image/video links in Markdown format
 
 ## Frequently Asked Questions
 

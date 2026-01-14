@@ -37,19 +37,19 @@ runner1 = Runner(
 async def main():
     # 存入短期记忆
     response1 = await runner1.run(
-        messages="My habby is 0xabcd", session_id=history_session_id
+        messages="My hobby is 0xabcd", session_id=history_session_id
     )
     print(f"Response 1: {response1}\n")
 
     # 同session读取短期记忆
     response2 = await runner1.run(
-        messages="What is my habby?", session_id=history_session_id
+        messages="What is my hobby?", session_id=history_session_id
     )
     print(f"Response 2: {response2}\n")
 
     # 新session无短期记忆（失败）
     response3 = await runner1.run(
-        messages="What is my habby?", session_id=new_session_id
+        messages="What is my hobby?", session_id=new_session_id
     )
     print(f"Response 3: {response3}\n")
 
@@ -71,7 +71,7 @@ async def main():
 
     # 新session读取长期记忆
     response4 = await runner2.run(
-        messages="What is my habby?", session_id=new_session_id
+        messages="What is my hobby?", session_id=new_session_id
     )
     print(f"Response 4: {response4}")
 

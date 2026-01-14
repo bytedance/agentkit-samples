@@ -1,6 +1,6 @@
 # Image and Video Tools - 生图生视频工具
 
-基于火山引擎 VeADK 和多媒体生成工具构建的创意内容生成示例，展示如何通过多智能体协作生成图片和视频内容。
+基于火山引擎 VeADK 和多媒体生成工具构建的创意内容生成示例，展示如何通过 Agent 生成图片和视频内容。
 
 ## 概述
 
@@ -8,7 +8,7 @@
 
 ## 核心功能
 
-- 多智能体架构：主 Agent 协调多个子 Agent
+- 单 Agent 架构：使用单一 Agent 协调所有工具
 - 图像生成：将文字描述转换为图片
 - 视频生成：基于图片或文字生成视频
 - 内容搜索：使用 Web 搜索增强创作能力
@@ -18,60 +18,73 @@
 ```text
 用户输入（文本描述）
     ↓
-主 Agent (eposide_generator)
-    ├── Image Generator (图像生成子 Agent)
-    │   └── image_generate 工具
-    │
-    ├── Video Generator (视频生成子 Agent)
-    │   └── video_generate 工具
-    │
-    └── Web Search (内容搜索)
-        └── web_search 工具
+主 Agent (image_video_tools_agent)
+    ├── web_search 工具（搜索背景信息）
+    ├── image_generate 工具（生成图片）
+    └── video_generate 工具（生成视频）
 ```
 
 ### 核心组件
 
 | 组件 | 描述 |
 | - | - |
-| **主 Agent** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/agent.py#L37-L43) - eposide_generator，协调子 Agent |
-| **图像生成 Agent** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/agent.py#L30-L35) - image_generator，生成图片 |
-| **视频生成 Agent** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/agent.py#L23-L28) - video_generator，生成视频 |
+| **主 Agent** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/agent.py#L38-L69) - image_video_tools_agent，负责理解用户意图并调用工具 |
 | **内置工具** | `image_generate`, `video_generate`, `web_search` |
-| **项目配置** | [pyproject.toml](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/pyproject.toml) - 依赖管理（uv 工具） |
+| **服务框架** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/agent.py#L81-L89) - AgentkitAgentServerApp，提供 HTTP 服务接口 |
+| **客户端测试** | [client.py](https://github.com/volcengine/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/client.py) - 测试客户端，用于调用部署的云端服务 |
+| **项目配置** | [pyproject.toml](https://github.com/volcengine/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/pyproject.toml) - 依赖管理 |
 
 ### 代码特点
 
-**子 Agent 定义**（[agent.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/agent.py#L23-L35)）：
-
-```python
-video_generator = Agent(
-    name="video_generator",
-    description="视频生成 Agent",
-    instruction="你是一个原子化的 Agent，具备视频生成能力，每次执行完毕后，考虑回到主 Agent。",
-    tools=[video_generate],
-)
-
-image_generator = Agent(
-    name="image_generator",
-    description="图像生成 Agent",
-    instruction="你是一个原子化的 Agent，具备图像生成能力，每次执行完毕后，考虑回到主 Agent。",
-    tools=[image_generate],
-)
-```
-
-**主 Agent 配置**（[agent.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/agent.py#L37-L43)）：
+**主 Agent 配置**（[agent.py](https://github.com/volcengine/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/agent.py#L38-L69)）：
 
 ```python
 root_agent = Agent(
-    name="eposide_generator",
-    description="调用子Agents生成图片或者视频",
-    instruction="""你可以根据用户输入的一段小文字来生成视频或者生成图片""",
-    sub_agents=[image_generator, video_generator],
-    tools=[web_search],
+    name="image_video_tools_agent",
+    description="调用 tools 生成图片或者视频",
+    instruction="""
+    你是一个生图生视频助手，具备图像生成和视频生成能力。有三个可用的工具：
+    - web_search：用于搜索相关信息。
+    - image_generate：用于生成图像。
+    - video_generate：用于生成视频。
+
+    ### 工作流程：
+
+    1. 当用户提供输入时，根据用户输入，准备相关背景信息：
+       - 若用户输入为故事或情节，直接调用 web_search 工具；
+       - 若用户输入为其他类型（如问题、请求），则先调用 web_search 工具 (最多调用2次)，找到合适的信息。
+    2. 根据准备好的背景信息，调用 image_generate 工具生成分镜图片。生成后，以 Markdown 图片列表形式返回，例如：
+        ```
+        ![分镜图片1](https://example.com/image1.png)
+        ```
+    3. 根据用户输入，判断是否需要调用 video_generate 工具生成视频。返回视频 URL 时，使用 Markdown 视频链接列表，例如：
+        ```
+        <video src="https://example.com/video1.mp4" width="640" controls>分镜视频1</video>
+        ```
+    
+    ### 注意事项：
+    - 输入输出中，任何涉及图片或视频的链接url，**绝对禁止任何形式的修改、截断、拼接或替换**，必须100%保持原始内容的完整性与准确性。        
+    """,
+    tools=[web_search, image_generate, video_generate],
 )
 ```
 
-**使用示例**（[agent.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/agent.py#L47-L67)）：
+**服务启动**（[agent.py](https://github.com/volcengine/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/agent.py#L81-L89)）：
+
+```python
+short_term_memory = ShortTermMemory(backend="local")
+
+agent_server_app = AgentkitAgentServerApp(
+    agent=root_agent,
+    short_term_memory=short_term_memory,
+)
+
+if __name__ == "__main__":
+    agent_server_app.run(host="0.0.0.0", port=8000)
+```
+
+**使用示例**（[agent.py](https://github.com/volcengine/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/06_image_video_tools/agent.py#L71-L79)）：
+
 
 ```python
 async def main(prompts: list[str]):
@@ -114,7 +127,7 @@ asyncio.run(main([
 **2. 开通多媒体生成服务：**
 
 - 确保已开通图像生成和视频生成服务
-- 参考 [视频生成文档](https://www.volcengine.com/docs/6791/1106485)
+- 参考 [视频生成文档](https://www.volcengine.com/docs/82379/1366799)
 
 **3. 获取火山引擎访问凭证：**
 
@@ -137,15 +150,8 @@ brew install uv
 ```bash
 # 进入项目目录
 cd 01-tutorials/01-agentkit-runtime/06_image_video_tools
-```
 
-使用 `uv` 工具来安装本项目依赖：
-
-```bash
-# 如果没有 `uv` 虚拟环境，可以使用命令先创建一个虚拟环境
-uv venv --python 3.12
-
-# 使用 `pyproject.toml` 管理依赖
+# 使用 uv 安装依赖
 uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
 # 激活虚拟环境
@@ -163,9 +169,20 @@ export VOLCENGINE_ACCESS_KEY=<Your Access Key>
 export VOLCENGINE_SECRET_KEY=<Your Secret Key>
 ```
 
-### 调试方法
+### 启动服务
 
-#### 方式一：使用 VeADK Web 调试界面
+#### 方式一：直接运行服务（推荐）
+
+```bash
+# 启动 Agent 服务（默认端口 8000）
+uv run agent.py
+
+# 服务启动后，可通过以下方式测试：
+# 1. 使用 client.py 测试
+# 2. 使用 VeADK Web 调试界面
+```
+
+#### 方式二：使用 VeADK Web 调试界面
 
 ```bash
 # 进入上级目录
@@ -178,17 +195,6 @@ veadk web
 ```
 
 Web 界面提供图形化对话测试环境，支持实时查看生成的图片和视频。
-
-#### 方式二：命令行测试（推荐学习）
-
-```bash
-# 运行示例脚本
-uv run agent.py
-
-# 脚本会依次执行两个任务：
-# 1. 生成古文片段的图片
-# 2. 基于图片生成视频
-```
 
 ## AgentKit 部署
 
@@ -218,10 +224,20 @@ agentkit launch
 
 # 测试部署的 Agent
 agentkit invoke '请生成古文片段 落霞与孤鹜齐飞，秋水共长天一色 的首帧图片'
+```
 
-# 或使用 client.py 连接云端服务
-# 需要编辑 client.py，将其中的第 14 行和第 15 行的 base_url 和 api_key 修改为 agentkit.yaml 中生成的 runtime_endpoint 和 runtime_apikey 字段
-# 按需修改 client.py，第 56 行，请求的内容
+### 使用客户端测试
+
+编辑 [client.py](client.py#L14-L16)，将 `base_url` 和 `api_key` 修改为 `agentkit.yaml` 中生成的 `runtime_endpoint` 和 `runtime_apikey` 字段：
+
+```python
+base_url = "http://<runtime_endpoint>"
+api_key = "<runtime_apikey>"
+```
+
+运行客户端测试：
+
+```bash
 uv run client.py
 ```
 
@@ -234,31 +250,22 @@ uv run client.py
 ```text
 用户：请生成古文片段 落霞与孤鹜齐飞，秋水共长天一色 的首帧图片
 Agent：我来为您生成这个古文场景的图片...
-      [调用 image_generator → image_generate 工具]
+      [调用 web_search 搜索背景信息]
+      [调用 image_generate 生成图片]
       已生成图片，展现了落霞、孤鹜与秋水长天的意境。
+      ![分镜图片1](https://example.com/image1.png)
 ```
 
 ### 视频生成
 
-**基于图片生成视频**：
+**基于文字描述生成视频**：
 
 ```text
-用户：刚才的首帧图，生成视频。
-Agent：我来基于刚才的图片生成视频...
-      [调用 video_generator → video_generate 工具]
-      视频已生成，为您呈现动态的古文意境。
-```
-
-### 创意场景
-
-**宇宙科幻场景**：
-
-```text
-用户：生成一个宇宙飞船在星际航行的场景图片
-Agent：[生成科幻风格的宇宙飞船图片]
-
-用户：把这张图片做成视频
-Agent：[生成宇宙飞船航行的动态视频]
+用户：生成一段宇宙飞船在星际航行的视频
+Agent：[调用 web_search 搜索相关背景]
+      [调用 video_generate 生成视频]
+      视频已生成，为您呈现宇宙飞船在星际航行的场景。
+      <video src="https://example.com/video1.mp4" width="640" controls>宇宙飞船航行视频</video>
 ```
 
 ### 结合搜索增强
@@ -276,12 +283,11 @@ Agent：[调用 web_search 搜索富士山信息]
 
 ## 技术要点
 
-### 多智能体架构
+### 单 Agent 架构
 
-- **主 Agent**：负责理解用户意图，协调子 Agent
-- **子 Agent**：专注于单一功能（图像或视频生成）
-- **原子化设计**：每个子 Agent 完成任务后返回主 Agent
-- **工具隔离**：每个子 Agent 只拥有特定工具
+- **主 Agent**：负责理解用户意图，直接调用所有工具
+- **工具集成**：所有工具（web_search, image_generate, video_generate）集成在主 Agent 中
+- **工作流程**：搜索背景信息 → 生成图片 → 按需生成视频
 
 ### 内置工具
 
@@ -306,16 +312,23 @@ from veadk.tools.builtin_tools.web_search import web_search
 ### 多轮对话上下文
 
 - 使用 `session_id` 维护会话上下文
-- 支持连续生成（先图片，后视频）
-- Agent 能理解"刚才的图片"等上下文引用
+- 使用 `ShortTermMemory` 存储对话历史
+- Agent 能理解上下文引用
+
+### HTTP 服务接口
+
+- 使用 `AgentkitAgentServerApp` 提供 HTTP 服务
+- 默认端口 8000
+- 支持 SSE 流式响应
 
 ### 工作流程
 
 1. **用户输入**：提供文字描述
-2. **主 Agent 理解**：分析是图片还是视频需求
-3. **委托子 Agent**：调用对应的子 Agent
-4. **工具执行**：子 Agent 调用生成工具
-5. **结果返回**：生成的图片/视频返回给用户
+2. **Agent 理解**：分析用户意图，确定需要调用的工具
+3. **背景搜索**（按需）：调用 web_search 搜索相关信息
+4. **图片生成**：调用 image_generate 生成图片
+5. **视频生成**（按需）：调用 video_generate 生成视频
+6. **结果返回**：以 Markdown 格式返回图片/视频链接
 
 ## 常见问题
 
