@@ -69,7 +69,7 @@ AgentKit 运行时
 1. 登录 [火山引擎控制台](https://console.volcengine.com)
 2. 进入"访问控制" → "用户" -> 新建用户 或 搜索已有用户名 -> 点击用户名进入"用户详情" -> 进入"密钥" -> 新建密钥 或 复制已有的 AK/SK
    - 如下图所示
-     ![Volcengine AK/SK Management](../img/volcengine_aksk.jpg)
+     ![Volcengine AK/SK Management](../../assets/images/volcengine_aksk.jpg)
 3. 为用户配置 AgentKit运行所依赖服务的访问权限:
    - 在"用户详情"页面 -> 进入"权限" -> 点击"添加权限"，将以下策略授权给用户
    - `AgentKitFullAccess`（AgentKit 全量权限）
@@ -78,7 +78,7 @@ AgentKit 运行时
    - 搜索"火山方舟"产品，点击进入控制台
    - 进入"API Key管理" -> 创建 或 复制已有的 API Key
    - 如下图所示
-     ![Ark API Key Management](../img/ark_api_key_management.jpg)
+     ![Ark API Key Management](../../assets/images/ark_api_key_management.jpg)
 5. 开通模型预置推理接入点
    - 搜索"火山方舟"产品，点击进入控制台
    - 进入"开通管理" -> "语言模型" -> 找到相应模型 -> 点击"开通服务"
@@ -87,7 +87,7 @@ AgentKit 运行时
      - 生图模型：`doubao-seedream-4-5-251128`
      - 生视频模型：`doubao-seedance-1-0-pro-250528`
    - 如下图所示
-     ![Ark Model Service Management](../img/ark_model_service_management.jpg)
+     ![Ark Model Service Management](../../assets/images/ark_model_service_management.jpg)
 
 ### 安装依赖
 

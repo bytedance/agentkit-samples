@@ -30,9 +30,14 @@ DEFAULT_IMAGE_GENERATE_MODEL_API_BASE = "https://ark.cn-beijing.volces.com/api/v
 
 
 def set_veadk_environment_variables():
+    print(f"Setting VEADK environment variables... {os.getenv('MODEL_AGENT_NAME')}")
     os.environ["MODEL_AGENT_NAME"] = os.getenv(
         "MODEL_AGENT_NAME", DEFAULT_MODEL_AGENT_NAME
     )
+    print(
+        f"after Setting VEADK environment variables... {os.getenv('MODEL_AGENT_NAME')}"
+    )
+
     os.environ["MODEL_AGENT_API_BASE"] = os.getenv(
         "MODEL_AGENT_API_BASE", DEFAULT_MODEL_AGENT_API_BASE
     )

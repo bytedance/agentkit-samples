@@ -69,7 +69,7 @@ Key features include:
 1.  Log in to the [Volcano Engine Console](https://console.volcengine.com)
 2.  Go to "Access Control" → "Users" -> Create a new user or search for an existing username -> Click the username to enter "User Details" -> Go to "Keys" -> Create a new key or copy an existing AK/SK
     -   As shown in the figure below
-        ![Volcengine AK/SK Management](../img/volcengine_aksk.jpg)
+        ![Volcengine AK/SK Management](../../assets/images/volcengine_aksk.jpg)
 3.  Configure access permissions for the services that AgentKit depends on for the user:
     -   On the "User Details" page -> Go to "Permissions" -> Click "Add Permission", and grant the following policies to the user
     -   `AgentKitFullAccess` (AgentKit full access)
@@ -78,7 +78,7 @@ Key features include:
     -   Search for the "Volcano Ark" product and click to enter the console
     -   Go to "API Key Management" -> Create or copy an existing API Key
     -   As shown in the figure below
-        ![Ark API Key Management](../img/ark_api_key_management.jpg)
+        ![Ark API Key Management](../../assets/images/ark_api_key_management.jpg)
 5.  Activate the model's pre-built inference access point
     -   Search for the "Volcano Ark" product and click to enter the console
     -   Go to "Activation Management" -> "Language Models" -> Find the corresponding model -> Click "Activate Service"
@@ -87,7 +87,7 @@ Key features include:
         -   Image generation model: `doubao-seedream-4-0-250828`
         -   Video generation model: `doubao-seedance-1-0-pro-250528`
     -   As shown in the figure below
-        ![Ark Model Service Management](../img/ark_model_service_management.jpg)
+        ![Ark Model Service Management](../../assets/images/ark_model_service_management.jpg)
 
 ### Install Dependencies
 

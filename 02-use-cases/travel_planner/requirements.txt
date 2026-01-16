@@ -1,6 +1,7 @@
 tos>=2.8.7
-veadk-python==0.5.1
-google-adk==1.19.0
+veadk-python==0.5.8
+google-adk==1.21.0
 volcengine-python-sdk>=4.0.33
-agentkit-sdk-python==0.3.2
+agentkit-sdk-python==0.4.2
 cozeloop==0.1.21
+mem0ai==0.1.118

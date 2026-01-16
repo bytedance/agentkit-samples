@@ -17,6 +17,7 @@ import sys
 from pathlib import Path
 
 from agentkit.apps import AgentkitAgentServerApp
+from google.adk.agents.callback_context import CallbackContext
 from google.adk.tools.mcp_tool.mcp_toolset import (
     MCPToolset,
     StreamableHTTPConnectionParams,
@@ -27,6 +28,10 @@ from veadk.knowledgebase.knowledgebase import KnowledgeBase
 from veadk.memory.long_term_memory import LongTermMemory
 from veadk.memory.short_term_memory import ShortTermMemory
 from veadk.tools.builtin_tools.web_search import web_search
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # 当前目录
 sys.path.append(str(Path(__file__).resolve().parent))
@@ -52,7 +57,9 @@ else:
 tos_bucket_name = os.getenv("DATABASE_TOS_BUCKET", "")
 tos_region = os.getenv("DATABASE_TOS_REGION", "")
 if tos_bucket_name == "" or tos_region == "":
-    raise ValueError("DATABASE_TOS_BUCKET environment variable is not set")
+    raise ValueError(
+        "DATABASE_TOS_BUCKET or DATABASE_TOS_REGION environment variable is not set"
+    )
 # 从预构建目录加载知识库
 try:
     success = knowledge.add_from_directory(
@@ -66,18 +73,22 @@ try:
 except Exception as e:
     logger.error(f"Failed to load knowledgebase: {e}")
 
-# 3. 配置长期记忆： Viking 向量数据库
-memory_collection_name = os.getenv("DATABASE_VIKINGMEM_COLLECTION", "")
-if memory_collection_name != "":
-    # 使用用户指定的长期记忆库
-    long_term_memory = LongTermMemory(
-        backend="viking",
-        top_k=3,
-        index=memory_collection_name,
-    )
+# 3. 配置长期记忆: 如果配置了Mem0，就使用Mem0，否则使用Viking，都不配置，默认创建一个Viking记忆库
+use_mem0 = os.getenv("DATABASE_MEM0_BASE_URL") and os.getenv("DATABASE_MEM0_API_KEY")
+if use_mem0:
+    long_term_memory = LongTermMemory(backend="mem0", top_k=3, app_name=app_name)
 else:
-    raise ValueError("DATABASE_VIKINGMEM_COLLECTION environment variable is not set")
-
+    use_viking_mem = os.getenv("DATABASE_VIKINGMEM_COLLECTION") and os.getenv(
+        "DATABASE_VIKINGMEM_MEMORY_TYPE"
+    )
+    if use_viking_mem:
+        long_term_memory = LongTermMemory(
+            backend="viking", index=os.getenv("DATABASE_VIKINGMEM_COLLECTION")
+        )
+    else:
+        raise ValueError(
+            "DATABASE_VIKINGMEM_COLLECTION or DATABASE_MEM0_BASE_URL variable is not set"
+        )
 
 # 4. 配置 Gaode MCP Server
 gaode_mcp_api_key = os.getenv("GAODE_MCP_API_KEY", "")
@@ -93,6 +104,22 @@ amap_tool = MCPToolset(
         # headers={"Authorization": f"Bearer {apikey}"}
     ),
 )
+
+# 配置记忆库
+# 5. 通过前置拦截器，在智能体执行前，设置默认的customer_id
+default_user_id = "user001"
+
+
+def before_agent_execution(callback_context: CallbackContext):
+    # user_id = callback_context._invocation_context.user_id
+    callback_context.state["user:user_id"] = default_user_id
+
+
+# 这里仅做记忆保存的演示，实际根据需求选择会话保存到长期记忆中
+async def after_agent_execution(callback_context: CallbackContext):
+    session = callback_context._invocation_context.session
+    await long_term_memory.add_session_to_memory(session)
+
 
 # 5. 配置智能体
 travel_planner_prompt = """
@@ -164,14 +191,17 @@ travel_planner_prompt = """
     4. **记忆与个性**：积极利用记忆工具，记住用户的关键偏好（如预算、喜好、厌恶），使推荐越用越懂。
     5. **沟通要求**： 禁止直接将 工具的结果直接输出给用户，你需要结合用户的问题，进行必要的润色，使回复内容更加的清晰、准确、简洁。
 """
-# 支持用户在runtime修改模型
+# 支持Runtime发布后，用户在runtime环境变量修改模型 & 然后重新发布
 model_name = os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201")
 agent = Agent(
     name="travel_planner_advanced",
     model_name=model_name,
     instruction=travel_planner_prompt,
     tools=[amap_tool, web_search],
+    # auto_save_session=True, # 开启session自动保存至长期记忆
     long_term_memory=long_term_memory,
+    before_agent_callback=before_agent_execution,
+    after_agent_callback=after_agent_execution,
     knowledgebase=knowledge,
 )
 

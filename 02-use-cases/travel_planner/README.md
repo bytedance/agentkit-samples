@@ -78,7 +78,7 @@ AgentKit 运行时
 
 > 注意：绑定的服务为“web服务API”
 
-**4. 获取 VikingDB 知识库名称：**
+**4. 获取 知识库名称：**
 
 > 您只需创建一个知识库，在环境变量 `DATABASE_VIKING_COLLECTION`中填入该知识库名称，智能体会自动将知识库文档导入至您的知识库中。
 > 知识库文档位于knowledgebase_docs/目录下。
@@ -87,7 +87,7 @@ AgentKit 运行时
 - 如需新建知识库，参考[创建指南](https://www.volcengine.com/docs/84313/1254463) 完成知识库创建，获取知识库名称
 - 如需复用已有知识库，参考[查看指南](https://www.volcengine.com/docs/84313/1254468) 获取知识库名称
 
-**5. 获取 VikingDB 记忆库名称：**
+**5. 获取 记忆库名称：**
 
 > 您只需创建一个记忆库，在环境变量 `DATABASE_VIKINGMEM_COLLECTION`中填入该记忆库名称，记忆数据由智能体自动写入。
 
@@ -154,12 +154,17 @@ export GAODE_MCP_API_KEY=<Your Gaode MCP API Key>
 # 火山VikingDB知识库名称（必需）
 export DATABASE_VIKING_COLLECTION=<Your VikingDB Knowledge Collection Name>
 
-# 火山VikingDB记忆库名称（必需）
+# 记忆库名称（必需，支持两种类型 火山VikingDB 或者 MEM0，两者二选一）
+## 火山viking
 export DATABASE_VIKINGMEM_COLLECTION=<Your VikingDB Memory Collection Name>
+export DATABASE_VIKINGMEM_MEMORY_TYPE=<Your VikingDB Memory Type>
+## mem0
+export DATABASE_MEM0_BASE_URL=<Your MEM0 Base URL>
+export DATABASE_MEM0_API_KEY=<Your MEM0 API Key>
 
 # TOS桶名称（必需，知识库初始化时使用）
-export DATABASE_TOS_BUCKET=<Your Tos Bucket Name>
-export DATABASE_TOS_REGION=<Your Tos Region>
+export DATABASE_TOS_BUCKET=<Your Tos Bucket Name> #桶名称
+export DATABASE_TOS_REGION=<Your Tos Region> #桶地域
 ```
 
 ### 调试方法
@@ -242,6 +247,7 @@ agentkit config \
 -e GAODE_MCP_API_KEY=<Your Gaode MCP API Key> \
 -e DATABASE_VIKING_COLLECTION=<Your VikingDB Knowledge Collection Name> \
 -e DATABASE_VIKINGMEM_COLLECTION=<Your VikingDB Memory Collection Name> \
+-e DATABASE_VIKINGMEM_MEMORY_TYPE=<Your VikingDB Memory Type> \
 -e DATABASE_TOS_BUCKET=<Your Tos Bucket Name> \
 -e DATABASE_TOS_REGION=<Your Tos Region>
 

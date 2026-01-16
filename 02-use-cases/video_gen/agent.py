@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import logging
 import os
 import sys
@@ -23,10 +22,12 @@ from google.adk.tools.mcp_tool.mcp_toolset import (
     StdioConnectionParams,
     StdioServerParameters,
 )
+
 from veadk import Runner
 from veadk.agent_builder import AgentBuilder
 from veadk.memory.short_term_memory import ShortTermMemory
-from consts import set_veadk_environment_variables
+
+from .consts import set_veadk_environment_variables
 
 # 建议通过logging.basicConfig设置全局logger，默认Log级别为INFO
 logging.basicConfig(level=logging.INFO)
