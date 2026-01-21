@@ -20,9 +20,9 @@ import (
 	"llm_auditor/auditor"
 	"time"
 
+	agent "github.com/volcengine/veadk-go/agent"
 	"github.com/volcengine/veadk-go/apps"
 	"github.com/volcengine/veadk-go/apps/agentkit_server_app"
-	"google.golang.org/adk/agent"
 	"google.golang.org/adk/artifact"
 	"google.golang.org/adk/session"
 )
@@ -32,15 +32,16 @@ func main() {
 	ctx := context.Background()
 	llmAuditorAgent := auditor.GetLLmAuditorAgent(ctx)
 
-	app := agentkit_server_app.NewAgentkitA2AServerApp(apps.ApiConfig{
-		Port:         8000,
-		WriteTimeout: 300 * time.Second,
-		ReadTimeout:  300 * time.Second,
-		IdleTimeout:  600 * time.Second,
+	app := agentkit_server_app.NewAgentkitServerApp(&apps.ApiConfig{
+		Port:            8000,
+		WriteTimeout:    300 * time.Second,
+		ReadTimeout:     300 * time.Second,
+		IdleTimeout:     600 * time.Second,
+		SEEWriteTimeout: 600 * time.Second,
 	})
 
 	err := app.Run(ctx, &apps.RunConfig{
-		AgentLoader:     agent.NewSingleLoader(llmAuditorAgent),
+		AgentLoader:     agent.NewStaticLoader(llmAuditorAgent),
 		SessionService:  session.InMemoryService(),
 		ArtifactService: artifact.InMemoryService(),
 	})

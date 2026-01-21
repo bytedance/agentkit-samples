@@ -126,8 +126,8 @@ github.com/twitchyliquid64/golang-asm v0.15.1 h1:SU5vSMR7hnwNxj24w34ZyCi/FmDZTkS
 github.com/twitchyliquid64/golang-asm v0.15.1/go.mod h1:a1lVb/DtPvCB8fslRZhAngC2+aY1QWCk3Cedj/Gdt08=
 github.com/volcengine/ve-tos-golang-sdk/v2 v2.7.26 h1:/U8gvlOrp+5QYzgilB87MJzo0njscGYhHusuLaPp9UM=
 github.com/volcengine/ve-tos-golang-sdk/v2 v2.7.26/go.mod h1:IrjK84IJJTuOZOTMv/P18Ydjy/x+ow7fF7q11jAxXLM=
-github.com/volcengine/veadk-go v0.0.4-0.20260108024713-36c135888068 h1:/S11SrIuYbn0V3qxt5lPKD0cNYSh50/xYFLwX6cHyBY=
-github.com/volcengine/veadk-go v0.0.4-0.20260108024713-36c135888068/go.mod h1:MBBO8MAZvXFxXuZBt8UakvjrELUGyLEFV/b+Z3Oh4vI=
+github.com/volcengine/veadk-go v0.0.5-0.20260121030545-303fffe81526 h1:hiJmENwz9nuogO0f3MzhmNLKSsOle8248tsoDErjQDg=
+github.com/volcengine/veadk-go v0.0.5-0.20260121030545-303fffe81526/go.mod h1:vIxBNKOZKJjTWT/hhype1H17lJCaWo25jcZtwYv4Xx8=
 github.com/volcengine/volc-sdk-golang v1.0.23 h1:anOslb2Qp6ywnsbyq9jqR0ljuO63kg9PY+4OehIk5R8=
 github.com/volcengine/volc-sdk-golang v1.0.23/go.mod h1:AfG/PZRUkHJ9inETvbjNifTDgut25Wbkm2QoYBTbvyU=
 github.com/volcengine/volcengine-go-sdk v1.1.53 h1:COf7NFxiOrHp9xZr8EbSS2vgJTW40C4GbnVIHFgb7vM=
@@ -200,8 +200,8 @@ golang.org/x/tools v0.38.0/go.mod h1:yEsQ/d/YK8cjh0L6rZlY8tgtlKiBNTL14pGDJPJpYQs
 golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 gonum.org/v1/gonum v0.16.0 h1:5+ul4Swaf3ESvrOnidPp4GZbzf0mxVQpDCYUQE7OJfk=
 gonum.org/v1/gonum v0.16.0/go.mod h1:fef3am4MQ93R2HHpKnLk4/Tbh/s0+wqD5nfa6Pnwy4E=
-google.golang.org/adk v0.3.1-0.20251223085414-415e39855752 h1:Y3i2KkjC3taz3Zop9/5t6uTKuTYGarRHO5EPy35BvmU=
-google.golang.org/adk v0.3.1-0.20251223085414-415e39855752/go.mod h1:iE1Kgc8JtYHiNxfdLa9dxcV4DqTn0D8q4eqhBi012Ak=
+google.golang.org/adk v0.3.1-0.20260113130926-012d380e4056 h1:SfDR+nm6VdVjSsvKbHGAV/B6csmMge24nqQBSbJi5Go=
+google.golang.org/adk v0.3.1-0.20260113130926-012d380e4056/go.mod h1:iE1Kgc8JtYHiNxfdLa9dxcV4DqTn0D8q4eqhBi012Ak=
 google.golang.org/appengine v1.1.0/go.mod h1:EbEs0AVv82hx2wNQdGPgUI5lhzA/G0D9YwlJXL52JkM=
 google.golang.org/appengine v1.4.0/go.mod h1:xpcJRLb0r/rnEns0DIKYYv+WjYCduHsrkT7/EB5XEv4=
 google.golang.org/genai v1.40.0 h1:kYxyQSH+vsib8dvsgyLJzsVEIv5k3ZmHJyVqdvGncmc=

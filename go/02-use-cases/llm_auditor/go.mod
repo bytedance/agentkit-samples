@@ -3,8 +3,8 @@ module llm_auditor
 go 1.24.4
 
 require (
-	github.com/volcengine/veadk-go v0.0.4-0.20260108024713-36c135888068
-	google.golang.org/adk v0.3.1-0.20251223085414-415e39855752
+	github.com/volcengine/veadk-go v0.0.5-0.20260121030545-303fffe81526
+	google.golang.org/adk v0.3.1-0.20260113130926-012d380e4056
 	google.golang.org/genai v1.40.0
 )
 

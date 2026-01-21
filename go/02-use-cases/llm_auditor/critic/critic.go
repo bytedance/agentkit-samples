@@ -19,7 +19,9 @@ import (
 	"strings"
 
 	veagent "github.com/volcengine/veadk-go/agent/llmagent"
+	"github.com/volcengine/veadk-go/common"
 	"github.com/volcengine/veadk-go/tool/builtin_tools/web_search"
+	"github.com/volcengine/veadk-go/utils"
 	"google.golang.org/adk/agent"
 	"google.golang.org/adk/agent/llmagent"
 	"google.golang.org/adk/model"
@@ -92,6 +94,7 @@ func New() (agent.Agent, error) {
 				renderReference,
 			},
 		},
+		ModelName: utils.GetEnvWithDefault(common.MODEL_AGENT_NAME, "deepseek-v3-2-251201"),
 	})
 }
 
