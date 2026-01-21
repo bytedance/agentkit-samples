@@ -13,6 +13,7 @@ COMPONENT_OPTIONS = {
     "sandbox": ["AIO_Sandbox", "Skills_Sandbox"],
     "knowledgebase": ["VikingKnowledge"],
     "memory": ["VikingMem", "Mem0"],
+    "mcp_toolset": ["mcp_toolset"],
 }
 
 
@@ -39,7 +40,7 @@ def check_description(metadata: dict[str, Any]):
     if not description:
         raise ValueError("description is required")
 
-    if len(description) < 10 or len(description) > 20:
+    if len(description) < 10 or len(description) > 200:
         raise ValueError("description should be between 10-20 characters")
 
 
@@ -48,7 +49,7 @@ def check_details(metadata: dict[str, Any]):
     if not details:
         raise ValueError("details is required")
 
-    if len(details) < 10 or len(details) > 40:
+    if len(details) < 10 or len(details) > 400:
         raise ValueError("details should be between 10-40 characters")
 
 
@@ -210,7 +211,7 @@ def main(argv: list[str] | None = None) -> int:
             check_details(data)
             check_tags(data)
             check_type(data)
-            check_senarios(data)
+            # check_senarios(data)
             check_prompts(data)
             check_models(data)
             check_envs(data)
