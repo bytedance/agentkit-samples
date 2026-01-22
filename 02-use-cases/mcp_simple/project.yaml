@@ -21,19 +21,7 @@ senarios:                 # 应用场景（2-6个），type 为 application 时�
 prompts:                  # Prompt 样例
   - text:                 一只青蛙一次可以跳 1 级台阶，也可以跳 2 级。它要跳上一个 10 级台阶，总共有多少种跳法？如果是 n 级呢？
     resource_url:         # 必要的多模态数据 URL（公网可访问）
-envs:                     # 所需的环境变量（用于第三方依赖服务）
-  - name:                 火山引擎访问密钥
-    key:                  VOLCENGINE_ACCESS_KEY
-    url:                  https://www.volcengine.com/docs/6291/65568?lang=zh
-  - name:                 火山引擎访问密钥
-    key:                  VOLCENGINE_SECRET_KEY
-    url:                  https://www.volcengine.com/docs/6291/65568?lang=zh
-  - name:                 火山MCP工具集地址
-    key:                  TOOL_MCP_ROUTER_URL
-    url:                  https://www.volcengine.com/docs/86681/1844858?lang=zh
-  - name:                 火山MCP工具集访问凭证
-    key:                  TOOL_MCP_ROUTER_API_KEY
-    url:                  https://www.volcengine.com/docs/86681/1844858?lang=zh
+# envs:                     # 所需的环境变量（用于第三方依赖服务）
 components:               # Agentkit 依赖服务
   - type: mcp_toolset              # 服务类型，可选项为 tool | knowledgebase | memory
     # 对应产品（不区分大小写）
