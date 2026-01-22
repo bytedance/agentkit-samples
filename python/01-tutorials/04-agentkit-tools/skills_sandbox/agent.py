@@ -2,7 +2,7 @@ from agentkit.apps import AgentkitAgentServerApp
 from veadk import Agent, Runner
 from veadk.memory.short_term_memory import ShortTermMemory
 from veadk.tools.builtin_tools.execute_skills import execute_skills
-import os, asyncio
+import os
 
 app_name = "agent_skills_app"
 user_id = "agent_skills_user"
@@ -25,14 +25,16 @@ runner = Runner(
     user_id=user_id,
 )
 
+
 async def main():
-    messages = f"""
+    messages = """
     请运行以下工作流程：
     1. 帮我写一个pdf处理的skill，能够支持加载pdf、编辑pdf和从pdf中提取文字信息即可。
     2. 将写好的 skill 注册到 skill space。
     """
     response = await runner.run(messages=messages, session_id=session_id)
     print(f"response: {response}")
+
 
 # using veadk web for debugging
 root_agent = agent
