@@ -70,7 +70,7 @@ sequenceDiagram
 
    访问 [飞书开放平台](https://open.feishu.cn/) → 点击「创建应用」
 
-   ![飞书开放平台](images/image.png)
+   ![飞书开放平台](assets/images/image.png)
 
 2. **创建企业自建应用**
    - 应用类型：企业自建应用
@@ -83,7 +83,7 @@ sequenceDiagram
    - **App ID**（客户端 ID）
    - **App Secret**（客户端密钥）
 
-   ![获取应用凭证](images/image-1.png)
+   ![获取应用凭证](assets/images/image-1.png)
 
 4. **⚠️ 配置安全设置（最关键的一步！）**
 
@@ -107,7 +107,7 @@ sequenceDiagram
    > - 不要漏掉 `/login/generic_oauth/callback` 路径
    > - URL 必须与控制台显示的完全一致，包括协议 `https://`
 
-   ![配置安全设置](images/image-2.png)
+   ![配置安全设置](assets/images/image-2.png)
 
 5. **网页应用配置（可选，非必须）**
 
@@ -138,7 +138,7 @@ sequenceDiagram
    > - **如果不申请这个权限，登录时会报错 `20027 当前应用未申请相关权限`**
    > - 两个必须权限缺一不可！
 
-   ![添加权限](images/image-3.png)
+   ![添加权限](assets/images/image-3.png)
 
 7. **发布应用**
 
@@ -174,8 +174,8 @@ sequenceDiagram
 
    > 保存后，页面会显示「重定向 URI」，确认这个 URL 已经添加到飞书应用的「安全设置」中。
 
-![配置飞书 IdP](images/image-4.png)
-![保存配置](images/image-5.png)
+![配置飞书 IdP](assets/images/image-4.png)
+![保存配置](assets/images/image-5.png)
 
 配置完成后，用户池登录页面将显示「使用飞书登录」按钮。
 
@@ -224,8 +224,8 @@ lsof -i :8000 | grep -v "^COMMAND" | awk '{print $2}' | xargs kill -9
 4. 返回应用后，点击 **「允许访问」**
 5. 成功登录，开始与 Agent 对话
 
-![飞书登录按钮](images/image-6.png)
-![飞书授权页面](images/image-7.png)
+![飞书登录按钮](assets/images/image-6.png)
+![飞书授权页面](assets/images/image-7.png)
 
 ## 测试提示词
 
