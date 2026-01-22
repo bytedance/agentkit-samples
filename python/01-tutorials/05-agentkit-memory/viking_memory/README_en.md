@@ -76,7 +76,7 @@ agent2 = Agent(
 ## Directory Structure
 
 ```text
-01_viking_memory/
+viking_memory/
 ├── agent.py           # Agent application entry point
 ├── local_test.py      # Complete memory function demonstration script
 ├── requirements.txt   # Python dependency list (required for agentkit deployment)
@@ -118,7 +118,7 @@ brew install uv
 
 ```bash
 # Navigate to the project directory
-cd python/01-tutorials/05-agentkit-memory/01_viking_memory
+cd python/01-tutorials/05-agentkit-memory/viking_memory
 ```
 
 Use `uv` to install the project dependencies:

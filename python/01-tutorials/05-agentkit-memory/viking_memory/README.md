@@ -55,7 +55,7 @@ runner1 = Runner(
 )
 ```
 
-**长期记忆配置**（[local_test.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/05-agentkit-memory/01_viking_memory/local_test.py#L56-L69)）：
+**长期记忆配置**（[local_test.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/05-agentkit-memory/viking_memory/local_test.py#L56-L69)）：
 
 ```python
 # 初始化长期记忆（Viking后端）
@@ -76,7 +76,7 @@ agent2 = Agent(
 ## 目录结构说明
 
 ```text
-01_viking_memory/
+viking_memory/
 ├── agent.py           # Agent 应用入口
 ├── local_test.py      # 完整的记忆功能演示脚本
 ├── requirements.txt   # Python 依赖列表（agentkit部署时需要指定依赖文件）
@@ -118,7 +118,7 @@ brew install uv
 
 ```bash
 # 进入项目目录
-cd python/01-tutorials/05-agentkit-memory/01_viking_memory
+cd python/01-tutorials/05-agentkit-memory/viking_memory
 ```
 
 使用 `uv` 工具来安装本项目依赖：
