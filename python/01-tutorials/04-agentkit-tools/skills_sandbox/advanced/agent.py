@@ -10,9 +10,7 @@ user_id = "agent_skills_user"
 session_id = "agent_skills_session"
 
 skill_space_id = os.getenv("SKILL_SPACE_ID")
-skills_file_path = (
-    "/home/project/your_path"
-)
+skills_file_path = "/home/project/your_path"
 agent = Agent(
     name="skill_agent",
     instruction="根据用户的需求，调用 execute_skills 工具执行 skills，",
