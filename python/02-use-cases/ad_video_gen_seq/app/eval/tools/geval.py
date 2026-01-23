@@ -18,6 +18,8 @@ import os
 from typing import Any
 
 from openai import AsyncOpenAI
+from veadk.auth.veauth.ark_veauth import get_ark_token
+from veadk.consts import DEFAULT_MODEL_AGENT_API_BASE
 from veadk.utils.logger import get_logger
 
 from app.eval.prompt import PROMPT_EVALUATE_ITEM_AGENT
@@ -140,8 +142,8 @@ async def evaluate_media(
     logger.debug(f"Repaired {media_type} list: messages={len(m_content)}")
     logger.info(f"media_list: \n\n {media_list} \n\n")
     client = AsyncOpenAI(
-        base_url=os.getenv("MODEL_AGENT_API_BASE"),
-        api_key=os.getenv("MODEL_AGENT_API_KEY"),
+        base_url=os.getenv("MODEL_AGENT_API_BASE") or DEFAULT_MODEL_AGENT_API_BASE,
+        api_key=os.getenv("MODEL_AGENT_API_KEY") or get_ark_token(),
     )
 
     async def process_message(msg):
