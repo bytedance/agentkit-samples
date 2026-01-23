@@ -1,15 +1,15 @@
 from agentkit.apps import AgentkitAgentServerApp
 from veadk import Agent, Runner
 from veadk.memory.short_term_memory import ShortTermMemory
-from veadk.tools.builtin_tools.execute_skills import execute_skills
-import os
 import asyncio
 
 app_name = "agent_skills_app"
 user_id = "agent_skills_user"
 session_id = "agent_skills_skillslocalfile_localrun_session"
 
-skills_file_path = "/Users/bytedance/work/coding/agent-veadk/wm-samples/reference/skills/skills"
+skills_file_path = (
+    "/Users/bytedance/work/coding/agent-veadk/wm-samples/reference/skills/skills"
+)
 agent = Agent(
     name="skill_agent",
     instruction="根据用户的需求，调用 execute_skills 工具执行 skills，",

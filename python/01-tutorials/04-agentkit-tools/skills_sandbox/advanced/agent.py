@@ -10,23 +10,21 @@ user_id = "agent_skills_user"
 session_id = "agent_skills_session"
 
 skill_space_id = os.getenv("SKILL_SPACE_ID")
-skills_file_path = "/Users/bytedance/work/coding/agent-veadk/wm-samples/reference/skills/skills"
+skills_file_path = (
+    "/home/project/your_path"
+)
 agent = Agent(
     name="skill_agent",
     instruction="根据用户的需求，调用 execute_skills 工具执行 skills，",
-    
     # case1: skills 文件在 AgentKit skill space，运行使用AgentKit skills sandbox
     skills=[skill_space_id],
     tools=[execute_skills],
-    
     # case2: skills 文件在 AgentKit skill space，运行完全在本地
     # skills=[skill_space_id],
     # skills_mode="local",
-    
     # case3: skills 文件在 AgentKit skill space 和 本地，运行完全在本地
     # skills=[skill_space_id, skills_file_path],
     # skills_mode="local",
-    
     # case2: skills 文件在本地，运行也完全在本地
     # skills=[skills_file_path],
     # skills_mode="local",
