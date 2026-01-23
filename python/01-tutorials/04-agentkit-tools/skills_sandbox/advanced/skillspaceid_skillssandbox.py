@@ -3,10 +3,11 @@ from veadk import Agent, Runner
 from veadk.memory.short_term_memory import ShortTermMemory
 from veadk.tools.builtin_tools.execute_skills import execute_skills
 import os
+import asyncio
 
 app_name = "agent_skills_app"
 user_id = "agent_skills_user"
-session_id = "agent_skills_session"
+session_id = "agent_skills_skillspaceid_skillssandbox_session"
 
 skill_space_id = os.getenv("SKILL_SPACE_ID")
 agent = Agent(
@@ -45,6 +46,5 @@ agent_server_app = AgentkitAgentServerApp(
 )
 
 if __name__ == "__main__":
-    # import asyncio
-    # asyncio.run(main())
-    agent_server_app.run(host="0.0.0.0", port=8000)
+    asyncio.run(main())
+    # agent_server_app.run(host="0.0.0.0", port=8000)

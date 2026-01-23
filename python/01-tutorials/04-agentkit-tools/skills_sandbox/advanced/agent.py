@@ -3,17 +3,33 @@ from veadk import Agent, Runner
 from veadk.memory.short_term_memory import ShortTermMemory
 from veadk.tools.builtin_tools.execute_skills import execute_skills
 import os
+import asyncio
 
 app_name = "agent_skills_app"
 user_id = "agent_skills_user"
 session_id = "agent_skills_session"
 
 skill_space_id = os.getenv("SKILL_SPACE_ID")
+skills_file_path = "/Users/bytedance/work/coding/agent-veadk/wm-samples/reference/skills/skills"
 agent = Agent(
     name="skill_agent",
     instruction="根据用户的需求，调用 execute_skills 工具执行 skills，",
+    
+    # case1: skills 文件在 AgentKit skill space，运行使用AgentKit skills sandbox
     skills=[skill_space_id],
     tools=[execute_skills],
+    
+    # case2: skills 文件在 AgentKit skill space，运行完全在本地
+    # skills=[skill_space_id],
+    # skills_mode="local",
+    
+    # case3: skills 文件在 AgentKit skill space 和 本地，运行完全在本地
+    # skills=[skill_space_id, skills_file_path],
+    # skills_mode="local",
+    
+    # case2: skills 文件在本地，运行也完全在本地
+    # skills=[skills_file_path],
+    # skills_mode="local",
 )
 
 short_term_memory = ShortTermMemory(backend="local")
@@ -30,7 +46,7 @@ async def main():
     messages = """
     请运行以下工作流程：
     1. 帮我写一个pdf处理的skill，能够支持加载pdf、编辑pdf和从pdf中提取文字信息即可。
-    2. 将写好的 skill 注册到 skill space。
+    2. 输出生成skill所在的文件系统地址。
     """
     response = await runner.run(messages=messages, session_id=session_id)
     print(f"response: {response}")
@@ -45,6 +61,5 @@ agent_server_app = AgentkitAgentServerApp(
 )
 
 if __name__ == "__main__":
-    # import asyncio
-    # asyncio.run(main())
-    agent_server_app.run(host="0.0.0.0", port=8000)
+    asyncio.run(main())
+    # agent_server_app.run(host="0.0.0.0", port=8000)
