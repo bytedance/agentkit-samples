@@ -16,7 +16,7 @@ description: 根据用户的功能需求，完成与 VeADK 相关的功能。
 
 下面是本技能不同的组件能力。
 
-### 根据需求生成 Agent
+### 直接根据需求生成 Agent
 
 请你遵循以下步骤：
 
@@ -29,7 +29,15 @@ description: 根据用户的功能需求，完成与 VeADK 相关的功能。
 请你遵循以下步骤：
 
 1. 分析原有 Langchain 或 Langgraph 代码
-2. 将原有代码改为 VeADK Agent，对应关系详见 `references/converter/rules.md`
+2. 将原有代码改为 VeADK Agent，对应关系详见 `references/converter/langchain_rules.md`
+3. 参照 `references/common/` 目录内的文档来生成 VeADK 代码
+
+### Dify 工作流转换为 VeADK Agent
+
+请你遵循以下步骤：
+
+1. 分析原有 Dify 工作流 DSL（一般为一个 Yaml 格式文件）
+2. 将原有代码改为 VeADK Agent，对应关系详见 `references/converter/dify_rules.md`
 3. 参照 `references/common/` 目录内的文档来生成 VeADK 代码
 
 ## 后续工作

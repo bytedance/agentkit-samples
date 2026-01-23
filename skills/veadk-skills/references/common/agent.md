@@ -51,3 +51,32 @@ root_agent = SequentialAgent(
 `sub_agent_1` 与 `sub_agent_2` 将会严格按顺序执行
 
 注意，根智能体的命名必须为 `root_agent`。
+
+## 让 Agent 结构化输出
+
+为保证更高的准确率和 Agent 执行时的可控性，使用结构化输出是一种有效的手段。
+
+在定义 Agent 时，通过 `model_extra_config={"response_format": ...}` 可以让 Agent 结构化输出。其中，`...` 是你定义的 Pydantic 模型，用于描述 Agent 的输出格式。
+
+```python
+from pydantic import BaseModel
+from veadk import Agent, Runner
+
+
+# 定义分步解析模型（对应业务场景的结构化响应）
+class Step(BaseModel):
+    explanation: str  # 步骤说明
+    output: str  # 步骤计算结果
+
+
+# 定义最终响应模型（包含分步过程和最终答案）
+class MathResponse(BaseModel):
+    steps: list[Step]  # 解题步骤列表
+    final_answer: str  # 最终答案
+
+
+agent = Agent(
+    instruction="你是一位数学辅导老师，需详细展示解题步骤",
+    model_extra_config={"response_format": MathResponse},
+)
+```

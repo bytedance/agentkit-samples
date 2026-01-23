@@ -42,5 +42,3 @@ agent = Agent(
     tools=[load_knowledgebase], # 工具挂载
 )
 ```
-
-## 
