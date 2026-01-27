@@ -11,14 +11,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import datetime
+import os
 from veadk import Agent
+from tzlocal import get_localzone
 from veadk.memory.short_term_memory import ShortTermMemory
 from veadk.tools.builtin_tools.run_code import run_code
 from veadk.tools.builtin_tools.web_search import web_search
 from agentkit.apps import AgentkitAgentServerApp
 
 short_term_memory = ShortTermMemory(backend="local")
+model_name = os.getenv("MODEL_AGENT_NAME", "doubao-seed-1-6-251015")
+
+
+def get_current_time() -> str:
+    """Get the current server time."""
+    local_tz = get_localzone()
+    current_time_obj = datetime.datetime.now(local_tz)
+    return current_time_obj.strftime("%Y-%m-%d %H:%M:%S %z")
+
 
 agent = Agent(
     name="data_analysis_agent",
@@ -26,6 +37,8 @@ agent = Agent(
     instruction="""
     You are a data analysis agent for stock marketing.
     Talk with user friendly. You can invoke your tools to finish user's task or question.
+    If the user's request contains words like "recently", "lately", "latest" or with similar meanings,
+    you need to first obtain the current time using get_current_time tool, in order to understand what the user considers as time.
     Load memory first. In case you already have answer from memory, you can use it directly.
     Download the stock data thru sandbox if it is not available in memory.
     * If trading data is not found, download the stock trading data using run_code. You can use the Python library akshare to download relevant stock data.
@@ -33,7 +46,8 @@ agent = Agent(
     * You can use the web_search tool to search for relevant company operational data.
     * If dependency libraries are missing, install them for the sandbox using Python code.
     """,
-    tools=[run_code, web_search],
+    tools=[get_current_time, run_code, web_search],
+    model_name=model_name,
 )
 
 root_agent = agent
