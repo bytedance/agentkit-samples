@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from veadk import Agent
 from veadk.tools.builtin_tools.web_search import web_search
 from veadk.tools.builtin_tools.run_code import run_code
@@ -26,6 +27,7 @@ short_term_memory = ShortTermMemory(backend="local")
 agent: Agent = Agent(
     name="content_safety_agent",
     description="A data analysis with guardrails",
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
     instruction="你是一个资深软件工程师，在沙箱里执行生产的代码， 避免每次安装检查, 可以使用python lib akshare 下载相关的股票数据。使用uv 来安装依赖。运行代码超时可以考虑调整超时时间。可以通过web_search工具搜索相关公司的经营数据。如果缺失了依赖库, 通过python代码为沙箱安装缺失的依赖库。",
     tools=[run_code, web_search],
     # planner=PlanReActPlanner(),

@@ -105,7 +105,7 @@ source .venv/bin/activate
 
 ```bash
 # Volcano Ark model name
-export MODEL_AGENT_NAME=doubao-seed-1-6-251015
+export MODEL_AGENT_NAME=deepseek-v3-2-251201
 
 # Volcano Engine access credentials (required)
 export VOLCENGINE_ACCESS_KEY=<Your Access Key>
