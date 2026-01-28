@@ -13,6 +13,7 @@ COMPONENT_OPTIONS = {
     "sandbox": ["AIO_Sandbox", "Skills_Sandbox"],
     "knowledgebase": ["VikingKnowledge"],
     "memory": ["VikingMem", "Mem0"],
+    "mcp_toolset": ["MCPToolset"],
 }
 
 
@@ -39,8 +40,8 @@ def check_description(metadata: dict[str, Any]):
     if not description:
         raise ValueError("description is required")
 
-    if len(description) < 10 or len(description) > 20:
-        raise ValueError("description should be between 10-20 characters")
+    if len(description) < 10 or len(description) > 60:
+        raise ValueError("description should be between 10-60 characters")
 
 
 def check_details(metadata: dict[str, Any]):
@@ -48,8 +49,8 @@ def check_details(metadata: dict[str, Any]):
     if not details:
         raise ValueError("details is required")
 
-    if len(details) < 10 or len(details) > 40:
-        raise ValueError("details should be between 10-40 characters")
+    if len(details) < 10 or len(details) > 400:
+        raise ValueError("details should be between 10-400 characters")
 
 
 def check_tags(metadata: dict[str, Any]):
@@ -76,16 +77,16 @@ def check_type(metadata: dict[str, Any]):
         raise ValueError(f"type should be one of {SAMPLE_TYPES}")
 
 
-def check_senarios(metadata: dict[str, Any]):
+def check_scenarios(metadata: dict[str, Any]):
     type = metadata.get("type")
-    senarios: list = metadata.get("senarios", [])
-    if not senarios and type == "application":
-        raise ValueError("senarios is required when type is `application`")
+    scenarios: list = metadata.get("scenarios", [])
+    if not scenarios and type == "application":
+        raise ValueError("scenarios is required when type is `application`")
 
-    if len(senarios) < 2 or len(senarios) > 6:
-        raise ValueError("senarios should have 2-6 items")
+    if len(scenarios) < 2 or len(scenarios) > 6:
+        raise ValueError("scenarios should have 2-6 items")
 
-    for scenario in senarios:
+    for scenario in scenarios:
         name = scenario.get("name")
         if not name:
             raise ValueError("scenario name is required")
@@ -210,7 +211,7 @@ def main(argv: list[str] | None = None) -> int:
             check_details(data)
             check_tags(data)
             check_type(data)
-            check_senarios(data)
+            check_scenarios(data)
             check_prompts(data)
             check_models(data)
             check_envs(data)

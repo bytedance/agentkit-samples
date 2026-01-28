@@ -35,7 +35,10 @@ def main() -> None:
         parts = Path(rel_path).parts
         if len(parts) >= 2 and parts[0] == "02-use-cases" and parts[1] != "beginner":
             candidate_dirs.add(Path(parts[0]) / parts[1])
-
+        if len(parts) >= 2 and parts[0] == "python" and parts[1] != "02-use-cases":
+            candidate_dirs.add(Path(parts[0]) / parts[1])
+        if len(parts) >= 3 and parts[0] == "python" and parts[1] == "01-use-cases":
+            candidate_dirs.add(Path(parts[0]) / parts[2] / parts[3])
     if not candidate_dirs:
         print(
             "No top-level 02-use-cases/* directories detected, skipping main.py checks."
