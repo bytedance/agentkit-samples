@@ -21,6 +21,7 @@ from volcenginesdkarkruntime import Ark
 # Default model
 DEFAULT_MODEL = "doubao-seedream-4-5-251128"
 
+
 def image_generate(prompt: str):
     """Generate image based on prompt.
 
@@ -34,13 +35,13 @@ def image_generate(prompt: str):
     api_key = os.getenv("MODEL_IMAGE_API_KEY") or os.getenv("ARK_API_KEY")
 
     client = Ark(api_key=api_key)
-    
+
     try:
         response = client.images.generate(
             model=os.getenv("MODEL_IMAGE_NAME", DEFAULT_MODEL),
             prompt=prompt,
         )
-        
+
         download_dir = os.getenv("IMAGE_DOWNLOAD_DIR", os.path.expanduser("./"))
         if not os.path.exists(download_dir):
             try:
@@ -51,16 +52,17 @@ def image_generate(prompt: str):
 
         for i, image in enumerate(response.data):
             #  print(f"Image URL: {image.url}")
-             try:
-                 timestamp = int(time.time())
-                 filename = f"generated_image_{timestamp}_{i}.png"
-                 filepath = os.path.join(download_dir, filename)
-                 urllib.request.urlretrieve(image.url, filepath)
-                 print(f"Downloaded to: {filepath}")
-             except Exception as e:
-                 print(f"Failed to download image from {image.url}: {e}")
+            try:
+                timestamp = int(time.time())
+                filename = f"generated_image_{timestamp}_{i}.png"
+                filepath = os.path.join(download_dir, filename)
+                urllib.request.urlretrieve(image.url, filepath)
+                print(f"Downloaded to: {filepath}")
+            except Exception as e:
+                print(f"Failed to download image from {image.url}: {e}")
     except Exception as e:
         print(f"Error generating image: {e}")
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
