@@ -32,6 +32,7 @@ short_term_memory = ShortTermMemory()
 long_term_memory = LongTermMemory(backend="viking", index=vikingmem_app_name)
 root_agent = Agent(
     name="vikingmem_agent",
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
     instruction="你是一个具备长期记忆的智能助手，擅长用中文回答问题。能够根据情况，搜索过往记忆来回答用户问题。",
     long_term_memory=long_term_memory,
     after_agent_callback=after_agent_execution,

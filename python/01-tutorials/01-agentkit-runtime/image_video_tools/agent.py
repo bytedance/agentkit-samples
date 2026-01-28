@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import uuid
+import os
+
 
 from agentkit.apps import AgentkitAgentServerApp
 from veadk import Agent
@@ -38,6 +40,7 @@ from veadk.tools.builtin_tools.web_search import web_search
 
 root_agent = Agent(
     name="image_video_tools_agent",
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
     description="调用 tools 生成图片或者视频",
     instruction="""
     你是一个生图生视频助手，具备图像生成和视频生成能力。有三个可用的工具：

@@ -1,4 +1,5 @@
 # Deploy the agent as AgentkitAgentServerApp into the agentkit platform
+import os
 from agentkit.apps import AgentkitAgentServerApp
 from veadk import Agent, Runner
 from veadk.memory.short_term_memory import ShortTermMemory
@@ -9,6 +10,7 @@ session_id = "veadk_playground_session_short_term_local"
 
 agent = Agent(
     name="hello_world",
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
     description="hello world agent",
     instruction="""你是一个智能助手，擅长用中文礼貌回复用户的问题。""",
 )

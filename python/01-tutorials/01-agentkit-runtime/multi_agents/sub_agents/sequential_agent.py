@@ -1,4 +1,5 @@
 import asyncio
+import os
 
 from prompts import SEQUENTIAL_SERVICE_AGENT_PROMPT
 from sub_agents.loop_agent import loop_refine_response_agent
@@ -9,6 +10,7 @@ from veadk.memory.short_term_memory import ShortTermMemory
 
 sequential_service_agent = SequentialAgent(
     name="sequential_service_agent",
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
     description="根据用户需求，逐步执行工作流，生成最佳回复结果",
     instruction=SEQUENTIAL_SERVICE_AGENT_PROMPT,
     sub_agents=[parallel_get_info_agent, loop_refine_response_agent],

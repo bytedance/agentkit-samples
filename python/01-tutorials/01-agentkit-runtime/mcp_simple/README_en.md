@@ -103,7 +103,7 @@ source .venv/bin/activate
 
 ```bash
 # Volcengine Ark Model Name
-export MODEL_AGENT_NAME=doubao-seed-1-8-251228
+export MODEL_AGENT_NAME=deepseek-v3-2-251201
 
 # Volcengine Access Credentials
 export VOLCENGINE_ACCESS_KEY=<Your Access Key>
@@ -134,7 +134,7 @@ uv run client.py
 ```text
 [run agent] Event from server:
 [create session] Response from server: {'id': 'agentkit_session', 'appName': 'mcp_agent', 'userId': 'agentkit_user', 'state': {}, 'events': [], 'lastUpdateTime': 1768465256.520708}
-data: {"modelVersion":"doubao-seed-1-8-251228"...
+data: {"modelVersion":"deepseek-v3-2-251201"...
 ...
 ```
 

@@ -1,7 +1,7 @@
 [project]
-name = "mcp-example"
+name = "agentkit-restaurant-ordering-example"
 version = "0.1.0"
-description = "Add your description here"
+description = "A restaurant ordering agent example using AgentKit"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

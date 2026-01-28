@@ -9,15 +9,18 @@ from veadk import Agent, Runner
 from veadk.agents.parallel_agent import ParallelAgent
 from veadk.memory.short_term_memory import ShortTermMemory
 from veadk.tools.builtin_tools.web_search import web_search
+from config import MODEL_NAME
 
 rag_search_agent = Agent(
     name="rag_search_agent",
+    model_name=MODEL_NAME,
     description="负责根据用户问题，从知识库中搜索相关信息",
     instruction=RAG_SEARCH_AGENT_PROMPT,
 )
 
 web_search_agent = Agent(
     name="web_search_agent",
+    model_name=MODEL_NAME,
     description="负责根据用户问题，从互联网中搜索相关信息",
     instruction=WEB_SEARCH_AGENT_PROMPT,
     tools=[web_search],
@@ -25,6 +28,7 @@ web_search_agent = Agent(
 
 parallel_get_info_agent = ParallelAgent(
     name="parallel_get_info_agent",
+    model_name=MODEL_NAME,
     description="根据用户需求，并行执行子任务，快速获取相关信息",
     instruction=PARALLEL_GET_INFO_AGENT_PROMPT,
     # enable web_search_agent if you want to observe how two parallel agents work

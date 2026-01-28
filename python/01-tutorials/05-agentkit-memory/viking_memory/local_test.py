@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import asyncio
+import os
 
 from veadk import Agent, Runner
 from veadk.memory import LongTermMemory, ShortTermMemory
@@ -24,7 +25,11 @@ history_session_id = "history_session"  # 短期记忆会话ID
 new_session_id = "new_session"  # 新会话ID（无短期记忆）
 
 # 短期记忆：仅同session有效
-agent1 = Agent(name="test_agent", instruction="You are a helpful assistant.")
+agent1 = Agent(
+    name="test_agent",
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
+    instruction="You are a helpful assistant.",
+)
 
 runner1 = Runner(
     agent=agent1,
@@ -64,6 +69,7 @@ async def main():
     # 长期记忆：跨session有效
     agent2 = Agent(
         name="test_agent",
+        model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
         instruction="Use LoadMemory tool to search previous info.",
         long_term_memory=long_term_memory,
     )

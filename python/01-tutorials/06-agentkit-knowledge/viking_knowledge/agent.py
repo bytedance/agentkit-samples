@@ -45,6 +45,7 @@ kb.add_from_files(
 # 创建agent
 root_agent = Agent(
     name="test_agent",
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
     knowledgebase=kb,
     instruction="你是一个乐于助人的客服助手。你可以查阅知识库来回答关于产品类目、价格以及售后服务的问题。请根据知识库的内容准确回答。",
 )

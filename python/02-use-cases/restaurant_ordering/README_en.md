@@ -73,6 +73,7 @@ async def summarize_order(tool_context: ToolContext = None) -> str:
 ```python
 order_agent = Agent(
     name="restaurant_ordering_agent",
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
     description="An agent that takes customer orders at a restaurant.",
     instruction=f"""
         You are a friendly and efficient order-taking assistant for a restaurant.

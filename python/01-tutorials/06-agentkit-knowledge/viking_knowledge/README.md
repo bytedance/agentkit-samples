@@ -59,6 +59,7 @@ kb.add_from_files(files=["/tmp/product_info.txt", "/tmp/service_policy.txt"])
 ```python
 root_agent = Agent(
     name="test_agent",
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
     knowledgebase=kb,
     instruction="You are a helpful assistant. Be concise and friendly.",
 )
@@ -133,7 +134,7 @@ source .venv/bin/activate
 
 ```bash
 # 火山方舟模型名称
-export MODEL_AGENT_NAME=doubao-seed-1-6-251015
+export MODEL_AGENT_NAME=deepseek-v3-2-251201
 
 # 火山引擎访问凭证（必需）
 export VOLCENGINE_ACCESS_KEY=<Your Access Key>

@@ -1,3 +1,9 @@
+import sys
+import os
+
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parent))
 from agentkit.apps import AgentkitAgentServerApp
 from veadk import Agent, Runner
 from veadk.memory import ShortTermMemory
@@ -14,6 +20,7 @@ from tools import write_article
 
 root_agent = Agent(
     name="ChineseContentModerator",
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
     description="一个演示全链路回调和护栏功能的中文内容审查助手。",
     instruction="你是一个内容助手，可以根据用户要求撰写文章。利用好工具",
     tools=[write_article],
