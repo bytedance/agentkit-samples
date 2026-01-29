@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import os
 from veadk import Agent
 from veadk.memory.short_term_memory import ShortTermMemory
 from veadk.tools.builtin_tools.run_code import run_code
@@ -19,6 +19,7 @@ from veadk.tools.builtin_tools.web_search import web_search
 from agentkit.apps import AgentkitAgentServerApp
 
 short_term_memory = ShortTermMemory(backend="local")
+model_name = os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201")
 
 agent = Agent(
     name="data_analysis_agent",
@@ -34,6 +35,7 @@ agent = Agent(
     * If dependency libraries are missing, install them for the sandbox using Python code.
     """,
     tools=[run_code, web_search],
+    model_name=model_name,
 )
 
 root_agent = agent
