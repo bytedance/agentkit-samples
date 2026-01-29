@@ -13,11 +13,11 @@ tags:
     - veadk
     - mcp
 type:                     tutorial 
-senarios:                 # 应用场景（2-6个），type 为 application 时必填
-  - name:                 # 应用场景名称（2-15字）
-    desc:                 # 应用场景描述（10-20字）
-  - name:
-    desc:
+scenarios:                 # 应用场景（2-6个），type 为 application 时必填
+  - name: 复杂逻辑推理
+    desc: 利用MCP解决数学、编程等多步推理问题
+  - name: MCP工具调度
+    desc: 根据自然语言指令自动路由调用MCP工具集
 prompts:                  # Prompt 样例
   - text:                 一只青蛙一次可以跳 1 级台阶，也可以跳 2 级。它要跳上一个 10 级台阶，总共有多少种跳法？如果是 n 级呢？
     resource_url:         # 必要的多模态数据 URL（公网可访问）
@@ -27,7 +27,7 @@ components:               # Agentkit 依赖服务
     # 对应产品（不区分大小写）
     # knowledgebase: VikingKnowledge
     # memory: VikingMem | Mem0
-    product: mcp_toolset
+    product: MCPToolset
 models:                   # 涉及到的具体模型列表
     - doubao-seed-1-8-251228
 

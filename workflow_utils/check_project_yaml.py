@@ -145,7 +145,7 @@ def check_components(metadata: dict[str, Any]):
         assert component.get("product"), "component product is required"
 
         component_type = component["type"].lower()
-        component_product = component["product"].lower()
+        component_product = component["product"]
 
         assert component_type in COMPONENT_OPTIONS, (
             f"component type should be one of {COMPONENT_OPTIONS.keys()}"
