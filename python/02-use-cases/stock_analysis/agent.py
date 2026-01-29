@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from veadk import Agent
 from veadk.memory.short_term_memory import ShortTermMemory
 from veadk.tools.builtin_tools.run_code import run_code
@@ -23,6 +24,7 @@ short_term_memory = ShortTermMemory(backend="local")
 agent = Agent(
     name="data_analysis_agent",
     description="A data analysis for stock marketing",
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
     instruction="""
     You are a data analysis agent for stock marketing.
     Talk with user friendly. You can invoke your tools to finish user's task or question.

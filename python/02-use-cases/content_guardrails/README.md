@@ -105,7 +105,7 @@ source .venv/bin/activate
 
 ```bash
 # 火山方舟模型名称
-export MODEL_AGENT_NAME=doubao-seed-1-6-251015
+export MODEL_AGENT_NAME=deepseek-v3-2-251201
 
 # 火山引擎访问凭证（必需）
 export VOLCENGINE_ACCESS_KEY=<Your Access Key>
