@@ -10,10 +10,10 @@ import yaml
 SAMPLE_TYPES = ["tutorial", "application"]
 
 COMPONENT_OPTIONS = {
-    "sandbox": ["AIO_Sandbox", "Skills_Sandbox"],
-    "knowledgebase": ["VikingKnowledge"],
-    "memory": ["VikingMem", "Mem0"],
-    "mcp_toolset": ["MCPToolset"],
+    "sandbox": ["AIO_Sandbox".lower(), "Skills_Sandbox".lower()],
+    "knowledgebase": ["VikingKnowledge".lower()],
+    "memory": ["VikingMem".lower(), "Mem0".lower()],
+    "mcp_toolset": ["MCPToolset".lower()],
 }
 
 
@@ -145,7 +145,7 @@ def check_components(metadata: dict[str, Any]):
         assert component.get("product"), "component product is required"
 
         component_type = component["type"].lower()
-        component_product = component["product"]
+        component_product = component["product"].lower()
 
         assert component_type in COMPONENT_OPTIONS, (
             f"component type should be one of {COMPONENT_OPTIONS.keys()}"
