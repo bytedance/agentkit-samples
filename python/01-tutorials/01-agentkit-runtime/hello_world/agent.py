@@ -1,5 +1,10 @@
 # Deploy the agent as AgentkitAgentServerApp into the agentkit platform
 import os
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parent))
+
 from agentkit.apps import AgentkitAgentServerApp
 from veadk import Agent, Runner
 from veadk.memory.short_term_memory import ShortTermMemory

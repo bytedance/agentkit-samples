@@ -13,6 +13,10 @@
 # limitations under the License.
 
 import os
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parent))
 
 from agentkit.apps import AgentkitAgentServerApp
 from veadk import Agent, Runner

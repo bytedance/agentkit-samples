@@ -13,12 +13,17 @@
 # limitations under the License.
 
 
+import os
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parent))
+
 from agentkit.apps import AgentkitAgentServerApp
 from veadk import Agent, Runner
 from veadk.knowledgebase.knowledgebase import KnowledgeBase
 from veadk.memory.short_term_memory import ShortTermMemory
 from prompts.prompt import ROOT_AGENT_INSTRUCTION_CN, ROOT_AGENT_INSTRUCTION_EN
-import os
 
 # 准备多个知识源
 with open("/tmp/product_info.txt", "w") as f:
