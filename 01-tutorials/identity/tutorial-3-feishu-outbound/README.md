@@ -117,264 +117,241 @@ sequenceDiagram
 
 ---
 
-## 运行环境说明
-
-本教程的 **Outbound 凭证托管** 功能依赖 **工作负载身份 (Workload Identity)**：
-
-| 环境 | 工作负载身份 | 凭证托管功能 |
-| ------ | ------------- | ------------- |
-| 本地 veadk web | ⚠️ 需手动配置 | ✅ 可测试 |
-| AgentKit Runtime | ✅ 自动分配 | ✅ 完整支持 |
-
-### 本地开发模式
-
-本教程**支持本地运行测试**，通过 `RUNTIME_IAM_ROLE_TRN` 环境变量模拟工作负载身份：
-
-```bash
-# 在 .env 中配置
-RUNTIME_IAM_ROLE_TRN=trn:iam::<account_id>:role/<role_name>
-```
-
-> ⚠️ **前提条件**：你的 AK/SK 必须有权限 AssumeRole 到指定的 IAM Role，且该 Role 需具备 `IDReadOnly` 权限。
-
----
-
 ## 快速开始
 
-### 前置条件
+### 前置条件<!-- 标题序号: 4.1 -->
+1. 完成实验1的用户池创建和客户端配置
 
-1. **完成基础教程**
-   - 完成实验1的用户池创建和客户端配置
-   - 完成实验2的飞书应用创建（可复用）
-
-2. **安装 AgentKit CLI**
-
-   ```bash
-   pip install agentkit-cli
-   ```
-
-3. **配置 AgentKit**
-
-   ```bash
-   agentkit config --tos_bucket <your-bucket-name>
-   ```
+2. 完成实验2的飞书应用创建（可复用）
 
 ---
 
-### 步骤1: 配置飞书应用（用于文档访问）
+### 步骤1: 配置飞书应用（用于文档访问）<!-- 标题序号: 4.2 -->
+> 说明：可以复用实验2创建的飞书应用，但需要添加文档访问权限。
+> 
 
-> **说明**：可以复用实验2创建的飞书应用，但需要添加文档访问权限。
+#### 登录飞书开放平台<!-- 标题序号: 4.2.1 -->
+访问 飞书开放平台
 
-1. **登录飞书开放平台**
+#### 获取应用凭证<!-- 标题序号: 4.2.2 -->
+进入「凭证与基础信息」，记录：
 
-   访问 [飞书开放平台](https://open.feishu.cn/)
+- App ID
 
-2. **获取应用凭证**
+- App Secret
 
-   进入「凭证与基础信息」，记录：
-   - **App ID**
-   - **App Secret**
+#### ⚠️ 配置安全设置（重定向 URL）<!-- 标题序号: 4.2.3 -->
+进入「安全设置」→ 添加重定向 URL：
 
-3. **⚠️ 配置安全设置（重定向 URL）**
+> 1. 重要：凭证托管使用不同的回调 URL！
+> 
+> 2. https://auth.id.cn-beijing.volces.com/api/v1/oauth2callback
+> 
 
-   进入「安全设置」→ 添加重定向 URL：
+![图片](../docs/images/img_SLj8b9bcgoBdIqxcUP6c85SYnnd.png)
 
-   > **重要：凭证托管使用不同的回调 URL！**
-   >
-   > ```bash
-   > https://auth.id.cn-beijing.volces.com/api/v1/oauth2callback
-   > ```
-
-   ![alt text](images/image.png)
-4. **⚠️ 添加文档访问权限（关键步骤！）**
-
-   进入「权限管理」→ 搜索并申请以下权限：
+#### ⚠️ 添加文档访问权限（关键步骤！）<!-- 标题序号: 4.2.4 -->
+1. 进入「权限管理」→ 搜索并申请以下权限：
 
    | 权限 | 说明 | 是否必须 |
    | ------ | ------ | ---------- |
    | `docx:document:readonly` | 查看、下载云文档 | ✅ 必须 |
-   | `drive:drive` | 查看云空间 | ✅ 必须 |
    | `docs:document.content:read` | 读取文档内容 | ✅ 推荐 |
 
-5. **发布应用**
+2. 发布应用
 
-   完成配置后，点击「创建版本并发布」使应用生效。
-
----
-
-### 步骤2: 创建凭证提供者（Credential Provider）
-
-> **这是本教程的核心步骤！** 在 Agent Identity 控制台创建飞书凭证提供者。
-
-1. **访问凭证托管控制台**
-
-   打开 [Agent Identity 控制台 → 凭证管理](https://console.volcengine.com/identity/region:identity+cn-beijing/outbound-credentials)
-
-2. **创建凭证提供者**
-
-   点击「创建凭证提供者」，填写以下信息：
-
-   | 字段 | 值 | 说明 |
-   | ------ | ------ | ------ |
-   | 提供者名称 | `feishu` 或自定义 | 代码中会用到这个名称 |
-   | 提供者类型 | OAuth 2.0 | 选择 OAuth 2.0 |
-   | 服务商 | 飞书 | 选择飞书 |
-   | Client ID | 步骤1获取的 App ID | 从飞书应用凭证复制 |
-   | Client Secret | 步骤1获取的 App Secret | 从飞书应用凭证复制 |
-
-![alt text](images/image-1.png)
-3. **⚠️ 配置关键参数（避坑重点！）**
-
-   | 字段 | 正确配置 | 说明 |
-   | ------ | ------ | ------ |
-   | **OAuth2 流程** | `USER_FEDERATION` | 用户级三方授权 |
-   | **回调 URL** | `https://auth.id.cn-beijing.volces.com/api/v1/oauth2callback` | ⚠️ **必须是 Identity Service 的端点！** |
-   | **权限范围** | `drive:drive,docx:document:readonly,offline_access` | 飞书文档读取权限 |
-   | **智能体身份池** | `default` | 默认工作负载池 |
-
-   > 🚨 **常见错误**：
-   >
-   > - ❌ 回调 URL 设为 Runtime 的 URL（如 `https://xxx.apigateway-cn-beijing.volceapi.com/...`）
-   >
-   > - ❌ 权限范围使用 `openid`、`profile` 等标准 OIDC scope（飞书不支持）
-
-![alt text](images/image-2.png)
-4. **验证配置**
-
-   点击「测试」按钮验证 OAuth 流程：
-
-   > - ✅ 成功：能跳转到飞书授权页，授权后能获取 Token
-   > - ❌ 失败：检查回调 URL 和权限范围配置
-
-![alt text](images/image-3.png)
-5. **保存配置**
-
-   记住凭证提供者名称（如 `feishu`），后续配置时需要使用。
+3. 完成配置后，点击「创建版本并发布」使应用生效。
 
 ---
 
-### 步骤3: 配置环境变量
+### 步骤2: 创建凭证提供者（Credential Provider）<!-- 标题序号: 4.3 -->
+> 这是本教程的核心步骤！ 在 Agent Identity 控制台创建飞书凭证提供者。
+> 
+
+1. 访问凭证托管控制台
+
+打开 Agent Identity 控制台 → 凭证管理
+
+2. 创建凭证提供者
+
+点击「创建凭证提供者」，填写以下信息：
+
+| 字段 | 值 | 说明 |
+| ------ | ------ | ------ |
+| **提供者名称** | feishu 或自定义 | 代码中会用到这个名称 |
+| **提供者类型** | OAuth 2.0 | 选择 OAuth 2.0 |
+| **服务商** | 飞书 | 选择飞书 |
+| **Client ID** | 步骤1获取的 App ID | 从飞书应用凭证复制 |
+| **Client Secret** | 步骤1获取的 App Secret | 从飞书应用凭证复制 |
+
+![图片](../docs/images/img_PskvbRdLdoAnCaxEbQ5ctxr0n6c.png)
+
+3. ⚠️ 配置关键参数（避坑重点！）
+
+| 字段 | 正确配置 | 说明 |
+| ------ | ------ | ------ |
+| **OAuth2 流程** | USER_FEDERATION | 用户级三方授权 |
+| **回调 URL** | `https://auth.id.cn-beijing.volces.com/api/v1/oauth2callback` | ⚠️ 必须是 Identity Service 的端点！ |
+| **权限范围** | `docs:document.content:read`<br>`docx:document:readonly` | 飞书文档读取权限 |
+| **智能体身份池** | default | 默认工作负载池 |
+
+> 🚨 常见错误：
+> 
+> - ❌ 回调 URL 设为 Runtime 的 URL（如 `https://xxx.apigateway-cn-beijing.volceapi.com/...`）
+> 
+> - ❌ 权限范围使用 `openid`、`profile` 等标准 OIDC scope（飞书不支持）
+> 
+
+![图片](../docs/images/img_YHIVbA69portr2xJqAXcAmVYnTd.png)
+
+4. 验证配置
+
+点击「测试」按钮验证 OAuth 流程：
+
+> - ✅ 成功：能跳转到飞书授权页，授权后能获取 Token
+> 
+> - ❌ 失败：检查回调 URL 和权限范围配置
+> 
+
+![图片](../docs/images/img_FnTtbX3DKoaLmQx3qVic1rzanlg.png)
+
+5. 保存配置
+
+记住凭证提供者名称（如 `feishu_oauth`），后续配置时需要使用。
+
+
+
+### 步骤3: 部署支持3LO的智能体<!-- 标题序号: 4.4 -->
+1. 创建agentkit部署配置
 
 ```bash
-# 进入教程目录
-cd 01-tutorials/identity/tutorial-3-feishu-outbound
+# 进入 test_agent 目录，这里准备好了一个目标Agent
+cd tutorial-3-feishu-outbound/test_agent
 
-# 复制环境变量模板
-cp .env.example .env
+# 从模板创建一份agentkit.yaml配置文件
+cp agentkit.yaml.template agentkit.yaml
 ```
 
-编辑 `.env` 文件：
+2. 修改配置文件：
 
-```bash
-# ==================== 用户池认证配置 ====================
-# 与实验1/2相同
-ADK_OAUTH2_USERPOOL_UID=your-userpool-uid
-ADK_OAUTH2_CLIENT_ID=your-client-id
-ADK_OAUTH2_CLIENT_SECRET=your-client-secret
-ADK_OAUTH2_CALLBACK_URL=http://127.0.0.1:8000/oauth2/callback  # 注意：新版本使用 /oauth2/callback
-ADK_OAUTH2_SCOPE=openid profile
+- 将`FEISHU_CREDENTIAL_PROVIDER`设置为凭证provider的名字
 
-# ==================== 火山云凭证 ====================
-VOLCENGINE_ACCESS_KEY=your-access-key
-VOLCENGINE_SECRET_KEY=your-secret-key
+- 将`runtime_jwt_discovery_url`设置为用户池的“OIDC 发现端点 Discovery URL”
 
-# ==================== 凭证提供者配置 ====================
-# 本示例同时支持 GitHub 和飞书，分别配置
-GITHUB_CREDENTIAL_PROVIDER=github_oauth   # GitHub 凭证提供者名称
-FEISHU_CREDENTIAL_PROVIDER=feishu_oauth   # 飞书凭证提供者名称
+- （可选）将`runtime_jwt_allowed_clients`设置为允许的一个或者多个客户端的ClientID
 
-# ==================== 本地运行配置 ====================
-# 用于本地模拟 Workload Identity（本地测试必需！）
-RUNTIME_IAM_ROLE_TRN=trn:iam::<account_id>:role/<role_name>
+```yaml
+common:
+  agent_name: identity_demo_outbound
+  entry_point: agent.py
+  description: 这是一个飞书文档智能体，用来演示3LO授权访问飞书文档
+  language: Python
+  language_version: '3.12'
+  agent_type: Basic App
+  dependencies_file: requirements.txt
+  runtime_envs: {}
+  launch_type: cloud
+launch_types:
+  cloud:
+    region: cn-beijing
+    runtime_envs:
+      # 必须配置，指定飞书服务凭证托管provider的名称
+      FEISHU_CREDENTIAL_PROVIDER: <FEISHU_CREDENTIAL_PROVIDER_NAME>
+    # 必须配置，指定使用OAuth2 JWT来验证身份
+    runtime_auth_type: custom_jwt
+    # 必须配置，指定绑定的用户池
+    # USERPOOL_DISCOVERY_URL可以在用户池页面找到（“OIDC 发现端点 Discovery URL”）
+    # 通常格式为：https://userpool-<USERPOOL_ID>.userpool.auth.id.cn-beijing.volces.com/.well-known/openid-configuration
+    runtime_jwt_discovery_url: <USERPOOL_DISCOVERY_URL> # 
+    # 可选配置，指定允许的客户端
+    runtime_jwt_allowed_clients:
+    - <CLIENT_ID_1>
+    - <CLIENT_ID_2>
 ```
 
-> ⚠️ **重要提示**：
->
-> - `ADK_OAUTH2_CALLBACK_URL` 新版本 veadk 使用 `/oauth2/callback`，需要与用户池客户端配置一致
-> - `RUNTIME_IAM_ROLE_TRN` 是本地测试必需的，指定一个你有权限 AssumeRole 且具备 `IDReadOnly` 权限的 IAM Role
-> - Shell 环境变量优先级高于 .env 文件，确保 `~/.zshrc` 或 `~/.bashrc` 中的 AK/SK 与 .env 一致
-
----
-
-### 步骤4: 本地运行测试（推荐先测试）
-
-在部署到 Runtime 之前，建议先在本地测试：
+3. 运行部署命令
 
 ```bash
-# 安装依赖
-uv sync
+# 将火山AK/SK配置到环境变量中，确保AK/SK有发布runtime的权限
+export VOLCENGINE_ACCESS_KEY=<火山AK>
+export VOLCENGINE_SECRET_KEY=<火山SK>
 
-# 本地启动服务
-uv run veadk web
-```
-
-访问 <http://127.0.0.1:8000> 进行测试。
-
-> ⚠️ **本地测试注意事项**：
->
-> 1. 确保 `.env` 中配置了 `RUNTIME_IAM_ROLE_TRN`
-> 2. 确保你的 AK/SK 有权限 AssumeRole 到指定的 Role
-> 3. 如果遇到 `AssumeRole 403` 错误，检查终端环境变量是否与 .env 一致（**开新终端**）
-
----
-
-### 步骤5: 部署到 AgentKit Runtime（生产环境）
-
-本地测试通过后，部署到 AgentKit Runtime：
-
-```bash
-# 部署到 AgentKit Runtime
+# 确保当前位于 tutorial-1-userpool-inbound/test_agent 目录
 agentkit launch
 ```
 
-部署成功后，会输出 Agent 的访问地址。
+若部署成功可以看到“Launch Successfully”的提示：
 
----
+![图片](../docs/images/img_DHcrbqVSuoHY4WxCafmcKH49nvh.png)
 
-### 步骤6: 测试凭证托管
+记录**Service endpoint&nbsp;**用于后续测试流程。
 
-1. **访问部署后的 Agent**
 
-   使用 `agentkit launch` 输出的 URL 访问 Agent。
 
-2. **登录并发送请求**
+### 步骤4: 启动测试应用<!-- 标题序号: 4.5 -->
+#### 配置环境变量<!-- 标题序号: 4.5.1 -->
+1. 复制环境变量模板并填写：
 
-   在对话框中输入：
+```bash
+# 确保位于正确的目录
+cd tutorial-3-outbound-feishu
 
-   ```bash
-   为我总结文档内容：https://feishu.feishu.cn/docx/xxxxxxxxxxxxxxxx
-   ```
-
-   > **提示**：替换为你有权限访问的飞书文档 URL
-
-3. **首次授权**
-
-   系统会自动跳转到飞书授权页面：
-   - 点击「授权」按钮
-   - 授权完成后自动返回应用
-
-4. **查看结果**
-
-   授权成功后，Agent 会返回文档摘要。
-
-```mermaid
-flowchart LR
-    subgraph 首次使用
-        A1[用户请求] --> A2[Agent 需要凭证]
-        A2 --> A3[触发飞书授权]
-        A3 --> A4[用户授权]
-        A4 --> A5[获取 Token]
-        A5 --> A6[访问文档]
-    end
-
-    subgraph 后续使用
-        B1[用户请求] --> B2[Agent 使用缓存 Token]
-        B2 --> B3[直接访问文档<br/>用户无感知]
-    end
-
-    style A3 fill:#ffffcc
-    style B2 fill:#ccffcc
+# 确保当前位于 tutorial-3-outbound-feishu 目录
+cp .env.template .env
 ```
+
+2. 编辑 `.env` 文件
+
+- 配置`AGENT_ENDPOINT`变量为（步骤3发布的）AgentKit Runtime服务的端口
+
+- 配置OAuth2各项配置（与实验1类似）
+
+```bash
+***# OAuth2 配置
+OAUTH2_ISSUER_URI=https://userpool-<USERPOOL_ID>.userpool.auth.id.<REGION>.volces.com
+OAUTH2_CLIENT_ID=<OAuth2 Client ID>
+OAUTH2_CLIENT_SECRET=<OAuth2 Client Secret>
+OAUTH2_REDIRECT_URI=http://127.0.0.1:8082/callback
+OAUTH2_SCOPES='openid profile email'
+
+# 目标Agent配置
+AGENT_NAME='默认智能体'
+**AGENT_ENDPOINT=<AgentKit Runtime Endpoint>***
+```
+
+#### 安装依赖<!-- 标题序号: 4.5.2 -->
+```bash
+uv venv --python=3.12
+uv pip install -r requirements.txt
+```
+
+#### 运行客户端<!-- 标题序号: 4.5.3 -->
+1. 启动应用
+
+```bash
+# 确保当前位于 tutorial-3-outbound-feishu 目录
+uv run app.py
+```
+
+2. 在浏览器打开 http://127.0.0.1:8082 ，并完成登录
+
+![图片](../docs/images/img_WDUkbp7qNo1kdlxbWqCcaGIXnfh.png)
+
+. 输入以下内容，预期会弹出飞书OAuth2授权
+
+```
+请为我总结这篇文档的内容：https://bytedance.larkoffice.com/docx/LddRdcWDro6GRdxOdzEck1DdnFd
+```
+
+![图片](../docs/images/img_BnxlbfLpuoLaL8xGUkIcMb0tnKe.png)
+
+3. 点击授权后，控制流会回到智能体中断的位置继续执行，最终返回执行结果
+
+![图片](../docs/images/img_LohKbcmQaobumMxdpzacchcynce.png)
+
+4. 在凭证有效期内，继续总结其他文档将不再会弹出授权窗口。如果想重新测试3LO，可以输入“重新授权飞书”，智能体会调用工具将凭证失效掉
+
+![图片](../docs/images/img_VBzBbJuveoYxu3xszDWcihjBnPc.png)
 
 ---
 
@@ -384,16 +361,9 @@ flowchart LR
 # 查询文档
 为我总结文档内容：<飞书文档URL>
 
-# 继续提问
-这个文档的主要内容是什么？
-
 # 清理凭证（如需重新授权测试）
 清理我的身份凭据
 ```
-
-![alt text](images/image-8.png)
-![alt text](images/image-9.png)
-![alt text](images/image-10.png)
 
 ## 常见问题排查
 
@@ -635,25 +605,3 @@ Outbound 凭证托管涉及 **三个地方** 需要配置回调 URL，务必区�
 - [飞书开放平台](https://open.feishu.cn/)
 - [Agent Identity 凭证托管文档](https://www.volcengine.com/docs/identity/credential-provider)
 - [AgentKit Runtime 部署指南](https://volcengine.github.io/agentkit-sdk-python/content/4.runtime/1.runtime_quickstart.html)
-
-## 概述
-
-## 核心功能
-
-## Agent 能力
-
-## 目录结构说明
-
-## 本地运行
-
-## AgentKit 部署
-
-## 示例提示词
-
-## 效果展示
-
-## 常见问题
-
-## 代码许可
-
-本工程遵循 Apache 2.0 License

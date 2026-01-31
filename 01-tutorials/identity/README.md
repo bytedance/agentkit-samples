@@ -24,7 +24,8 @@
 ## Agent Identity 解决方案
 
 Agent Identity 专为解决上述问题设计，它不是简单的 OAuth 包装，而是为智能体构建的一套完整的**身份治理基础设施**。
-![alt text](image.png)
+
+![alt text](docs/images/img_overview.png)
 Agent Identity 把“用户 → 应用 → Agent → 资源”的链路拆开治理，并提供一套可复用的安全构件：
 
 **Inbound 认证**：对接企业现有 IdP（用户池 / OAuth / SSO 等），让“谁能调用 Agent”可配置、可审计。
@@ -37,9 +38,9 @@ Agent Identity 把“用户 → 应用 → Agent → 资源”的链路拆开治
 
 | 实验 | 说明 | 目录 |
 | ------ | ------ | ------ |
-| **实验1: 用户池认证** | 使用用户池管控智能体访问 (Inbound 认证) | [01_userpool_inbound](./01_userpool_inbound/) |
-| **实验2: 飞书联合登录** | 使用飞书账号作为企业身份源 (IdP 集成) | [02_feishu_idp](./02_feishu_idp/) |
-| **实验3: 飞书文档访问** | 配置 Agent 代表用户访问飞书文档 | [03_feishu_outbound](./03_feishu_outbound/) |
+| **实验1: 用户池认证** | 使用用户池管控智能体访问 (Inbound 认证) | [tutorial-1-userpool-inbound](./tutorial-1-userpool-inbound/) |
+| **实验2: 飞书联合登录** | 使用飞书账号作为企业身份源 (IdP 集成) | [tutorial-2-feishu-idp](./tutorial-2-feishu-idp/) |
+| **实验3: 飞书文档访问** | 配置 Agent 代表用户访问飞书文档 | [tutorial-3-feishu-outbound](./tutorial-3-feishu-outbound/) |
 
 ## 核心功能
 
@@ -49,84 +50,55 @@ Agent Identity 把“用户 → 应用 → Agent → 资源”的链路拆开治
 
 ## 目录结构说明
 
-```bash
-03-agentkit-identity/
+```
+./
 ├── README.md                           # 本文件
-├── 01_userpool_inbound/        # 实验1: Inbound 认证
+├── docs/                               # 文档和图片资源
+│   └── images/
+├── tutorial-1-userpool-inbound/        # 实验1: Inbound 认证
 │   ├── README.md                       # 教程文档
-│   ├── main.py                         # 示例代码
-│   ├── pyproject.toml                  # 依赖配置
+│   ├── app.py                          # 示例代码
+│   ├── oauth2_testapp.py               # OAuth2 测试应用
+│   ├── requirements.txt                # 依赖配置
 │   ├── .env.template                   # 环境变量模板
-│   └── assets/                         # 截图和流程图
-└── 02_feishu_idp/              # 实验2: 飞书 IdP 联合登录
-    ├── README.md
-    ├── main.py
-    ├── pyproject.toml
-    ├── .env.template
-    └── assets/
-└── 03_feishu_outbound/              # 实验3: 飞书文档访问
-    ├── README.md
-    ├── main.py
-    ├── pyproject.toml
-    ├── .env.template
-    └── assets/
+│   ├── templates/                      # HTML 模板
+│   │   └── index.html
+│   └── test_agent/                     # 被测智能体
+│       ├── agent.py                    # 智能体代码
+│       └── agentkit.yaml.template      # AgentKit 配置模板
+├── tutorial-2-feishu-idp/              # 实验2: 飞书 IdP 联合登录
+│   ├── README.md                       # 教程文档
+│   ├── app.py                          # 示例代码
+│   ├── requirements.txt                # 依赖配置
+│   ├── .env.template                   # 环境变量模板
+│   └── templates/                      # HTML 模板
+│       └── index.html
+└── tutorial-3-feishu-outbound/         # 实验3: 飞书文档访问
+    ├── README.md                       # 教程文档
+    ├── app.py                          # 示例代码
+    ├── requirements.txt                # 依赖配置
+    ├── .env.template                   # 环境变量模板
+    ├── templates/                      # HTML 模板
+    │   └── index.html
+    └── test_agent/                     # 被测智能体
+        ├── agent.py                    # 智能体代码
+        ├── agentkit.yaml.template      # AgentKit 配置模板
+        └── requirements.txt            # 智能体依赖配置
 ```
 
-## 本地运行
-
-### 前置准备
+## 前置准备
 
 | 项目 | 说明 |
 | ------ | ------ |
-| **火山控制台账号** | 需要 IDFullAccess、STSAssumeRoleAccess 权限的子账号 |
+| **火山控制台账号** | 需要开通了 AgentKit产品 和 Agent Identity产品 |
+| **火山账号AK/SK** | 需要具有 AgentKit Administrator 权限，供AgentKit CLI部署Runtime使用 |
 | **Python 环境** | Python 3.12+ 及 [uv](https://docs.astral.sh/uv/) |
+| **AgentKit CLI** | 参考 [AgentKit CLI安全指南](https://volcengine.github.io/agentkit-sdk-python/content/1.introduction/2.installation.html) |
 | **飞书账号**（实验2/3） | 用于测试飞书登录和文档访问 |
 
-### 快速开始
+## 快速开始
 
 ```bash
-# 1. 克隆仓库
-git clone https://github.com/volcengine/agentkit-samples.git
-cd python/01-tutorials/03-agentkit-identity
-
-# 2. 选择实验目录
-cd 01_userpool_inbound  # 或其他实验
-
-# 3. 配置环境变量
-cp .env.example .env
-# 编辑 .env 填写配置
-
-# 4. 安装依赖
-uv sync
-
-# 5. 启动服务
-uv run veadk web
+# 克隆仓库
+git clone https://code.byted.org/security/agent-identity-integration.git
 ```
-
-## AgentKit 部署
-
-本教程所有示例均可通过 `uv run veadk web` 在本地运行。
-
-如需部署到 AgentKit Runtime，请参考 [AgentKit Runtime 文档](https://volcengine.github.io/agentkit-sdk-python/content/4.runtime/1.runtime_quickstart.html)。
-
-## 概述
-
-## 核心功能
-
-## Agent 能力
-
-## 目录结构说明
-
-## 本地运行
-
-## AgentKit 部署
-
-## 示例提示词
-
-## 效果展示
-
-## 常见问题
-
-## 代码许可
-
-本工程遵循 Apache 2.0 License

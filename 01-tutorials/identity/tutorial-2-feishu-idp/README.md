@@ -62,170 +62,228 @@ sequenceDiagram
 - 完成实验1的用户池创建和客户端配置
 - 拥有飞书开放平台账号 [飞书开放平台](https://open.feishu.cn/)
 
+### 前置条件
+- 完成实验1的用户池创建和客户端配置
+- 拥有飞书开放平台账号 [飞书开放平台](https://open.feishu.cn/)
+
 ---
 
 ### 步骤1: 创建飞书应用
+#### **登录飞书开放平台**
+访问 [飞书开放平台](https://open.feishu.cn/) → 点击「创建应用」
 
-1. **登录飞书开放平台**
+![图片](../docs/images/img_T4zXbCOtZoOpRxxH0WQclKnbnEZ.png)
 
-   访问 [飞书开放平台](https://open.feishu.cn/) → 点击「创建应用」
 
-   ![飞书开放平台](images/image.png)
 
-2. **创建企业自建应用**
-   - 应用类型：企业自建应用
-   - 应用名称：`Agent Identity Demo`（自定义）
-   - 应用描述：Agent 身份认证测试
+#### **创建企业自建应用**
+- 应用类型：企业自建应用
 
-3. **获取应用凭证**
+- 应用名称：`Agent Identity Demo`（自定义）
 
-   进入应用详情 → 「凭证与基础信息」，记录：
-   - **App ID**（客户端 ID）
-   - **App Secret**（客户端密钥）
+- 应用描述：Agent 身份认证测试
 
-   ![获取应用凭证](images/image-1.png)
 
-4. **⚠️ 配置安全设置（最关键的一步！）**
 
-   进入「安全设置」→ 添加重定向 URL。
+#### **获取应用凭证**
+进入应用详情 → 「凭证与基础信息」，记录：
 
-   > **重要：不要自己拼接 URL！请按以下步骤获取正确的回调地址：**
-   >
-   > 1. 打开 [火山引擎用户池控制台](https://console.volcengine.com/identity/region:identity+cn-beijing/user-pools)
-   > 2. 进入你的用户池 → 左侧菜单「外部身份供应商」→「添加供应商」
-   > 3. 选择「飞书」类型后，页面会显示「重定向 URI」
-   > 4. **直接复制该地址**，粘贴到飞书的「安全设置」中
+- **App ID**（客户端 ID）
 
-   回调 URL 格式类似：
+- **App Secret**（客户端密钥）
 
-   ```bash
-   https://userpool-<用户池UID>.userpool.auth.id.cn-beijing.volces.com/login/generic_oauth/callback
-   ```
+![图片](../docs/images/img_SlAGb95aKomQKHx5nEUcZmYOned.png)
 
-   > ⚠️ **常见错误**：
-   > - 不要使用 `127.0.0.1:8000` 作为重定向 URL（这是 Agent 应用地址，不是 OAuth 回调地址）
-   > - 不要漏掉 `/login/generic_oauth/callback` 路径
-   > - URL 必须与控制台显示的完全一致，包括协议 `https://`
 
-   ![配置安全设置](images/image-2.png)
 
-5. **网页应用配置（可选，非必须）**
+#### **⚠️ 配置安全设置（最关键的一步！）**
+进入「安全设置」→ 添加重定向 URL。
 
-   飞书可能提示配置「网页应用」，这是**可选的**：
+> **重要：不要自己拼接 URL！请按以下步骤获取正确的回调地址：**
+> 1. 打开 [火山引擎用户池控制台](https://console.volcengine.com/identity/region:identity+cn-beijing/user-pools)
+> 
+> 
+> 2. 进入你的用户池，找到“OAuth注册回调地址”和“OAuth登录回调地址”
+> 
+> 
+> ![图片](../docs/images/img_SBPCbWhqqoVQ2CxNSMjc3uGgnIg.png)
+> 
+> 
+> 3. **复制这两个地址**，粘贴到飞书的「安全设置」中
+> 
+> 
 
-   | 配置项 | 说明 | 是否必须 |
-   | -------- | ------ | ---------- |
-   | 安全设置 → 重定向 URL | OAuth 回调地址 | ✅ 必须 |
-   | 网页应用 → 桌面端主页 | 从飞书打开应用的地址 | ❌ 可选 |
+回调 URL 格式类似：
 
-   > **说明**：「网页应用主页」是用户从飞书客户端点击应用图标时的跳转地址。
-   > 如果只是用飞书做身份认证（IdP），不需要用户从飞书内打开应用，可以不启用「网页应用」能力。
-   >
-   > **关键是步骤4的「安全设置」中的重定向 URL，这个必须正确配置！**
+```bash
+https://userpool-<用户池UID>.userpool.auth.id.cn-beijing.volces.com/login/generic_oauth/callback
+https://userpool-<用户池UID>.userpool.auth.id.cn-beijing.volces.com/signup/generic_oauth/callback
+```
 
-6. **⚠️ 添加权限（必须完整申请！）**
+> ⚠️ **常见错误**：
+> - 不要使用 `127.0.0.1:8000` 作为重定向 URL（这是 Agent 应用地址，不是 OAuth 回调地址）
+> 
+> 
+> - 不要漏掉 `/login/generic_oauth/callback`和`/signup/generic_oauth/callback` 路径
+> 
+> 
+> - URL 必须与控制台显示的完全一致，包括协议 `https://`
+> 
+> 
 
-   进入「权限管理」→ 搜索并申请以下权限：
+![图片](../docs/images/img_NNMKbvEE0oHHD8xvygeccxwLndd.png)
 
-   | 权限 | 说明 | 是否必须 |
-   | ------ | ------ | ---------- |
-   | `contact:user.base:readonly` | 获取用户基本信息 | ✅ 必须 |
-   | `contact:contact.base:readonly` | 获取通讯录基本信息 | ✅ 必须 |
-   | `contact:user.employee_id:readonly` | 获取用户工号 | ❌ 可选 |
 
-   > ⚠️ **重要提醒**：
-   > - 火山引擎用户池默认会请求 `contact:contact.base:readonly` 权限
-   > - **如果不申请这个权限，登录时会报错 `20027 当前应用未申请相关权限`**
-   > - 两个必须权限缺一不可！
 
-   ![添加权限](images/image-3.png)
+#### **网页应用配置（可选，非必须）**
+飞书可能提示配置「网页应用」，这是**可选的**：
 
-7. **发布应用**
+| **配置项** | **说明** | **是否必须** |
+|------------|----------|--------------|
+| 安全设置 → 重定向 URL | OAuth 回调地址 | ✅ 必须 |
+| 网页应用 → 桌面端主页 | 从飞书打开应用的地址 | ❌ 可选 |
 
-   完成配置后，点击「创建版本并发布」使应用生效。
+> **说明**：「网页应用主页」是用户从飞书客户端点击应用图标时的跳转地址。 如果只是用飞书做身份认证（IdP），不需要用户从飞书内打开应用，可以不启用「网页应用」能力。
+> 
+> **关键是步骤4的「安全设置」中的重定向 URL，这个必须正确配置！**
+> 
 
-   > **注意**：每次修改权限或配置后，都需要重新发布应用才能生效！
+1. **⚠️ 添加权限（必须完整申请！）**
+
+进入「权限管理」→ 搜索并申请以下权限：
+
+| **权限** | **权限类型** | **说明** | **是否必须** |
+|----------|--------------|----------|--------------|
+| contact:user.base:readonly | 用户身份 | 获取用户基本信息 | ✅ 必须 |
+| contact:contact.base:readonly | 用户身份 | 获取通讯录基本信息 | ✅ 必须 |
+| contact:user.employee_id:readonly | 用户身份 | 获取用户ID | ✅ 必须 |
+| contact:user.email:readonly | 用户身份 | 获取邮箱地址 | ❌ 可选 |
+
+> ⚠️ **重要提醒**：
+> - 火山引擎用户池默认会请求 `contact:contact.base:readonly` 权限
+> 
+> 
+> - 权限类型选择“用户身份”而非“应用身份”（否则需要额外设置数据范围）
+> 
+> 
+> - **如果不申请这个权限，登录时会报错&nbsp;20027 当前应用未申请相关权限**
+> 
+> 
+> - 三个必须权限缺一不可！
+> 
+> 
+
+![图片](../docs/images/img_WIBobamfPo82NqxWTk2crDpOnYg.png)
+
+
+
+2. **发布应用**
+
+完成配置后，点击「创建版本并发布」使应用生效。
+
+> **注意**：每次修改权限或配置后，都需要重新发布应用才能生效！
+> 
 
 ---
 
 ### 步骤2: 在用户池配置飞书 IdP
-
 1. **进入用户池控制台**
 
-   访问 [Agent Identity 控制台](https://console.volcengine.com/identity/region:identity+cn-beijing/user-pools)
+访问 [Agent Identity 控制台](https://console.volcengine.com/identity/region:identity+cn-beijing/user-pools)
 
 2. **选择用户池** → 进入详情页
 
 3. **添加外部身份供应商**
 
-   左侧菜单 →「外部身份供应商」→「添加供应商」
+左侧菜单 →「外部身份供应商」→「新建供应商」
 
-   填写信息：
+![图片](../docs/images/img_HCuHbqCDsoDpj7xZKPIc6huXnDR.png)
 
-   | 字段 | 值 | 说明 |
-   | ------ | ------ | ------ |
-   | 供应商类型 | 飞书 | 选择飞书 |
-   | 供应商名称 | feishu | 自定义名称 |
-   | 客户端 ID | 步骤1获取的 App ID | 从飞书应用凭证复制 |
-   | 客户端密钥 | 步骤1获取的 App Secret | 从飞书应用凭证复制 |
-   | 授权范围 | `contact:user.base:readonly` | 默认即可 |
+4. 填写信息：
 
-4. **保存配置**
+![图片](../docs/images/img_Gxx3bYDszo0t06xKMHZcEvFgnIh.png)
 
-   > 保存后，页面会显示「重定向 URI」，确认这个 URL 已经添加到飞书应用的「安全设置」中。
+| **字段** | **值** | **说明** |
+|----------|--------|----------|
+| 供应商类型 | 飞书 | 选择飞书 |
+| 供应商名称 | feishu_idp | 自定义名称 |
+| 客户端 ID | 步骤1获取的 App ID | 从飞书应用凭证复制 |
+| 客户端密钥 | 步骤1获取的 App Secret | 从飞书应用凭证复制 |
+| 授权范围 | contact:user.base:readonly<br>contact:contact.base:readonly | 默认即可 |
 
-![配置飞书 IdP](images/image-4.png)
-![保存配置](images/image-5.png)
+5. **保存配置**
 
 配置完成后，用户池登录页面将显示「使用飞书登录」按钮。
 
 ---
 
-### 步骤3: 配置环境变量
+### 步骤3: 启动测试应用
+#### 配置环境变量
+1. 复制环境变量模板并填写：
 
 ```bash
-# 进入教程目录
-cd 01-tutorials/identity/tutorial-2-feishu-idp
+# 确保位于正确的目录
+cd tutorial-2-feishu-idp
 
-# 复制环境变量模板
-cp .env.example .env
-
-# 编辑 .env 填写配置（与实验1相同）
+# 确保当前位于 tutorial-2-feishu-idp 目录
+cp .env.template .env
 ```
 
-> **提示**：本实验复用实验1的用户池配置，.env 文件内容与实验1相同。
+2. 编辑 `.env` 文件
 
----
+- 配置`AGENT_ENDPOINT`变量为（实验1发布的）AgentKit Runtime上服务的端口
 
-### 步骤4: 安装依赖并启动
+- 配置OAuth2各项配置（与实验1类似）
 
 ```bash
-# 安装依赖
-uv sync
+***# OAuth2 配置
+OAUTH2_ISSUER_URI=https://userpool-<USERPOOL_ID>.userpool.auth.id.<REGION>.volces.com
+OAUTH2_CLIENT_ID=<OAuth2 Client ID>
+OAUTH2_CLIENT_SECRET=<OAuth2 Client Secret>
+OAUTH2_REDIRECT_URI=http://127.0.0.1:8082/callback
+OAUTH2_SCOPES='openid profile email'
 
-# 启动服务
-uv run veadk web
+# 目标Agent配置
+AGENT_NAME='默认智能体'
+**AGENT_ENDPOINT=<AgentKit Runtime Endpoint>***
 ```
 
-> **端口冲突？** 如果提示 `address already in use`，说明端口 8000 被占用。
-> 运行以下命令清理：
+#### 安装依赖
+```bash
+uv venv --python=3.12
+uv pip install -r requirements.txt
+```
+
+#### 运行客户端
+1. 启动应用
 
 ```bash
-lsof -i :8000 | grep -v "^COMMAND" | awk '{print $2}' | xargs kill -9
+# 确保当前位于 tutorial-2-feishu-idp 目录
+uv run app.py
 ```
 
----
+2. 在浏览器打开 http://127.0.0.1:8082 ，直接输入请求会返回401未授权
 
-### 步骤5: 飞书登录体验
+![图片](../docs/images/img_LEYybvkQioSnnZxgAUVcvN3vnSc.png)
 
-1. 浏览器访问 `http://127.0.0.1:8000`
-2. 在登录页面点击 **「使用飞书登录」**
-3. 跳转到飞书授权页面，点击 **「授权」**
-4. 返回应用后，点击 **「允许访问」**
-5. 成功登录，开始与 Agent 对话
+3. 点击登录，浏览器会跳转到用户池的登录页，我们看到登录页上出现了**“使用LARK_IDP登录”**按钮
 
-![飞书登录按钮](images/image-6.png)
-![飞书授权页面](images/image-7.png)
+> 注意⚠️：用户看到的可能不是"LARK_IDP"，取决于用户创建的**外部身份提供商**使用的具体名称
+> 
+
+![图片](../docs/images/img_K7m1bqIIRosjAhxMQ1rcw0zin0c.png)
+
+4. 点击**“使用LARK_IDP登录”**，浏览器先跳转到飞书授权页，点击"授权"
+
+![图片](../docs/images/img_RYqPbBm2douTgixIsMDcyvK3ngd.png)
+
+5. 接着会跳转到用户池授权页，点击“允许访问”
+
+![图片](../docs/images/img_SdRZbswDdoGPuHxThTDcbYpXnjc.png)
+
+6. 完成登录后会显示用户信息，并且对话请求会使用OAuth2登录的Access Token来鉴权
+
+![图片](../docs/images/img_YV6cb4zaRoN6xAxfPfNcVBf4naf.png)
 
 ## 测试提示词
 
@@ -290,25 +348,3 @@ lsof -i :8000 | grep -v "^COMMAND" | awk '{print $2}' | xargs kill -9
 - 如何让 Agent 获取用户授权的飞书 Token
 - 凭证托管的安全最佳实践
 - 实现"凭证不落地"的 Outbound 访问模式
-
-## 概述
-
-## 核心功能
-
-## Agent 能力
-
-## 目录结构说明
-
-## 本地运行
-
-## AgentKit 部署
-
-## 示例提示词
-
-## 效果展示
-
-## 常见问题
-
-## 代码许可
-
-本工程遵循 Apache 2.0 License
