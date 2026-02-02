@@ -236,7 +236,7 @@ cp .env.template .env
 - 配置OAuth2各项配置（与实验1类似）
 
 ```bash
-***# OAuth2 配置
+# OAuth2 配置
 OAUTH2_ISSUER_URI=https://userpool-<USERPOOL_ID>.userpool.auth.id.<REGION>.volces.com
 OAUTH2_CLIENT_ID=<OAuth2 Client ID>
 OAUTH2_CLIENT_SECRET=<OAuth2 Client Secret>
@@ -245,7 +245,7 @@ OAUTH2_SCOPES='openid profile email'
 
 # 目标Agent配置
 AGENT_NAME='默认智能体'
-**AGENT_ENDPOINT=<AgentKit Runtime Endpoint>***
+AGENT_ENDPOINT=<AgentKit Runtime Endpoint>
 ```
 
 #### 安装依赖
@@ -266,14 +266,14 @@ uv run app.py
 
 ![图片](../docs/images/img_LEYybvkQioSnnZxgAUVcvN3vnSc.png)
 
-3. 点击登录，浏览器会跳转到用户池的登录页，我们看到登录页上出现了**“使用LARK_IDP登录”**按钮
+3. 点击登录，浏览器会跳转到用户池的登录页，我们看到登录页上出现了**使用LARK_IDP登录**按钮
 
 > 注意⚠️：用户看到的可能不是"LARK_IDP"，取决于用户创建的**外部身份提供商**使用的具体名称
 > 
 
 ![图片](../docs/images/img_K7m1bqIIRosjAhxMQ1rcw0zin0c.png)
 
-4. 点击**“使用LARK_IDP登录”**，浏览器先跳转到飞书授权页，点击"授权"
+4. 点击**使用LARK_IDP登录**，浏览器先跳转到飞书授权页，点击"授权"
 
 ![图片](../docs/images/img_RYqPbBm2douTgixIsMDcyvK3ngd.png)
 

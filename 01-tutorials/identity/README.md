@@ -100,5 +100,5 @@ Agent Identity 把“用户 → 应用 → Agent → 资源”的链路拆开治
 
 ```bash
 # 克隆仓库
-git clone https://code.byted.org/security/agent-identity-integration.git
+git clone https://github.com/bytedance/agentkit-samples.git
 ```

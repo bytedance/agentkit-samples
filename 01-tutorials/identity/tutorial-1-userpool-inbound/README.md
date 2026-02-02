@@ -157,12 +157,12 @@ cp .env.template .env
 从控制台找到正确 `OAUTH2_ISSUER_URI`、`OAUTH2_CLIENT_ID` 和`OAUTH2_CLIENT_SECRET`，填入配置文件中
 
 ```bash
-***# OAuth2 配置（从控制台复制）
+# OAuth2 配置（从控制台复制）
 OAUTH2_ISSUER_URI=https://userpool-<USERPOOL_ID>.userpool.auth.id.<REGION>.volces.com
 OAUTH2_CLIENT_ID=<OAuth2 Client ID>
 OAUTH2_CLIENT_SECRET=<OAuth2 Client Secret>
 OAUTH2_REDIRECT_URI=http://127.0.0.1:8082/callback
-**OAUTH2_SCOPES='openid profile email'***
+OAUTH2_SCOPES='openid profile email'
 ```
 
 #### 安装依赖
@@ -204,79 +204,7 @@ python oauth2_testapp.py
 前面的流程介绍了如何通过OAuth2登录流程来获取身份池颁发的Access Token，本节会介绍AgentKit是如何消费Access Token来验证身份信息的。
 
 #### 理解身份验证流程
-```plantuml
-@startuml OAuth2+JWT 身份认证流程
-
-' 设置皮肤参数
-skinparam participant {
-    BackgroundColor<<Client>> antiquewhite
-    BackgroundColor<<AgentKit>> lightblue
-}
-
-skinparam note {
-    BackgroundColor LightYellow
-    BorderColor Gray
-}
-
-skinparam arrow {
-    Color<<关键>> Red
-    LineWidth 2
-}
-
-' 定义参与者
-participant "Client App" as Client <<Client>>
-
-box "火山" #lightcyan
-    participant "AgentKit Runtime" as Server <<AgentKit>>
-    participant "Identity UserPool" as Idp <<AgentKit>>
-end box
-
-== 步骤0：配置Runtime入向身份验证 ==
-
-Server <--> Idp: 配置身份池作为入向身份源
-note over Server: 绑定身份池\n绑定客户端ID（可选）
-
-== 步骤1：OAuth2 标准交互（客户端 ↔ 身份池） ==
-
-Client -> Idp: 发起OAuth2授权请求
-activate Client #antiquewhite
-activate Idp #lightblue
-
-Idp --> Client: 返回Access Token\n（JWT格式，包含issuer/client_id）
-deactivate Idp
-
-== 步骤2：客户端请求服务端（携带Token） ==
-
-Client -> Server: 发起业务请求
-activate Server #lightblue
-note over Client, Server: 请求头中携带Access Token\n "Authorization": "Bearer {{access_token}}"
-
-== 步骤3：服务端验证Token（JWT解析） ==
-
-Server -> Server: 1. 按JWT方式解析Access Token
-activate Server #lightblue
-
-Server -> Server: 2. 验证解析出来的Claims
-deactivate Server
-
-note over Server: 核心验证逻辑：\n- "iss" 与用户池ID一致\n- "client_id" 与指定的客户端ID一致（可选）
-
-== 步骤4：验证结果处理 ==
-
-alt 验证失败
-    Server --> Client: 返回认证失败（401）
-else 验证通过
-    Server -> Server: 执行业务逻辑
-    activate Server #lightblue
-    
-    Server --> Client: 返回业务响应（200）
-    deactivate Server
-    deactivate Server
-    deactivate Client
-end alt
-
-@enduml
-```
+![图片](../docs/images/userpool_verify.svg)
 
 
 #### 启用身份池验证
@@ -351,7 +279,7 @@ agentkit launch
 
 ![图片](../docs/images/img_Ug2bbKXrboKtx6xMAADcJVWwnCe.png)
 
-记录下**&nbsp;Service endpoint 地址**（通常格式为https://xxxx.apigateway-<region>.volceapi.com ），在下一节测试中我们使用到。
+记录下**Service endpoint 地址**（通常格式为https://xxxx.apigateway-<region>.volceapi.com ），在下一节测试中我们使用到。
 
 
 
@@ -401,7 +329,7 @@ cp .env.template .env
 - 配置OAuth2各项配置（与步骤2类似）
 
 ```bash
-***# OAuth2 配置
+# OAuth2 配置
 OAUTH2_ISSUER_URI=https://userpool-<USERPOOL_ID>.userpool.auth.id.<REGION>.volces.com
 OAUTH2_CLIENT_ID=<OAuth2 Client ID>
 OAUTH2_CLIENT_SECRET=<OAuth2 Client Secret>
@@ -410,7 +338,7 @@ OAUTH2_SCOPES='openid profile email'
 
 # 目标Agent配置
 AGENT_NAME='默认智能体'
-**AGENT_ENDPOINT=<AgentKit Runtime Endpoint>***
+AGENT_ENDPOINT=<AgentKit Runtime Endpoint>
 ```
 
 #### 安装依赖

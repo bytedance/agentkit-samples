@@ -284,7 +284,7 @@ agentkit launch
 
 ![图片](../docs/images/img_DHcrbqVSuoHY4WxCafmcKH49nvh.png)
 
-记录**Service endpoint&nbsp;**用于后续测试流程。
+记录**Service endpoint**用于后续测试流程。
 
 
 
@@ -307,7 +307,7 @@ cp .env.template .env
 - 配置OAuth2各项配置（与实验1类似）
 
 ```bash
-***# OAuth2 配置
+# OAuth2 配置
 OAUTH2_ISSUER_URI=https://userpool-<USERPOOL_ID>.userpool.auth.id.<REGION>.volces.com
 OAUTH2_CLIENT_ID=<OAuth2 Client ID>
 OAUTH2_CLIENT_SECRET=<OAuth2 Client Secret>
@@ -316,7 +316,7 @@ OAUTH2_SCOPES='openid profile email'
 
 # 目标Agent配置
 AGENT_NAME='默认智能体'
-**AGENT_ENDPOINT=<AgentKit Runtime Endpoint>***
+AGENT_ENDPOINT=<AgentKit Runtime Endpoint>
 ```
 
 #### 安装依赖<!-- 标题序号: 4.5.2 -->
