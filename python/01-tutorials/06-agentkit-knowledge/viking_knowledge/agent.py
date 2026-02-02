@@ -13,11 +13,17 @@
 # limitations under the License.
 
 
+import os
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parent))
+
 from agentkit.apps import AgentkitAgentServerApp
 from veadk import Agent, Runner
 from veadk.knowledgebase.knowledgebase import KnowledgeBase
 from veadk.memory.short_term_memory import ShortTermMemory
-import os
+from prompts.prompt import ROOT_AGENT_INSTRUCTION_CN, ROOT_AGENT_INSTRUCTION_EN
 
 # 准备多个知识源
 with open("/tmp/product_info.txt", "w") as f:
@@ -42,12 +48,18 @@ kb.add_from_files(
     tos_bucket_name=os.environ.get("DATABASE_TOS_BUCKET"),
 )
 
+ROOT_AGENT_INSTRUCTION = ROOT_AGENT_INSTRUCTION_CN
+
+provider = os.getenv("CLOUD_PROVIDER")
+if provider and provider.lower() == "byteplus":
+    ROOT_AGENT_INSTRUCTION = ROOT_AGENT_INSTRUCTION_EN
+
 # 创建agent
 root_agent = Agent(
     name="test_agent",
     model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
     knowledgebase=kb,
-    instruction="你是一个乐于助人的客服助手。你可以查阅知识库来回答关于产品类目、价格以及售后服务的问题。请根据知识库的内容准确回答。",
+    instruction=ROOT_AGENT_INSTRUCTION,
 )
 
 # 运行

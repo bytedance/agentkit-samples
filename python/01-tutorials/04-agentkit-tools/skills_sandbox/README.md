@@ -107,7 +107,7 @@ source .venv/bin/activate
 
 ```bash
 # 配置 AgentKit 工具 ID（必需）
-export AGENTKIT_SKILL_SPACE_ID=<Your_Skill_Space_ID>
+export SKILL_SPACE_ID=<Your_Skill_Space_ID>
 # 配置 Skill Space ID（可选，但推荐）
 export AGENTKIT_TOOL_ID=<Your_Tool_ID>
 
@@ -184,7 +184,7 @@ agentkit config \
 --agent_name agent_skills \
 --entry_point 'agent.py' \
 --runtime_envs AGENTKIT_TOOL_ID={{your_tool_id}} \
---runtime_envs AGENTKIT_SKILL_SPACE_ID={{your_skill_space_id}} \
+--runtime_envs SKILL_SPACE_ID={{your_skill_space_id}} \
 --launch_type cloud
 
 # 启动云端服务

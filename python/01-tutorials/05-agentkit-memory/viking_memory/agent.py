@@ -13,11 +13,16 @@
 # limitations under the License.
 
 import os
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parent))
 
 from agentkit.apps import AgentkitAgentServerApp
 from veadk import Agent, Runner
 from veadk.memory import LongTermMemory, ShortTermMemory
 from google.adk.agents.callback_context import CallbackContext
+from prompts.prompt import ROOT_AGENT_INSTRUCTION_CN, ROOT_AGENT_INSTRUCTION_EN
 
 
 # 这里仅做记忆保存的演示，实际根据需求选择会话保存到长期记忆中
@@ -30,10 +35,17 @@ vikingmem_app_name = os.getenv("DATABASE_VIKINGMEM_COLLECTION", "vikingmem_agent
 
 short_term_memory = ShortTermMemory()
 long_term_memory = LongTermMemory(backend="viking", index=vikingmem_app_name)
+
+ROOT_AGENT_INSTRUCTION = ROOT_AGENT_INSTRUCTION_CN
+
+provider = os.getenv("CLOUD_PROVIDER")
+if provider and provider.lower() == "byteplus":
+    ROOT_AGENT_INSTRUCTION = ROOT_AGENT_INSTRUCTION_EN
+
 root_agent = Agent(
     name="vikingmem_agent",
     model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
-    instruction="你是一个具备长期记忆的智能助手，擅长用中文回答问题。能够根据情况，搜索过往记忆来回答用户问题。",
+    instruction=ROOT_AGENT_INSTRUCTION,
     long_term_memory=long_term_memory,
     after_agent_callback=after_agent_execution,
 )

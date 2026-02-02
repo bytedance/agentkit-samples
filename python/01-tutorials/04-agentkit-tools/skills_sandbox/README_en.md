@@ -107,7 +107,7 @@ source .venv/bin/activate
 
 ```bash
 # Configure AgentKit Tool ID (required)
-export AGENTKIT_SKILL_SPACE_ID=<Your_Skill_Space_ID>
+export SKILL_SPACE_ID=<Your_Skill_Space_ID>
 # Configure Skill Space ID (optional, but recommended)
 export AGENTKIT_TOOL_ID=<Your_Tool_ID>
 
@@ -184,7 +184,7 @@ agentkit config \
 --agent_name agent_skills \
 --entry_point 'agent.py' \
 --runtime_envs AGENTKIT_TOOL_ID={{your_tool_id}} \
---runtime_envs AGENTKIT_SKILL_SPACE_ID={{your_skill_space_id}} \
+--runtime_envs SKILL_SPACE_ID={{your_skill_space_id}} \
 --launch_type cloud
 
 # Start the cloud service
