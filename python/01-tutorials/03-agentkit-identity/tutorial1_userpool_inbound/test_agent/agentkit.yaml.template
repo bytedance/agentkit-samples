@@ -1,0 +1,23 @@
+common:
+  agent_name: identity_demo_inbound
+  entry_point: agent.py
+  description: 这是一个简单的智能体，可以帮你查询天气
+  language: Python
+  language_version: '3.12'
+  agent_type: Basic App
+  dependencies_file: requirements.txt
+  runtime_envs: {}
+  launch_type: cloud
+launch_types:
+  cloud:
+    region: cn-beijing
+    # 必须配置，指定使用OAuth2 JWT来验证身份
+    runtime_auth_type: custom_jwt
+    # 必须配置，指定绑定的用户池
+    # USERPOOL_DISCOVERY_URL可以在用户池页面找到（“OIDC 发现端点 Discovery URL”）
+    # 通常格式为：https://userpool-<USERPOOL_ID>.userpool.auth.id.cn-beijing.volces.com/.well-known/openid-configuration
+    runtime_jwt_discovery_url: <USERPOOL_DISCOVERY_URL> # 
+    # 可选配置，指定允许的客户端
+    runtime_jwt_allowed_clients:
+    - <CLIENT_ID_1>
+    - <CLIENT_ID_2>

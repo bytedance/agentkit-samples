@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 对话助手</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.2/marked.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .chat-container {
+            width: 90%;
+            max-width: 800px;
+            height: 80vh;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .chat-header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+        }
+        
+        .header-content {
+            display: flex;
+            align-items: center;
+            flex: 1;
+            justify-content: flex-start;
+            gap: 15px;
+            order: 2;
+        }
+        
+        .header-text {
+            text-align: left;
+        }
+        
+        .header-text h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .header-text p {
+            margin: 5px 0 0 0;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            order: 3;
+        }
+        
+        .user-display {
+            font-size: 14px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+        
+        .login-status {
+            font-size: 14px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .status-logged-in {
+            background: #28a745;
+        }
+        
+        .status-logged-out {
+            background: #dc3545;
+        }
+        
+        .login-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            text-decoration: none;
+            transition: background 0.3s;
+        }
+        
+        .login-button:hover {
+            background: #0056b3;
+        }
+        
+        .logout-button {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            text-decoration: none;
+            transition: background 0.3s;
+        }
+        
+        .logout-button:hover {
+            background: #5a6268;
+        }
+        
+        .connection-status {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .status-connected {
+            background: #28a745;
+            box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.3);
+        }
+        
+        .status-disconnected {
+            background: #dc3545;
+            box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.3);
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .message {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+        
+        .user-message {
+            align-self: flex-end;
+            background: #007bff;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .bot-message {
+            align-self: flex-start;
+            background: #f1f3f4;
+            color: #333;
+            border-bottom-left-radius: 4px;
+            overflow-wrap: break-word;
+        }
+        
+        .bot-message-content {
+            line-height: 1.6;
+        }
+        
+        .bot-message-content h1,
+        .bot-message-content h2,
+        .bot-message-content h3,
+        .bot-message-content h4,
+        .bot-message-content h5,
+        .bot-message-content h6 {
+            margin: 10px 0;
+            color: #2c3e50;
+        }
+        
+        .bot-message-content p {
+            margin: 8px 0;
+        }
+        
+        .bot-message-content ul,
+        .bot-message-content ol {
+            margin: 8px 0;
+            padding-left: 20px;
+        }
+        
+        .bot-message-content li {
+            margin: 4px 0;
+        }
+        
+        .bot-message-content code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        .bot-message-content pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        
+        .bot-message-content pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+        
+        .bot-message-content blockquote {
+            border-left: 4px solid #007bff;
+            padding-left: 12px;
+            margin: 10px 0;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .bot-message-content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        .bot-message-content th,
+        .bot-message-content td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .bot-message-content th {
+            background: #f8f9fa;
+            font-weight: bold;
+        }
+        
+        .bot-message-content a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        
+        .bot-message-content a:hover {
+            text-decoration: underline;
+        }
+        
+        .typing-indicator {
+            align-self: flex-start;
+            background: #f1f3f4;
+            padding: 12px 16px;
+            border-radius: 18px;
+            border-bottom-left-radius: 4px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .error-message {
+            align-self: center;
+            background: #ff6b6b;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            max-width: 80%;
+            text-align: center;
+        }
+        
+        .auth-message {
+            align-self: center;
+            background: #ffd93d;
+            color: #333;
+            padding: 12px 16px;
+            border-radius: 8px;
+            max-width: 80%;
+            text-align: center;
+        }
+        
+        
+        .chat-input {
+            padding: 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .message-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            outline: none;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .message-input:focus {
+            border-color: #007bff;
+        }
+        
+        .send-button {
+            padding: 12px 24px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        
+        .send-button:hover {
+            background: #0056b3;
+        }
+        
+        .send-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .timestamp {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="header-content">
+                <div class="connection-status" id="connectionStatus" style="display: none;"></div>
+                <div class="header-text">
+                    <h1>智能体客户端</h1>
+                    <p>目标智能体：{{ agent_name }}</p>
+                </div>
+            </div>
+            <div class="user-info" id="userInfo">
+                {% if is_logged_in %}
+                <div class="user-display">{{ user_info }}</div>
+                <a href="/logout" class="logout-button">登出</a>
+                {% else %}
+                <div class="user-display">ANONYMOUS</div>
+                <a href="/login" class="login-button">登录</a>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="chat-messages" id="messages">
+            <div class="bot-message message">
+                <div class="bot-message-content">
+                    您好！我是 AI 助手，请问有什么可以帮助您的吗？
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-input">
+            <input type="text" class="message-input" id="messageInput" 
+                   placeholder="输入您的问题..." autocomplete="off">
+            <button class="send-button" id="sendButton" onclick="sendMessage()">发送</button>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const messagesDiv = document.getElementById('messages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const connectionStatus = document.getElementById('connectionStatus');
+        
+        let currentBotMessage = null;
+        let isTyping = false;
+        let sessionId = null;
+        
+        // 更新连接状态显示
+        function updateConnectionStatus(connected) {
+            if (connected) {
+                connectionStatus.textContent = '';
+                connectionStatus.className = 'connection-status status-connected';
+                connectionStatus.style.display = 'block';
+            } else {
+                connectionStatus.textContent = '';
+                connectionStatus.className = 'connection-status status-disconnected';
+                connectionStatus.style.display = 'block';
+            }
+        }
+        
+        // 连接事件
+        socket.on('connect', () => {
+            console.log('Connected to server');
+            // 创建随机session ID
+            sessionId = 'web_session_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+            console.log('Generated session ID:', sessionId);
+            updateConnectionStatus(true);
+        });
+        
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+            updateConnectionStatus(false);
+        });
+        
+        // 消息响应事件
+        socket.on('message_response', (data) => {
+            if (data.type === 'text') {
+                if (!currentBotMessage) {
+                    currentBotMessage = createBotMessage();
+                }
+                appendToBotMessage(data.content);
+            }
+        });
+        
+        // 错误事件
+        socket.on('error', (data) => {
+            addErrorMessage(data.message);
+            currentBotMessage = null;
+        });
+        
+        // 认证事件
+        socket.on('auth_required', (data) => {
+            // 使用时间戳确保窗口名称唯一
+            const windowName = 'auth_window_' + Date.now();
+            const authWindow = window.open(data.auth_uri, windowName, 'width=600,height=700,scrollbars=yes');
+            
+            // 在消息窗口内显示精简内容
+            addAuthMessage('需要认证授权，已打开认证窗口。请完成认证后继续对话。');
+            currentBotMessage = null;
+        });
+        
+        // 输入状态事件
+        socket.on('typing', (data) => {
+            isTyping = data.status;
+            if (isTyping && !document.getElementById('typing-indicator')) {
+                addTypingIndicator();
+            } else if (!isTyping) {
+                removeTypingIndicator();
+                if (currentBotMessage) {
+                    currentBotMessage = null;
+                }
+            }
+        });
+        
+        // 发送消息
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+            
+            // 添加用户消息
+            addUserMessage(message);
+            messageInput.value = '';
+            sendButton.disabled = true;
+            
+            // 发送到服务器
+            socket.emit('send_message', {
+                session_id: sessionId || 'web_session_fallback',
+                message: message
+            });
+            
+            // 3秒后重新启用发送按钮
+            setTimeout(() => {
+                sendButton.disabled = false;
+            }, 3000);
+        }
+        
+        // 添加用户消息
+        function addUserMessage(content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user-message';
+            messageDiv.textContent = content;
+            
+            const timestamp = document.createElement('div');
+            timestamp.className = 'timestamp';
+            timestamp.textContent = new Date().toLocaleTimeString();
+            
+            messageDiv.appendChild(timestamp);
+            messagesDiv.appendChild(messageDiv);
+            scrollToBottom();
+        }
+        
+        // 配置marked.js
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+            sanitize: false
+        });
+        
+        // 创建机器人消息
+        function createBotMessage() {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message bot-message';
+            messageDiv.id = 'current-bot-message';
+            
+            // 创建内容容器用于markdown渲染
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'bot-message-content';
+            contentDiv.id = 'current-bot-content';
+            messageDiv.appendChild(contentDiv);
+            
+            messagesDiv.appendChild(messageDiv);
+            scrollToBottom();
+            return contentDiv;
+        }
+        
+        // 追加到机器人消息（支持markdown）
+        function appendToBotMessage(content) {
+            if (currentBotMessage) {
+                // 获取当前内容
+                const currentContent = currentBotMessage.innerHTML;
+                
+                // 将新内容追加到当前内容
+                const newContent = currentContent + content;
+                
+                // 使用marked.js渲染markdown
+                const renderedContent = marked.parse(newContent);
+                
+                // 更新内容
+                currentBotMessage.innerHTML = renderedContent;
+                scrollToBottom();
+            }
+        }
+        
+        // 添加系统消息
+        function addSystemMessage(content, type = 'info') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type === 'error' ? 'error-message' : 'bot-message message';
+            messageDiv.textContent = content;
+            messagesDiv.appendChild(messageDiv);
+            scrollToBottom();
+        }
+        
+        // 添加错误消息
+        function addErrorMessage(content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'error-message';
+            messageDiv.textContent = content;
+            messagesDiv.appendChild(messageDiv);
+            scrollToBottom();
+        }
+        
+        // 添加认证消息
+        function addAuthMessage(content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'auth-message';
+            messageDiv.textContent = content;
+            messagesDiv.appendChild(messageDiv);
+
+            removeTypingIndicator();
+            addTypingIndicator();
+
+            scrollToBottom();
+        }
+        
+        // 添加输入指示器
+        function addTypingIndicator() {
+            const indicator = document.createElement('div');
+            indicator.className = 'typing-indicator';
+            indicator.id = 'typing-indicator';
+            indicator.textContent = 'AI 正在思考中...';
+            messagesDiv.appendChild(indicator);
+            scrollToBottom();
+        }
+        
+        // 移除输入指示器
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typing-indicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+        
+        // 滚动到底部
+        function scrollToBottom() {
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        // 回车发送
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !sendButton.disabled) {
+                sendMessage();
+            }
+        });
+        
+        // 输入时启用按钮
+        messageInput.addEventListener('input', () => {
+            sendButton.disabled = !messageInput.value.trim();
+        });
+        
+        // 页面加载时渲染初始消息的markdown
+        document.addEventListener('DOMContentLoaded', function() {
+            const welcomeMessage = document.querySelector('.bot-message-content');
+            if (welcomeMessage) {
+                // 直接设置纯文本内容，不进行markdown渲染
+                welcomeMessage.textContent = "您好！我是 AI 助手，请问有什么可以帮助您的吗？";
+            }
+        });
+        
+        // 自动聚焦输入框
+        messageInput.focus();
+    </script>
+</body>
+</html>
