@@ -1,5 +1,5 @@
 ---
-name: VeADK 技能集合
+name: veadk-skills
 description: 根据用户的功能需求，完成与 VeADK 相关的功能。
 ---
 
