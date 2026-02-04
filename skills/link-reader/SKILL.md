@@ -1,6 +1,6 @@
 ---
 name: link-reader
-description: 使用内置 link_reader 函数读取网页、PDF或抖音视频内容。准备 URL 列表。运行脚本 `python scripts/link_reader.py "<url1>" "<url2>" ...`。
+description: 使用内置 link_reader 函数读取网页、PDF或抖音视频内容。准备 URL 列表。运行脚本 `python scripts/link_reader.py "url1" "url2" ...`。
 ---
 
 # Link Reader
@@ -12,7 +12,7 @@ description: 使用内置 link_reader 函数读取网页、PDF或抖音视频内
 ## 使用步骤
 
 1. 准备 URL 列表。
-2. 运行脚本 `python scripts/link_reader.py "<url1>" "<url2>" ...`。运行之前cd到对应的目录。
+2. 运行脚本 `python scripts/link_reader.py "url1" "url2" ...`。运行之前cd到对应的目录。
 3. 返回结果包含每个 URL 的标题和内容。
 
 ## 输出格式
