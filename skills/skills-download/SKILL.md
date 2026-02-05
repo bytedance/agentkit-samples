@@ -1,6 +1,7 @@
 ---
 name: skills-download
 description: Downloads skills from a AgentKit skill space to the local machine. Invoke when the user wants to fetch, download, or retrieve skills from the platform.
+license: Complete terms in LICENSE.txt
 ---
 
 # AgentKit Skill Download

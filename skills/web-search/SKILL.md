@@ -1,6 +1,7 @@
 ---
 name: web-search
 description: 使用内置 web_search 函数进行网页搜索并返回摘要结果, 准备清晰具体的 `query`。运行脚本 `python scripts/web_search.py "query"`。根据返回的摘要列表组织答案，不新增或臆造内容。
+license: Complete terms in LICENSE.txt
 ---
 
 # Web Search

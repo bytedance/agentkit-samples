@@ -1,6 +1,7 @@
 ---
 name: link-reader
 description: 使用内置 link_reader 函数读取网页、PDF或抖音视频内容。准备 URL 列表。运行脚本 `python scripts/link_reader.py "url1" "url2" ...`。
+license: Complete terms in LICENSE.txt
 ---
 
 # Link Reader

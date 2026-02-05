@@ -1,6 +1,7 @@
 ---
 name: skills-registration
 description: Registers a local skill to the AgentKit platform by uploading it. Invoke when the user wants to publish, upload, or register a skill they have created.
+license: Complete terms in LICENSE.txt
 ---
 
 # AgentKit Skill Registration

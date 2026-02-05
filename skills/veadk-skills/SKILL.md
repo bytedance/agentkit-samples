@@ -1,6 +1,7 @@
 ---
 name: veadk-skills
 description: 根据用户的功能需求，完成与 VeADK 相关的功能。
+license: Complete terms in LICENSE.txt
 ---
 
 # VeADK Agent 生成

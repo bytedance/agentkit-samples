@@ -1,6 +1,7 @@
 ---
 name: image-generate
 description: 使用内置 image_generate.py 脚本生成图片, 准备清晰具体的 `prompt`。
+license: Complete terms in LICENSE.txt
 ---
 
 # Image Generate
