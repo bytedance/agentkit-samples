@@ -25,7 +25,7 @@ skill_space_id = os.getenv("SKILL_SPACE_ID")
 agent = Agent(
     name="skill_agent",
     instruction=ROOT_AGENT_INSTRUCTION,
-    skills=[skill_space_id],
+    skills=[skill_space_id] if skill_space_id else [],
     tools=[execute_skills],
 )
 
