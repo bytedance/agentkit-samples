@@ -1,0 +1,12 @@
+[project]
+name = "mem0-simple"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "google-adk==1.21.0",
+    "veadk-python[extensions]==0.5.15",
+    "veadk-python==0.5.15",
+    "agentkit-sdk-python==0.4.2",
+]
