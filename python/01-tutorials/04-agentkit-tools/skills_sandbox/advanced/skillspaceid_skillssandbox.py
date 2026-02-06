@@ -12,7 +12,7 @@ session_id = "agent_skills_skillspaceid_skillssandbox_session"
 skill_space_id = os.getenv("SKILL_SPACE_ID")
 agent = Agent(
     name="skill_agent",
-    instruction="根据用户的需求，调用 execute_skills 工具执行 skills，",
+    instruction="根据用户的需求，使用 execute_skills 工具执行 skills， 完成任务",
     skills=[skill_space_id],
     tools=[execute_skills],
 )

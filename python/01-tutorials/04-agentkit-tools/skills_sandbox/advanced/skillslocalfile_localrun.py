@@ -12,7 +12,7 @@ skills_file_path = (
 )
 agent = Agent(
     name="skill_agent",
-    instruction="根据用户的需求，调用 execute_skills 工具执行 skills，",
+    instruction="根据用户的需求，执行 skills，完成任务",
     skills=[skills_file_path],
     skills_mode="local",
 )
