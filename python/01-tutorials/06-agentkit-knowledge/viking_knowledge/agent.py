@@ -24,6 +24,7 @@ from veadk import Agent, Runner
 from veadk.knowledgebase.knowledgebase import KnowledgeBase
 from veadk.memory.short_term_memory import ShortTermMemory
 from prompts.prompt import ROOT_AGENT_INSTRUCTION_CN, ROOT_AGENT_INSTRUCTION_EN
+from veadk.configs.database_configs import NormalTOSConfig
 
 # 准备多个知识源
 with open("/tmp/product_info.txt", "w") as f:
@@ -35,11 +36,30 @@ with open("/tmp/service_policy.txt", "w") as f:
         "售后服务政策：\n1. 质保期：所有电子产品提供1年免费质保。\n2. 退换货：购买后7天内无理由退货，15天内有质量问题换货。\n3. 客服支持：提供7x24小时在线客服咨询。"
     )
 
+provider = os.getenv("CLOUD_PROVIDER")
+if provider and provider.lower() == "byteplus":
+    ROOT_AGENT_INSTRUCTION = ROOT_AGENT_INSTRUCTION_EN
+
 # 创建知识库
 knowledge_collection_name = os.getenv("DATABASE_VIKING_COLLECTION", "")
 if knowledge_collection_name != "":
     # 使用用户指定的知识库
-    kb = KnowledgeBase(backend="viking", index=knowledge_collection_name)
+    if provider and provider.lower() == "byteplus":
+        kb = KnowledgeBase(
+            backend="viking",
+            backend_config={
+                "index": knowledge_collection_name,
+                "tos_config": NormalTOSConfig(
+                    bucket=os.getenv("DATABASE_TOS_BUCKET"),
+                    region=os.getenv("DATABASE_TOS_REGION", "cn-hongkong"),
+                    endpoint=os.getenv(
+                        "DATABASE_TOS_ENDPOINT", "tos-cn-hongkong.bytepluses.com"
+                    ),
+                ),
+            },
+        )
+    else:
+        kb = KnowledgeBase(backend="viking", index=knowledge_collection_name)
 else:
     raise ValueError("DATABASE_VIKING_COLLECTION environment variable is not set")
 
@@ -49,10 +69,6 @@ kb.add_from_files(
 )
 
 ROOT_AGENT_INSTRUCTION = ROOT_AGENT_INSTRUCTION_CN
-
-provider = os.getenv("CLOUD_PROVIDER")
-if provider and provider.lower() == "byteplus":
-    ROOT_AGENT_INSTRUCTION = ROOT_AGENT_INSTRUCTION_EN
 
 # 创建agent
 root_agent = Agent(
