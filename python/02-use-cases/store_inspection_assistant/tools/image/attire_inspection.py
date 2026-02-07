@@ -80,7 +80,7 @@ def wearing_detection_tool(image_url: str) -> str:
 
 """
     response = client.chat.completions.create(
-        model="doubao-seed-1-6-251015",
+        model="seed-1-6-250915",
         messages=[
             {
                 "role": "user",

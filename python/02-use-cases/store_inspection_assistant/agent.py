@@ -36,7 +36,7 @@ yaml_path = "agent.yaml"
 if not os.path.isfile(yaml_path):
     yaml_path = "store_inspection_assistant/agent.yaml"
 
-app_name = "inspection_assistant"
+app_name = "store_inspection_assistant"
 agent_builder = AgentBuilder()
 agent = agent_builder.build(path=yaml_path)
 runner = Runner(agent=agent, app_name=app_name)

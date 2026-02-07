@@ -25,7 +25,7 @@ from google.adk.agents.callback_context import CallbackContext
 from prompts.prompt import ROOT_AGENT_INSTRUCTION_CN, ROOT_AGENT_INSTRUCTION_EN
 
 
-# 这里仅做记忆保存的演示，实际根据需求选择会话保存到长期记忆中
+# this is only for demo purpose, actual use case should decide whether to save the session to long term memory
 async def after_agent_execution(callback_context: CallbackContext):
     session = callback_context._invocation_context.session
     await long_term_memory.add_session_to_memory(session)

@@ -26,9 +26,9 @@ if provider and provider.lower() == "byteplus":
     ROOT_AGENT_INSTRUCTION = ROOT_AGENT_INSTRUCTION_EN
 
 root_agent = Agent(
-    name="ChineseContentModerator",
+    name="callback_agent",
     model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
-    description="一个演示全链路回调和护栏功能的中文内容审查助手。",
+    description="A callback agent that demonstrates full-link callback and guardrails features.",
     instruction=ROOT_AGENT_INSTRUCTION,
     tools=[write_article],
     before_agent_callback=before_agent_callback,

@@ -53,6 +53,9 @@ if __name__ == "__main__":
                 print(line)
 
     async def send_request_parallel():
-        await send_request("请帮我写一篇关于人工智能未来的500字文章")
+        await send_request(
+            "Please write a 500-word article about the future of artificial intelligence"
+        )
+        # await send_request("Write zanghua for me")
 
     asyncio.run(send_request_parallel())

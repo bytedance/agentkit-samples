@@ -53,6 +53,6 @@ if __name__ == "__main__":
                 print(line)
 
     async def send_request_parallel():
-        await send_request("高性能笔记本Pro的价钱是多少")
+        await send_request("How much is the High-Performance Laptop Pro?")
 
     asyncio.run(send_request_parallel())

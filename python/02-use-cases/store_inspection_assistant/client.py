@@ -7,19 +7,16 @@ from google.genai.types import Content, Part
 
 if __name__ == "__main__":
     # Step 0: setup running configs
-    app_name = "hello_world"
+    app_name = "store_inspection_assistant"
     user_id = "agentkit_user"
     session_id = "agentkit_session"
     base_url = "http://127.0.0.1:8000"
     api_key = "agentkit test key"
 
-    task_num = 1
-
     # Step 1: create a session
     def create_session():
         create_session_request = CreateSessionRequest(
             session_id=session_id,
-            # session_id = session_id + f"_{random.randint(1, 9999)}",
         )
 
         response = requests.post(
@@ -56,8 +53,8 @@ if __name__ == "__main__":
                 print(line)
 
     async def send_request_parallel():
-        await send_request("My name is ADK")
-        tasks = [send_request("Do you remember my name?") for _ in range(task_num)]
-        await asyncio.gather(*tasks)
+        await send_request(
+            "检查门店招牌的LED发光状态，图片url: https://agentkit-demo.tos-cn-beijing.volces.com/volc_coffe.jpeg。把修改结果上传到tos"
+        )
 
     asyncio.run(send_request_parallel())

@@ -3,15 +3,15 @@ from google.adk.tools.tool_context import ToolContext
 
 def write_article(topic: str, word_count: int, tool_context: ToolContext) -> str:
     """
-    一个简单的工具，根据给定的主题和字数要求生成一篇文章。
-    为了演示 PII 过滤功能，其输出硬编码了电话和身份证号。
+    A simple tool that generates an article based on the given topic and word count.
+    To demonstrate the PII filtering feature, its output hardcodes a phone number and ID card number.
 
-    :param topic: 文章的主题。
-    :param word_count: 文章的字数要求。
-    :param tool_context: 工具上下文，由 veadk 框架提供。
-    :return: 生成的文章内容字符串。
+    :param topic: The topic of the article.
+    :param word_count: The word count requirement for the article.
+    :param tool_context: The tool context provided by the veadk framework.
+    :return: The generated article content string.
     """
     return (
-        f"这是一篇关于'{topic}'的{word_count}字文章。"
-        "我的电话是13812345678，身份证是11010120000101123X。"
+        f"Here is an article about '{topic}' with {word_count} words."
+        " My phone number is 13812345678, and my ID card number is 11010120000101123X."
     )

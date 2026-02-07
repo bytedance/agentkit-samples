@@ -86,7 +86,7 @@ def shelf_display_detection_tool(image_url: str) -> str:
     - 语言简洁明了，记录内容便于商超工作人员快速定位问题、开展整改
 """
     response = client.chat.completions.create(
-        model="doubao-seed-1-6-251015",
+        model="seed-1-6-250915",
         messages=[
             {
                 "role": "user",
@@ -160,7 +160,7 @@ def wearing_detection_tool(image_url: str) -> str:
 
 """
     response = client.chat.completions.create(
-        model="doubao-seed-1-6-251015",
+        model="seed-1-6-250915",
         messages=[
             {
                 "role": "user",

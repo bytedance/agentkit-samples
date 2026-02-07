@@ -1,6 +1,7 @@
 # agent配置
 root_agent:
   type: Agent
+  name: store_inspection_assistant
   description: "负责驱动整个质检任务的执行"
   model_name: "deepseek-v3-2-251201"
   instruction: |

@@ -28,7 +28,13 @@ from veadk.auth.veauth.utils import get_credential_from_vefaas_iam
 
 logger = logging.getLogger(__name__)
 DEFAULT_BUCKET = "video_generation_output"
-DEFAULT_REGION = "cn-beijing"
+
+provider = os.getenv("CLOUD_PROVIDER", "volcengine")
+DEFAULT_REGION = os.getenv("REGION", "cn-beijing")
+sld = "volces"
+if provider and provider.lower() == "byteplus":
+    DEFAULT_REGION = os.getenv("REGION", "cn-hongkong")
+    sld = "bytepluses"
 
 
 def upload_file_to_tos(
@@ -124,7 +130,7 @@ def upload_file_to_tos(
     client = None
     try:
         # Initialize TOS client
-        endpoint = f"tos-{region}.volces.com"
+        endpoint = f"tos-{region}.{sld}.com"
         client = tos.TosClientV2(
             ak=access_key,
             sk=secret_key,

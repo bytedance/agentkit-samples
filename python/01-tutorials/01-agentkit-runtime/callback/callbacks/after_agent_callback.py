@@ -11,12 +11,12 @@ def after_agent_callback(
     callback_context: CallbackContext,
 ) -> Optional[types.Content]:
     """
-    在智能体完成所有处理，即将结束会话时被调用。
-    主要用于记录会话结束的日志。
+    It is invoked when the agent has completed all processing and is about to end the session.
+    It is primarily used to log the end of the session.
     """
-    logger.info("--- [智能体结束] ---")
+    logger.info("--- [Agent End] ---")
     agent_name = callback_context.agent_name
     invocation_id = callback_context.invocation_id
 
-    print(f"\n[Callback] 智能体 '{agent_name}' (会话ID: {invocation_id}) 已结束。")
+    print(f"\n[Callback] Agent '{agent_name}' (session ID: {invocation_id}) has ended.")
     return None

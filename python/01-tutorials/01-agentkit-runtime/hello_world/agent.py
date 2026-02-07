@@ -37,10 +37,10 @@ runner = Runner(
 
 
 async def main():
-    response1 = await runner.run(messages="我叫VeADK", session_id=session_id)
+    response1 = await runner.run(messages="My name is ADK", session_id=session_id)
     print(f"response of round 1: {response1}")
 
-    response2 = await runner.run(messages="你还记得我叫什么吗？", session_id=session_id)
+    response2 = await runner.run(messages="What is my name?", session_id=session_id)
     print(f"response of round 2: {response2}")
 
 

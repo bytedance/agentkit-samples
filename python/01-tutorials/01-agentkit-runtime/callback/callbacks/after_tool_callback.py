@@ -18,13 +18,13 @@ def after_tool_callback(
     **kwargs,
 ) -> Optional[Dict]:
     """
-    在工具调用之后，但在其输出被送回模型之前被调用。
-    可用于修改工具的输出，如此处实现的 PII 过滤。
+    It is invoked after the agent executes a tool but before its output is sent back to the model.
+    Mainly used for post-processing the tool's output, such as PII filtering.
     """
-    logger.info(f"  [工具结束] 工具 {tool.name} 已执行。")
+    logger.info(f"  [Tool End] Tool {tool.name} has been executed.")
     if tool.name == "write_article":
         response_text = deepcopy(tool_response)
-    # 过滤PII
+    # **Post-Processing**：Filters out personal information (PII) from the tool's output.
     filtered_text = filter_pii(response_text)
     return Content(parts=[Part(text=filtered_text)])
 
@@ -33,31 +33,31 @@ def filter_pii(
     text: str, patterns: Dict[str, str] = None, show_logs: bool = True
 ) -> str:
     """
-    过滤文本中的个人身份信息(PII)。
+    Filters out personal information (PII) from the text using predefined patterns.
 
-    :param text: 需要过滤的原始文本
-    :param patterns: PII匹配模式字典，默认使用 PII_PATTERNS_CHINESE
-    :param show_logs: 是否打印过滤日志
-    :return: 过滤后的文本
+    :param text: The original text to be filtered.
+    :param patterns: A dictionary of PII matching patterns, defaulting to PII_PATTERNS_CHINESE.
+    :param show_logs: Whether to print filtering logs.
+    :return: The filtered text with PII hidden.
     """
     # ===========================================================================
-    #                           内容审查与过滤配置
+    #                           Content Review and Filtering Configuration
     # ===========================================================================
 
-    # --- 敏感词黑名单 ---
-    # 用于在 before_model_callback 中拦截不当请求。
+    # --- Sensitive Word Blacklist ---
+    # Used to intercept inappropriate requests in before_model_callback.
     # BLOCKED_WORDS_CHINESE = [
     #     "zanghua",
     #     "minganci",
     #     "bukexiangdeshi",
     # ]
 
-    # --- 个人信息(PII)过滤规则 ---
-    # 用于在 after_model_callback 中过滤模型响应中的个人信息。
+    # --- Personal Information (PII) Filtering Rules ---
+    # Used to filter out personal information (PII) from model responses in after_model_callback.
     PII_PATTERNS_CHINESE = {
-        "电话号码": r"1[3-9]\d{9}",
-        "身份证号": r"\d{17}[\dXx]",  # 17位数字 + 1位数字或X
-        "邮箱": r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}",
+        "phone number": r"1[3-9]\d{9}",
+        "ID card number": r"\d{17}[\dXx]",  # 17位数字 + 1位数字或X
+        "email": r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}",
     }
     if patterns is None:
         patterns = PII_PATTERNS_CHINESE
@@ -72,8 +72,8 @@ def filter_pii(
         def replace_and_log(match):
             found_pii = match.group(0)
             if show_logs:
-                print(f"✓ 检测到 {pii_type}: {found_pii} → 已隐藏")
-            return f"[{pii_type}已隐藏]"
+                logger.info(f"✓ Detected {pii_type}: {found_pii} → Hidden")
+            return f"[{pii_type} Hidden]"
 
         # 执行替换
         filtered_text = pattern.sub(

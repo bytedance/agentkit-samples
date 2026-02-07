@@ -39,7 +39,7 @@ def signboard_detection_tool(picture_url: str) -> str:
     logger.debug(f"Running signboard_detection_tool with picture_url: {picture_url}")
 
     response = client.chat.completions.create(
-        model="doubao-seed-1-6-vision-250815",
+        model="seed-1-6-250915",
         messages=[
             {
                 "role": "user",
@@ -70,7 +70,7 @@ def signboard_char_detection_tool(cropped_image_path: str) -> str:
         base64_image = base64.b64encode(image_file.read()).decode("utf-8")
 
     response = client.chat.completions.create(
-        model="doubao-seed-1-6-vision-250815",
+        model="seed-1-6-250915",
         temperature=0.1,
         top_p=0.1,
         messages=[
@@ -124,7 +124,7 @@ def led_status_analysis_tool(cropped_image_path: str) -> str:
         base64_image = base64.b64encode(image_file.read()).decode("utf-8")
 
     response = client.chat.completions.create(
-        model="doubao-seed-1-6-251015",
+        model="seed-1-6-250915",
         messages=[
             {
                 "role": "user",
