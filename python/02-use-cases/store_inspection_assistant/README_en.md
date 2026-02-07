@@ -84,9 +84,8 @@ Main Volcano Engine products or Agent components:
    - Go to "Activation Management" -> "Language Models" -> Find the respective model -> Click "Activate Service".
    - Confirm activation and wait for the service to become effective (usually 1-2 minutes).
    - Activate the following models used in this case (you can also activate other models' pre-built inference endpoints as needed and specify them in the `agent.py` code):
-     - `deepseek-v3-1-terminus`
-     - `doubao-seed-1-6-vision-250815`
-     - `doubao-seed-1-6-251015`
+     - `deepseek-v3-2-251201`
+     - `seed-1-6-250915`
    - As shown below:
      ![Ark Model Service Management](../../assets/images/ark_model_service_management.jpg)
 

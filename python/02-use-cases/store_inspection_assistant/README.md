@@ -86,8 +86,7 @@
    - 确认开通，等待服务生效（通常1-2分钟）
    - 开通本案例中使用到的以下模型（您也可以根据实际需求开通其他模型的预置推理接入点，并在 `agent.py`代码中指定使用的模型）
      - `deepseek-v3-2-251201`
-     - `doubao-seed-1-6-vision-250815`
-     - `doubao-seed-1-6-251015`
+     - `seed-1-6-250915`
    - 如下图所示
      ![Ark Model Service Management](../../assets/images/ark_model_service_management.jpg)
 
