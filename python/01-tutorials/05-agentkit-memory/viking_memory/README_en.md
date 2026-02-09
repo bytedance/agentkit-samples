@@ -1,6 +1,6 @@
 # viking memory - Long and Short-Term Memory Agent
 
-This is a memory management example built with Volcano Engine's VeADK and VikingDB, demonstrating how to implement short-term and long-term memory functions for an intelligent agent.
+This is a memory management example built with BytePlus's VeADK and VikingDB, demonstrating how to implement short-term and long-term memory functions for an intelligent agent.
 
 ## Overview
 
@@ -33,15 +33,15 @@ Agent + Runner
 
 | Component | Description |
 | - | - |
-| **Agent Service** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/05-agentkit-memory/viking_memory/agent.py) - The main application, integrating short-term and long-term memory. |
-| **Test Script** | [local_test.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/05-agentkit-memory/viking_memory/local_test.py) - A complete demonstration of memory functions. |
+| **Agent Service** | [agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/05-agentkit-memory/viking_memory/agent.py) - The main application, integrating short-term and long-term memory. |
+| **Test Script** | [local_test.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/05-agentkit-memory/viking_memory/local_test.py) - A complete demonstration of memory functions. |
 | **Short-term Memory** | `ShortTermMemory` - Session-level temporary storage. |
 | **Long-term Memory** | `LongTermMemory` - Persistent storage in VikingDB. |
-| **Project Configuration** | [pyproject.toml](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/05-agentkit-memory/viking_memory/pyproject.toml) - Dependency management (with `uv`). |
+| **Project Configuration** | [pyproject.toml](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/05-agentkit-memory/viking_memory/pyproject.toml) - Dependency management (with `uv`). |
 
 ### Code Highlights
 
-**Short-term Memory Configuration** ([local_test.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/05-agentkit-memory/viking_memory/local_test.py#L26-L34)):
+**Short-term Memory Configuration** ([local_test.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/05-agentkit-memory/viking_memory/local_test.py#L26-L34)):
 
 ```python
 # Short-term memory: effective only within the same session
@@ -55,7 +55,7 @@ runner1 = Runner(
 )
 ```
 
-**Long-term Memory Configuration** ([local_test.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/05-agentkit-memory/viking_memory/local_test.py#L56-L69)):
+**Long-term Memory Configuration** ([local_test.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/05-agentkit-memory/viking_memory/local_test.py#L56-L69)):
 
 ```python
 # Initialize long-term memory (Viking backend)
@@ -89,19 +89,19 @@ viking_memory/
 
 ### Prerequisites
 
-**1. Activate Volcano Ark Model Service:**
+**1. Activate BytePlus Model Ark Model Service:**
 
-- Visit the [Volcano Ark Console](https://exp.volcengine.com/ark?mode=chat)
+- Visit the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - Activate the model service
 
 **2. Activate VikingDB Memory Base:**
 
-- Visit the [VikingDB Console](https://console.volcengine.com/vikingdb/region:vikingdb+cn-beijing/home?projectName=default)
+- Visit the [BytePlus VikingDB Console](https://console.byteplus.com/vikingdb/region:vikingdb+cn-hongkong/home?projectName=default)
 - Create a memory base instance
 
-**3. Obtain Volcano Engine Access Credentials:**
+**3. Obtain BytePlus Access Credentials:**
 
-- Refer to the [User Guide](https://www.volcengine.com/docs/6291/65568?lang=en) to get your AK/SK
+- Refer to the [User Guide](https://docs.byteplus.com/en/docs/data-intelligence/reference-openapi-ak-sk-authentication) to get AK/SK
 
 ### Dependency Installation
 
@@ -138,12 +138,12 @@ source .venv/bin/activate
 ### Environment Setup
 
 ```bash
-# Volcano Ark model name
+# BytePlus  Ark model name
 export MODEL_AGENT_NAME=deepseek-v3-2-251201
 
-# Volcano Engine access credentials (required)
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
+# BytePlus access credentials (required)
+export BYTEPLUS_ACCESS_KEY=<Your Access Key>
+export BYTEPLUS_SECRET_KEY=<Your Secret Key>
 ```
 
 ### Debugging Methods
@@ -178,21 +178,21 @@ uv run local_test.py
 
 ### Prerequisites
 
-**Important Note**: Before running this example, please visit the [AgentKit Console Authorization Page](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) to authorize all dependent services to ensure the case can execute normally.
+**Important Note**: Before running this example, please visit the [AgentKit Console Authorization Page](https://console.byteplus.com/agentkit/auth) to authorize all dependent services to ensure the case can execute normally.
 
-**1. Activate Volcano Ark Model Service:**
+**1. Activate BytePlus Model Ark Model Service:**
 
-- Visit the [Volcano Ark Console](https://exp.volcengine.com/ark?mode=chat)
+- Visit the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - Activate the model service
 
 **2. Activate VikingDB Memory Base:**
 
-- Visit the [VikingDB Console](https://console.volcengine.com/vikingdb/region:vikingdb+cn-beijing/home?projectName=default)
+- Visit the [BytePlus VikingDB Console](https://console.byteplus.com/vikingdb/region:vikingdb+cn-hongkong/home?projectName=default)
 - Create a memory base instance
 
-**3. Obtain Volcano Engine Access Credentials:**
+**3. Obtain BytePlus Access Credentials:**
 
-- Refer to the [User Guide](https://www.volcengine.com/docs/6291/65568?lang=en) to get your AK/SK
+- Refer to the [User Guide](https://docs.byteplus.com/en/docs/data-intelligence/reference-openapi-ak-sk-authentication) to get your AK/SK
 
 ### AgentKit Cloud Deployment
 
@@ -330,8 +330,8 @@ None.
 
 - [VeADK Official Documentation](https://volcengine.github.io/veadk-python/)
 - [AgentKit Development Guide](https://volcengine.github.io/agentkit-sdk-python/)
-- [Volcano Ark Model Service](https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new&projectName=default)
-- [VikingDB Documentation](https://www.volcengine.com/docs/84313/1860732?lang=en)
+- [BytePlus Model Ark Model Service](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
+- [BytePlus VikingDB Documentation](https://docs.byteplus.com/en/docs/VikingDB/Overview)
 
 ## License
 

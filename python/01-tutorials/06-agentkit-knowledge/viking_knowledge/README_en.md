@@ -1,6 +1,6 @@
 # viking knowledge - Intelligent Q&A for Document Knowledge Base
 
-This is a RAG (Retrieval-Augmented Generation) example built with Volcano Engine VeADK and VikingDB, demonstrating how to implement intelligent Q&A for a professional document knowledge base through vector retrieval.
+This is a RAG (Retrieval-Augmented Generation) example built with BytePlus VeADK and VikingDB, demonstrating how to implement intelligent Q&A for a professional document knowledge base through vector retrieval.
 
 ## Overview
 
@@ -32,15 +32,15 @@ LLM Generates Answer
 
 | Component | Description |
 | - | - |
-| **Agent Service** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/06-agentkit-knowledge/viking_knowledge/agent.py) - The main application that integrates KnowledgeBase and VikingDB. |
+| **Agent Service** | [agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/06-agentkit-knowledge/viking_knowledge/agent.py) - The main application that integrates KnowledgeBase and VikingDB. |
 | **Knowledge Base** | VikingDB vector database, storing document vector indexes. |
 | **Document Sources** | tech.txt (technical documents), products.txt (product information). |
-| **Project Configuration** | [pyproject.toml](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/06-agentkit-knowledge/viking_knowledge/pyproject.toml) - Dependency management (uv tool). |
+| **Project Configuration** | [pyproject.toml](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/06-agentkit-knowledge/viking_knowledge/pyproject.toml) - Dependency management (uv tool). |
 | **Short-term Memory** | Maintains session context. |
 
 ### Code Features
 
-**Knowledge Base Creation** ([agent.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/06-agentkit-knowledge/viking_knowledge/agent.py#L22-L29)):
+**Knowledge Base Creation** ([agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/06-agentkit-knowledge/viking_knowledge/agent.py#L22-L29)):
 
 ```python
 # Prepare knowledge sources
@@ -54,7 +54,7 @@ kb = KnowledgeBase(backend="viking", app_name="test_app")
 kb.add_from_files(files=["/tmp/product_info.txt", "/tmp/service_policy.txt"])
 ```
 
-**Agent Configuration** ([agent.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/06-agentkit-knowledge/viking_knowledge/agent.py#L31-L36)):
+**Agent Configuration** ([agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/06-agentkit-knowledge/viking_knowledge/agent.py#L31-L36)):
 
 ```python
 root_agent = Agent(
@@ -79,24 +79,24 @@ viking_knowledge/
 
 ### Prerequisites
 
-**1. Activate Volcano Ark Model Service:**
+**1. Activate BytePlus Model Ark Model Service:**
 
-- Visit the [Volcano Ark Console](https://exp.volcengine.com/ark?mode=chat)
+- Visit the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - Activate the model service.
 
 **2. Activate VikingDB Service:**
 
-- Visit the [VikingDB Console](https://console.volcengine.com/vikingdb/region:vikingdb+cn-beijing/home?projectName=default)
+- Visit the [BytePlus VikingDB Console](https://console.byteplus.com/vikingdb/region:vikingdb+cn-hongkong/home?projectName=default)
 - Create a knowledge base/Collection.
 
 **3. Activate Object Storage Service (TOS):**
 
 - VikingDB needs to upload local files to TOS, so you need to activate the object storage service.
-- Visit the [TOS Console](https://console.volcengine.com/tos)
+- Visit the [BytePlus TOS Console](https://console.byteplus.com/tos)
 
-**4. Obtain Volcano Engine Access Credentials:**
+**4. Obtain BytePlus Access Credentials:**
 
-- Refer to the [User Guide](https://www.volcengine.com/docs/6291/65568?lang=zh) to get your AK/SK.
+- Refer to the [User Guide](https://docs.byteplus.com/en/docs/data-intelligence/reference-openapi-ak-sk-authentication) to get AK/SK.
 
 ### Dependency Installation
 
@@ -133,17 +133,17 @@ source .venv/bin/activate
 ### Environment Setup
 
 ```bash
-# Volcano Ark model name
+# BytePlus Model Ark model name
 export MODEL_AGENT_NAME=deepseek-v3-2-251201
 
-# Volcano Engine access credentials (required)
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
+# BytePlus access credentials (required)
+export BYTEPLUS_ACCESS_KEY=<Your Access Key>
+export BYTEPLUS_SECRET_KEY=<Your Secret Key>
 ```
 
 ### Debugging Methods
 
-#### Method 1: Use VeADK Web Debugging Interface
+#### Method 1: Use BytePlus VeADK Web Debugging Interface
 
 ```bash
 # Go to the parent directory
@@ -171,26 +171,26 @@ uv run agent.py
 
 ### Prerequisites
 
-**Important Note**: Before running this example, please visit the [AgentKit Console Authorization Page](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) to authorize all dependent services to ensure the case can be executed normally.
+**Important Note**: Before running this example, please visit the [AgentKit Console Authorization Page](https://console.byteplus.com/agentkit/auth) to authorize all dependent services to ensure the case can be executed normally.
 
-**1. Activate Volcano Ark Model Service:**
+**1. Activate BytePlus Model Ark Model Service:**
 
-- Visit the [Volcano Ark Console](https://exp.volcengine.com/ark?mode=chat)
+- Visit the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - Activate the model service.
 
 **2. Activate VikingDB Service:**
 
-- Visit the [VikingDB Console](https://console.volcengine.com/vikingdb/region:vikingdb+cn-beijing/home?projectName=default)
+- Visit the [BytePlus VikingDB Console](https://console.byteplus.com/vikingdb/region:vikingdb+cn-hongkong/home?projectName=default)
 - Create a knowledge base/Collection.
 
 **3. Activate Object Storage Service (TOS):**
 
 - VikingDB needs to upload local files to TOS, so you need to activate the object storage service.
-- Visit the [TOS Console](https://console.volcengine.com/tos)
+- Visit the [BytePlus TOS Console](https://console.byteplus.com/tos)
 
-**4. Obtain Volcano Engine Access Credentials:**
+**4. Obtain BytePlus Access Credentials:**
 
-- Refer to the [User Guide](https://www.volcengine.com/docs/6291/65568?lang=zh) to get your AK/SK.
+- Refer to the [User Guide](https://docs.byteplus.com/en/docs/data-intelligence/reference-openapi-ak-sk-authentication) to get AK/SK.
 
 ### AgentKit Cloud Deployment
 
@@ -301,8 +301,8 @@ None.
 
 - [VeADK Official Documentation](https://volcengine.github.io/veadk-python/)
 - [AgentKit Development Guide](https://volcengine.github.io/agentkit-sdk-python/)
-- [Volcano Ark Model Service](https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new&projectName=default)
-- [VikingDB Documentation](https://www.volcengine.com/docs/84313/1860732?lang=zh)
+- [BytePlus Model Ark Service](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
+- [BytePlus VikingDB Documentation](https://docs.byteplus.com/en/docs/VikingDB/Overview)
 
 ## Code License
 

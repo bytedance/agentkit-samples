@@ -23,7 +23,7 @@ This project builds an AI-driven solution for store quality inspection, using co
 
 ## Agent Capabilities
 
-Main Volcano Engine products or Agent components:
+Main BytePlus products or Agent components:
 
 - Doubao Large Language Model:
   - doubao-seed-1.6-vision
@@ -53,7 +53,7 @@ Main Volcano Engine products or Agent components:
     │   ├── signboard_inspection.py # Store signboard inspection tool
     │   └── sink_inspection.py      # Sink inspection tool
     ├── model_auth.py   # Ark large model API key exchange tool
-    └── tos_upload.py   # Volcano TOS file upload tool
+    └── tos_upload.py   # BytePlus TOS file upload tool
 ```
 
 ## Quick Start
@@ -64,30 +64,30 @@ Main Volcano Engine products or Agent components:
 
 - Python 3.12 or higher
 
-**Volcano Engine Access Credentials:**
+**BytePlus Access Credentials:**
 
-1. Log in to the [Volcano Engine Console](https://console.volcengine.com)
+1. Log in to the [BytePlus Console](https://console.byteplus.com)
 2. Go to "Access Control" → "Users" -> Create a new user or search for an existing username -> Click the username to enter "User Details" -> Go to "Keys" -> Create a new key or copy an existing AK/SK.
    - As shown below:
-     ![Volcengine AK/SK Management](../../assets/images/volcengine_aksk.jpg)
+     ![BytePlus AK/SK Management](../../assets/images/volcengine_aksk.jpg)
 3. Configure access permissions for the services AgentKit depends on for the user:
    - On the "User Details" page -> Go to "Permissions" -> Click "Add Permission" and grant the following policies to the user:
      - `AgentKitFullAccess` (Full access to AgentKit)
      - `APMPlusServerFullAccess` (Full access to APMPlus)
-4. Obtain the Volcano Ark model Agent API Key for the user:
-   - Log in to the [Volcano Ark Console](https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new)
+4. Obtain the BytePlus Model Ark model agent API Key for the user:
+   - Log in to the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
    - Go to "API Key Management" -> Create or copy an existing API Key. The `MODEL_AGENT_API_KEY` environment variable will need to be set to this value.
    - As shown below:
-     ![Ark API Key Management](../../assets/images/ark_api_key_management.jpg)
+     ![Model Ark API Key Management](../../assets/images/ark_api_key_management.jpg)
 5. Activate pre-built model inference endpoints:
-   - Log in to the [Volcano Ark Console](https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new)
+   - Log in to the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
    - Go to "Activation Management" -> "Language Models" -> Find the respective model -> Click "Activate Service".
    - Confirm activation and wait for the service to become effective (usually 1-2 minutes).
    - Activate the following models used in this case (you can also activate other models' pre-built inference endpoints as needed and specify them in the `agent.py` code):
      - `deepseek-v3-2-251201`
      - `seed-1-6-250915`
    - As shown below:
-     ![Ark Model Service Management](../../assets/images/ark_model_service_management.jpg)
+     ![Model Ark Model Service Management](../../assets/images/ark_model_service_management.jpg)
 
 ### Install Dependencies
 
@@ -100,9 +100,9 @@ pip install -r requirements.txt
 Set the following environment variables:
 
 ```bash
-# Volcano Engine AK/SK
-export VOLCENGINE_ACCESS_KEY=AK
-export VOLCENGINE_SECRET_KEY=SK
+# BytePlus AK/SK
+export BYTEPLUS_ACCESS_KEY=AK
+export BYTEPLUS_SECRET_KEY=SK
 # TOS bucket name
 export DATABASE_TOS_BUCKET=agentkit-platform-{{your_account_id}}
 # Large model API_KEY (optional)
@@ -119,8 +119,8 @@ cd 02-use-cases
 
 # 2. Optional: Create a .env file (skip if environment variables are already set)
 touch .env
-echo "VOLCENGINE_ACCESS_KEY=AK" >> .env
-echo "VOLCENGINE_SECRET_KEY=SK" >> .env
+echo "BYTEPLUS_ACCESS_KEY=AK" >> .env
+echo "BYTEPLUS_SECRET_KEY=SK" >> .env
 # Set the TOS bucket for uploading result files from the inspection process
 echo "DATABASE_TOS_BUCKET=agentkit-platform-{{your_account_id}}" >> .env
 
@@ -141,7 +141,7 @@ Check the worker's attire in the store, image url: https://agentkit-demo.tos-cn-
 
 ## AgentKit Deployment
 
-1. Deploy to Volcano Engine AgentKit Runtime:
+1. Deploy to BytePlus AgentKit Runtime:
 
 ```bash
 # 1. Go to the project directory
@@ -162,9 +162,9 @@ agentkit launch
 
 After successful deployment:
 
-1. Visit the [Volcano Engine AgentKit Console](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/runtime)
+1. Visit the [BytePlus AgentKit Console](https://console.byteplus.com/agentkit)
 2. Click **Runtime** to see the deployed agent `inspection_assistant`
-3. Get the public access domain (e.g., `https://xxxxx.apigateway-cn-beijing.volceapi.com`) and API Key
+3. Get the public access domain (e.g., `https://xxxxx.apigateway-ap-southeast-1.apigw-byteplus.com`) and API Key
 
 #### **Debugging with chatui**
 
@@ -193,10 +193,9 @@ Demonstration of the smart store inspection.
 
 ## 🔗 Related Resources
 
-- [AgentKit Official Documentation](https://www.volcengine.com/docs/86681/1844878?lang=en)
-- [TOS Object Storage](https://www.volcengine.com/product/TOS)
-- [AgentKit Console](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/overview?projectName=default)
-- [Volcano Ark Console](https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new)
+- [TOS Object Storage](https://docs.byteplus.com/en/docs/tos/docs-what-is-tos)
+- [AgentKit Console](https://console.byteplus.com/agentkit)
+- [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 
 ## Code License
 
@@ -204,4 +203,4 @@ This project is licensed under the Apache 2.0 License.
 
 ## Technical Support
 
-For technical support or any questions, please refer to the AgentKit official documentation or contact the Volcano Engine technical support team.
+For technical support or any questions, please refer to the AgentKit official documentation or contact the BytePlus technical support team.

@@ -1,6 +1,6 @@
 # Hello World - The Simplest Chat Agent
 
-This is an entry-level conversational agent built based on Volcano Engine VeADK and AgentKit, demonstrating how to create a basic AI Agent with short-term memory.
+This is an entry-level conversational agent built based on BytePlus VeADK and AgentKit, demonstrating how to create a basic AI Agent with short-term memory.
 
 ## Overview
 
@@ -23,22 +23,22 @@ AgentKit Runtime
 Hello World Agent
     ├── VeADK Agent (Conversation Engine)
     ├── ShortTermMemory (Session Memory)
-    └── Volcano Ark Model (LLM)
+    └── BytePlus Model Ark (LLM)
 ```
 
 ### Core Components
 
 | Component | Description |
 | - | - |
-| **Agent Service** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/hello_world.py) - Main application, defines the Agent and memory components |
-| **Test Client** | [client.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/hello_world/client.py) - SSE streaming call client |
-| **Project Configuration** | [pyproject.toml](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/hello_world/pyproject.toml) - Dependency management (uv tool) |
+| **Agent Service** | [agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/hello_world/agent.py) - Main application, defines the Agent and memory components |
+| **Test Client** | [client.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/hello_world/client.py) - SSE streaming call client |
+| **Project Configuration** | [pyproject.toml](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/hello_world/pyproject.toml) - Dependency management (uv tool) |
 | **AgentKit Configuration** | agentkit.yaml - Cloud deployment configuration file |
 | **Short-Term Memory** | Use local backend to store session context |
 
 ### Code Features
 
-**Agent Definition** ([agent.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/hello_world/agent.py#L11-L18)):
+**Agent Definition** ([agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/hello_world/agent.py#L11-L18)):
 
 ```python
 agent = Agent()
@@ -52,7 +52,7 @@ runner = Runner(
 )
 ```
 
-**Multi-turn Conversation Test** ([agent.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/hello_world/agent.py#L21-L26)):
+**Multi-turn Conversation Test** ([agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/hello_world/agent.py#L21-L26)):
 
 ```python
 async def main():
@@ -77,14 +77,14 @@ hello_world/
 
 ### Prerequisites
 
-**1. Activate Volcano Ark Model Service:**
+**1. Activate BytePlus Model Ark Service:**
 
-- Visit the [Volcano Ark Console](https://exp.volcengine.com/ark?mode=chat)
+- Visit the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - Activate the model service
 
-**2. Obtain Volcano Engine Access Credentials:**
+**2. Obtain BytePlus Access Credentials:**
 
-- Refer to the [User Guide](https://www.volcengine.com/docs/6291/65568?lang=en) to get AK/SK
+- Refer to the [User Guide](https://docs.byteplus.com/en/docs/data-intelligence/reference-openapi-ak-sk-authentication) to get AK/SK
 
 ### Dependency Installation
 
@@ -121,12 +121,12 @@ source .venv/bin/activate
 ### Environment Preparation
 
 ```bash
-# Volcano Ark Model Name
+# BytePlus Model Ark Model Name
 export MODEL_AGENT_NAME=deepseek-v3-2-251201
 
-# Volcano Engine Access Credentials (required)
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
+# BytePlus Access Credentials (required)
+export BYTEPLUS_ACCESS_KEY=<Your Access Key>
+export BYTEPLUS_SECRET_KEY=<Your Secret Key>
 ```
 
 ### Debugging Methods
@@ -173,16 +173,16 @@ data: {"event":"on_llm_chunk","data":{"content":"Of course I remember, your name
 
 ### Prerequisites
 
-**Important Note**: Before running this example, please visit the [AgentKit Console Authorization Page](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) to authorize all dependent services to ensure the case can be executed normally.
+**Important Note**: Before running this example, please visit the [AgentKit Console Authorization Page](https://console.byteplus.com/agentkit/auth) to authorize all dependent services to ensure the case can be executed normally.
 
-**1. Activate Volcano Ark Model Service:**
+**1. Activate BytePlus Model Ark Service:**
 
-- Visit the [Volcano Ark Console](https://exp.volcengine.com/ark?mode=chat)
+- Visit the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - Activate the model service
 
-**2. Obtain Volcano Engine Access Credentials:**
+**2. Obtain BytePlus Access Credentials:**
 
-- Refer to the [User Guide](https://www.volcengine.com/docs/6291/65568?lang=en) to get AK/SK
+- Refer to the [User Guide](https://docs.byteplus.com/en/docs/data-intelligence/reference-openapi-ak-sk-authentication) to get AK/SK
 
 ### AgentKit Cloud Deployment
 
@@ -275,7 +275,7 @@ None.
 
 - [VeADK Official Documentation](https://volcengine.github.io/veadk-python/)
 - [AgentKit Development Guide](https://volcengine.github.io/agentkit-sdk-python/)
-- [Volcano Ark Model Service](https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new&projectName=default)
+- [BytePlus Model Ark Model Service](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 
 ## Code License
 
