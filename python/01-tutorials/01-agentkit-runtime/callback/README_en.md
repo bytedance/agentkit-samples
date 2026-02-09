@@ -44,15 +44,15 @@ Return to User
 
 | Component | Description |
 | - | - |
-| **Agent Service** | [agent.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/callback/agent.py) - The main Agent for configuring callbacks and guardrails |
-| **Callback Functions** | [callbacks/](https://github.com/volcengine/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/callback/callbacks) - Implementations of the six callback functions |
-| **Tool Definition** | [tools/write_article.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/callback/tools/write_article.py) - Article writing tool |
-| **Project Configuration** | [pyproject.toml](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/callback/pyproject.toml) - Dependency management |
+| **Agent Service** | [agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/callback/agent.py) - The main Agent for configuring callbacks and guardrails |
+| **Callback Functions** | [callbacks/](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/callback/callbacks) - Implementations of the six callback functions |
+| **Tool Definition** | [tools/write_article.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/callback/tools/write_article.py) - Article writing tool |
+| **Project Configuration** | [pyproject.toml](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/callback/pyproject.toml) - Dependency management |
 | **Short-term Memory** | Local backend for storing session context |
 
 ### Code Features
 
-**Agent Configuration** ([agent.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/callback/agent.py#L11-L22)):
+**Agent Configuration** ([agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/callback/agent.py#L11-L22)):
 
 ```python
 root_agent = Agent(
@@ -69,7 +69,7 @@ root_agent = Agent(
 )
 ```
 
-**Test Scenarios** ([agent.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/callback/agent.py#L37-L44)):
+**Test Scenarios** ([agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/callback/agent.py#L37-L44)):
 
 ```python
 # Scenario 1: Normal call, triggers tool and PII filtering
@@ -107,14 +107,14 @@ callback/
 
 ### Prerequisites
 
-**1. Activate Volcano Ark Model Service:**
+**1. Activate BytePlus Model Ark Service:**
 
-- Visit the [Volcano Ark Console](https://exp.volcengine.com/ark?mode=chat)
+- Visit the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - Activate the model service
 
-**2. Obtain Volcano Engine Access Credentials:**
+**2. Obtain BytePlus Access Credentials:**
 
-- Refer to the [User Guide](https://www.volcengine.com/docs/6291/65568?lang=zh) to get AK/SK
+- Refer to the [User Guide](https://docs.byteplus.com/en/docs/data-intelligence/reference-openapi-ak-sk-authentication) to get AK/SK
 
 ### Dependency Installation
 
@@ -151,12 +151,12 @@ source .venv/bin/activate
 ### Environment Setup
 
 ```bash
-# Volcano Ark model name
+# BytePlus Model Ark model name
 export MODEL_AGENT_NAME=deepseek-v3-2-251201
 
-# Volcano Engine access credentials (required)
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
+# BytePlus access credentials (required)
+export BYTEPLUS_ACCESS_KEY=<Your Access Key>
+export BYTEPLUS_SECRET_KEY=<Your Secret Key>
 ```
 
 ### Debugging Methods
@@ -204,16 +204,16 @@ uv run agent.py
 
 ### Prerequisites
 
-**Important Note**: Before running this example, please visit the [AgentKit Console Authorization Page](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) to authorize all dependent services to ensure the case can be executed normally.
+**Important Note**: Before running this example, please visit the [AgentKit Console Authorization Page](https://console.byteplus.com/agentkit/auth) to authorize all dependent services to ensure the case can be executed normally.
 
-**1. Activate Volcano Ark Model Service:**
+**1. Activate BytePlus Model Ark Service:**
 
-- Visit the [Volcano Ark Console](https://exp.volcengine.com/ark?mode=chat)
+- Visit the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - Activate the model service
 
-**2. Obtain Volcano Engine Access Credentials:**
+**2. Obtain BytePlus Access Credentials:**
 
-- Refer to the [User Guide](https://www.volcengine.com/docs/6291/65568?lang=zh) to get AK/SK
+- Refer to the [User Guide](https://docs.byteplus.com/en/docs/data-intelligence/reference-openapi-ak-sk-authentication) to get AK/SK
 
 ### AgentKit Cloud Deployment
 
@@ -251,7 +251,7 @@ uv run client.py
 - Log the start of a request
 - Request rate limiting and authentication
 
-**Example** ([callbacks/before_agent_callback.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/callback/callbacks/before_agent_callback.py)):
+**Example** ([callbacks/before_agent_callback.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/callback/callbacks/before_agent_callback.py)):
 
 ```python
 def before_agent_callback(agent, callback_context):
@@ -275,7 +275,7 @@ def before_agent_callback(agent, callback_context):
 - Adjust parameters (temperature, max_tokens, etc.)
 - Pre-process request content
 
-**Example** ([callbacks/before_model_callback.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/callback/callbacks/before_model_callback.py)):
+**Example** ([callbacks/before_model_callback.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/callback/callbacks/before_model_callback.py)):
 
 ```python
 def before_model_callback(callback_context, llm_request):
@@ -298,7 +298,7 @@ def before_model_callback(callback_context, llm_request):
 - Extract structured information
 - Content moderation and rewriting
 
-**Example** ([callbacks/after_model_callback.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/callback/callbacks/after_model_callback.py)):
+**Example** ([callbacks/after_model_callback.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/callback/callbacks/after_model_callback.py)):
 
 ```python
 def after_model_callback(callback_context, llm_response):
@@ -320,7 +320,7 @@ def after_model_callback(callback_context, llm_response):
 - Permission checks
 - Lightweight parameter pre-processing
 
-**Example** ([callbacks/before_tool_callback.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/callback/callbacks/before_tool_callback.py)):
+**Example** ([callbacks/before_tool_callback.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/callback/callbacks/before_tool_callback.py)):
 
 ```python
 def before_tool_callback(tool_context):
@@ -345,7 +345,7 @@ def before_tool_callback(tool_context):
 - Persist results to storage
 - Error handling and retries
 
-**Example** ([callbacks/after_tool_callback.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/callback/callbacks/after_tool_callback.py)):
+**Example** ([callbacks/after_tool_callback.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/callback/callbacks/after_tool_callback.py)):
 
 ```python
 def after_tool_callback(tool_context, tool_result):
@@ -374,7 +374,7 @@ def after_tool_callback(tool_context, tool_result):
 - Generate execution reports
 - Performance metric statistics
 
-**Example** ([callbacks/after_agent_callback.py](https://github.com/volcengine/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/callback/callbacks/after_agent_callback.py)):
+**Example** ([callbacks/after_agent_callback.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/callback/callbacks/after_agent_callback.py)):
 
 ```python
 def after_agent_callback(agent, callback_context, result):
@@ -455,7 +455,7 @@ None.
 
 - [VeADK Official Documentation](https://volcengine.github.io/veadk-python/)
 - [AgentKit Development Guide](https://volcengine.github.io/agentkit-sdk-python/)
-- [Volcano Ark Model Service](https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new&projectName=default)
+- [BytePlus Ark Model Service](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 
 ## Code License
 

@@ -1,6 +1,6 @@
 # AI Coding Agent
 
-This is an intelligent programming assistant system built with Volcano Engine AgentKit, designed to help users solve various programming problems. The system integrates a code execution sandbox and TOS object storage service to provide a professional and efficient programming assistance experience.
+This is an intelligent programming assistant system built with BytePlus AgentKit, designed to help users solve various programming problems. The system integrates a code execution sandbox and TOS object storage service to provide a professional and efficient programming assistance experience.
 
 ## Overview
 
@@ -67,34 +67,34 @@ ai_coding/
 
 ### Prerequisites
 
-#### Volcano Engine Access Credentials
+#### BytePlus Access Credentials
 
-1. Log in to the [Volcano Engine Console](https://console.volcengine.com)
+1. Log in to the [BytePlus Console](https://console.byteplus.com)
 2. Go to "Access Control" → "Users" -> Create a new user or search for an existing one -> Click the username to go to "User Details" -> Go to "Keys" -> Create a new key or copy an existing AK/SK.
    - As shown below:
-   ![Volcengine AK/SK Management](../../assets/images/volcengine_aksk.jpg)
+   ![BytePlus AK/SK Management](../../assets/images/volcengine_aksk.jpg)
 3. Configure access permissions for services required by AgentKit:
    - On the "User Details" page -> Go to "Permissions" -> Click "Add Permission" and grant the following policies to the user:
    - `AgentKitFullAccess` (Full access to AgentKit)
    - `APMPlusServerFullAccess` (Full access to APMPlus)
-4. Obtain a Volcano Ark model Agent API Key:
-   - Log in to the [Volcano Ark Console](https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new)
+4. Obtain a BytePlus Model Ark model agent API Key:
+   - Log in to the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
    - Go to "API Key Management" -> Create or copy an existing API Key. The `MODEL_AGENT_API_KEY` environment variable will need to be set to this value.
    - As shown below:
-   ![Ark API Key Management](../../assets/images/ark_api_key_management.jpg)
+   ![Model Ark API Key Management](../../assets/images/ark_api_key_management.jpg)
 5. Activate pre-built model inference endpoints:
-   - Log in to the [Volcano Ark Console](https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new)
+   - Log in to the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
    - Go to "Activation Management" -> "Language Models" -> Find the desired model -> Click "Activate Service".
    - Confirm activation and wait for the service to become effective (usually 1-2 minutes).
    - Activate the following models used in this case:
         - `deepseek-v3-1-terminus`
         - `doubao-seed-code-preview-251028`
    - As shown below:
-   ![Ark Model Service Management](../../assets/images/ark_model_service_management.jpg)
+   ![Model Ark Model Service Management](../../assets/images/ark_model_service_management.jpg)
 
 #### AgentKit Tool ID
 
-1. Log in to the Volcano Engine AgentKit console.
+1. Log in to the BytePlus AgentKit console.
 2. Go to "Tools" → "Create Sandbox Tool".
 3. Create the tool:
    - Tool Name: `ai-coding-agent`
@@ -127,23 +127,23 @@ uv pip install -r requirements.txt
 Set the following environment variables:
 
 ```bash
-export VOLCENGINE_ACCESS_KEY={your_ak}
-export VOLCENGINE_SECRET_KEY={your_sk}
+export BYTEPLUS_ACCESS_KEY={your_ak}
+export BYTEPLUS_SECRET_KEY={your_sk}
 export DATABASE_TOS_BUCKET=agentkit-platform-{{your_account_id}}
 export AGENTKIT_TOOL_ID={{your_tool_id}}
-export MODEL_AGENT_API_KEY={{your_model_agent_api_key}} # Required for local debugging, obtained from Volcano Ark
+export MODEL_AGENT_API_KEY={{your_model_agent_api_key}} # Required for local debugging, obtained from BytePlus Model Ark
 ```
 
 **Environment Variable Explanations:**
 
-- `VOLCENGINE_ACCESS_KEY`: The Access Key for your Volcano Engine credentials.
-- `VOLCENGINE_SECRET_KEY`: The Secret Key for your Volcano Engine credentials.
+- `BYTEPLUS_ACCESS_KEY`: The Access Key for your BytePlus credentials.
+- `BYTEPLUS_SECRET_KEY`: The Secret Key for your BytePlus credentials.
 - `DATABASE_TOS_BUCKET`: The name of the TOS bucket for storing generated frontend code.
   - Format: `DATABASE_TOS_BUCKET=agentkit-platform-{{your_account_id}}`
   - Example: `DATABASE_TOS_BUCKET=agentkit-platform-12345678901234567890`
-  - `{{your_account_id}}` needs to be replaced with your Volcano Engine account ID.
+  - `{{your_account_id}}` needs to be replaced with your BytePlus account ID.
 - `AGENTKIT_TOOL_ID`: The Tool ID obtained from the AgentKit console.
-- `MODEL_AGENT_API_KEY`: The Model Agent API Key obtained from Volcano Ark.
+- `MODEL_AGENT_API_KEY`: The Model Agent API Key obtained from BytePlus Model Ark.
 
 ## Testing
 
@@ -157,8 +157,8 @@ cd 02-use-cases
 
 # 2. Optional: Create a .env file (skip if environment variables are already set)
 touch .env
-echo "VOLCENGINE_ACCESS_KEY=AK" >> .env
-echo "VOLCENGINE_SECRET_KEY=SK" >> .env
+echo "BYTEPLUS_ACCESS_KEY=AK" >> .env
+echo "BYTEPLUS_SECRET_KEY=SK" >> .env
 echo "DATABASE_TOS_BUCKET=agentkit-platform-{{your_account_id}}" >> .env
 echo "AGENTKIT_TOOL_ID={{your_tool_id}}" >> .env
 echo "MODEL_AGENT_API_KEY={{your_model_agent_api_key}}" >> .env
@@ -177,7 +177,7 @@ The service runs on port 8000 by default. Access `http://127.0.0.1:8000`, select
 
 ## AgentKit Deployment
 
-1. Deploy to Volcano Engine AgentKit Runtime:
+1. Deploy to BytePlus AgentKit Runtime:
 
 ```bash
 # 1. Go to the project directory
@@ -227,10 +227,8 @@ None.
 
 ## 🔗 Related Resources
 
-- [AgentKit Official Documentation](https://www.volcengine.com/docs/86681/1844878?lang=en)
-- [TOS Object Storage](https://www.volcengine.com/product/TOS)
-- [AgentKit Application Square](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/application)
-- [AgentKit Console](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/overview?projectName=default)
+- [TOS Object Storage](https://docs.byteplus.com/en/docs/tos/docs-what-is-tos)
+- [AgentKit Console](https://console.byteplus.com/agentkit/)
 
 ## Code License
 

@@ -1,6 +1,6 @@
 # Customer Support Agent
 
-This is a "Customer Inquiry and After-Sales Service" agent built with Volcano Engine AgentKit, supporting both shopping consultation and after-sales processing scenarios. The system integrates a knowledge base and CRM tools, combined with short-term/long-term memory and identity verification, to provide efficient, accurate, and privacy-secured services for real-world customer service workflows.
+This is a "Customer Inquiry and After-Sales Service" agent built with BytePlus AgentKit, supporting both shopping consultation and after-sales processing scenarios. The system integrates a knowledge base and CRM tools, combined with short-term/long-term memory and identity verification, to provide efficient, accurate, and privacy-secured services for real-world customer service workflows.
 
 ## Overview
 
@@ -67,29 +67,29 @@ customer_support/
 
 - Python 3.12 or higher is required.
 
-**Volcano Engine Access Credentials:**
+**BytePlus Access Credentials:**
 
-1. Log in to the [Volcano Engine Console](https://console.volcengine.com)
+1. Log in to the [BytePlus Console](https://console.byteplus.com)
 2. Go to "Access Control" → "Users" -> Create a new user or search for an existing one -> Click the username to go to "User Details" -> Go to "Keys" -> Create a new key or copy an existing AK/SK.
    - As shown below:
-   ![Volcengine AK/SK Management](../../assets/images/volcengine_aksk.jpg)
+   ![BytePlus AK/SK Management](../../assets/images/volcengine_aksk.jpg)
 3. Configure access permissions for services required by AgentKit:
    - On the "User Details" page -> Go to "Permissions" -> Click "Add Permission" and grant the following policies to the user:
      - `AgentKitFullAccess` (Full access to AgentKit)
      - `APMPlusServerFullAccess` (Full access to APMPlus)
-4. Obtain a Volcano Ark model Agent API Key:
-   - Log in to the [Volcano Ark Console](https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new)
+4. Obtain a BytePlus Model Ark model agent API Key:
+   - Log in to the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
    - Go to "API Key Management" -> Create or copy an existing API Key. The `MODEL_AGENT_API_KEY` environment variable will need to be set to this value.
    - As shown below:
-   ![Ark API Key Management](../../assets/images/ark_api_key_management.jpg)
+   ![Model Ark API Key Management](../../assets/images/ark_api_key_management.jpg)
 5. Activate pre-built model inference endpoints:
-   - Log in to the [Volcano Ark Console](https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new)
+   - Log in to the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
    - Go to "Activation Management" -> "Language Models" -> Find the desired model -> Click "Activate Service".
    - Confirm activation and wait for the service to become effective (usually 1-2 minutes).
    - Activate the following models used in this case (you can also activate other models as needed and specify them in the `agent.py` code):
       - `deepseek-v3-2-251201`
    - As shown below:
-   ![Ark Model Service Management](../../assets/images/ark_model_service_management.jpg)
+   ![Model Ark Service Management](../../assets/images/ark_model_service_management.jpg)
 
 **Knowledge Base (auto-configured on first run):**:
 
@@ -124,8 +124,8 @@ uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
 Set the following environment variables:
 
 ```bash
-export VOLCENGINE_ACCESS_KEY=AK
-export VOLCENGINE_SECRET_KEY=SK
+export BYTEPLUS_ACCESS_KEY=AK
+export BYTEPLUS_SECRET_KEY=SK
 export DATABASE_TOS_BUCKET=agentkit-platform-{{your_account_id}}
 
 # Optional: Use an existing knowledge base
@@ -146,7 +146,7 @@ export DATABASE_MEM0_API_KEY=<mem0_api_key>
 - `DATABASE_TOS_BUCKET`: Required for automatic knowledge base initialization. If `DATABASE_VIKING_COLLECTION` is not set, on the first run, `pre_build/knowledge` will be automatically uploaded to TOS and imported into the Viking vector database.
   - Format: `DATABASE_TOS_BUCKET=agentkit-platform-{{your_account_id}}`
   - Example: `DATABASE_TOS_BUCKET=agentkit-platform-12345678901234567890`
-  - `{{your_account_id}}` needs to be replaced with your Volcano Engine account ID.
+  - `{{your_account_id}}` needs to be replaced with your BytePlus account ID.
 - `DATABASE_VIKING_COLLECTION`: The name of a pre-created knowledge base collection (recommended for production).
 - The default model is `deepseek-v3-2-251201`. This can be changed in the code if needed.
 
@@ -161,8 +161,8 @@ cd 02-use-cases
 
 # 2. Optional: Create a .env file (skip if environment variables are already set)
 touch .env
-echo "VOLCENGINE_ACCESS_KEY=AK" >> .env
-echo "VOLCENGINE_SECRET_KEY=SK" >> .env
+echo "BYTEPLUS_ACCESS_KEY=AK" >> .env
+echo "BYTEPLUS_SECRET_KEY=SK" >> .env
 # Recommended: Manually create a knowledge base in the AgentKit console and set the collection name
 echo "DATABASE_VIKING_COLLECTION=agentkit_customer_support" >> .env
 # Optional: If using auto-initialization, set the TOS bucket for uploading knowledge base files
@@ -198,7 +198,7 @@ The service runs on port 8000 by default. Access `http://127.0.0.1:8000`, select
 
 ## AgentKit Deployment
 
-1. Deploy to Volcano Engine AgentKit Runtime:
+1. Deploy to BytePlus AgentKit Runtime:
 
 ```bash
 # 1. Go to the project directory
@@ -289,9 +289,8 @@ Customer Support demonstration.
 
 ## Related Resources
 
-- [AgentKit Official Documentation](https://www.volcengine.com/docs/86681/1844878?lang=en)
-- [Viking Vector Database](https://www.volcengine.com/docs/84313/1860732?lang=en)
-- [TOS Object Storage](https://www.volcengine.com/product/TOS)
+- [Viking Vector Database](https://docs.byteplus.com/en/docs/VikingDB/Overview)
+- [TOS Object Storage](https://docs.byteplus.com/en/docs/tos/docs-what-is-tos)
 - [Mem0 Memory Management](todo)
 
 ## Code License
