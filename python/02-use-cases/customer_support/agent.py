@@ -70,10 +70,28 @@ if provider and provider.lower() == "byteplus":
     AFTER_SALE_PROMPT = AFTER_SALE_PROMPT_EN
     SHOPPING_GUIDE_PROMPT = SHOPPING_GUIDE_PROMPT_EN
     ROOT_AGENT_INSTRUCTION = ROOT_AGENT_INSTRUCTION_EN
+    AFTER_SALE_DESCRIPTION = "After-Sales Agent: handles after-sales inquiries such as information lookup and repair requests."
+    SHOPPING_GUIDE_DESCRIPTION = "Shopping Guide Agent: helps customers choose suitable products and guides them through the purchase flow."
+    ROOT_AGENT_DESCRIPTION = (
+        "Customer Support Agent: 1) guides customers on product selection and purchase; "
+        "2) handles after-sales issues such as information lookup and repair requests."
+    )
+    knowledge_directory = "pre_build/knowledge_en"
+    knowledge_probe = "Return & Exchange Policy"
 else:
     AFTER_SALE_PROMPT = AFTER_SALE_PROMPT_CN
     SHOPPING_GUIDE_PROMPT = SHOPPING_GUIDE_PROMPT_CN
     ROOT_AGENT_INSTRUCTION = ROOT_AGENT_INSTRUCTION_CN
+    AFTER_SALE_DESCRIPTION = "售后Agent：根据客户的售后问题，帮助客户处理商品的售后问题（信息查询、商品报修等）。"
+    SHOPPING_GUIDE_DESCRIPTION = (
+        "导购Agent：根据客户的购买需求，帮助客户选择合适的商品，引导客户完成购买流程。"
+    )
+    ROOT_AGENT_DESCRIPTION = (
+        "客服Agent：1）根据客户的购买需求，帮助客户选择合适的商品，引导客户完成购买流程；"
+        "2）根据客户的售后问题，帮助客户处理商品的售后问题（信息查询、商品报修等）。"
+    )
+    knowledge_directory = "pre_build/knowledge"
+    knowledge_probe = "商品退换策略"
 
 # 1. 配置短期记忆
 short_term_memory = ShortTermMemory(backend="local")
@@ -104,11 +122,11 @@ else:
 
 should_init_knowledge = False
 try:
-    test_knowledge = knowledge.search("商品退换策略", top_k=1)
+    test_knowledge = knowledge.search(knowledge_probe, top_k=1)
     should_init_knowledge = not (
         len(test_knowledge) >= 0
         and test_knowledge[0].content != ""
-        and str(test_knowledge[0].content).__contains__("商品退换策略")
+        and str(test_knowledge[0].content).__contains__(knowledge_probe)
     )
 except Exception:
     should_init_knowledge = True
@@ -118,7 +136,7 @@ if should_init_knowledge:
     if not tos_bucket_name:
         raise ValueError("DATABASE_TOS_BUCKET environment variable is not set")
     knowledge.add_from_directory(
-        str(Path(__file__).resolve().parent) + "/pre_build/knowledge",
+        str(Path(__file__).resolve().parent) + f"/{knowledge_directory}",
         tos_bucket_name=tos_bucket_name,
     )
 
@@ -166,7 +184,7 @@ async def after_agent_execution(callback_context: CallbackContext):
 after_sale_agent = Agent(
     name="after_sale_agent",
     model_name=model_name,
-    description=" 售后Agent：根据客户的售后问题，帮助客户处理商品的售后问题(信息查询、商品报修等)",
+    description=AFTER_SALE_DESCRIPTION,
     instruction=AFTER_SALE_PROMPT
     + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     planner=BuiltInPlanner(
@@ -187,7 +205,7 @@ after_sale_agent = Agent(
 shopping_guide_agent = Agent(
     name="shopping_guide_agent",
     model_name=model_name,
-    description="根据客户的购买需求，帮助客户选择合适的商品，引导客户完成购买流程",
+    description=SHOPPING_GUIDE_DESCRIPTION,
     planner=BuiltInPlanner(
         thinking_config=ThinkingConfig(
             include_thoughts=True,
@@ -207,7 +225,7 @@ shopping_guide_agent = Agent(
 agent = Agent(
     name="customer_support_agent",
     model_name=model_name,
-    description="客服Agent：1）根据客户的购买需求，帮助客户选择合适的商品，引导客户完成购买流程；2）根据客户的售后问题，帮助客户处理商品的售后问题(信息查询、商品报修等)",
+    description=ROOT_AGENT_DESCRIPTION,
     instruction=ROOT_AGENT_INSTRUCTION,
     sub_agents=[after_sale_agent, shopping_guide_agent],
     long_term_memory=long_term_memory,
