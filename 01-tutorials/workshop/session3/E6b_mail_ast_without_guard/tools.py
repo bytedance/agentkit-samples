@@ -84,7 +84,7 @@ def read_email(mailbox: str, email_id: str):
         result = email.body
         return result
     else:
-        raise Exception("invali email_id")
+        raise Exception("invalid email_id")
 
 
 def classify_email(email_text: str, keywords: str):
@@ -110,7 +110,7 @@ def forward_email(mailbox: str, email_id: str, recipient: str):
     Args:
         mailbox (str): 要读取的邮箱的地址
         email_id (str): 邮件ID
-        receipient (str): 转发目标收件人邮箱
+        recipient (str): 转发目标收件人邮箱
     """
     # 根据mailbox过滤邮件
     owner_emails = [Email(**email) for email in email_data.get(mailbox, [])]
@@ -131,13 +131,13 @@ def forward_email(mailbox: str, email_id: str, recipient: str):
     return result
 
 
-def generate_report(total: int, forwarded: int, receipient: str):
+def generate_report(total: int, forwarded: int, recipient: str):
     """
     生成任务执行总结报告
     Args:
         total (int): 处理的邮件总数
         forwarded (int): 转发的邮件总数
-        receipient (str): 转发目标收件人邮箱
+        recipient (str): 转发目标收件人邮箱
     """
 
     success = True
@@ -150,7 +150,7 @@ def generate_report(total: int, forwarded: int, receipient: str):
 📊 处理统计:
   - 总邮件数: {total} 封
   - 转发邮件数: {forwarded} 封
-  - 目标邮箱: {receipient}
+  - 目标邮箱: {recipient}
   - 执行状态: {"✅ 成功" if success else "❌ 失败"}
 """
 
@@ -160,7 +160,7 @@ def generate_report(total: int, forwarded: int, receipient: str):
         "summary": {
             "total_emails": total,
             "forwarded_count": forwarded,
-            "target_email": receipient,
+            "target_email": recipient,
             "execution_success": success,
         },
     }
