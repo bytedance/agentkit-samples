@@ -29,11 +29,11 @@ client = Ark(
 
 def signboard_detection_tool(picture_url: str) -> str:
     """
-    门店招牌检测工具，输入门店招牌图片URL，返回检测结果，包括招牌位置的bbox信息
+    Signboard detection tool, input signboard image URL, return signboard detection result, including bbox information
     Args:
-        picture_url (str): 门店招牌图片URL
+        picture_url (str): Signboard image URL
     Returns:
-        str: 检测结果，包含bbox信息，格式如：<bbox>x1 y1 x2 y2</bbox>
+        str: Signboard detection result, including bbox information, format such as: <bbox>x1 y1 x2 y2</bbox>
     """
 
     logger.debug(f"Running signboard_detection_tool with picture_url: {picture_url}")
@@ -46,7 +46,7 @@ def signboard_detection_tool(picture_url: str) -> str:
                 "content": [
                     {
                         "type": "text",
-                        "text": f"帮我框选图片里，火山咖啡招牌完整区域。要完整包含logo和中英文名称的主要区域，并且尽可能的剔除掉不相关的区域，以<bbox>x1 y1 x2 y2</bbox>的形式表示，注意保障logo和文字的完整性。url: {picture_url}",
+                        "text": f"Please select the complete signboard area in the image, including the logo and the English and Chinese name. Try to remove any irrelevant areas as much as possible. Represent the selected area in the form of <bbox>x1 y1 x2 y2</bbox>. Note to ensure the integrity of the logo and text. url: {picture_url}",
                     },
                 ],
             }
@@ -57,11 +57,11 @@ def signboard_detection_tool(picture_url: str) -> str:
 
 def signboard_char_detection_tool(cropped_image_path: str) -> str:
     """
-    图片招牌文字检测工具，用于检测图片中招牌文字，并将检测的结果在图片上画框，返回画上文字框以后的图片路径
+    Signboard character detection tool, input signboard image path, return signboard character detection result, including bbox information
     Args:
-        picture_url (str): 门店招牌图片URL
+        cropped_image_path (str): Signboard image path
     Returns:
-        str: 返回画上文字框以后得图片路径
+        str: Signboard character detection result, including bbox information, format such as: <bbox>x1 y1 x2 y2</bbox>
     """
 
     import base64
@@ -86,7 +86,7 @@ def signboard_char_detection_tool(cropped_image_path: str) -> str:
                     },
                     {
                         "type": "text",
-                        "text": "请框选图片中的每个文字，并用bounding box输出，每个中文、英文字符都单独框选出来，以<bbox>x1 y1 x2 y2</bbox>的形式表示。",
+                        "text": "Please select each character in the image and output it using a bounding box. Each Chinese and English character should be selected separately and represented in the form of <bbox>x1 y1 x2 y2</bbox>.",
                     },
                 ],
             }
@@ -94,27 +94,27 @@ def signboard_char_detection_tool(cropped_image_path: str) -> str:
     )
 
     char_crop_result = response.choices[0].message.content
-    # 针对返回的文字框选结果，对cropped_image_path 图片进行框选并保存
+    # For each character, draw a bounding box on the cropped image and save the result
     try:
         output_path = draw_bboxes_on_image(cropped_image_path, char_crop_result, None)
-        logger.info(f"文字框选图片已保存至: {output_path}")
+        logger.info(f"Signboard character bbox image saved to: {output_path}")
     except Exception as e:
-        logger.error(f"绘制文字框选时出错: {e}")
+        logger.error(f"Error drawing signboard character bboxes: {e}")
 
     return output_path
 
 
 def led_status_analysis_tool(cropped_image_path: str) -> str:
     """
-    LED发光状态分析工具，输入剪裁后的门店招牌图片URL，返回LED发光状态分析结果
+    LED light status analysis tool, input cropped signboard image path, return LED light status analysis result
     Args:
-        cropped_image_url (str): 剪裁后的门店招牌图片URL
+        cropped_image_path (str): Cropped signboard image path
     Returns:
-        str: LED发光状态分析结果，描述LED是否正常发光，有无异常等
+        str: LED light status analysis result, describing whether LED is normal, whether there are any exceptions, etc.
     """
 
     logger.debug(
-        f"Running led_status_analysis_tool with cropped_image_url: {cropped_image_path}"
+        f"Running led_status_analysis_tool with cropped_image_path: {cropped_image_path}"
     )
 
     # cropped_image_path转base64
@@ -136,10 +136,10 @@ def led_status_analysis_tool(cropped_image_path: str) -> str:
                             "detail": "high",
                         },
                     },
-                    # {"type": "text", "text": "你是专业的照片LED发光检测员。请仔细检查框选出来的照片图片，逐步检查招牌中的log、文字，是否存在LED不亮的问题。请仔细检查，输出有问题的部分。"},
+                    # {"type": "text", "text": "You are a professional LED light status analysis agent. Please carefully check the cropped image, step by step, to check whether there are any problems with the LED light status in the signboard. Please check carefully and output the parts with problems."},
                     {
                         "type": "text",
-                        "text": "你是一个专业的招牌图片分析专家，擅长对门店招牌图片进行文字检测和LED发光状态分析。 请根据给定的图片url中的信息，做如下分析： 1. 检测图片中的所有文字和logo 2. 严格判断火、山、咖、啡四中文个字符、VOLC四个英文字符、logo各个元素是否都存在，如果有文字不存在，则直接输出缺失的内容。 3. 如果每个文字、logo都存在，判断每个字是否都正常发光，没有明显暗区。",
+                        "text": "You are a professional signboard image analysis expert, specializing in text detection and LED illumination status analysis of store signboard images. Based on the information in the given image URL, please perform the following analysis: 1. Detect all text and logo in the image. 2. Strictly determine if the four Chinese characters for '火', '山', '咖' and '啡' the four English characters for 'VOLC,' and all elements of the logo are present. If any text is missing, output the missing content directly. 3. If every character and logo is present, determine if each character is normally illuminated without obvious dark areas.",
                     },
                 ],
             }

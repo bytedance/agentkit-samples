@@ -31,10 +31,17 @@ sys.path.append(str(Path(__file__).resolve().parent))
 # parent path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-# 1. Define root_agent with veadk.AgentBuilder (support veadk web)
-yaml_path = "agent.yaml"
-if not os.path.isfile(yaml_path):
-    yaml_path = "store_inspection_assistant/agent.yaml"
+provider = os.getenv("CLOUD_PROVIDER")
+if provider and provider.lower() == "byteplus":
+    # 1. Define root_agent with veadk.AgentBuilder (support veadk web)
+    yaml_path = "agent_en.yaml"
+    if not os.path.isfile(yaml_path):
+        yaml_path = "store_inspection_assistant/agent_en.yaml"
+else:
+    # 1. Define root_agent with veadk.AgentBuilder (support veadk web)
+    yaml_path = "agent.yaml"
+    if not os.path.isfile(yaml_path):
+        yaml_path = "store_inspection_assistant/agent.yaml"
 
 app_name = "store_inspection_assistant"
 agent_builder = AgentBuilder()

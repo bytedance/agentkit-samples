@@ -54,7 +54,10 @@ if __name__ == "__main__":
 
     async def send_request_parallel():
         await send_request(
-            "检查门店招牌的LED发光状态，图片url: https://agentkit-demo.tos-cn-beijing.volces.com/volc_coffe.jpeg。把修改结果上传到tos"
+            "Check the LED light status of the store signboard, the image url is: https://agentkit-demo.tos-cn-beijing.volces.com/volc_coffe.jpeg。upload the result to tos"
+            # "Check the cleanliness of the store sink, the image url is: https://agentkit-demo.tos-cn-beijing.volces.com/20251111-174301.png"
+            # "Check the display of the shelf products, the image url is: https://agentkit-demo.tos-cn-beijing.volces.com/20251111-192602.jpeg"
+            # "Check the worker wearing, the image url is: https://agentkit-demo.tos-cn-beijing.volces.com/20251112-102002.jpeg"
         )
 
     asyncio.run(send_request_parallel())

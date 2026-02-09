@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-图片裁剪工具 - 根据bbox坐标裁剪图片
+Image Cropper Tool - crop image by bbox coordinates
 
-使用方法:
-    python image_cropper.py <图片路径> <bbox坐标>
+Usage:
+    python image_cropper.py <input_image_path> <bbox_coords>
 
-bbox坐标格式: <bbox>163 494 738 864</bbox>
-其中四个数字分别代表: x1 y1 x2 y2 (左上角和右下角坐标)
+bbox coordinates format: <bbox>163 494 738 864</bbox>
+where the four numbers represent: x1 y1 x2 y2 (top-left and bottom-right coordinates)
 """
 
 import logging
@@ -22,25 +22,25 @@ logger = logging.getLogger(__name__)
 
 def parse_bbox(bbox_string):
     """
-    解析bbox坐标字符串
+    Parse bbox coordinates string
 
     Args:
-        bbox_string: 格式为 "<bbox>163 494 738 864</bbox>" 的字符串
+        bbox_string: String in format "<bbox>163 494 738 864</bbox>"
 
     Returns:
-        tuple: (x1, y1, x2, y2) 坐标
+        tuple: (x1, y1, x2, y2) coordinates
     """
-    # 使用正则表达式提取bbox中的数字
+    # Extract coordinates using regex
     pattern = r"<bbox>(\d+)\s+(\d+)\s+(\d+)\s+(\d+)</bbox>"
     match = re.match(pattern, bbox_string.strip())
 
     if not match:
-        # 尝试匹配没有空格的格式
+        # Try matching without spaces
         pattern = r"<bbox>(\d+),?\s*(\d+),?\s*(\d+),?\s*(\d+)</bbox>"
         match = re.match(pattern, bbox_string.strip())
 
     if not match:
-        raise ValueError(f"无法解析bbox格式: {bbox_string}")
+        raise ValueError(f"Cannot parse bbox format: {bbox_string}")
 
     x1, y1, x2, y2 = map(int, match.groups())
 
@@ -55,21 +55,21 @@ def parse_bbox(bbox_string):
 
 def crop_image_by_bbox(image_url: str, bbox_coords: str) -> tuple[str, str]:
     """
-    根据bbox坐标裁剪图片
+    Crop image by bbox coordinates
 
     Args:
-        image_path: 输入图片的url
-        bbox_coords: 格式为"<bbox>X X X X</bbox>" 的字符串
+        image_url: URL of input image
+        bbox_coords: String in format "<bbox>X X X X</bbox>"
 
     Returns:
-        str: 输出剪裁好的本地图片路径
+        str: Output path of cropped image
     """
-    # 如果传入的是字符串，先解析
+    # If bbox_coords is a string, parse it first
     if isinstance(bbox_coords, str):
         x1, y1, x2, y2 = parse_bbox(bbox_coords)
     else:
         x1, y1, x2, y2 = bbox_coords
-    # 将图片image_url下载到本地
+    # Download image from URL
     response = requests.get(image_url)
     image_path = "temp_image.png"
 
@@ -77,39 +77,39 @@ def crop_image_by_bbox(image_url: str, bbox_coords: str) -> tuple[str, str]:
         f.write(response.content)
 
     logger.debug(f"Cropping image: {image_path}, bbox: ({x1}, {y1}, {x2}, {y2})")
-    # 打开图片
+    # Open image
     with Image.open(image_path) as img:
-        # 检查坐标是否在图片范围内
+        # Check if coordinates are within image bounds
         w, h = img.size
 
-        # 确保坐标在图片范围内
+        # Check if coordinates are within image bounds
         x1 = int(x1 * w / 1000)
         y1 = int(y1 * h / 1000)
         x2 = int(x2 * w / 1000)
         y2 = int(y2 * h / 1000)
 
         if x1 >= x2 or y1 >= y2:
-            raise ValueError(f"无效的裁剪区域: ({x1}, {y1}, {x2}, {y2})")
+            raise ValueError(f"Invalid crop area: ({x1}, {y1}, {x2}, {y2})")
 
-        # 裁剪图片
+        # Crop image
         cropped_img = img.crop((x1, y1, x2, y2))
 
-        # 生成输出路径
+        # Generate output path
         # if output_path is None:
         input_path = Path(image_path)
         output_path = (
             input_path.parent / f"{input_path.stem}_cropped{input_path.suffix}"
         )
-        # 保存裁剪后的图片
+        # Save cropped image
         cropped_img.save(output_path)
 
-        print("图片裁剪完成!")
-        print(f"输入图片: {image_path}")
-        print(f"裁剪区域: ({x1}, {y1}, {x2}, {y2})")
-        print(f"输出图片: {output_path}")
-        print(f"裁剪尺寸: {x2 - x1} x {y2 - y1}")
+        print("Image cropping completed!")
+        print(f"Input image: {image_path}")
+        print(f"Crop area: ({x1}, {y1}, {x2}, {y2})")
+        print(f"Output image: {output_path}")
+        print(f"Crop size: {x2 - x1} x {y2 - y1}")
 
-        # 上传到tos
+        # Upload cropped image to TOS
         cropped_url = upload_file_to_tos(output_path)
         logger.info(f"cropped image tos url {cropped_url}")
 
@@ -117,27 +117,27 @@ def crop_image_by_bbox(image_url: str, bbox_coords: str) -> tuple[str, str]:
 
 
 def main():
-    """主函数 - 处理命令行参数"""
+    """Main function - handle command line arguments"""
     if len(sys.argv) < 3:
-        print("使用方法: python image_cropper.py <图片路径> <bbox坐标>")
-        print("bbox坐标格式: <bbox>163 494 738 864</bbox>")
+        print("Usage: python image_cropper.py <image_path> <bbox_coords>")
+        print("bbox coordinates format: <bbox>163 494 738 864</bbox>")
         sys.exit(1)
 
     image_path = sys.argv[1]
     bbox_string = sys.argv[2]
 
-    # 验证输入文件是否存在
+    # Check if image file exists
     if not Path(image_path).exists():
-        print(f"错误: 图片文件不存在: {image_path}")
+        print(f"Error: Image file does not exist: {image_path}")
         sys.exit(1)
 
     try:
-        # 执行裁剪
+        # Execute cropping
         output_path = crop_image_by_bbox(image_path, bbox_string)
-        print(f"\n裁剪成功! 输出文件: {output_path}")
+        print(f"\nImage cropping completed successfully! Output file: {output_path}")
 
     except Exception as e:
-        print(f"错误: {e}")
+        print(f"Error: {e}")
         sys.exit(1)
 
 
