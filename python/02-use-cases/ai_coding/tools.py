@@ -7,10 +7,10 @@ from veadk.auth.veauth.utils import get_credential_from_vefaas_iam
 
 provider = os.getenv("CLOUD_PROVIDER", "volcengine")
 if provider and provider.lower() == "byteplus":
-    region = os.getenv("REGION", "cn-hongkong")
+    region = os.getenv("DATABASE_TOS_REGION", "cn-hongkong")
     sld = "bytepluses"
 else:
-    region = os.getenv("REGION", "cn-beijing")
+    region = os.getenv("DATABASE_TOS_REGION", "cn-beijing")
     sld = "volces"
 
 bucket_name = os.getenv("DATABASE_TOS_BUCKET")
