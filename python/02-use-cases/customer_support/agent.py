@@ -70,11 +70,11 @@ if provider and provider.lower() == "byteplus":
     AFTER_SALE_PROMPT = AFTER_SALE_PROMPT_EN
     SHOPPING_GUIDE_PROMPT = SHOPPING_GUIDE_PROMPT_EN
     ROOT_AGENT_INSTRUCTION = ROOT_AGENT_INSTRUCTION_EN
-    AFTER_SALE_DESCRIPTION = "After-Sales Agent: handles after-sales inquiries such as information lookup and repair requests."
-    SHOPPING_GUIDE_DESCRIPTION = "Shopping Guide Agent: helps customers choose suitable products and guides them through the purchase flow."
+    AFTER_SALE_DESCRIPTION = "After-Sales Agent: handles after-sales inquiries such as information lookup and repair requests. Please respond in English."
+    SHOPPING_GUIDE_DESCRIPTION = "Shopping Guide Agent: helps customers choose suitable products and guides them through the purchase flow. Please respond in English."
     ROOT_AGENT_DESCRIPTION = (
         "Customer Support Agent: 1) guides customers on product selection and purchase; "
-        "2) handles after-sales issues such as information lookup and repair requests."
+        "2) handles after-sales issues such as information lookup and repair requests. Please respond in English."
     )
     knowledge_directory = "pre_build/knowledge_en"
     knowledge_probe = "Return & Exchange Policy"
