@@ -154,8 +154,13 @@ export GAODE_MCP_API_KEY=<Your Gaode MCP API Key>
 # Volcano VikingDB Knowledge Base Name (required)
 export DATABASE_VIKING_COLLECTION=<Your VikingDB Knowledge Collection Name>
 
-# Volcano VikingDB Memory Base Name (required)
-export DATABASE_VIKINGMEM_COLLECTION=<Your VikingDB Memory Collection Name>
+# Long-term Memory Related Environment Variables (supports two backends by default: VikingDB and Mem0, users can choose either one as needed)
+## if choosing VikingDB as the long-term memory backend, configure the following envs
+export DATABASE_VIKINGMEM_COLLECTION=<your_vikingdb_memory_collection_name>
+export DATABASE_VIKINGMEM_MEMORY_TYPE=<your_vikingdb_memory_type>
+## if choosing Mem0 as the long-term memory backend, configure the following envs
+export DATABASE_MEM0_BASE_URL=<your_mem0_base_url>
+export DATABASE_MEM0_API_KEY=<your_mem0_api_key>
 
 # TOS Bucket Name (required, used for knowledge base initialization)
 export DATABASE_TOS_BUCKET=<Your Tos Bucket Name>

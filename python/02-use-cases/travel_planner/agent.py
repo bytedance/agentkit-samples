@@ -52,7 +52,9 @@ else:
 tos_bucket_name = os.getenv("DATABASE_TOS_BUCKET", "")
 tos_region = os.getenv("DATABASE_TOS_REGION", "")
 if tos_bucket_name == "" or tos_region == "":
-    raise ValueError("DATABASE_TOS_BUCKET environment variable is not set")
+    raise ValueError(
+        "DATABASE_TOS_BUCKET or DATABASE_TOS_REGION environment variable is not set"
+    )
 # 从预构建目录加载知识库
 try:
     success = knowledge.add_from_directory(
@@ -66,18 +68,22 @@ try:
 except Exception as e:
     logger.error(f"Failed to load knowledgebase: {e}")
 
-# 3. 配置长期记忆： Viking 向量数据库
-memory_collection_name = os.getenv("DATABASE_VIKINGMEM_COLLECTION", "")
-if memory_collection_name != "":
-    # 使用用户指定的长期记忆库
-    long_term_memory = LongTermMemory(
-        backend="viking",
-        top_k=3,
-        index=memory_collection_name,
-    )
+# 3. 配置长期记忆: 如果配置了Mem0，就使用Mem0，否则使用Viking，都不配置，默认创建一个Viking记忆库
+use_mem0 = os.getenv("DATABASE_MEM0_BASE_URL") and os.getenv("DATABASE_MEM0_API_KEY")
+if use_mem0:
+    long_term_memory = LongTermMemory(backend="mem0", top_k=3, app_name=app_name)
 else:
-    raise ValueError("DATABASE_VIKINGMEM_COLLECTION environment variable is not set")
-
+    use_viking_mem = os.getenv("DATABASE_VIKINGMEM_COLLECTION") and os.getenv(
+        "DATABASE_VIKINGMEM_MEMORY_TYPE"
+    )
+    if use_viking_mem:
+        long_term_memory = LongTermMemory(
+            backend="viking", index=os.getenv("DATABASE_VIKINGMEM_COLLECTION")
+        )
+    else:
+        raise ValueError(
+            "DATABASE_VIKINGMEM_COLLECTION or DATABASE_MEM0_BASE_URL variable is not set"
+        )
 
 # 4. 配置 Gaode MCP Server
 gaode_mcp_api_key = os.getenv("GAODE_MCP_API_KEY", "")
@@ -97,7 +103,7 @@ amap_tool = MCPToolset(
 # 5. 配置智能体
 travel_planner_prompt = """
     你是一个基于高级规划与反应（Plan-ReAct）架构的智能体，能够动态规划和执行复杂任务，灵活调用工具，并根据环境反馈调整策略。
-    你的任务是根据用户的需求，制定详细的旅行计划，推荐景点、美食、住宿，并提供实时的交通和天气信息。
+    你的任务是根据用户的需求，制定详细的旅���计划，推荐景点、美食、住宿，并提供实时的交通和天气信息。
 
     ## 工具使用规范与优先级
     你拥有以下工具，请按此策略调用：
@@ -151,7 +157,7 @@ travel_planner_prompt = """
         评分：4.8/5（718条点评）
         价格：约300-450元/晚（双人间）
         优势：距冰雪大世界近，地铁2号线世茂大道站旁，免费早餐
-        预订链接：携程携程（https://www.ctrip.com/） / 去哪儿（https://www.qunar.com/）搜索"汉庭酒店哈尔滨松北万象汇冰雪大世界店"
+        预订链接：携程携程（https://www.ctrip.com/） / 去哪儿（https://www.qunar.com/）搜索"汉庭酒店哈尔滨���北万象汇冰雪大世界店"
 
     ```
     7. 在对话结束时，询问用户是否保存新的偏好到长期记忆。如果用户同意，保存新的偏好到长期记忆。
