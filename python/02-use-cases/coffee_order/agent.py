@@ -141,7 +141,7 @@ prompt = """
 ```
 ### 支付链接
 
-<a href="$payment_url" target="_blank" rel="noopener noreferrer">点击支付 </a>
+<iframe src="$payment_url" width="100%" height="400px" frameborder="0"></iframe>
 
 ```
 - 当输出为订单确认时，商品信息和支付链接需要按照以下格式输出：
@@ -155,7 +155,7 @@ prompt = """
 
 ### 支付链接
 
-<a href="$payment_url" target="_blank" rel="noopener noreferrer">点击支付 </a>
+<iframe src="$payment_url" width="100%" height="400px" frameborder="0"></iframe>
 
 ```
 

@@ -1,4 +1,4 @@
-veadk-python==0.5.15
+veadk-python==0.5.20
 google-adk==1.21.0
-agentkit-sdk-python==0.4.3
+agentkit-sdk-python==0.5.1
 tzlocal==5.3.1

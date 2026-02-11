@@ -58,42 +58,34 @@ AgentKit 运行时
 
 ### 前置准备
 
-**Python版本：**
+**1. Python版本：**
 
 - Python 3.12 或更高版本
 
-**1. 开通火山方舟模型服务：**
+**2. 开通火山方舟模型服务：**
 
 - 访问 [火山方舟控制台](https://exp.volcengine.com/ark?mode=chat)
 - 开通模型服务
 
-**2. 获取火山引擎访问凭证：**
+**3. 获取火山引擎访问凭证：**
 
 - 参考 [用户指南](https://www.volcengine.com/docs/6291/65568?lang=zh) 获取 AK/SK
 
-**3. 获取高德 MCP 服务访问凭证：**
+**4. 获取高德 MCP 服务访问凭证：**
 
 - 注册并登录 [高德开放平台](https://lbs.amap.com/)
 - 参考 [创建应用并获取 Key](https://amap.apifox.cn/doc-537183) 获取高德MCP服务的 Key，在后续环境变量 `GAODE_MCP_API_KEY`中填入该 Key。
 
 > 注意：绑定的服务为“web服务API”
 
-**4. 获取 VikingDB 知识库名称：**
+**5. 创建或导入知识库：**
 
-> 您只需创建一个知识库，在环境变量 `DATABASE_VIKING_COLLECTION`中填入该知识库名称，智能体会自动将知识库文档导入至您的知识库中。
-> 知识库文档位于knowledgebase_docs/目录下。
+- 参考 [AgentKit 知识库指南](https://www.volcengine.com/docs/86681/1865671) 创建或导入知识库
 
-- 访问 [VikingDB 知识库控制台](https://console.volcengine.com/vikingdb/knowledge)
-- 如需新建知识库，参考[创建指南](https://www.volcengine.com/docs/84313/1254463) 完成知识库创建，获取知识库名称
-- 如需复用已有知识库，参考[查看指南](https://www.volcengine.com/docs/84313/1254468) 获取知识库名称
+**6. 创建或导入记忆库：**
 
-**5. 获取 VikingDB 记忆库名称：**
-
-> 您只需创建一个记忆库，在环境变量 `DATABASE_VIKINGMEM_COLLECTION`中填入该记忆库名称，记忆数据由智能体自动写入。
-
-- 访问 [VikingDB 记忆库控制台](https://console.volcengine.com/vikingdb/memory)
-- 如需新建记忆库，参考[创建指南](https://www.volcengine.com/docs/84313/1817506) 完成记忆库创建，获取记忆库名称
-- 如需复用已有记忆库，参考[查看指南](https://www.volcengine.com/docs/84313/1827249) 获取记忆库名称
+- 参考 [AgentKit 创建记忆库](https://www.volcengine.com/docs/86681/1844843) 新建记忆库
+- 参考 [AgentKit 导入记忆库](https://www.volcengine.com/docs/86681/2205109) 导入已有记忆库
 
 ### 依赖安装
 
@@ -154,8 +146,13 @@ export GAODE_MCP_API_KEY=<Your Gaode MCP API Key>
 # 火山VikingDB知识库名称（必需）
 export DATABASE_VIKING_COLLECTION=<Your VikingDB Knowledge Collection Name>
 
-# 火山VikingDB记忆库名称（必需）
-export DATABASE_VIKINGMEM_COLLECTION=<Your VikingDB Memory Collection Name>
+# 长期记忆相关环境变量（默认支持两种后端：VikingDB和Mem0，用户根据需要任选一种即可）
+## 选择VikingDB作为长期记忆后端时需要配置以下环境变量
+export DATABASE_VIKINGMEM_COLLECTION=<your_vikingdb_memory_collection_name>
+export DATABASE_VIKINGMEM_MEMORY_TYPE=<your_vikingdb_memory_type>
+## 选择Mem0作为长期记忆后端时需要配置以下环境变量
+export DATABASE_MEM0_BASE_URL=<your_mem0_base_url>
+export DATABASE_MEM0_API_KEY=<your_mem0_api_key>
 
 # TOS桶名称（必需，知识库初始化时使用）
 export DATABASE_TOS_BUCKET=<Your Tos Bucket Name>

@@ -47,7 +47,7 @@ agent = Agent(
     * After downloading, execute code through run_code to avoid installation checks each time.
     * You can use the web_search tool to search for relevant company operational data.
     * If dependency libraries are missing, install them for the sandbox using Python code.
-    """,
+    Note: If a user asks a question in a certain language, you should respond in the same language as well.""",
     tools=[get_current_time, run_code, web_search],
     model_name=model_name,
 )
