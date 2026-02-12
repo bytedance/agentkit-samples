@@ -27,6 +27,7 @@ python3 scripts/skills_download.py <download_path> [--skills <skill_name1> <skil
 - Environment variables:
   - `VOLCENGINE_ACCESS_KEY`
   - `VOLCENGINE_SECRET_KEY`
+  - `SKILL_SPACE_ID` (required, comma-separated list of skill space IDs)
   - `AGENTKIT_TOOL_REGION` (optional, defaults to cn-beijing)
 
 ## Example
