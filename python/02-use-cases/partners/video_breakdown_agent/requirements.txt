@@ -1,0 +1,34 @@
+# pip 兼容依赖列表（推荐使用 pyproject.toml + uv）
+# pip install -r requirements.txt
+
+# AgentKit 核心
+veadk-python==0.5.1
+google-adk==1.19.0
+agentkit-sdk-python==0.2.2
+
+# HTTP 客户端
+httpx>=0.26.0
+
+# TOS 对象存储（视频上传）
+tos>=2.8.7
+
+# JSON 修复（format hook）
+json-repair>=0.54.1
+
+# 配置管理
+python-dotenv>=1.0.0
+
+# FFmpeg 二进制（随 Python 包分发，无需系统安装 FFmpeg）
+imageio-ffmpeg>=0.5.1
+
+# 生产模式服务器
+uvicorn>=0.34.0
+
+# Web 框架（A2A + MCP）
+fastapi>=0.115.0
+
+# MCP Server
+fastmcp>=2.0.0
+
+# 异步 HTTP
+aiohttp>=3.11.0

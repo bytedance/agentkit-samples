@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  # 沙箱 MySQL
+  mysql_sandbox:
+    image: mysql:8.0
+    container_name: breakdown_mysql_sandbox
+    environment:
+      MYSQL_ROOT_PASSWORD: sandbox_root_pass
+      MYSQL_DATABASE: video_breakdown_sandbox
+      MYSQL_USER: sandbox_user
+      MYSQL_PASSWORD: sandbox_pass
+    ports:
+      - "3307:3306"  # 避免与生产 MySQL 冲突
+    volumes:
+      - mysql_sandbox_data:/var/lib/mysql
+    networks:
+      - breakdown_sandbox
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 沙箱 Redis
+  redis_sandbox:
+    image: redis:7-alpine
+    container_name: breakdown_redis_sandbox
+    ports:
+      - "6380:6379"  # 避免与生产 Redis 冲突
+    networks:
+      - breakdown_sandbox
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 沙箱 video-breakdown API
+  breakdown_api_sandbox:
+    build:
+      context: ../../../video-breakdown-master-449a45e1b0108b8d8e33c3d7a69eb7ab00c3dd4f
+      dockerfile: Dockerfile
+    container_name: breakdown_api_sandbox
+    ports:
+      - "7115:7114"  # 沙箱 API 端口
+    environment:
+      - DATABASE_URL=mysql+aiomysql://sandbox_user:sandbox_pass@mysql_sandbox:3306/video_breakdown_sandbox
+      - REDIS_HOST=redis_sandbox
+      - REDIS_PORT=6379
+      - PORT=7114
+      - WORKER_COUNT=4
+      - TOS_OUTPUT_BUCKET=${SANDBOX_TOS_BUCKET}
+      - VOLC_ASR_APPID=${VOLC_ASR_APPID}
+      - VOLC_ASR_TOKEN=${VOLC_ASR_TOKEN}
+      - ONEROUTER_API_KEY=${ONEROUTER_API_KEY}
+    depends_on:
+      mysql_sandbox:
+        condition: service_healthy
+      redis_sandbox:
+        condition: service_healthy
+    networks:
+      - breakdown_sandbox
+    volumes:
+      - breakdown_sandbox_data:/app/data
+
+  # 沙箱 Celery Worker
+  breakdown_worker_sandbox:
+    build:
+      context: ../../../video-breakdown-master-449a45e1b0108b8d8e33c3d7a69eb7ab00c3dd4f
+      dockerfile: Dockerfile
+    container_name: breakdown_worker_sandbox
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=4
+    environment:
+      - DATABASE_URL=mysql+aiomysql://sandbox_user:sandbox_pass@mysql_sandbox:3306/video_breakdown_sandbox
+      - REDIS_HOST=redis_sandbox
+      - REDIS_PORT=6379
+      - TOS_OUTPUT_BUCKET=${SANDBOX_TOS_BUCKET}
+      - VOLC_ASR_APPID=${VOLC_ASR_APPID}
+      - VOLC_ASR_TOKEN=${VOLC_ASR_TOKEN}
+      - ONEROUTER_API_KEY=${ONEROUTER_API_KEY}
+    depends_on:
+      mysql_sandbox:
+        condition: service_healthy
+      redis_sandbox:
+        condition: service_healthy
+      breakdown_api_sandbox:
+        condition: service_started
+    networks:
+      - breakdown_sandbox
+    volumes:
+      - breakdown_sandbox_data:/app/data
+
+networks:
+  breakdown_sandbox:
+    driver: bridge
+
+volumes:
+  mysql_sandbox_data:
+  breakdown_sandbox_data:
