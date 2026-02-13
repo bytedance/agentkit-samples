@@ -1,0 +1,11 @@
+[project]
+name = "tutorial-2-feishu-idp"
+version = "0.1.0"
+description = "实验2: 飞书 IdP 联合登录"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "veadk-python @ https://force-workshop.tos-cn-beijing.volces.com/veadk_python-0.2.22.tar.gz",
+    "volcengine-python-sdk>=4.0.36",
+    "agentkit-sdk-python>=0.1.11",
+]
