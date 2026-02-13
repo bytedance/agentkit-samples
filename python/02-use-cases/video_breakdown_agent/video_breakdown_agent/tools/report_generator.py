@@ -109,7 +109,8 @@ def _resolve_report_inputs(
     if not hook:
         state_hook_md = state.get("hook_analysis_markdown")
         if isinstance(state_hook_md, str) and state_hook_md.strip():
-            hook = _fallback_hook_from_markdown(state_hook_md)
+            # 不强依赖解析分数字段：报告阶段直接消费 Markdown，避免因解析失败回填 0 分。
+            hook = {"_raw_markdown": state_hook_md.strip()}
 
     # BGM 工具可选落盘，若存在则补齐
     state_bgm = state.get("bgm_analysis_result")
@@ -282,6 +283,11 @@ def _build_hook_section(hook_analysis: dict) -> str:
             "## 前三秒钩子分析\n\n"
             "钩子分析部分数据不完整，已基于可用分镜数据生成主报告。"
         )
+
+    raw_md = hook_analysis.get("_raw_markdown")
+    if isinstance(raw_md, str) and raw_md.strip():
+        # 直接嵌入 hook_format_agent 的 Markdown 输出，保证稳定可读。
+        return raw_md.strip()
 
     overall = hook_analysis.get("overall_score", 0)
     hook_type = hook_analysis.get("hook_type", "N/A")

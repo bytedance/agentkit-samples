@@ -8,6 +8,8 @@ VeADK 约束：有 sub_agents 的 Agent 不支持直接挂载 tools，
 import logging
 import os
 
+from google.adk.agents.callback_context import CallbackContext
+from google.adk.tools import ToolContext
 from veadk import Agent
 from veadk.agents.sequential_agent import SequentialAgent
 from veadk.memory.short_term_memory import ShortTermMemory
@@ -118,12 +120,26 @@ def create_breakdown_agent() -> Agent:
 
 
 def create_hook_analyzer_agent() -> SequentialAgent:
+    def _prime_hook_segments_state(callback_context: CallbackContext):
+        inv = getattr(callback_context, "_invocation_context", None)
+        if not inv:
+            return None
+        state = getattr(callback_context, "state", None)
+        if isinstance(state, dict) and state.get("hook_segments_context"):
+            return None
+        tool_ctx = ToolContext(inv)
+        context = analyze_hook_segments(tool_ctx)
+        if isinstance(state, dict):
+            state["hook_segments_context"] = context
+        return None
+
     hook_analysis_agent = Agent(
         name="hook_analysis_agent",
         model_name=os.getenv("MODEL_VISION_NAME", "doubao-seed-1-6-vision-250815"),
         description="对视频前三秒分镜进行深度钩子分析，具备视觉分析能力，可直接观察关键帧图片进行专业评估",
         instruction=HOOK_ANALYZER_INSTRUCTION,
-        tools=[analyze_hook_segments],
+        tools=[],
+        before_agent_callback=_prime_hook_segments_state,
         model_extra_config={
             "extra_body": {
                 "thinking": {

@@ -316,38 +316,12 @@ def soft_fix_hook_output(
     if _is_tool_call_turn(model_response_event, text):
         return llm_response
 
+    # 非破坏性策略：不再依赖 LLM 输出 JSON 做硬解析（易出现截断/兜底 0 分）。
+    # 仅做“泄露剥离 + 存档”，并让 LLM 的 Markdown 原样对用户可见。
+    sanitized = _safe_text(text, max_len=20000)
+    llm_response.content.parts[0].text = sanitized
+
     state = getattr(callback_context, "state", None)
-    candidate = _extract_json_candidate(text)
-
-    parsed: Any = None
-    try:
-        parsed = json.loads(candidate)
-    except json.JSONDecodeError:
-        try:
-            parsed = json_repair.loads(candidate)
-        except Exception:
-            parsed = None
-
-    if isinstance(parsed, list):
-        parsed = parsed[0] if parsed else {}
-
-    if isinstance(parsed, dict) and not _looks_like_tool_envelope(parsed):
-        normalized = _normalize_output(parsed)
-        logger.info(
-            "[soft_fix_hook_output] normalized by json path agent=%s", agent_name
-        )
-    else:
-        normalized = _fallback_struct_from_text(text)
-        logger.warning(
-            "[soft_fix_hook_output] fallback to text extraction agent=%s", agent_name
-        )
-
-    markdown_summary = _build_hook_markdown_summary(normalized)
-    llm_response.content.parts[0].text = markdown_summary
-
     if isinstance(state, dict):
-        state["hook_analysis_struct"] = normalized
-        state["hook_analysis"] = normalized
-        state["hook_analysis_markdown"] = markdown_summary
-
+        state["hook_analysis_markdown"] = sanitized
     return llm_response
