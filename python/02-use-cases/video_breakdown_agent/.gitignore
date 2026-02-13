@@ -1,0 +1,37 @@
+# 密钥和运行时配置（绝不可提交）
+# 注意：避免把任何 .env* 模板误提交（其中经常包含真实密钥/Token）
+.env
+.env.*
+.env*
+
+# 媒体缓存（视频处理临时文件）
+.media-cache/
+.media-uploads/
+.media-downloads/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# VeADK / ADK
+.adk/
+.agentkit/
+.veadk-ignore
+uv.lock
+.uv-cache/
+
+# 虚拟环境
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+.DS_Store
+
+# 日志
+*.log
