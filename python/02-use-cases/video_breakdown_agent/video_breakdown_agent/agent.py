@@ -118,7 +118,6 @@ def create_hook_analyzer_agent() -> SequentialAgent:
     hook_analysis_agent = Agent(
         name="hook_analysis_agent",
         model_name=os.getenv("MODEL_VISION_NAME", "doubao-seed-1-6-vision-250815"),
-        enable_responses=True,  # 隐藏工具调用详情，仅展示最终文本响应
         description="对视频前三秒分镜进行深度钩子分析，具备视觉分析能力，可直接观察关键帧图片进行专业评估",
         instruction=HOOK_ANALYZER_INSTRUCTION,
         tools=[analyze_hook_segments],

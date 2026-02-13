@@ -119,10 +119,20 @@ def _is_tool_call_turn(model_response_event: Optional[Event], text: str) -> bool
 
 
 def _extract_json_candidate(text: str) -> str:
+    # 防御性剥离 PLHD 标签和工具调用 envelope
+    text = re.sub(r"<\[PLHD[^\]]*\]>", "", text)
+    text = re.sub(
+        r'\[\s*\{\s*"name"\s*:\s*"[^"]*"\s*,\s*"parameters"\s*:\s*\{[^}]*\}\s*\}\s*\]',
+        "",
+        text,
+        flags=re.DOTALL,
+    )
+    text = text.strip()
+
     fenced = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text, flags=re.IGNORECASE)
     if fenced and fenced.group(1).strip():
         return fenced.group(1).strip()
-    return text.strip()
+    return text
 
 
 def _coerce_to_list(value: Any) -> list[str]:
