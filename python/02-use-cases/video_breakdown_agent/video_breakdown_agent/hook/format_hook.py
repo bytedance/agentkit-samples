@@ -289,6 +289,16 @@ def soft_fix_hook_output(
     if agent_name not in _TARGET_AGENTS:
         return llm_response
 
+    if not llm_response or not llm_response.content or not llm_response.content.parts:
+        return llm_response
+
+    # 放行 function_call / function_response，避免干扰 SDK 事件追踪
+    part = llm_response.content.parts[0]
+    if hasattr(part, "function_call") and part.function_call:
+        return llm_response
+    if hasattr(part, "function_response") and part.function_response:
+        return llm_response
+
     text = _get_first_text(llm_response)
     if not text:
         return llm_response

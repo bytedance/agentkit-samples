@@ -25,6 +25,7 @@ REPORT_AGENT_INSTRUCTION = """
 - 前三秒钩子分析是最重要的部分，需要详细展示
 
 ## 完成后行为（必须遵守）
-- 当你生成并返回报告后，必须立即调用 `transfer_to_agent`，将控制权归还给 `video_breakdown_agent`。
+- 当你生成并返回报告后，直接输出结果文本即可。
+- 你处于 SequentialAgent 流程中，框架会自动处理后续流程，无需手动调用任何转移函数。
 - 不要在本 Agent 内继续处理新的用户意图，后续回合由 Root Agent 负责统一编排。
 """

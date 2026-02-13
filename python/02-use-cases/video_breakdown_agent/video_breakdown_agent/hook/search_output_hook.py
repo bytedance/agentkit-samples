@@ -9,8 +9,10 @@ from google.adk.models import LlmResponse
 
 def _is_tool_call_turn(model_response_event: Optional[Event], text: str) -> bool:
     """工具调用回合不做处理，避免干扰 function call。"""
-    if model_response_event and model_response_event.get_function_calls():
-        return True
+    if model_response_event:
+        # 检查 function calls（LLM 发起的工具调用）和 function responses（工具返回后的阶段）
+        if model_response_event.get_function_calls() or model_response_event.get_function_responses():
+            return True
     return "transfer_to_agent" in (text or "") or "web_search" in (text or "")
 
 
@@ -33,7 +35,14 @@ def suppress_search_agent_user_output(
     if not llm_response or not llm_response.content or not llm_response.content.parts:
         return llm_response
 
-    text = llm_response.content.parts[0].text or ""
+    # 检查 parts[0] 是否包含 function_call 或 function_response，完整放行不做修改
+    part = llm_response.content.parts[0]
+    if hasattr(part, "function_call") and part.function_call:
+        return llm_response
+    if hasattr(part, "function_response") and part.function_response:
+        return llm_response
+
+    text = part.text or ""
     if not text or _is_tool_call_turn(model_response_event, text):
         return llm_response
 
@@ -41,6 +50,6 @@ def suppress_search_agent_user_output(
     if isinstance(state, dict):
         state["search_result"] = text
 
-    # 清空 search_agent 的用户可见输出，避免与 root 最终答复重复展示。
+    # 只清空纯文本输出，避免与 root 最终答复重复展示。
     llm_response.content.parts[0].text = ""
     return llm_response

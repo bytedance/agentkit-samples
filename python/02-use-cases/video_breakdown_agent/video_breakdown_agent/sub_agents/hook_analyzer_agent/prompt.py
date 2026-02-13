@@ -107,9 +107,9 @@ HOOK_ANALYZER_INSTRUCTION = """
 
 ## 完成后行为（必须遵守）
 
-- 当你完成钩子分析并输出结果后，必须立即调用 `transfer_to_agent`，将控制权归还给 `video_breakdown_agent`。
-- 不要自行处理“生成报告/完整分析/继续编排”等请求，这些请求应交回 Root Agent 统一决策。
-- 如果用户在你这里继续追问报告相关内容，先归还 Root，再由 Root 决定是否调用 `report_generator_agent`。
+- 当你完成钩子分析并输出结果后，直接输出结果文本即可。
+- 你处于 SequentialAgent 流程中，框架会自动将控制权传递给下一个步骤，无需手动调用任何转移函数。
+- 不要自行处理"生成报告/完整分析/继续编排"等请求，这些将由后续流程或 Root Agent 统一决策。
 """
 
 HOOK_FORMAT_INSTRUCTION = """
@@ -122,5 +122,5 @@ HOOK_FORMAT_INSTRUCTION = """
 4) strengths/weaknesses/suggestions 必须是字符串数组；无内容时返回空数组。
 5) 如果输入中夹杂工具日志、占位片段或非结构化文本，先清洗再结构化。
 
-完成输出后，必须立即调用 `transfer_to_agent`，将控制权归还给 `video_breakdown_agent`。
+完成输出后，直接输出结果即可。你处于 SequentialAgent 流程中，框架会自动将控制权传递给下一个步骤，无需手动调用任何转移函数。
 """

@@ -165,6 +165,14 @@ def guard_final_user_output(
     if _is_tool_call_turn(model_response_event, llm_response):
         return llm_response
 
+    # 放行 function_call / function_response，避免干扰 SDK 事件追踪
+    if llm_response and llm_response.content and llm_response.content.parts:
+        part = llm_response.content.parts[0]
+        if hasattr(part, "function_call") and part.function_call:
+            return llm_response
+        if hasattr(part, "function_response") and part.function_response:
+            return llm_response
+
     text = _get_first_text(llm_response)
     if not text:
         return llm_response
