@@ -22,6 +22,9 @@ from .sub_agents.hook_analyzer_agent.prompt import (
     HOOK_ANALYZER_INSTRUCTION,
     HOOK_FORMAT_INSTRUCTION,
 )
+from .sub_agents.hook_analyzer_agent.suppress_tool_output import (
+    suppress_hook_tool_output,
+)
 from .sub_agents.report_generator_agent.prompt import REPORT_AGENT_INSTRUCTION
 from .sub_agents.report_generator_agent.direct_output_callback import (
     direct_output_callback,
@@ -121,6 +124,7 @@ def create_hook_analyzer_agent() -> SequentialAgent:
         description="对视频前三秒分镜进行深度钩子分析，具备视觉分析能力，可直接观察关键帧图片进行专业评估",
         instruction=HOOK_ANALYZER_INSTRUCTION,
         tools=[analyze_hook_segments],
+        after_tool_callback=[suppress_hook_tool_output],
         model_extra_config={
             "extra_body": {
                 "thinking": {
