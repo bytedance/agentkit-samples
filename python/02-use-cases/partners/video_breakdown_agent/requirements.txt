@@ -2,8 +2,8 @@
 # pip install -r requirements.txt
 
 # AgentKit 核心
-veadk-python==0.5.20
-google-adk==1.21.0
+veadk-python==0.5.1
+google-adk==1.19.0
 agentkit-sdk-python==0.5.1
 
 # HTTP 客户端
