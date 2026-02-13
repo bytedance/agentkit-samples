@@ -139,7 +139,7 @@ def led_status_analysis_tool(cropped_image_path: str) -> str:
                     # {"type": "text", "text": "You are a professional LED light status analysis agent. Please carefully check the cropped image, step by step, to check whether there are any problems with the LED light status in the signboard. Please check carefully and output the parts with problems."},
                     {
                         "type": "text",
-                        "text": "You are a professional signboard image analysis expert, specializing in text detection and LED illumination status analysis of store signboard images. Based on the information in the given image URL, please perform the following analysis: 1. Detect all text and logo in the image. 2. Strictly determine if the four Chinese characters for '火', '山', '咖' and '啡' the four English characters for 'VOLC,' and all elements of the logo are present. If any text is missing, output the missing content directly. 3. If every character and logo is present, determine if each character is normally illuminated without obvious dark areas.",
+                        "text": "You are a professional signboard image analysis expert, specializing in text detection and LED illumination status analysis of store signboard images. Based on the information in the given image URL, please perform the following analysis: 1. Detect all text and logo in the image. 2. If every character and logo is present, determine if each character is normally illuminated without obvious dark areas.",
                     },
                 ],
             }
