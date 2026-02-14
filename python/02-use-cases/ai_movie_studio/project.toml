@@ -1,0 +1,47 @@
+[project]
+name = "ai-movie-studio"
+name_en = "AI Movie Studio"
+description = "An enterprise-grade multi-agent movie production system powered by AgentKit."
+details = "AI Movie Studio is a virtual production team consisting of a Producer, Screenwriter, Director, and Critic. It automates the entire workflow from creative brainstorming to video generation and quality assurance, helping users create high-quality one-shot videos with ease."
+version = "0.1.0"
+authors = [
+    { name = "AgentKit Team" }
+]
+license = "Apache-2.0"
+readme = "README.md"
+
+[tool.agentkit]
+type = "application"
+framework = "veadk"
+language = "python"
+
+[tool.agentkit.tags]
+industry = "通用"
+from = "火山引擎"
+tech = ["长期记忆", "知识库", "多模态", "Skill Sandbox"]
+
+[tool.agentkit.components]
+knowledgebase = "VikingKnowledge"
+memory = "VikingMem"
+tools = ["Skills"]
+infra = "TOS"
+
+[[tool.agentkit.envs]]
+name = "Volcengine Access Key"
+key = "VOLCENGINE_ACCESS_KEY"
+description = "Required for calling Doubao models and other Volcengine services."
+
+[[tool.agentkit.envs]]
+name = "Volcengine Secret Key"
+key = "VOLCENGINE_SECRET_KEY"
+description = "Required for calling Doubao models and other Volcengine services."
+
+[[tool.agentkit.envs]]
+name = "AgentKit Tool ID"
+key = "AGENTKIT_TOOL_ID"
+description = "Required for Skill Sandbox execution."
+
+[[tool.agentkit.envs]]
+name = "Skill Space ID"
+key = "SKILL_SPACE_ID"
+description = "Required for Skill Sandbox execution."
