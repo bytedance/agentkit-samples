@@ -1,0 +1,6 @@
+google-adk
+agentkit-sdk-python
+veadk-python
+requests
+uvicorn
+cozeloop
