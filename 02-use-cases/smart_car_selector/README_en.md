@@ -9,7 +9,7 @@ The main design is **Single Agent + Tools/Skills**: keep the system simple to de
 - Real user journey: Recommend → Specs → Reputation → Finance → Test Drive → Poster
 - Verifiable outputs: downloadable Excel sheets with reusable formulas
 - Fact-check first: use `web_search` for specs/policy/reputation when needed
-- Delivery execution: `mcp_router` for POI / route / navigation
+- Delivery execution (optional): if `mcp_router` is enabled, use it for POI / route / navigation; otherwise provide store-search guidance and an actionable checklist.
 - Emotional value: `image_generate` for shareable posters and copy
 - Fun fallback: dice-based “mystic pick” when users can’t decide
 
