@@ -197,4 +197,3 @@ FAQ list to be added.
 ## License
 
 This project is open-sourced. See the LICENSE file in the repository root for details.
-
