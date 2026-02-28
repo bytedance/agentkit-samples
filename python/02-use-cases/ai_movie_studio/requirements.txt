@@ -1,0 +1,15 @@
+cozeloop
+google-adk==1.23.0
+lark-oapi
+numpy
+opencv-python-headless
+opentelemetry-api
+opentelemetry-exporter-otlp
+opentelemetry-sdk
+Pillow
+requests
+starlette
+tenacity
+tos
+uvicorn
+veadk-python
