@@ -6,6 +6,7 @@
 """
 
 import logging
+import os
 import sys
 
 import requests
@@ -14,8 +15,9 @@ logger = logging.getLogger(__name__)
 
 
 def _get_auth() -> str:
-    # api_key = os.environ.get("ARK_API_KEY", "")
-    api_key = "3f0f50b1-7b53-4bc7-be91-d02322837d8c"
+    api_key = os.environ.get("ARK_API_KEY", "") or os.environ.get(
+        "MODEL_AGENT_API_KEY", ""
+    )
     return f"Bearer {api_key}"
 
 
