@@ -18,8 +18,9 @@ license: Complete terms in LICENSE.txt
 
 ## 认证与凭据来源
 
-- 优先读取 `VOLCENGINE_ACCESS_KEY` 与 `VOLCENGINE_SECRET_KEY` 环境变量。
-- 若未配置，将尝试使用 VeFaaS IAM 临时凭据。
+- 该技能默认使用 `TOOL_WEB_SEARCH_ACCESS_KEY` 与 `TOOL_WEB_SEARCH_SECRET_KEY` 环境变量。
+- 若未配置，将尝试使用 `VOLCENGINE_ACCESS_KEY` 与 `VOLCENGINE_SECRET_KEY` 环境变量。
+- 若未配置，在 VeFaaS 环境中将尝试使用 VeFaaS IAM 临时凭据。
 
 ## 输出格式
 
