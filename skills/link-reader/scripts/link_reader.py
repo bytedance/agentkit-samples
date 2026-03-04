@@ -15,6 +15,7 @@
 import sys
 import asyncio
 import json
+import os
 from volcenginesdkarkruntime._models import BaseModel
 from volcenginesdkarkruntime import AsyncArk
 from veadk.utils.logger import get_logger
@@ -36,14 +37,23 @@ async def link_reader(url_list: list[str]) -> dict:
         list[dict]: A list of dictionaries, each containing the title and content of the corresponding URL.
     """
     logger.debug(f"link_reader url_list: {url_list}")
+    if not url_list:
+        logger.error(f"link_reader url_list is empty")
+        return {}
+
+    api_key = (os.getenv("ARK_API_KEY") or os.getenv("MODEL_AGENT_API_KEY"))
+    if not api_key:
+        raise PermissionError("ARK_API_KEY or MODEL_AGENT_API_KEY is not set in environment variables.")
+
     try:
         client = AsyncArk(
-            api_key=getenv("MODEL_AGENT_API_KEY", settings.model.api_key),
+            api_key=api_key,
             timeout=Timeout(connect=1.0, timeout=60.0),
         )
     except Exception as e:
         logger.error(f"link_reader client init failed:{e}")
-        return []
+        return {}
+
 
     body = {
         "action_name": "LinkReader",
@@ -61,12 +71,12 @@ async def link_reader(url_list: list[str]) -> dict:
 
         if response["status_code"] != 200:
             logger.error(f"link_reader failed: {response}")
-            return []
+            return {}
         else:
             return response["data"]["ark_web_data_list"]
     except Exception as e:
         logger.error(f"link_reader failed: {e}, response: {response}")
-        return []
+        return {}
 
 
 if __name__ == "__main__":
