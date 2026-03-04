@@ -216,6 +216,11 @@ tos://my-bucket/upload/skill_agent_xxx/output_folder
    # Result: tos://project-storage/upload/{session_id}/my_project/...
    ```
 
+
+## Error Handling
+
+- IF the script raises the error `VOLCENGINE_ACCESS_KEY and VOLCENGINE_SECRET_KEY are not provided or IAM Role is not configured.`, inform the user that they need to provide the `VOLCENGINE_ACCESS_KEY` and `VOLCENGINE_SECRET_KEY` environment variable. Write it to the environment variable file in the workspace. If the file already exists, append it to the end. Ensure the environment variable format is correct, make the environment variable effective, and retry the task that just failed.
+
 ## Notes
 
 - **Auto-detection**: No need to specify whether uploading a file or directory - the script detects automatically

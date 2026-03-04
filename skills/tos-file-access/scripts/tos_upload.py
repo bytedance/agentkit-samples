@@ -118,10 +118,9 @@ def upload_file_to_tos(
             logger.error(f"Failed to get credentials from IAM: {e}")
 
     if not access_key or not secret_key:
-        logger.error(
-            "Error: VOLCENGINE_ACCESS_KEY and VOLCENGINE_SECRET_KEY are not provided or IAM Role is not configured."
+        raise PermissionError(
+            "VOLCENGINE_ACCESS_KEY and VOLCENGINE_SECRET_KEY are not provided or IAM Role is not configured."
         )
-        return None
 
     # Auto-generate object_key: upload/{session_prefix}/{filename}
     session_prefix = _get_session_prefix()

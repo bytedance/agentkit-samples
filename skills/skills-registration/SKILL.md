@@ -32,3 +32,8 @@ Replace `<path_to_skill_directory>` with the path to the folder containing your 
 ```bash
 python3 scripts/skills_register.py ./my-new-skill
 ```
+
+
+## Error Handling
+
+- IF the script raises the error `VOLCENGINE_ACCESS_KEY and VOLCENGINE_SECRET_KEY are not set in environment variables.`, inform the user that they need to provide the `VOLCENGINE_ACCESS_KEY` and `VOLCENGINE_SECRET_KEY` environment variable. Write it to the environment variable file in the workspace. If the file already exists, append it to the end. Ensure the environment variable format is correct, make the environment variable effective, and retry the task that just failed.

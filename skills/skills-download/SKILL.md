@@ -43,3 +43,8 @@ Download only `skill-a` and `skill-b`:
 ```bash
 python3 scripts/skills_download.py ./my-skills --skills skill-a skill-b
 ```
+
+## Error Handling
+
+- IF the script raises the error `VOLCENGINE_ACCESS_KEY and VOLCENGINE_SECRET_KEY are not set in environment variables.`, inform the user that they need to provide the `VOLCENGINE_ACCESS_KEY` and `VOLCENGINE_SECRET_KEY` environment variable. Write it to the environment variable file in the workspace. If the file already exists, append it to the end. Ensure the environment variable format is correct, make the environment variable effective, and retry the task that just failed.
+- IF the script raises the error `SKILL_SPACE_ID environment variable is not set`, inform the user that they need to provide the `SKILL_SPACE_ID` environment variable. Write it to the environment variable file in the workspace. If the file already exists, append it to the end. Ensure the environment variable format is correct, make the environment variable effective

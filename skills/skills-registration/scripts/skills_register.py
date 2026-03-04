@@ -139,7 +139,9 @@ def register_skills_tool(skill_local_path: str) -> str:
                 logger.warning(f"Failed to get credential from vefaas iam: {e}")
 
         if not (access_key and secret_key):
-            return "Error: VOLCENGINE_ACCESS_KEY and VOLCENGINE_SECRET_KEY not set and could not retrieve from IAM."
+            raise PermissionError(
+                "VOLCENGINE_ACCESS_KEY and VOLCENGINE_SECRET_KEY are not set in environment variables."
+            )
 
         # Get Account ID
         res = ve_request(

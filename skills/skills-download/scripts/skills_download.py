@@ -82,7 +82,9 @@ def download_skills(download_path: str, skill_names: Optional[list[str]] = None)
                 logger.warning(f"Failed to get credential from vefaas iam: {e}")
 
         if not (access_key and secret_key):
-            return "Error: VOLCENGINE_ACCESS_KEY and VOLCENGINE_SECRET_KEY not set and could not retrieve from IAM."
+            raise PermissionError(
+                "VOLCENGINE_ACCESS_KEY and VOLCENGINE_SECRET_KEY are not set in environment variables."
+            )
 
         # Get service configuration
         service = os.getenv("AGENTKIT_TOOL_SERVICE_CODE", "agentkit")

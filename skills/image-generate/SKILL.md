@@ -19,7 +19,7 @@ This skill generates images using Doubao Seedream 4.0/4.5/5.0 models.
 
 Before using this skill, ensure the following environment variables are set:
 
-- `MODEL_IMAGE_API_KEY` or `MODEL_AGENT_API_KEY`: API key for the image generation service
+- `ARK_API_KEY` or `MODEL_IMAGE_API_KEY` or `MODEL_AGENT_API_KEY`: API key for the image generation service
 - `MODEL_IMAGE_API_BASE`: API base URL (optional, has default)
 - `MODEL_IMAGE_NAME`: Model name (optional, has default)
 
