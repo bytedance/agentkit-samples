@@ -38,7 +38,7 @@ async def link_reader(url_list: list[str]) -> dict:
     """
     logger.debug(f"link_reader url_list: {url_list}")
     if not url_list:
-        logger.error(f"link_reader url_list is empty")
+        logger.error("link_reader url_list is empty")
         return {}
 
     api_key = os.getenv("ARK_API_KEY") or os.getenv(
