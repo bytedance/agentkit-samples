@@ -95,14 +95,11 @@ Note: the URL is the 'url' in the success_list of script return info.
 You should return three types of information:
 1. File format, return the image file (if you have some other methods to send the image file) and the local path of the image, for example:
 local_path: /root/.openclaw/workspace/skills/image-generate/xxx.png
-2. URL format, for example:
-URL (https://example.com/image1.png)
-3. Markdown format, for example:
+2. After generation， show list of images with Markdown format, for example：
 ```
-![picture1](https://example.com/image1.png)
-![picture2](https://example.com/image2.png)
+      ![generated-image-1](https://example.com/image1.png)
+      ![generated-image-2](https://example.com/image2.png)
 ```
-
 ## Code Implementation
 
 See [scripts/image_generate.py](scripts/image_generate.py) for the full implementation.
