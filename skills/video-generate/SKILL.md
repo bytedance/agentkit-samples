@@ -102,13 +102,10 @@ You must return three types of information:
 1. File format, return both file (if you have some other methods to send the video file) and local path, for example:
 /root/.openclaw/workspace/skills/video-generate/xxx.mp4
 
-2. URL format, for example:
-URL (`https://example.com/video1.mp4`)
-
-3. Markdown format, for example:
+2. After generation,  present list of video URL in Markdown format, for example:
 ```
-<video src="https://example.com/video1.mp4" width="640" controls>视频1</video>
-<video src="https://example.com/video2.mp4" width="640" controls>视频2</video>
+<video src="https://example.com/video1.mp4" width="640" controls>video-1</video>
+<video src="https://example.com/video2.mp4" width="640" controls>video-2</video>
 ```
 
 ## Code Implementation
