@@ -22,6 +22,7 @@ import shutil
 import logging
 from pathlib import Path
 from typing import Optional
+from dotenv import load_dotenv
 
 # Set up logging
 logging.basicConfig(
@@ -56,6 +57,13 @@ def download_skills(download_path: str, skill_names: Optional[list[str]] = None)
             from veadk.auth.veauth.utils import get_credential_from_vefaas_iam
         except ImportError:
             get_credential_from_vefaas_iam = None
+
+        # Load environment variables from skills_env file
+        # Setup env for skills
+        # echo "SKILL_SPACE_ID=your_skill_space_id" >> /root/.skills_env
+        skills_env = Path("/root/.skills_env")
+        if skills_env.exists():
+            load_dotenv(skills_env)
 
         # Get skill space IDs from environment variable
         skill_space_ids = os.getenv("SKILL_SPACE_ID", "")
