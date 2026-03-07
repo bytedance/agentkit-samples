@@ -177,6 +177,7 @@ agent = Agent(
     model_name=model_name,
     instruction=travel_planner_prompt,
     tools=[amap_tool, web_search],
+    auto_save_session=True,
     long_term_memory=long_term_memory,
     knowledgebase=knowledge,
 )
