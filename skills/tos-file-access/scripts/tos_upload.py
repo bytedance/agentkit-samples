@@ -32,7 +32,6 @@ from tos import HttpMethodType
 sys.path.append(str(Path(__file__).resolve().parent))
 # Parent directory
 sys.path.append(str(Path(__file__).resolve().parent.parent))
-from veadk.auth.veauth.utils import get_credential_from_vefaas_iam
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -43,6 +42,33 @@ if not logger.handlers:
     formatter = logging.Formatter("%(message)s")
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
+
+
+def identify_volc_env() -> str:
+    """
+    Identify the Volcano Engine environment (vefaas or ecs).
+    """
+
+    VEFAAS_IAM_CRIDENTIAL_PATH = "/var/run/secrets/iam/credential"
+    ECS_CLOUD_LINUX_ENV_PATH = "/etc/cloud/cloud.cfg"
+    ECS_CLOUD_WINDOWS_ENV_PATH = r"C:\Program Files\Cloudbase Solutions\Cloudbase-Init"
+
+    if os.path.exists(VEFAAS_IAM_CRIDENTIAL_PATH):
+        return "vefaas"
+    elif os.path.exists(ECS_CLOUD_LINUX_ENV_PATH):
+        return "ecs"
+    elif os.path.exists(ECS_CLOUD_WINDOWS_ENV_PATH):
+        return "ecs"
+    else:
+        return "unknown"
+
+
+VOLC_ENV = identify_volc_env()
+if VOLC_ENV == "vefaas":
+    try:
+        from veadk.auth.veauth.utils import get_credential_from_vefaas_iam
+    except ImportError:
+        logger.error("vefaas environment detected but veadk import failed.")
 
 
 def _get_session_prefix() -> str:
@@ -109,13 +135,21 @@ def upload_file_to_tos(
     session_token = session_token or ""
 
     if not (access_key and secret_key):
-        try:
-            cred = get_credential_from_vefaas_iam()
-            access_key = cred.access_key_id
-            secret_key = cred.secret_access_key
-            session_token = cred.session_token
-        except Exception as e:
-            logger.error(f"Failed to get credentials from IAM: {e}")
+        if VOLC_ENV == "vefaas":
+            print("vefaas detected")
+            if get_credential_from_vefaas_iam:
+                print("get_credential_from_vefaas_iam detected")
+                try:
+                    cred = get_credential_from_vefaas_iam()
+                    access_key = cred.access_key_id
+                    secret_key = cred.secret_access_key
+                    session_token = cred.session_token
+                except Exception as e:
+                    logger.warning(f"Failed to get credential from vefaas iam: {e}")
+            else:
+                logger.warning(
+                    "vefaas environment detected but get_credential_from_vefaas_iam is None."
+                )
 
     if not access_key or not secret_key:
         raise PermissionError(
@@ -252,13 +286,19 @@ def upload_directory_to_tos(
     session_token = session_token or ""
 
     if not (access_key and secret_key):
-        try:
-            cred = get_credential_from_vefaas_iam()
-            access_key = cred.access_key_id
-            secret_key = cred.secret_access_key
-            session_token = cred.session_token
-        except Exception as e:
-            logger.error(f"Failed to get credentials from IAM: {e}")
+        if VOLC_ENV == "vefaas":
+            if get_credential_from_vefaas_iam:
+                try:
+                    cred = get_credential_from_vefaas_iam()
+                    access_key = cred.access_key_id
+                    secret_key = cred.secret_access_key
+                    session_token = cred.session_token
+                except Exception as e:
+                    logger.error(f"Failed to get credential from vefaas iam: {e}")
+            else:
+                logger.warning(
+                    "vefaas environment detected but get_credential_from_vefaas_iam is None."
+                )
 
     if not access_key or not secret_key:
         logger.error(
@@ -422,17 +462,17 @@ def main():
 Examples:
   # Upload a file (auto-detect)
   python tos_upload.py /path/to/file.mp4 --bucket my-bucket
-  
+
   # Upload a directory (auto-detect)
   python tos_upload.py /path/to/directory --bucket my-bucket
-  
+
   # Upload to different region with custom expiration
   python tos_upload.py /path/to/file.json --bucket my-bucket --region cn-beijing --expires 86400
 
 File Upload Structure:
   File:      upload/{session_prefix}/{filename}
   Directory: upload/{session_prefix}/{directory_name}/{relative_path}
-  
+
 Environment Variables:
   VOLCENGINE_ACCESS_KEY     Volcano Engine access key
   VOLCENGINE_SECRET_KEY     Volcano Engine secret key

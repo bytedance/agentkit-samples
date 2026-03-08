@@ -15,14 +15,14 @@
 import sys
 import asyncio
 import json
+import logging
 import os
 from volcenginesdkarkruntime._models import BaseModel
 from volcenginesdkarkruntime import AsyncArk
-from veadk.utils.logger import get_logger
 from httpx import Timeout
-from veadk.config import settings
 
-logger = get_logger(__name__)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 async def link_reader(url_list: list[str]) -> dict:
@@ -41,9 +41,7 @@ async def link_reader(url_list: list[str]) -> dict:
         logger.error("link_reader url_list is empty")
         return {}
 
-    api_key = os.getenv("ARK_API_KEY") or os.getenv(
-        "MODEL_AGENT_API_KEY", settings.model.api_key
-    )
+    api_key = os.getenv("ARK_API_KEY")
     if not api_key:
         raise PermissionError(
             "ARK_API_KEY or MODEL_AGENT_API_KEY is not set in environment variables."
