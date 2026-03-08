@@ -20,10 +20,12 @@ import datetime
 import hashlib
 import hmac
 import os
+from pathlib import Path
 import warnings
 from typing import Literal
 from urllib.parse import quote
 
+from dotenv import load_dotenv
 import requests
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -295,6 +297,11 @@ def web_search(query: str) -> list[str]:
     if not query:
         print("Query is empty.")
         return []
+
+    web_search_env = Path("/root/.openclaw/.env")
+    if web_search_env.exists():
+        load_dotenv(web_search_env)
+        print(f"Successfully load environment variables from {web_search_env} file.")
 
     api_key = os.getenv("WEB_SEARCH_API_KEY")
     ak = None
