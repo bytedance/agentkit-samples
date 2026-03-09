@@ -1,5 +1,5 @@
 ---
-name: volcengine-volcengine-web-search
+name: volcengine-web-search
 version: 1.2.0
 author: volcengine-search-team
 description: 使用火山引擎融合信息搜索 API 进行联网搜索，返回适合 AI 使用的网页或图片结果。当用户需要在线查资料、确认最新信息、搜索新闻、百科、公告、政策、价格、产品动态、查官网或文档站内容、找来源链接、核实某个说法、比较不同网站的说法、限定站点搜索，或需要搜图、找配图、找某个主题的图片结果时使用。常见表达包括“查一下”“搜一下”“帮我看看”“有没有最新消息”“给我官网链接”“确认一下是不是真的”“找下出处”“搜几张图”“找相关图片”。即使用户没有明确说“联网搜索”，只要任务依赖在线事实、时效性或来源引用，也应优先使用本 skill。支持 API Key 和 AK/SK 两种鉴权方式。
@@ -98,6 +98,7 @@ python3 scripts/web_search.py "北京夜景" --type image
 - 缺少凭证：打开 `references/setup-guide.md`
 - 需要查 API 参数、字段、错误码：打开 `references/docs-index.md`
 - 如果脚本返回权限错误，优先检查服务是否已开通、凭证是否有效、子账号是否已授权，给予用户明确的操作指引
+- 如果试用(免费)额度用完了，通过`references/setup-guide.md`指导用户付费开通
 
 ## 参考资料
 
