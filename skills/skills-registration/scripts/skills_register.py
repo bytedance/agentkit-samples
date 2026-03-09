@@ -21,6 +21,7 @@ import argparse
 from pathlib import Path
 from datetime import datetime
 import logging
+from dotenv import load_dotenv
 
 # Set up logging
 logging.basicConfig(
@@ -186,6 +187,13 @@ def register_skills_tool(skill_local_path: str) -> str:
         tos_url = tos_client.build_tos_url(
             bucket_name=tos_bucket, object_key=object_key
         )
+
+        # Load environment variables from skills_env file
+        # Setup env for skills
+        # echo "SKILL_SPACE_ID=your_skill_space_id" >> /root/.skills_env
+        skills_env = Path("/root/.skills_env")
+        if skills_env.exists():
+            load_dotenv(skills_env)
 
         skill_space_ids = os.getenv("SKILL_SPACE_ID", "")
         skill_space_ids_list = [
