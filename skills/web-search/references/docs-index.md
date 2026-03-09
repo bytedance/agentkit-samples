@@ -75,12 +75,14 @@ ServiceName: `volc_torchlight_api`, Region: `cn-beijing`
 | 字段 | 类型 | 必须 | 说明 |
 |------|------|------|------|
 | Query | String | 是 | 搜索关键词，1~100字符 |
-| SearchType | String | 是 | `web` / `image` |
+| SearchType | String | 是 | `web` / `web_summary` / `image` |
 | Count | Number | 否 | 返回条数（web最多50，image最多5） |
-| NeedSummary | Boolean | 否 | 需要精准摘要 |
+| NeedSummary | Boolean | 否 | 需要精准摘要（web_summary必须true） |
 | TimeRange | String | 否 | `OneDay` / `OneWeek` / `OneMonth` / `OneYear` / `YYYY-MM-DD..YYYY-MM-DD` |
 | Filter | Object | 否 | 含 NeedContent, NeedUrl, Sites, BlockHosts, AuthInfoLevel 等 |
+| Industry | String | 否 | finance / game |
 | ContentFormats | String | 否 | Text / Markdown |
+| QueryControl.QueryRewrite | Boolean | 否 | 开启Query改写 |
 
 ### 响应体关键字段
 
@@ -89,6 +91,8 @@ ServiceName: `volc_torchlight_api`, Region: `cn-beijing`
 | Result.ResultCount | 结果数量 |
 | Result.WebResults[] | 网页搜索结果数组 |
 | Result.ImageResults[] | 图片搜索结果数组 |
+| Result.Choices[] | LLM总结内容（web_summary流式） |
+| Result.Usage | Token消耗（web_summary尾帧） |
 | Result.TimeCost | 耗时（毫秒） |
 | ResponseMetadata.Error | 错误信息（如有） |
 

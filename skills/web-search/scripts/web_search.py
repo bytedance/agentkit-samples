@@ -199,13 +199,13 @@ def _validate_time_range(time_range: Optional[str]) -> Optional[str]:
 
 
 def build_body(
-    query: str,
-    search_type: str = "web",
-    count: int = 5,
-    sites: Optional[str] = None,
-    block_hosts: Optional[str] = None,
-    time_range: Optional[str] = None,
-    auth_level: int = 0,
+        query: str,
+        search_type: str = "web",
+        count: int = 5,
+        sites: Optional[str] = None,
+        block_hosts: Optional[str] = None,
+        time_range: Optional[str] = None,
+        auth_level: int = 0,
 ) -> dict:
     body = {"Query": query, "SearchType": search_type, "Count": count}
 
@@ -229,11 +229,11 @@ def build_body(
 # ---- API 调用 ----
 
 def do_search(
-    body: dict,
-    api_key: Optional[str] = None,
-    ak: Optional[str] = None,
-    sk: Optional[str] = None,
-    session_token: str = "",
+        body: dict,
+        api_key: Optional[str] = None,
+        ak: Optional[str] = None,
+        sk: Optional[str] = None,
+        session_token: str = "",
 ):
     requests = _require_requests()
     body_str = json.dumps(body, ensure_ascii=False)

@@ -2,13 +2,13 @@
 name: volcengine-web-search
 version: 1.2.0
 author: volcengine-search-team
-description: 使用火山引擎融合信息搜索 API 进行联网搜索，返回适合 AI 使用的网页结果或图片结果。当用户要求联网检索、确认最新信息、搜索新闻、查官网资料、限定站点搜索、获取权威来源，或需要有来源支撑的搜索结果时使用。支持 API Key 和 AK/SK 两种鉴权方式。
+description: 使用火山引擎融合信息搜索 API 进行联网搜索，返回适合 AI 使用的网页结果。当用户需要在线查资料、确认最新信息、搜索新闻、公告、政策、价格、产品动态、查官网或文档站内容、找来源链接、核实某个说法、比较不同网站的说法、限定站点搜索，或任何需要真实网页结果支撑回答的场景时使用。常见表达包括“查一下”“搜一下”“帮我看看”“有没有最新消息”“给我官网链接”“确认一下是不是真的”“找下出处”。即使用户没有明确说“联网搜索”，只要任务依赖在线事实、时效性或来源引用，也应优先使用本 skill。支持 API Key 和 AK/SK 两种鉴权方式。
 homepage: https://www.volcengine.com/docs/85508/1650263
 ---
 
 # 火山引擎联网搜索
 
-使用火山引擎融合信息搜索 API 执行联网搜索，返回适合 AI 处理的网页结果或图片结果。
+使用火山引擎融合信息搜索 API 执行联网搜索，返回适合 AI 处理的网页结果。
 
 ## 何时使用
 
@@ -19,7 +19,8 @@ homepage: https://www.volcengine.com/docs/85508/1650263
 - 需要搜索新闻、公告、政策、价格、活动、产品动态
 - 需要从特定站点或官网获取信息
 - 需要给回答附上来源链接
-- 需要图片搜索结果
+- 用户说“查一下”“搜一下”“帮我看看”“找下出处”“给我官网链接”时
+- 用户没有明确说“联网”，但任务本质上需要最新信息、在线查证或来源支撑时
 
 ## 使用前检查
 
@@ -28,20 +29,19 @@ homepage: https://www.volcengine.com/docs/85508/1650263
 - `TORCHLIGHT_API_KEY`
 - `VOLCENGINE_ACCESS_KEY` + `VOLCENGINE_SECRET_KEY`
 
-如果缺少凭证，打开 `references/setup-guide.md` 查看开通、申请和配置方式。
+如果缺少凭证，打开 `references/setup-guide.md` 查看开通、申请和配置方式，并给予用户开通建议
 
 ## 基本搜索
 
 ```bash
 python3 scripts/web_search.py "搜索词"
 python3 scripts/web_search.py "搜索词" --count 10
-python3 scripts/web_search.py "搜索词" --type image
 ```
 
 ## 常用参数
 
-- `--count <n>`：返回条数；`web` 最多 50 条，`image` 最多 5 条
-- `--type <type>`：搜索类型，可选 `web` 或 `image`
+- `--count <n>`：返回条数；`web` 最多 50 条
+- `--type <type>`：搜索类型，可选 `web`
 - `--time-range <range>`：时间范围，可选 `OneDay`、`OneWeek`、`OneMonth`、`OneYear`，或日期区间 `2024-12-30..2025-12-30`
 - `--sites <a|b>`：限定站点搜索，多个站点用 `|` 分隔
 - `--block-hosts <a|b>`：排除站点，多个站点用 `|` 分隔
@@ -50,7 +50,6 @@ python3 scripts/web_search.py "搜索词" --type image
 ## 模式选择
 
 - 用 `web`：普通事实查询、网页检索、查官网内容
-- 用 `image`：用户明确要图片结果
 - 加 `--time-range`：用户关心最近动态、新闻、时效性内容
 - 加 `--sites`：用户指定官网、官方媒体、文档站或垂直站点
 - 加 `--auth-level 1`：医疗、政策、金融、科研等更看重可信度的主题
@@ -66,9 +65,6 @@ python3 scripts/web_search.py "Responses API 文档" --sites "platform.openai.co
 
 # 查权威来源
 python3 scripts/web_search.py "流感疫苗安全性" --auth-level 1
-
-# 查图片
-python3 scripts/web_search.py "故宫博物院" --type image
 ```
 
 ## 回答规则
