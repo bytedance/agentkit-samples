@@ -12,18 +12,6 @@
 | 产品计费 | https://www.volcengine.com/docs/85508/1510784 |
 | 快速入门 | https://www.volcengine.com/docs/85508/1544858 |
 
-## 智能体 API
-
-| 文档 | 链接 |
-|------|------|
-| 智能体会话API | https://www.volcengine.com/docs/85508/1510834 |
-| 智能体会话API-富媒体卡片数据 | https://www.volcengine.com/docs/85508/2137780 |
-| 获取热点开场问题API | https://www.volcengine.com/docs/85508/2107959 |
-| 热点资讯获取API | https://www.volcengine.com/docs/85508/1755520 |
-| 获取静态配置API | https://www.volcengine.com/docs/85508/1511928 |
-| 埋点上报API | https://www.volcengine.com/docs/85508/1863300 |
-| Collab版智能体API | https://www.volcengine.com/docs/85508/2208447 |
-
 ## 操作指南
 
 | 文档 | 链接 |
@@ -49,16 +37,9 @@
 | 联网搜索API开通 | https://console.volcengine.com/ask-echo/web-search |
 | 联网问答Agent控制台 | https://console.volcengine.com/ask-echo |
 
-## 相关产品
-
-| 产品 | 链接 |
-|------|------|
-| 火山方舟-联网搜索工具调用 | https://www.volcengine.com/docs/82379/1756990 |
-| 全域AI搜索-API鉴权说明 | https://www.volcengine.com/docs/85296/1544950 |
-
 ## API 关键参数速查
 
-以下基于官方文档整理，详细说明见融合信息搜索API文档页面。当前脚本默认只暴露 `web` / `image`、`count`、`time-range`、`sites`、`block-hosts`、`auth-level` 等常用参数；下表仍保留 API 原生字段，便于后续扩展。
+以下基于官方文档整理，详细说明见融合信息搜索API文档页面。当前脚本默认已支持 `web` / `image`、`count`、`time-range`、`auth-level`、`query-rewrite` 等常用参数；其中 `image` 搜索可通过 `--type image` 使用，且 `--count` 最多为 5。下表仍保留 API 原生字段，便于后续扩展。
 
 ### 请求
 
@@ -79,10 +60,10 @@ ServiceName: `volc_torchlight_api`, Region: `cn-beijing`
 | Count | Number | 否 | 返回条数（web最多50，image最多5） |
 | NeedSummary | Boolean | 否 | 需要精准摘要（web_summary必须true） |
 | TimeRange | String | 否 | `OneDay` / `OneWeek` / `OneMonth` / `OneYear` / `YYYY-MM-DD..YYYY-MM-DD` |
-| Filter | Object | 否 | 含 NeedContent, NeedUrl, Sites, BlockHosts, AuthInfoLevel 等 |
+| Filter | Object | 否 | 当前脚本主要使用 `AuthInfoLevel` |
 | Industry | String | 否 | finance / game |
 | ContentFormats | String | 否 | Text / Markdown |
-| QueryControl.QueryRewrite | Boolean | 否 | 开启Query改写 |
+| QueryControl.QueryRewrite | Boolean | 否 | 开启 Query 改写；当前脚本已通过 `--query-rewrite` 暴露 |
 
 ### 响应体关键字段
 
@@ -99,6 +80,10 @@ ServiceName: `volc_torchlight_api`, Region: `cn-beijing`
 ### WebResults 单项字段
 
 Title, SiteName, Url, Snippet, Summary, Content, PublishTime, RankScore, AuthInfoDes, AuthInfoLevel
+
+### ImageResults 单项字段
+
+Title, SiteName, Url, PublishTime, Image.Url, Image.Width, Image.Height, Image.Shape
 
 ### 错误码
 

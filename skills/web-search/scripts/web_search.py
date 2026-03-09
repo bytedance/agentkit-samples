@@ -5,7 +5,7 @@
 签名参考：https://github.com/volcengine/volc-openapi-demos/blob/main/signature/python/sign.py
 
 认证优先级：
-    1. TORCHLIGHT_API_KEY 环境变量或 --api-key
+    1. WEB_SEARCH_API_KEY 环境变量或 --api-key
     2. VOLCENGINE_ACCESS_KEY + VOLCENGINE_SECRET_KEY 环境变量
     3. VeFaaS IAM 临时凭证（需 veadk-python 库）
 
@@ -33,6 +33,8 @@ REGION = "cn-beijing"
 HOST = "mercury.volcengineapi.com"
 ACTION = "WebSearch"
 INTERNAL_API_URL = "https://open.feedcoopapi.com/search_api/web_search"
+TRAFFIC_TAG_HEADER = "X-Traffic-Tag"
+TRAFFIC_TAG_VALUE = "skill_web_search_common"
 TIME_RANGE_SHORTCUTS = {"OneDay", "OneWeek", "OneMonth", "OneYear"}
 DATE_RANGE_PATTERN = re.compile(r"^(\d{4}-\d{2}-\d{2})\.\.(\d{4}-\d{2}-\d{2})$")
 
@@ -86,7 +88,7 @@ def _sign_request(method: str, ak: str, sk: str, body: str, session_token: str =
 
     query_params = {"Action": ACTION, "Version": VERSION}
 
-    signed_header_keys = ["content-type", "host", "x-content-sha256", "x-date"]
+    signed_header_keys = ["content-type", "host", "x-content-sha256", "x-date", "x-traffic-tag"]
     if session_token:
         signed_header_keys.append("x-security-token")
     signed_header_keys.sort()
@@ -97,6 +99,7 @@ def _sign_request(method: str, ak: str, sk: str, body: str, session_token: str =
         f"host:{HOST}",
         f"x-content-sha256:{x_content_sha256}",
         f"x-date:{x_date}",
+        f"x-traffic-tag:{TRAFFIC_TAG_VALUE}",
     ]
     if session_token:
         canonical_header_lines.append(f"x-security-token:{session_token}")
@@ -141,6 +144,7 @@ def _sign_request(method: str, ak: str, sk: str, body: str, session_token: str =
         "Host": HOST,
         "X-Date": x_date,
         "X-Content-Sha256": x_content_sha256,
+        TRAFFIC_TAG_HEADER: TRAFFIC_TAG_VALUE,
         "Authorization": authorization,
     }
     if session_token:
@@ -169,7 +173,7 @@ def _get_credentials() -> tuple:
 # ---- 请求构建 ----
 
 def _get_api_key(cli_api_key: Optional[str]) -> Optional[str]:
-    api_key = cli_api_key or os.getenv("TORCHLIGHT_API_KEY")
+    api_key = cli_api_key or os.getenv("WEB_SEARCH_API_KEY")
     return api_key.strip() if api_key else None
 
 
@@ -202,26 +206,24 @@ def build_body(
         query: str,
         search_type: str = "web",
         count: int = 5,
-        sites: Optional[str] = None,
-        block_hosts: Optional[str] = None,
         time_range: Optional[str] = None,
         auth_level: int = 0,
+        query_rewrite: bool = False,
 ) -> dict:
     body = {"Query": query, "SearchType": search_type, "Count": count}
 
     if search_type == "web":
         body["NeedSummary"] = True
         filters = {}
-        if sites:
-            filters["Sites"] = sites
-        if block_hosts:
-            filters["BlockHosts"] = block_hosts
         if auth_level > 0:
             filters["AuthInfoLevel"] = auth_level
         if filters:
             body["Filter"] = filters
         if time_range:
             body["TimeRange"] = time_range
+
+    if query_rewrite:
+        body["QueryControl"] = {"QueryRewrite": True}
 
     return body
 
@@ -238,7 +240,11 @@ def do_search(
     requests = _require_requests()
     body_str = json.dumps(body, ensure_ascii=False)
     if api_key:
-        headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
+        headers = {
+            "Content-Type": "application/json",
+            TRAFFIC_TAG_HEADER: TRAFFIC_TAG_VALUE,
+            "Authorization": f"Bearer {api_key}",
+        }
         url = INTERNAL_API_URL
     else:
         if not ak or not sk:
@@ -296,10 +302,9 @@ def main():
         "--time-range",
         help="OneDay/OneWeek/OneMonth/OneYear/YYYY-MM-DD..YYYY-MM-DD",
     )
-    parser.add_argument("--sites", help="指定站点，| 分隔")
-    parser.add_argument("--block-hosts", help="屏蔽站点，| 分隔")
     parser.add_argument("--auth-level", type=int, default=0, choices=[0, 1])
-    parser.add_argument("--api-key", help="API Key（优先于环境变量 TORCHLIGHT_API_KEY）")
+    parser.add_argument("--query-rewrite", action="store_true", help="开启 Query 改写")
+    parser.add_argument("--api-key", help="API Key（优先于环境变量 WEB_SEARCH_API_KEY）")
     parser.add_argument("--prompt-api-key", action="store_true", help="交互式输入 API Key（不回显）")
 
     args = parser.parse_args()
@@ -328,7 +333,7 @@ def main():
         if not ak or not sk:
             print(
                 "Error: 未找到凭证。请配置以下任一方式：\n"
-                "1) API Key：设置 TORCHLIGHT_API_KEY 或传入 --api-key\n"
+                "1) API Key：设置 WEB_SEARCH_API_KEY 或传入 --api-key\n"
                 "2) AK/SK：设置 VOLCENGINE_ACCESS_KEY 和 VOLCENGINE_SECRET_KEY",
                 file=sys.stderr,
             )
@@ -338,10 +343,9 @@ def main():
         query=args.query,
         search_type=args.type,
         count=args.count,
-        sites=args.sites,
-        block_hosts=args.block_hosts,
         time_range=time_range,
         auth_level=args.auth_level,
+        query_rewrite=args.query_rewrite,
     )
 
     requests = _require_requests()
