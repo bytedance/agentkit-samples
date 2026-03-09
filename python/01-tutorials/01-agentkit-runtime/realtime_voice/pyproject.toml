@@ -1,0 +1,13 @@
+[project]
+name = "agentkit-realtime-voice-example"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "agentkit-sdk-python==0.2.0",
+    "google-adk==1.19.0",
+    "urllib3==2.0.7",
+    "veadk-python==0.5.0",
+    "volcengine-python-sdk>=4.0.31",
+]

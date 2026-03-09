@@ -1,0 +1,5 @@
+# 火山引擎 RDS MySQL 运维助手工具依赖
+
+## Python 依赖包
+
+volcengine-python-sdk[rdsmysqlv2,vpc]>=1.0.0

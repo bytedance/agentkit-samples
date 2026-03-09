@@ -1,0 +1,9 @@
+veadk-python==0.2.27
+veadk-python[extensions]==0.2.27
+google-adk==1.18.0
+python-dotenv==1.2.1
+lancedb==0.25.3
+agentkit-sdk-python==0.1.15
+volcengine-python-sdk[ark]==4.0.33
+pyarrow==21.0.0
+duckdb==1.4.3

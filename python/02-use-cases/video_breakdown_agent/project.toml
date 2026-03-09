@@ -1,0 +1,156 @@
+name = "智能短视频拆解分析与复刻助手"
+name_en = "Video Breakdown & Recreation Agent"
+description = "专业的短视频分镜拆解、深度分析与视频复刻工具，自动生成分镜脚本、前三秒钩子评分、完整分析报告，并支持将爆款视频脚本转换为视频生成提示词、调用 Doubao-Seedance 一键复刻"
+details = """
+这是一个基于火山引擎 AgentKit 构建的智能短视频分析与复刻系统。系统采用 Multi-Agent 架构，
+集成 FFmpeg 视频处理、火山 ASR 语音识别、LiteLLM 多模态视觉分析和 TOS 对象存储，
+能够对短视频进行全方位的专业分析，并支持一键复刻爆款视频。
+
+核心能力：
+- 视频分镜拆解：自动识别视频分镜，提取关键帧并分析画面内容（含光影、色调、景深、构图、运动5个维度）
+- 前三秒钩子分析：从视觉冲击力、语言钩子、情绪唤起等5个维度评分
+- 专业报告生成：整合所有分析数据生成 Markdown 格式专业报告
+- 联网搜索：实时获取短视频行业最新资讯和平台规则
+- 视频提示词生成：LLM 主导三阶段工作流，将分镜脚本转换为专业视频生成提示词
+- 视频复刻生成：调用 Doubao-Seedance 模型，支持首尾帧、参考图、音频生成，一键复刻爆款视频
+"""
+type = "application"
+
+[tags]
+industry = "通用"
+from = "杭州没有桌子人工智能有限公司"
+framework = "veadk"
+language = "python"
+tech = ["Multi-Agent", "FFmpeg", "ASR", "视觉分析", "TOS存储", "视频生成", "Doubao-Seedance"]
+
+[[scenarios]]
+name = "短视频创作优化"
+desc = "为内容创作者提供分镜拆解和钩子评分，优化视频吸引力和用户留存率。"
+
+[[scenarios]]
+name = "视频内容审核分析"
+desc = "自动拆解视频内容结构，辅助审核团队快速理解视频脉络和关键信息点。"
+
+[[scenarios]]
+name = "竞品视频研究"
+desc = "批量分析竞品视频的分镜手法、钩子策略和叙事节奏，提取创作灵感。"
+
+[[scenarios]]
+name = "广告创意评估"
+desc = "针对短视频广告素材，评估前三秒钩子效果，预测投放转化潜力。"
+
+[[scenarios]]
+name = "爆款视频复刻"
+desc = "将爆款视频脚本自动转换为专业视频生成提示词，调用 Doubao-Seedance 按分镜复刻，支持风格迁移。"
+
+[[prompts]]
+text = "帮我拆解这个视频的分镜结构"
+resource_url = ""
+
+[[prompts]]
+text = "分析这个视频前三秒的钩子吸引力，给出专业评分"
+resource_url = ""
+
+[[prompts]]
+text = "生成完整的视频分析报告"
+resource_url = ""
+
+[[prompts]]
+text = "根据分镜1的脚本生成视频提示词，然后复刻这个分镜"
+resource_url = ""
+
+[[components]]
+type = "tool"
+product = "Skills_Sandbox"
+
+[[components]]
+type = "infra"
+product = "TOS"
+
+[[envs]]
+name = "火山方舟模型 API Key（文本/视觉模型）"
+key = "MODEL_AGENT_API_KEY"
+url = "https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey"
+
+[[envs]]
+name = "火山方舟模型 API Key（视频生成，可与上方相同）"
+key = "MODEL_VIDEO_API_KEY"
+url = "https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey"
+
+[[envs]]
+name = "火山引擎访问密钥"
+key = "VOLCENGINE_ACCESS_KEY"
+url = "https://console.volcengine.com/iam/keymanage/"
+
+[[envs]]
+name = "火山引擎密钥"
+key = "VOLCENGINE_SECRET_KEY"
+url = "https://console.volcengine.com/iam/keymanage/"
+
+[[envs]]
+name = "TOS 存储桶名称"
+key = "DATABASE_TOS_BUCKET"
+url = "https://console.volcengine.com/tos/bucket"
+
+[[envs]]
+name = "视频生成模型名称（可选，默认 doubao-seedance-1-5-pro-251215）"
+key = "MODEL_VIDEO_NAME"
+url = "https://console.volcengine.com/ark/region:ark+cn-beijing/model/detail"
+
+models = [
+  "doubao-seed-1-6-251015",
+  "doubao-seed-1-6-vision-250815",
+  "doubao-seedance-1-5-pro-251215",
+  "doubao-seedance-1-0-pro-250528"
+]
+
+[cloud_resources]
+metadata = { title = "关联模型及云产品描述", description = "火山引擎提供的云服务及计费说明，不使用记得及时清除。" }
+
+[[cloud_resources.services]]
+name = "方舟模型服务"
+description = "涉及 doubao-seed 系列文本模型、视觉模型及视频生成模型（Seedance）。"
+service_link = "https://www.volcengine.com/product/ark"
+billing = "根据用量计费。"
+billing_link = "https://www.volcengine.com/docs/82379/1288284"
+notes = "部署后会使用您的云资源，注意及时清除。"
+
+[[cloud_resources.services]]
+name = "AgentKit"
+description = "火山提供的 Agent Native 基础服务，提供 Agent 的全生命周期能力。"
+service_link = "https://www.volcengine.com/product/agentkit"
+billing = "公测期间免费使用。"
+billing_link = "https://www.volcengine.com/docs/84313/1414457"
+notes = "无"
+
+[[cloud_resources.services]]
+name = "对象存储 TOS"
+description = "火山对象存储 TOS，用于存储视频关键帧、ASR 中间文件及生成的视频产物。"
+service_link = "https://www.volcengine.com/product/tos"
+billing = "按存储量和请求次数计费，AgentKit公测期间提供少量代金券抵扣。"
+billing_link = "https://www.volcengine.com/docs/6349/74626"
+notes = "体验完成请及时对资源进行清理，以免产生非必要费用。"
+
+[[cloud_resources.services]]
+name = "火山语音 (ASR)"
+description = "用于提取视频中的语音内容，辅助进行脚本分析（可选配置）。"
+service_link = "https://www.volcengine.com/product/speech"
+billing = "根据音频时长计费。"
+billing_link = "https://www.volcengine.com/docs/6561/97465"
+notes = "无"
+
+[[cloud_resources.services]]
+name = "APMPlus 应用性能监控"
+description = "可选的 OpenTelemetry 链路追踪服务，通过环境变量 VEADK_TRACER_APMPLUS=true 启用，用于观测 Agent 调用链路与性能。"
+service_link = "https://www.volcengine.com/product/apmplus"
+billing = "有免费额度，超出部分按量计费。"
+billing_link = "https://www.volcengine.com/docs/6431/69092"
+notes = "默认不启用，如无需可观测性可忽略。体验完成请及时清理资源。"
+
+[[cloud_resources.services]]
+name = "TLS 日志服务"
+description = "可选的日志采集与存储服务，通过环境变量 VEADK_TRACER_TLS=true 启用，用于持久化 Agent 运行日志。"
+service_link = "https://www.volcengine.com/product/tls"
+billing = "按日志量计费。"
+billing_link = "https://www.volcengine.com/docs/6520/66954"
+notes = "默认不启用，如无需日志持久化可忽略。体验完成请及时清理资源。"

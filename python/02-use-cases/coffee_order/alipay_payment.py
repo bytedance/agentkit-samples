@@ -1,0 +1,256 @@
+html_template = """<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XX支付</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .payment-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .alipay-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .alipay-logo {
+            width: 50px;
+            height: 50px;
+            background: #1677ff;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+        }
+
+        .alipay-logo::before {
+            content: "支";
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .alipay-title {
+            font-size: 28px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .order-info {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 30px 0;
+        }
+
+        .order-title {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .order-amount {
+            font-size: 36px;
+            color: #1677ff;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .order-description {
+            font-size: 14px;
+            color: #999;
+        }
+
+        .qr-section {
+            margin: 30px 0;
+        }
+
+        .qr-code {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+            border: 2px solid #e8e8e8;
+            border-radius: 12px;
+            padding: 10px;
+            background: white;
+        }
+
+        .qr-instruction {
+            font-size: 14px;
+            color: #666;
+            margin-top: 15px;
+        }
+
+        .payment-methods {
+            display: flex;
+            justify-content: space-around;
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+
+        .payment-method {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .payment-method:hover {
+            background: #e6f7ff;
+        }
+
+        .payment-method.active {
+            background: #1677ff;
+            color: white;
+        }
+
+        .payment-icon {
+            width: 40px;
+            height: 40px;
+            background: #1677ff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+            color: white;
+            font-size: 18px;
+        }
+
+        .payment-method.active .payment-icon {
+            background: white;
+            color: #1677ff;
+        }
+
+        .payment-text {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .payment-method.active .payment-text {
+            color: white;
+        }
+
+        .timer {
+            font-size: 14px;
+            color: #ff4d4f;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="payment-container">
+        <div class="alipay-header">
+            <div class="alipay-logo"></div>
+            <h1 class="alipay-title">XX支付</h1>
+        </div>
+
+        <div class="order-info">
+            <div class="order-title">订单金额</div>
+            <div class="order-amount" id="orderAmount">¥{{ amount }}</div>
+            <div class="order-description" id="orderDescription">{{ description }}</div>
+        </div>
+
+        <div class="qr-section">
+            <div class="qr-code">
+                <img id="qrCode" src="{{ qr_data_url }}" alt="支付二维码" style="width: 100%; height: 100%;">
+            </div>
+            <div class="qr-instruction">请使用XX扫描二维码完成支付</div>
+        </div>
+
+        <div class="payment-methods">
+            <div class="payment-method active" data-method="qr">
+                <div class="payment-icon">📱</div>
+                <div class="payment-text">扫码支付</div>
+            </div>
+            <div class="payment-method" data-method="app">
+                <div class="payment-icon">💳</div>
+                <div class="payment-text">APP支付</div>
+            </div>
+        </div>
+
+        <div class="timer" id="timer">
+            支付倒计时：15:00
+        </div>
+
+    </div>
+
+    <script>
+        let timeLeft = 900; // 15分钟
+        let timerInterval;
+        let orderId = "{{ order_id }}";
+        let paymentStatus = "pending";
+
+        // 倒计时功能
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    if (paymentStatus === "pending") {
+                        alert("支付超时，订单已取消");
+                        window.close();
+                    }
+                    return;
+                }
+
+                timeLeft--;
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                document.getElementById('timer').textContent = 
+                    `支付倒计时：${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        // 支付方式切换
+        document.querySelectorAll('.payment-method').forEach(method => {
+            method.addEventListener('click', function() {
+                document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+
+        // 页面加载完成后启动倒计时
+        window.addEventListener('load', () => {
+            startTimer();
+        });
+
+        // 页面关闭时清理
+        window.addEventListener('beforeunload', () => {
+            clearInterval(timerInterval);
+        });
+    </script>
+</body>
+</html>
+"""

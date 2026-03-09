@@ -1,0 +1,1 @@
+../tutorial1_userpool_inbound/requirements.txt

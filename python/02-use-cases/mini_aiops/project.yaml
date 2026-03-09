@@ -1,0 +1,38 @@
+name:                     智能运维助手
+name_en:                  AIOpsAgent
+description:              这是一个基于 AgentKit 的智能运维助手，支持对话式云资源巡检与故障诊断。
+details:                  这是一个基于 VeADK & Agentkit 构建的云运维智能 Agent，通过接入火山引擎 CCAPI MCP Server，支持大模型以自然语言完成云资源巡检、故障诊断和配置变更等运维操作；底层利用 Cloud Control API + 基础设施即代码能力安全管理 IAM、ECS 等资源，并结合本地运维 SOP 知识库与对话记忆，为云上团队提供可落地的智能 AIOps 运维助手体验。
+tags:
+  # 行业场景标签（金融、汽车、泛互、医疗、零售、广告营销、能源电力、信息技术服务、教育、工业、制造等）
+  industry:      信息技术服务        
+  from:                   volcengine 
+  framework:              veadk
+  language:               python
+  tech:                   
+    - MCPToolset
+    - veadk
+    - mcp
+type:                     application
+scenarios:                 # 应用场景（2-6个），type 为 application 时必填
+  - name:                 电商大促场景
+    desc:                 核心资源巡检与风险预警
+  - name:                 金融场景
+    desc:                 交易系统健康检查与故障定位
+  - name:                 游戏、直播等高并发场景
+    desc:                 高并发自动巡检与扩缩容
+  - name:                 企业业务场景
+    desc:                 日常巡检与告警智能诊断
+prompts:                  # Prompt 样例
+  - text:                 查看现有的 TLS 实例
+  - text:                 列出可用的资源类型
+# envs:                  # 所需的环境变量（用于第三方依赖服务）
+components:               # Agentkit 依赖服务
+  - type: mcp_toolset              # 服务类型，可选项为 tool | knowledgebase | memory
+    # 对应产品（不区分大小写）
+    # knowledgebase: VikingKnowledge
+    # memory: VikingMem | Mem0
+    product: mcptoolset
+models:                   # 涉及到的具体模型列表
+    - deepseek-v3-2-251201
+
+image: agentkit-template-public-cn-beijing.cr.volces.com/template/aiops_agent:latest

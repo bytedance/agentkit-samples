@@ -1,0 +1,2 @@
+agentkit-sdk-python==0.4.3
+veadk-python==0.5.15

@@ -1,0 +1,83 @@
+# Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd. and/or its affiliates.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+import logging
+import os
+import sys
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(current_dir)
+
+from agentkit.apps import AgentkitAgentServerApp, AgentkitSimpleApp  # noqa: E402
+from dotenv import load_dotenv  # noqa: E402
+from google.adk.planners import BuiltInPlanner  # noqa: E402
+from google.genai import types  # noqa: E402
+from tools import get_url_of_frontend_code_in_tos, upload_frontend_code_to_tos  # noqa: E402
+
+from veadk import Agent, Runner  # noqa: E402
+from veadk.memory import ShortTermMemory  # noqa: E402
+# from veadk.tools.builtin_tools.run_code import run_code  # noqa: E402
+# from veadk.tracing.telemetry.exporters.apmplus_exporter import APMPlusExporter  # noqa: E402
+# from veadk.tracing.telemetry.opentelemetry_tracer import OpentelemetryTracer  # noqa: E402
+
+
+load_dotenv()
+logger = logging.getLogger(__name__)
+logging.basicConfig(level="INFO")
+
+app = AgentkitSimpleApp()
+short_term_memory = ShortTermMemory(backend="local")
+
+# tracer = OpentelemetryTracer(exporters=[APMPlusExporter()])
+
+provider = os.getenv("CLOUD_PROVIDER")
+if provider and provider.lower() == "byteplus":
+    with open("%s/prompt.en.md" % current_dir, "r", encoding="utf-8") as f:
+        instruction = f.read()
+else:
+    with open("%s/prompt.zh.md" % current_dir, "r", encoding="utf-8") as f:
+        instruction = f.read()
+root_agent = Agent(
+    name="ai_coding_agent",
+    description="An AI coding agent that helps users solve programming problems",
+    instruction=instruction,
+    tools=[
+        # run_code,
+        upload_frontend_code_to_tos,
+        get_url_of_frontend_code_in_tos,
+    ],
+    # tracers=[tracer],
+    short_term_memory=short_term_memory,
+    planner=BuiltInPlanner(
+        thinking_config=types.ThinkingConfig(
+            include_thoughts=True,
+            thinking_budget=1024,
+        )
+    ),
+    model_name="deepseek-v3-2-251201",
+)
+
+app_name = "ai_coding_agent"
+runner = Runner(
+    app_name=app_name, agent=root_agent, short_term_memory=short_term_memory
+)
+
+agent_server_app = AgentkitAgentServerApp(
+    agent=root_agent, short_term_memory=short_term_memory
+)
+
+
+if __name__ == "__main__":
+    agent_server_app.run(host="0.0.0.0", port=8000)

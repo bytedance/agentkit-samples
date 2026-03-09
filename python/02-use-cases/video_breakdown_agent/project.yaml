@@ -1,0 +1,67 @@
+name: "智能短视频拆解分析助手"
+name_en: "Video Breakdown Analyzer"
+description: "专业的短视频分镜拆解和深度分析工具，自动生成分镜脚本、前三秒钩子评分和完整分析报告"
+details: |
+  这是一个基于火山引擎 AgentKit 构建的智能短视频分析系统。系统采用 Multi-Agent 架构，
+  集成 FFmpeg 视频处理、火山 ASR 语音识别、LiteLLM 多模态视觉分析和 TOS 对象存储，
+  能够对短视频进行全方位的专业分析。
+
+  核心能力：
+  - 视频分镜拆解：自动识别视频分镜，提取关键帧并分析画面内容
+  - 前三秒钩子分析：从视觉冲击力、语言钩子、情绪唤起等5个维度评分
+  - 专业报告生成：整合所有分析数据生成 Markdown 格式专业报告
+  - 联网搜索：实时获取短视频行业最新资讯和平台规则
+tags:
+  industry: "通用"
+  from: "杭州没有桌子人工智能有限公司"
+  framework: "veadk"
+  language: "python"
+  tech:
+    - "Multi-Agent"
+    - "FFmpeg"
+    - "ASR"
+    - "视觉分析"
+    - "TOS存储"
+type: "application"
+
+scenarios:
+  - name: "短视频创作优化"
+    desc: "为内容创作者提供分镜拆解和钩子评分，优化视频吸引力和用户留存率。"
+  - name: "视频内容审核分析"
+    desc: "自动拆解视频内容结构，辅助审核团队快速理解视频脉络和关键信息点。"
+  - name: "竞品视频研究"
+    desc: "批量分析竞品视频的分镜手法、钩子策略和叙事节奏，提取创作灵感。"
+  - name: "广告创意评估"
+    desc: "针对短视频广告素材，评估前三秒钩子效果，预测投放转化潜力。"
+
+prompts:
+  - text: "帮我拆解这个视频的分镜结构"
+    resource_url: ""
+  - text: "分析这个视频前三秒的钩子吸引力，给出专业评分"
+    resource_url: ""
+  - text: "生成完整的视频分析报告"
+    resource_url: ""
+
+components:
+  - type: "tool"
+    product: "Skills_Sandbox"
+  - type: "infra"
+    product: "TOS"
+
+envs:
+  - name: "火山方舟模型 API Key"
+    key: "MODEL_AGENT_API_KEY"
+    url: "https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey"
+  - name: "火山引擎访问密钥"
+    key: "VOLCENGINE_ACCESS_KEY"
+    url: "https://console.volcengine.com/iam/keymanage/"
+  - name: "火山引擎密钥"
+    key: "VOLCENGINE_SECRET_KEY"
+    url: "https://console.volcengine.com/iam/keymanage/"
+  - name: "TOS 存储桶名称"
+    key: "DATABASE_TOS_BUCKET"
+    url: "https://console.volcengine.com/tos/bucket"
+
+models:
+  - "doubao-seed-1-6-251015"
+  - "doubao-seed-1-6-vision-250815"

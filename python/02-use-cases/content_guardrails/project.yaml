@@ -1,0 +1,37 @@
+name:                     内容安全审核助手
+name_en:                  GuardrailsAgent
+description:              这是一个基于 AgentKit 的内容安全审核助手，在保障内容安全可靠前提下，帮助用户解决数据分析问题。
+details:                  这是一个基于 VeADK & Agentkit 构建的具备内容安全审核能力、可直接投入生产环境使用的数据分析智能体。该智能体集成了互联网实时信息检索功能，能够在安全沙箱环境中执行并验证代码的运行结果，并通过调用前与调用后的多阶段内容审核机制，确保全流程的内容安全合规性。
+tags:
+  # 行业场景标签（金融、汽车、泛互、医疗、零售、广告营销、能源电力、信息技术服务、教育、工业、制造等）
+  industry:               信息技术服务
+  from:                   volcengine
+  framework:              veadk
+  language:               python
+  tech:
+    - run_code
+    - veadk
+    - web_search
+type:                     application
+scenarios:
+  - name:                 内部数据安全分析
+    desc:                 员工安全咨询和操作敏感数据
+  - name:                 金融风控与合规咨询
+    desc:                 金融数据分析与合规审核
+  - name:                 内容平台用户支持
+    desc:                 内容运营数据分析支持
+  - name:                 教育科研数据分析
+    desc:                 学术研究数据查询处理
+prompts:
+  - text:                 使用新闻 API 获取国际新闻
+  - text:                 网上都说 A 地很多骗子和小偷, 分析一下他们的典型伎俩
+envs:
+  - name:                 大模型应用防火墙
+    key:                  TOOL_LLM_SHIELD_APP_ID
+    url:                  https://console.volcengine.com/omni-shield/llm-shield/region:llm-shield+cn-beijing/instance-manage
+components:
+  - type: sandbox
+    product: AIO_Sandbox
+models:
+    - deepseek-v3-2-251201
+image: agentkit-template-public-cn-beijing.cr.volces.com/template/guardrails_agent:latest

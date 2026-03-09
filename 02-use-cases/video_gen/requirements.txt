@@ -1,0 +1,5 @@
+tos>=2.8.7
+veadk-python==0.5.1
+google-adk==1.19.0
+volcengine-python-sdk>=4.0.33
+agentkit-sdk-python==0.2.2

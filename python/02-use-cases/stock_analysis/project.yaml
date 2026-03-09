@@ -1,0 +1,27 @@
+name:                     股票智能分析助手
+name_en:                  StockAnalysisAgent
+description:              这是一个基于火山引擎 AgentKit 构建的股票智能分析助手，专门协助用户进行股票走势分析及投资建议。
+details:                  这是一个基于火山引擎 VeADK & Agentkit 构建的股票智能分析助手，专门协助用户进行股票走势分析及投资建议。助手使用了火山引擎的 AIO Sandbox 和 联网问答 能力。
+tags:
+  industry:      金融
+  from:                   volcengine
+  framework:              veadk
+  language:               python
+  tech:
+    - AIO_Sandbox
+    - VeADK
+type:                     application
+scenarios:
+  - name:                 股票走势分析
+    desc:                 股票走势数据分析与汇总
+  - name:                 股票投资建议
+    desc:                 综合分析并给出投资建议
+prompts:
+  - text:                 帮我搜一下比亚迪近期股票数据，分析一下走势
+  - text:                 帮我搜一下宁德时代近期的股票走势, 并给我一个简单的投资建议
+components:
+  - type: sandbox
+    product: AIO_Sandbox
+models:
+  - deepseek-v3-2-251201
+image: agentkit-platform-2113735418-cn-beijing.cr.volces.com/agentkit/stock_analysis:v1.0.0

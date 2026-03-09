@@ -1,0 +1,21 @@
+repos:
+  # 基础文件检查
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace       # 删除行尾空格
+      - id: end-of-file-fixer         # 确保文件以换行结尾
+      - id: check-yaml                # YAML 语法检查
+      - id: check-toml                # TOML 语法检查
+      - id: check-merge-conflict      # 检查遗留的 merge 冲突标记
+      - id: check-added-large-files   # 拦截意外提交的大文件（>500KB）
+        args: ["--maxkb=500"]
+      - id: detect-private-key        # 检测私钥泄漏
+
+  # Ruff：Python lint + 格式化（替代 flake8 + isort + black）
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.10
+    hooks:
+      - id: ruff                      # lint 检查（自动修复安全问题）
+        args: ["--fix", "--exit-non-zero-on-fix"]
+      - id: ruff-format               # 格式化检查

@@ -1,0 +1,76 @@
+[extend]
+useDefault = true
+
+[[rules]]
+id = "aklt-key-pattern"
+description = "AKLT key pattern"
+regex = '''AKLT\w{40,70}'''
+
+[[rules]]
+id = "akap-key-pattern"
+description = "AKAP key pattern"
+regex = '''AKAP\w{40,70}'''
+
+[[rules]]
+id = "akip-key-pattern"
+description = "AKIP key pattern"
+regex = '''AKI\w{40,70}'''
+
+[[rules]]
+id = "token-transformer-id-pattern"
+description = "Tokenizer/Transformer/Token ID patterns"
+regex = '''(tokenizer|transformer|token_id|tokenid|attention_head).{0,20}'''
+
+[[rules]]
+id = "aws-style-key-pattern"
+description = "AWS-style key pattern"
+regex = '''(A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}'''
+
+[[rules]]
+id = "alibaba-ltai-pattern"
+description = "Alibaba LTAI key pattern"
+regex = '''(LTAI)[a-z0-9]{20}'''
+
+[[rules]]
+id = "aktp-key-pattern"
+description = "AKTP key pattern"
+regex = '''AKTP\w{40,70}'''
+
+[[rules]]
+id = "app-id-pattern"
+description = "App ID patterns"
+regex = '''([^*<\s|:>]{0,7})(app_id|appid)([^]()!<>;/@&,]{0,10}[(=:]\s{0,6}["']{0,1}[0-9]{6,32}["']{0,1})'''
+
+[[rules]]
+id = "byted-org-domains"
+description = "byted.org domains"
+regex = '''.{0,15}\.?byted.org.{0,20}'''
+
+[[rules]]
+id = "bytedance-net-domains"
+description = "bytedance.net domains"
+regex = '''.{0,15}\.?bytedance.net.{0,20}'''
+
+[[rules]]
+id = "feishu-cn-domains"
+description = "bytedance.feishu.cn domains"
+regex = '''.{0,20}.bytedance\.feishu\.cn.{0,50}'''
+
+[[rules]]
+id = "larkoffice-com-domains"
+description = "bytedance.larkoffice.com domains"
+regex = '''.{0,20}.bytedance\.larkoffice\.com.{0,50}'''
+
+[[rules]]
+id = "private-ip-10-range"
+description = "Private IP address pattern (10.x.x.x)"
+regex = '''(10\.\d{1,3}\.\d{1,3}\.\d{1,3})'''
+
+
+[[rules]]
+id = "empty-env-key-pattern"
+description = "Empty environment variables with KEY pattern"
+regex = '''os\.environ\[".*?KEY"\]\s*=\s*".+"'''
+
+[allowlist]
+paths = ["requirements.txt", "tests"]

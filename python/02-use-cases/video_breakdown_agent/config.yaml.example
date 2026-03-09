@@ -1,0 +1,115 @@
+# ============================================================
+# Video Breakdown Agent — config.yaml 配置模板
+# 复制此文件为 config.yaml 并填入真实值：
+#   cp config.yaml.example config.yaml
+#
+# 注意：推荐使用 .env 文件或系统环境变量（优先级更高）
+# 优先级：系统环境变量 > .env 文件 > config.yaml
+# 参考文档：https://volcengine.github.io/veadk-python/configuration/
+# ============================================================
+
+# ======================== 模型配置 ========================
+# VeADK 自动映射为标准环境变量：
+#   model.agent.name      → MODEL_AGENT_NAME
+#   model.agent.provider  → MODEL_AGENT_PROVIDER
+#   model.agent.api_base  → MODEL_AGENT_API_BASE
+#   model.agent.api_key   → MODEL_AGENT_API_KEY
+
+model:
+  agent:
+    provider: openai
+    name: doubao-seed-1-6-251015        # 主 Agent 推理模型
+    api_base: https://ark.cn-beijing.volces.com/api/v3/
+    api_key:                             # 填入方舟 API Key
+
+  # ==================== 视觉模型（LiteLLM 多 Provider 支持） ====================
+  # 用于分镜画面分析，通过 LiteLLM 统一路由
+  # → MODEL_VISION_NAME / MODEL_VISION_API_KEY / MODEL_VISION_API_BASE
+  #
+  # LiteLLM 模型名格式速查：
+  #   gemini/gemini-2.5-pro      → 直连 Google (需 GEMINI_API_KEY)
+  #   gemini-2.5-pro + api_base  → 通过 OneRouter 等 OpenAI 兼容代理
+  #   doubao-seed-1-6-251015     → 火山方舟 (需 api_base + api_key)
+  #   gpt-4o                     → OpenAI (需 OPENAI_API_KEY)
+  vision:
+    # 方案 A：直连 Google Gemini（推荐，1M+ context，无 tokens 超限问题）
+    # name: gemini/gemini-2.5-pro
+    # api_key:                           # 填入 Google AI Studio API Key
+
+    # 方案 B：通过 OneRouter 代理
+    # name: gemini-2.5-pro
+    # api_base: https://llm.onerouter.pro/v1
+    # api_key:                           # 填入 OneRouter API Key
+
+    # 方案 C：火山方舟豆包（tokens 限制较小，复杂视频可能超限）
+    name: doubao-seed-1-6-vision
+
+  # ==================== BGM 分析模型 ====================
+  # 用于背景音乐分析，需模型支持音频输入
+  # → MODEL_BGM_NAME / MODEL_BGM_API_KEY / MODEL_BGM_API_BASE
+  bgm:
+    # name: gemini/gemini-2.0-flash      # 推荐（原版配置）
+    # api_key:                            # 填入 Google AI Studio API Key
+    name: doubao-seed-1-6-251015          # 回退方案
+
+  # ==================== 格式化模型 ====================
+  # → MODEL_FORMAT_NAME
+  # 小模型，用于 JSON 格式校验，降低成本
+  format:
+    name: doubao-seed-1-6-250615
+
+# ==================== 火山引擎凭证 ====================
+# VeADK 自动映射：
+#   volcengine.access_key → VOLCENGINE_ACCESS_KEY
+#   volcengine.secret_key → VOLCENGINE_SECRET_KEY
+
+volcengine:
+  access_key:                            # 火山引擎 Access Key
+  secret_key:                            # 火山引擎 Secret Key
+
+# ==================== TOS 对象存储 ====================
+# 用于上传本地视频文件到 TOS
+# 对应标准环境变量：DATABASE_TOS_BUCKET / DATABASE_TOS_REGION
+# 注意：config.yaml 中通过 getenv("DATABASE_TOS_BUCKET") 读取
+
+database:
+  tos:
+    bucket: video-breakdown-uploads      # TOS 存储桶名称
+    region: cn-beijing                   # TOS 区域
+
+# ==================== FFmpeg 配置 ====================
+# FFmpeg 已通过 imageio-ffmpeg 自动打包在 Python 依赖中，无需手动安装
+# 如有系统 FFmpeg 会优先使用；以下配置可覆盖自动检测
+# 对应环境变量：FFMPEG_BIN / FFMPEG_FFPROBE_BIN / FFMPEG_FRAMES_PER_SEGMENT / FFMPEG_MEDIA_TEMP_DIR
+
+ffmpeg:
+  bin: ffmpeg                            # FFmpeg 可执行文件路径
+  ffprobe_bin: ffprobe                   # FFprobe 可执行文件路径
+  frames_per_segment: 3                  # 每个分镜采样帧数量
+  media_temp_dir: ./.media-cache         # 临时文件目录
+
+# ==================== 火山 ASR 配置 ====================
+# 语音识别（未配置时跳过，优雅降级）
+# 对应环境变量：VOLC_ASR_APP_ID / VOLC_ASR_ACCESS_KEY / VOLC_ASR_RESOURCE_ID
+
+asr:
+  app_id:                                # 火山引擎 ASR APP ID
+  access_key:                            # 火山引擎 ASR Access Key
+  resource_id: volc.bigasr.auc           # ASR 资源 ID
+
+# ==================== Thinking 配置 ====================
+# 控制每个 Agent 的推理模式：disabled / enabled
+# 对应环境变量：THINKING_ROOT_AGENT / THINKING_BREAKDOWN_AGENT 等
+
+thinking:
+  root_agent: disabled
+  breakdown_agent: disabled
+  hook_analyzer_agent: disabled
+  hook_format_agent: disabled
+  report_agent: disabled
+
+# ==================== 日志级别 ====================
+# DEBUG / INFO / WARNING / ERROR
+
+logging:
+  level: INFO

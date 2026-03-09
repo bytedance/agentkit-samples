@@ -1,0 +1,4 @@
+veadk-python==0.2.29
+agentkit-sdk-python==0.1.15
+google-adk==1.18.0
+urllib3<2.0.0
