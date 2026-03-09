@@ -1,6 +1,6 @@
 ---
 name: volcengine-supabase
-description: 使用火山引擎 Supabase 本地 CLI，帮助用户完成 Supabase 工作区与分支管理、SQL 查询与迁移、Edge Functions、Storage 和 TypeScript 类型生成等任务，可直接调用 uv run ./scripts/call_volcengine_supabase.py 获取实时结果。
+description: Manage Volcengine Supabase workspaces, branches, SQL queries, migrations, Edge Functions, Storage, and TypeScript type generation via a local CLI. Run uv run ./scripts/call_volcengine_supabase.py to get real-time results.
 metadata: {"clawdbot":{"emoji":"🧩","homepage":"https://www.volcengine.com/","requires":{"bins":["uv"],"env":["VOLCENGINE_ACCESS_KEY","VOLCENGINE_SECRET_KEY"]},"os":["darwin","linux"]},"openclaw":{"emoji":"🧩","homepage":"https://www.volcengine.com/","requires":{"bins":["uv"],"env":["VOLCENGINE_ACCESS_KEY","VOLCENGINE_SECRET_KEY"]},"os":["darwin","linux"]},"moltbot":{"emoji":"🧩","homepage":"https://www.volcengine.com/","requires":{"bins":["uv"],"env":["VOLCENGINE_ACCESS_KEY","VOLCENGINE_SECRET_KEY"]},"os":["darwin","linux"]}}
 ---
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Volcengine Supabase"
+  short_description: "Manage Volcengine Supabase workspaces, branches, databases, Edge Functions, and Storage"
+  default_prompt: "Use $volcengine-supabase to complete this Supabase task on Volcengine."
