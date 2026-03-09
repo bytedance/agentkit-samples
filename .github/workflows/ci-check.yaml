@@ -1,0 +1,79 @@
+name: agentkit-check
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Pull request number"
+        required: true
+
+jobs:
+  agentkit-launch:
+    runs-on: ubuntu-latest
+
+    env:
+      VOLCENGINE_ACCESS_KEY: ${{ secrets.VOLCENGINE_ACCESS_KEY }}
+      VOLCENGINE_SECRET_KEY: ${{ secrets.VOLCENGINE_SECRET_KEY }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ format('refs/pull/{0}/merge', github.event.inputs.pr_number) }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install AgentKit CLI
+        run: |
+          python -m pip install --upgrade pip
+          pip install agentkit-sdk-python
+
+      - name: Generate .env for CI
+        run: |
+          cat > .env << 'EOF'
+          EOF
+
+      - name: Resolve BASE/HEAD from PR number
+        if: github.event.inputs.pr_number != ''
+        env:
+          PR_NUMBER: ${{ github.event.inputs.pr_number }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python - << 'PY'
+          import json
+          import os
+          import urllib.request
+
+          repo = os.environ["GITHUB_REPOSITORY"]
+          pr_number = os.environ["PR_NUMBER"]
+          token = os.environ["GITHUB_TOKEN"]
+
+          url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}"
+          req = urllib.request.Request(
+              url,
+              headers={
+                  "Authorization": f"Bearer {token}",
+                  "Accept": "application/vnd.github+json",
+              },
+          )
+          with urllib.request.urlopen(req) as resp:
+              data = json.load(resp)
+
+          base_sha = data["base"]["sha"]
+          head_sha = data["head"]["sha"]
+
+          github_env = os.environ["GITHUB_ENV"]
+          with open(github_env, "a", encoding="utf-8") as f:
+              f.write(f"BASE_SHA={base_sha}\n")
+              f.write(f"HEAD_SHA={head_sha}\n")
+          PY
+
+      - name: Run main.py in changed use-case directories
+        env:
+          BASE_SHA: ${{ env.BASE_SHA }}
+          HEAD_SHA: ${{ env.HEAD_SHA }}
+        run: |
+          python -m workflow_utils.check_usecases
