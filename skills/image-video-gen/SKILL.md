@@ -1,6 +1,6 @@
 ---
 name: image-video-gen
-description: "根据文字描述生成视频，一个生成图片和视频的工作流技能。依赖 skills: web-search, image-generate, video-generate。注意：此 workflow 没有执行脚本，只是一个描述性的文档。"
+description: "根据文字描述生成视频，一个生成图片和视频的工作流技能。依赖 skills: volcengine-web-search, image-generate, video-generate。注意：此 workflow 没有执行脚本，只是一个描述性的文档。"
 license: Complete terms in LICENSE.txt
 ---
 
