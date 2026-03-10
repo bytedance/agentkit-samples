@@ -25,7 +25,7 @@ python ./scripts/call_volcengine_supabase.py <action> [options]
 
 ## 前置条件
 
-- 必需环境变量：`VOLCENGINE_ACCESS_KEY`、`VOLCENGINE_SECRET_KEY`
+- 必需环境变量：`VOLCENGINE_ACCESS_KEY`、`VOLCENGINE_SECRET_KEY`（如果在沙箱环境/vefaas IAM 环境下运行，将自动获取临时凭证，可不配置环境变量）
 - 可选环境变量：`VOLCENGINE_REGION`、`DEFAULT_WORKSPACE_ID`、`READ_ONLY`、`SUPABASE_WORKSPACE_SLUG`、`SUPABASE_ENDPOINT_SCHEME`
 - 若未配置依赖，可先执行：`uv pip install -r requirements.txt` 或 `pip install -r requirements.txt`
 

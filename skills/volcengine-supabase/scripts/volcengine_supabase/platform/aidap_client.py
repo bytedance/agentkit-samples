@@ -6,6 +6,7 @@ from typing import Any, Optional
 from ..config import (
     VOLCENGINE_ACCESS_KEY,
     VOLCENGINE_SECRET_KEY,
+    VOLCENGINE_SESSION_TOKEN,
     VOLCENGINE_REGION,
     get_branch_cache,
     get_branch_workspace_cache,
@@ -48,6 +49,8 @@ class AidapClient:
         configuration.ak = VOLCENGINE_ACCESS_KEY
         configuration.sk = VOLCENGINE_SECRET_KEY
         configuration.region = VOLCENGINE_REGION
+        if VOLCENGINE_SESSION_TOKEN:
+            configuration.session_token = VOLCENGINE_SESSION_TOKEN
 
         api_client = volcenginesdkcore.ApiClient(configuration)
         self.client = AIDAPApi(api_client)

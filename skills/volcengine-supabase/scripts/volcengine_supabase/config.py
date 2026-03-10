@@ -7,7 +7,24 @@ READ_ONLY = os.getenv("READ_ONLY", "false").lower() == "true"
 
 VOLCENGINE_ACCESS_KEY = os.getenv("VOLCENGINE_ACCESS_KEY")
 VOLCENGINE_SECRET_KEY = os.getenv("VOLCENGINE_SECRET_KEY")
+VOLCENGINE_SESSION_TOKEN = ""
 VOLCENGINE_REGION = os.getenv("VOLCENGINE_REGION", "cn-beijing")
+
+# 当环境变量未设置时，尝试从 vefaas IAM 获取凭证（沙箱环境）
+if not (VOLCENGINE_ACCESS_KEY and VOLCENGINE_SECRET_KEY):
+    try:
+        from veadk.auth.veauth.utils import get_credential_from_vefaas_iam
+    except ImportError:
+        get_credential_from_vefaas_iam = None
+
+    if get_credential_from_vefaas_iam:
+        try:
+            cred = get_credential_from_vefaas_iam()
+            VOLCENGINE_ACCESS_KEY = cred.access_key_id
+            VOLCENGINE_SECRET_KEY = cred.secret_access_key
+            VOLCENGINE_SESSION_TOKEN = cred.session_token
+        except Exception as e:
+            logger.warning(f"Failed to get credential from vefaas IAM: {e}")
 
 # 验证必需的环境变量
 if not VOLCENGINE_ACCESS_KEY:
