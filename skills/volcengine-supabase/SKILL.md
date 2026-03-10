@@ -100,6 +100,19 @@ uv run ./scripts/call_volcengine_supabase.py create-storage-bucket --workspace-i
 - `delete-storage-bucket`
 - `get-storage-config`
 
+## 应用开发参考
+
+在使用本 Skill 管理 Supabase 资源的同时，以下文档提供应用开发场景的指导：
+
+| 需求 | 文档 |
+|------|------|
+| 将 Supabase 接入 TS/Python 应用（SDK 初始化 + CRUD） | `references/app-integration-guide.md` |
+| 数据库表结构设计与迁移规范 | `references/schema-guide.md` |
+| 行级安全策略（RLS）配置 | `references/rls-guide.md` |
+| Edge Function 编写与部署 | `references/edge-function-dev-guide.md` |
+
+> 💡 **典型工作流**：先用 CLI 创建 workspace / 建表 / 配置 RLS，再参考应用开发文档在业务代码中集成 Supabase SDK。
+
 ## 注意事项
 
 - 默认遵循“先查后改”
@@ -112,3 +125,7 @@ uv run ./scripts/call_volcengine_supabase.py create-storage-bucket --workspace-i
 - 工具说明：`references/tool-reference.md`
 - 操作流程：`references/workflows.md`
 - SQL 示例：`references/sql-playbook.md`
+- 应用集成：`references/app-integration-guide.md`
+- Schema 设计：`references/schema-guide.md`
+- RLS 策略：`references/rls-guide.md`
+- Edge Function 开发：`references/edge-function-dev-guide.md`
