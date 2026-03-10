@@ -1,0 +1,28 @@
+[project]
+name = "ai-movie-studio"
+version = "0.1.0"
+description = "A multi-agent AI video production studio powered by AgentKit"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "cozeloop",
+    "google-adk==1.23.0",
+    "lark-oapi",
+    "numpy",
+    "opencv-python-headless",
+    "opentelemetry-api",
+    "opentelemetry-exporter-otlp",
+    "opentelemetry-sdk",
+    "Pillow",
+    "requests",
+    "starlette",
+    "tenacity",
+    "tos",
+    "uvicorn",
+    "veadk-python",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.0",
+]

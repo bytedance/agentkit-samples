@@ -1,0 +1,9 @@
+google-adk==1.23.0
+veadk-python
+requests
+uvicorn
+cozeloop
+tos
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-exporter-otlp
