@@ -30,7 +30,7 @@ User Story Idea
 Step 1: Load Config → Smart duration mode (4s~15s dynamic range)
 Step 2: Initialize Task Directory → Create isolated directory under COMIC_DRAMA_OUTPUT_DIR
   ↓ ⚠️ Content Safety Pre-screening
-Step 3: Screenplay Generation → web-search research + script writing + duration allocation
+Step 3: Screenplay Generation → byted-web-search research + script writing + duration allocation
 Step 4: Character Design → image-generate portraits (parallel)
 Step 5: Scene Art → image-generate storyboards (parallel)
 Step 6: Scene Videos → batch_video.py submit/poll (individual duration)

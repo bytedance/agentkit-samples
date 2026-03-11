@@ -1,6 +1,6 @@
 ---
 name: image-video-gen
-description: "根据文字描述生成视频，一个生成图片和视频的工作流技能。依赖 skills: web-search, image-generate, video-generate。注意：此 workflow 没有执行脚本，只是一个描述性的文档。"
+description: "根据文字描述生成视频，一个生成图片和视频的工作流技能。依赖 skills: byted-web-search, image-generate, video-generate。注意：此 workflow 没有执行脚本，只是一个描述性的文档。"
 license: Complete terms in LICENSE.txt
 ---
 
@@ -8,11 +8,11 @@ license: Complete terms in LICENSE.txt
 
 ## 描述
 
-这是一个用于生成图片和视频的智能体工作流。它协调 `web-search`, `image-generate`, 和 `video-generate` 工具来完成任务。
+这是一个用于生成图片和视频的智能体工作流。它协调 `byted-web-search`, `image-generate`, 和 `video-generate` 工具来完成任务。
 
 ## 依赖技能
 
-- [web-search](web-search/SKILL.md)
+- [byted-web-search](byted-web-search/SKILL.md)
 - [image-generate](image-generate/SKILL.md)
 - [video-generate](video-generate/SKILL.md)
 
@@ -20,8 +20,8 @@ license: Complete terms in LICENSE.txt
 
 1. **理解用户意图**：
    - 接收用户输入的文本描述。
-   - 如果用户输入是故事或情节，直接调用 `web-search` 工具获取背景信息。
-   - 如果用户输入为其他类型（如问题、请求），则先调用 `web-search` 工具 (最多调用2次)，找到合适的信息。
+   - 如果用户输入是故事或情节，直接调用 `byted-web-search` 工具获取背景信息。
+   - 如果用户输入为其他类型（如问题、请求），则先调用 `byted-web-search` 工具 (最多调用2次)，找到合适的信息。
 
 2. **生成图片**：
    - 根据准备好的背景信息，调用 `image-generate` 工具生成分镜图片。

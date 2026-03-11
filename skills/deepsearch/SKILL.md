@@ -10,13 +10,17 @@ license: Complete terms in LICENSE.txt
 
 深度研究代理系统社区版是一个基于工作流的深度研究系统，能够对复杂主题进行多轮迭代的网络搜索和综合分析。系统通过结合LLM智能分析和实时网络搜索，生成详细的研究报告。
 
+## 依赖技能
+
+- [byted-web-search](byted-web-search/SKILL.md)
+
 ## 工作流调用逻辑
 
 ### 系统架构
 
 本系统是一个工作流描述文档，没有执行脚本。依赖以下外部技能：
 
-- **web-search skill**: 用于执行网页搜索，运行脚本：`python scripts/web_search.py "<query>"`
+- **byted-web-search skill**: 执行网页搜索`
 - **LLM技能**: 用于智能分析和推理
 
 ### 工作流程
@@ -51,7 +55,7 @@ license: Complete terms in LICENSE.txt
 ##### c) 条件判断
 
 - 如果`shouldContinue`为True：
-  - 执行web-search：`python scripts/web_search.py "<nextSearchTopic>"`
+  - 执行byted-web-search：`python scripts/web_search.py "<nextSearchTopic>"`
   - 将搜索结果追加到findings数组
   - 更新搜索进度显示
   - 继续下一轮迭代
@@ -93,7 +97,7 @@ license: Complete terms in LICENSE.txt
 当需要进行网络搜索时：
 
 1. 使用`nextSearchTopic`作为查询参数
-2. 运行web-search技能：`python scripts/web_search.py "<query>"`
+2. 运行byted-web-search技能：`python scripts/web_search.py "<query>"`
 3. 根据返回的摘要列表组织答案，不新增或臆造内容
 4. 将搜索结果追加到`findings`数组
 
@@ -141,7 +145,7 @@ license: Complete terms in LICENSE.txt
 ### 集成特性
 
 1. **LLM集成**: 结合GPT-4o进行智能分析，deepseek-reasoner进行深度推理
-2. **网络搜索**: 集成web-search技能获取实时网络信息
+2. **网络搜索**: 集成byted-web-search技能获取实时网络信息
 3. **JSON处理**: 使用JSON解析工具处理结构化数据
 
 ## 工作流示例
@@ -207,7 +211,7 @@ license: Complete terms in LICENSE.txt
 ### 工作流限制
 
 1. **无执行脚本**: 本skill是一个工作流描述文档，不包含可执行脚本
-2. **外部依赖**: 依赖web-search技能执行实际搜索
+2. **外部依赖**: 依赖byted-web-search技能执行实际搜索
 3. **参数简化**: 搜索时仅使用query参数，忽略其他搜索配置
 
 ### 使用建议
@@ -238,4 +242,4 @@ license: Complete terms in LICENSE.txt
 
 ---
 
-**重要提示**: 本skill描述了一个深度研究工作流，实际执行需要依赖外部技能和配置。请确保已正确配置web-search技能和相关LLM服务。
+**重要提示**: 本skill描述了一个深度研究工作流，实际执行需要依赖外部技能和配置。请确保已正确配置byted-web-search技能和相关LLM服务。
