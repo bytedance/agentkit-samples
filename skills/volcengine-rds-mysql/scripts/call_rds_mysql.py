@@ -15,7 +15,10 @@ import os
 import sys
 import argparse
 import json
-from typing import Optional, Any, Dict
+import logging
+from typing import Optional, Any, Dict, Tuple
+
+logger = logging.getLogger(__name__)
 
 try:
     import volcenginesdkcore
@@ -33,6 +36,36 @@ except ImportError as e:
     )
     print(f"详细错误: {e}", file=sys.stderr)
     sys.exit(1)
+
+try:
+    from veadk.auth.veauth.utils import get_credential_from_vefaas_iam
+except ImportError:
+    get_credential_from_vefaas_iam = None
+
+
+def _get_credentials() -> Tuple[str, str, str]:
+    """获取火山引擎访问凭证，优先使用环境变量，其次尝试 vefaas IAM（沙箱环境）"""
+    access_key = os.getenv("VOLCENGINE_ACCESS_KEY")
+    secret_key = os.getenv("VOLCENGINE_SECRET_KEY")
+    session_token = ""
+
+    if not (access_key and secret_key) and get_credential_from_vefaas_iam:
+        try:
+            cred = get_credential_from_vefaas_iam()
+            access_key = cred.access_key_id
+            secret_key = cred.secret_access_key
+            session_token = cred.session_token
+        except Exception as e:
+            logger.warning(f"Failed to get credential from vefaas IAM: {e}")
+
+    if not access_key or not secret_key:
+        raise ValueError(
+            "未找到火山引擎访问凭证。请设置环境变量：\n"
+            "  VOLCENGINE_ACCESS_KEY\n"
+            "  VOLCENGINE_SECRET_KEY"
+        )
+
+    return access_key, secret_key, session_token
 
 
 class RDSMySQLClient:
@@ -53,20 +86,14 @@ class RDSMySQLClient:
 
     def _create_client(self) -> RDSMYSQLV2Api:
         """创建火山引擎 RDS MySQL 客户端"""
-        access_key = os.getenv("VOLCENGINE_ACCESS_KEY")
-        secret_key = os.getenv("VOLCENGINE_SECRET_KEY")
-
-        if not access_key or not secret_key:
-            raise ValueError(
-                "未找到火山引擎访问凭证。请设置环境变量:\n"
-                "  VOLCENGINE_ACCESS_KEY\n"
-                "  VOLCENGINE_SECRET_KEY"
-            )
+        access_key, secret_key, session_token = _get_credentials()
 
         configuration = volcenginesdkcore.Configuration()
         configuration.ak = access_key
         configuration.sk = secret_key
         configuration.region = self.region
+        if session_token:
+            configuration.session_token = session_token
         if self.endpoint:
             configuration.host = self.endpoint
 
@@ -76,13 +103,14 @@ class RDSMySQLClient:
 
     def _create_vpc_client(self) -> VPCApi:
         """创建火山引擎 VPC 客户端"""
-        access_key = os.getenv("VOLCENGINE_ACCESS_KEY")
-        secret_key = os.getenv("VOLCENGINE_SECRET_KEY")
+        access_key, secret_key, session_token = _get_credentials()
 
         configuration = volcenginesdkcore.Configuration()
         configuration.ak = access_key
         configuration.sk = secret_key
         configuration.region = self.region
+        if session_token:
+            configuration.session_token = session_token
 
         return VPCApi(volcenginesdkcore.ApiClient(configuration))
 
