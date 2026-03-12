@@ -1,0 +1,13 @@
+{
+  "skills": [
+    "volcengine-cloudsearch"
+  ],
+  "query": "Create a new ESCloud cluster for development in cn-beijing. I don't know what VPC/subnet/specs/versions are available. Walk me through it and only run the create once I confirm the final plan.",
+  "expected_behavior": [
+    "Uses the control plane workflow (CONTROL_PLANE.md) and runs discovery commands before proposing create inputs.",
+    "Runs: control.py versions (preferred), control.py vpc, control.py subnet --vpc-id <id>, control.py node_specs (and optionally zones) to gather valid options.",
+    "Presents a short set of recommended options (not an exhaustive dump) and asks the user to choose VPC/subnet/version/specs/password.",
+    "Does not run control.py create until the user explicitly confirms the final chosen parameters.",
+    "After create, runs control.py detail --id <id> and then offers ip_allowlist_set guidance if data endpoint is unreachable."
+  ]
+}

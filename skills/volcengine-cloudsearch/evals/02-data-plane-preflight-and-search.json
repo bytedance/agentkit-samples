@@ -1,0 +1,13 @@
+{
+  "skills": [
+    "volcengine-cloudsearch"
+  ],
+  "query": "Connect to my ESCloud endpoint and run a match_all search on index 'docs'. Endpoint: https://domain:9200. I can provide either basic auth or an API key.",
+  "expected_behavior": [
+    "Uses the data plane CLI (DATA_PLANE.md) and performs connectivity preflight with: data.py --endpoint <endpoint> info.",
+    "Asks the user to choose exactly one auth method (basic OR api-key OR bearer-token) and does not mix them.",
+    "If info fails, stops and suggests checking endpoint reachability, IP allowlist (control plane), and credentials.",
+    "If info succeeds, runs: data.py --endpoint <endpoint> search --index docs --query '{\"query\":{\"match_all\":{}}}' --from 0 --size 10.",
+    "If server is Elasticsearch 8.x and a request fails due to compatibility requirements, mentions limited 8.x support and suggests compatibility header/auth/security differences (per DATA_PLANE.md)."
+  ]
+}

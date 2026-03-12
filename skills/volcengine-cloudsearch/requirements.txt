@@ -1,0 +1,4 @@
+volcengine-python-sdk==5.0.12
+opensearch-py>=2.0.0
+requests==2.32.5
+

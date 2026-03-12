@@ -1,0 +1,5 @@
+version: 1
+name: volcengine-cloudsearch
+display_name: Volcengine ESCloud
+short_description: Manage Volcengine ESCloud (Elasticsearch/OpenSearch) instances and run index/doc operations.
+default_prompt: Manage Volcano Engine ESCloud (Elasticsearch + OpenSearch): provision/list/scale/delete instances via control plane, and run index/doc CRUD + search/bulk via data plane.
