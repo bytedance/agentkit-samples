@@ -27,7 +27,6 @@ jobs:
       - name: Check for Copybara commits and close PRs
         uses: actions/github-script@v8
         with:
-          github-token: ${{ secrets.TRIAGE_AGENT }}
           script: |
             // Check if this is a manual test run
             const isManualRun = context.eventName === 'workflow_dispatch';

@@ -20,11 +20,14 @@ Provides functionality to upload files or directories to Volcano Engine TOS obje
 import argparse
 import logging
 import os
+import requests
 import sys
 from datetime import datetime
 from pathlib import Path
+from pydantic import BaseModel
 from typing import Optional, Union
 
+from dotenv import load_dotenv
 import tos
 from tos import HttpMethodType
 
@@ -42,6 +45,58 @@ if not logger.handlers:
     formatter = logging.Formatter("%(message)s")
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
+
+
+def success_loaded_openclaw_dotenv() -> bool:
+    openclaw_env = Path("/root/.openclaw/.env")
+    # openclaw_env = Path(
+    #     "/Users/bytedance/workspace/agentkit/agentkit-samples/skills/.venv/.openclaw/.env"
+    # )
+    if openclaw_env.exists():
+        success = load_dotenv(openclaw_env)
+    logger.info(f"Successfully loaded environment variables from {openclaw_env}")
+    return success
+
+
+LOAD_OPENCLAW_DOTENV_SUCCESS = success_loaded_openclaw_dotenv()
+
+
+class VeIAMCredential(BaseModel):
+    access_key_id: str
+    secret_access_key: str
+    session_token: str
+
+
+def get_credential_from_service() -> VeIAMCredential:
+    """Get credential from credential service"""
+
+    endpoint = os.getenv("CREDENTIAL_SERVICE_ENDPOINT")
+    api_key = os.getenv("CREDENTIAL_SERVICE_API_KEY")
+
+    if not endpoint or not api_key:
+        logger.error(
+            "CREDENTIAL_SERVICE_ENDPOINT and CREDENTIAL_SERVICE_API_KEY environment variables must be set to fetch credentials from service."
+        )
+        return None
+
+    try:
+        response = requests.get(
+            url=f"{endpoint}/credential",
+            headers={"Authorization": f"Bearer {api_key}"},
+            timeout=5,
+        )
+        response.raise_for_status()
+        credential_data = response.json()["data"]
+        logger.info(f"Successfully fetched credentials from service {endpoint}.")
+        print(f"Credential data from service: {credential_data}")  # Debug output
+        return VeIAMCredential(
+            access_key_id=credential_data["access_key_id"],
+            secret_access_key=credential_data["secret_access_key"],
+            session_token=credential_data["session_token"],
+        )
+    except Exception as e:
+        logger.error(f"Failed to fetch credentials from service: {e}")
+        return None
 
 
 def identify_volc_env() -> str:
@@ -135,10 +190,22 @@ def upload_file_to_tos(
     session_token = session_token or ""
 
     if not (access_key and secret_key):
+        # First try to get credentials from Credential Service if environment variables are set
+        if os.getenv("CREDENTIAL_SERVICE_ENDPOINT") and os.getenv(
+            "CREDENTIAL_SERVICE_API_KEY"
+        ):
+            logger.info("Trying to fetch credentials from Credential Service...")
+            try:
+                cred = get_credential_from_service()
+                access_key = cred.access_key_id
+                secret_key = cred.secret_access_key
+                session_token = cred.session_token
+            except Exception as e:
+                logger.warning(f"Failed to get credential from Credential Service: {e}")
+
         if VOLC_ENV == "vefaas":
-            print("vefaas detected")
             if get_credential_from_vefaas_iam:
-                print("get_credential_from_vefaas_iam detected")
+                logger.info("Trying to fetch credentials from VeFaaS IAM...")
                 try:
                     cred = get_credential_from_vefaas_iam()
                     access_key = cred.access_key_id
@@ -153,7 +220,7 @@ def upload_file_to_tos(
 
     if not access_key or not secret_key:
         raise PermissionError(
-            "VOLCENGINE_ACCESS_KEY and VOLCENGINE_SECRET_KEY are not provided or IAM Role is not configured."
+            "VOLCENGINE_ACCESS_KEY and VOLCENGINE_SECRET_KEY are not provided or IAM Role  or Credential Service is not configured."
         )
 
     # Auto-generate object_key: upload/{session_prefix}/{filename}
@@ -286,6 +353,19 @@ def upload_directory_to_tos(
     session_token = session_token or ""
 
     if not (access_key and secret_key):
+        # First try to get credentials from Credential Service if environment variables are set
+        if os.getenv("CREDENTIAL_SERVICE_ENDPOINT") and os.getenv(
+            "CREDENTIAL_SERVICE_API_KEY"
+        ):
+            logger.info("Trying to fetch credentials from Credential Service...")
+            try:
+                cred = get_credential_from_service()
+                access_key = cred.access_key_id
+                secret_key = cred.secret_access_key
+                session_token = cred.session_token
+            except Exception as e:
+                logger.warning(f"Failed to get credential from Credential Service: {e}")
+
         if VOLC_ENV == "vefaas":
             if get_credential_from_vefaas_iam:
                 try:
@@ -302,7 +382,7 @@ def upload_directory_to_tos(
 
     if not access_key or not secret_key:
         logger.error(
-            "Error: VOLCENGINE_ACCESS_KEY and VOLCENGINE_SECRET_KEY are not provided or IAM Role is not configured."
+            "Error: VOLCENGINE_ACCESS_KEY and VOLCENGINE_SECRET_KEY are not provided or IAM Role or Credential Service is not configured."
         )
         return None
 
