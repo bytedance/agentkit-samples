@@ -1,0 +1,4 @@
+volcengine-python-sdk==5.0.12
+pymilvus[model]==2.6.9
+requests==2.32.5
+openai>=1.12.0
