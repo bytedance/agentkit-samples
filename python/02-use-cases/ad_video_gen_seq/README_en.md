@@ -48,7 +48,7 @@ The system exposes one Root Agent and orchestrates the following sub-agents in s
 Before starting, make sure your environment meets these requirements:
 
 - Python 3.12 or later
-- veadk-python 0.5.5 (see `pyproject.toml`)
+- veadk-python 0.5.22 (see `pyproject.toml`)
 - `uv` is recommended for dependency management
 - `ffmpeg` available locally (used by `moviepy` for video composition)
 - <a target="_blank" href="https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey">Get Volcengine Ark API KEY</a>
@@ -197,4 +197,3 @@ FAQ list to be added.
 ## License
 
 This project is open-sourced. See the LICENSE file in the repository root for details.
-
