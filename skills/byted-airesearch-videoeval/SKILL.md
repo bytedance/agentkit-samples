@@ -1,6 +1,6 @@
 ---
 name: byted-airesearch-videoeval
-description: Create and check long-running video material evaluation tasks. Use this skill when the user wants to submit videos for evaluation, check an existing video evaluation task list, or fetch the result of a previously created video evaluation task. This skill is not a general-purpose video upload skill: upload is allowed only as an internal step of task creation. Authentication uses an API key passed as an Authorization bearer token.
+description: Create and check long-running video material evaluation tasks. Use this skill when the user wants to submit videos for evaluation, check an existing video evaluation task list, or fetch the result of a previously created video evaluation task. This skill is not a general-purpose video upload skill because upload is allowed only as an internal step of task creation. Authentication uses an API key passed as an Authorization bearer token.
 license: Complete terms in LICENSE
 ---
 
