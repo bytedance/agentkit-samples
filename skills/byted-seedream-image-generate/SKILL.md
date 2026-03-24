@@ -206,6 +206,17 @@ asyncio.run(main())
 | **tools** | ❌ | ❌ | **✅** | Tool configuration (5.0-lite only) |
 | **output_format** | ❌ | ❌ | **✅** | Output format (png/jpeg, 5.0-lite only) |
 
+
+## Final Return Info
+You should return three types of information:
+1. File format, return the image file (if you have some other methods to send the image file) and the local path of the image, for example:
+local_path: /root/.openclaw/workspace/skills/image-generate/xxx.png
+2. After generation， show list of images with Markdown format, for example：
+```
+      ![generated-image-1](https://example.com/image1.png)
+      ![generated-image-2](https://example.com/image2.png)
+```
+
 ## FAQ
 
 ### Q: What's the difference between the versions?
