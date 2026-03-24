@@ -18,10 +18,8 @@
 官方文档：https://www.volcengine.com/docs/85508/1650263
 签名参考：https://github.com/volcengine/volc-openapi-demos/blob/main/signature/python/sign.py
 
-认证优先级：
-    1. WEB_SEARCH_API_KEY 环境变量或 --api-key
-    2. VOLCENGINE_ACCESS_KEY + VOLCENGINE_SECRET_KEY 环境变量
-    3. VeFaaS IAM 临时凭证（需 veadk-python 库）
+凭证（Claw 中优先）：拿 Key 后直接在聊天框发给我即可，无需编辑配置。
+认证优先级：1) WEB_SEARCH_API_KEY 或 --api-key  2) VOLCENGINE_ACCESS_KEY+SECRET_KEY  3) VeFaaS IAM
 
 示例：
     python web_search.py "北京天气"
@@ -39,6 +37,7 @@ import os
 import re
 import shlex
 import sys
+from pathlib import Path
 from typing import Optional
 from urllib.parse import quote
 
@@ -53,7 +52,18 @@ TRAFFIC_TAG_VALUE = "skill_web_search_common"
 TIME_RANGE_SHORTCUTS = {"OneDay", "OneWeek", "OneMonth", "OneYear"}
 DATE_RANGE_PATTERN = re.compile(r"^(\d{4}-\d{2}-\d{2})\.\.(\d{4}-\d{2}-\d{2})$")
 LEGACY_ENV_PATH = "/root/.openclaw/.env"
+USER_ENV_PATH = str(Path.home() / ".openclaw/.env")
 SUMMARY_PREVIEW_LIMIT = 1000
+ERROR_HINTS = {
+    "10400": "提示：参数错误。请检查 Query、Count、TimeRange 等参数格式是否正确。",
+    "10402": "提示：搜索类型非法。当前仅支持 web 或 image。",
+    "10403": "提示：账号或权限异常。请确认 API Key 来自联网搜索控制台，或检查账号权限。",
+    "10406": "提示：免费额度已耗尽。请检查账户额度或联系支持。",
+    "10407": "提示：当前无可用免费策略。请检查账户状态或联系支持。",
+    "10500": "提示：服务内部错误。建议稍后重试，或联系支持。",
+    "700429": "提示：免费链路触发限流。请降频后重试。",
+    "100013": "提示：子账号未授权 TorchlightApiFullAccess。",
+}
 
 
 # ---- 依赖加载 ----
@@ -97,6 +107,16 @@ def _load_legacy_env_file(env_path: str = LEGACY_ENV_PATH) -> None:
                 os.environ.setdefault(key, value)
     except OSError:
         return
+
+
+def _load_legacy_env_files() -> None:
+    seen_paths = set()
+    for env_path in (LEGACY_ENV_PATH, USER_ENV_PATH):
+        normalized = os.path.abspath(os.path.expanduser(env_path))
+        if normalized in seen_paths:
+            continue
+        seen_paths.add(normalized)
+        _load_legacy_env_file(normalized)
 
 
 # ---- 火山引擎 HMAC-SHA256 签名 (基于官方示例) ----
@@ -235,7 +255,7 @@ def _validate_time_range(time_range: Optional[str]) -> Optional[str]:
     match = DATE_RANGE_PATTERN.match(time_range)
     if not match:
         raise ValueError(
-            "--time-range 必须是 OneDay/OneWeek/OneMonth/OneYear，或日期区间 YYYY-MM-DD..YYYY-MM-DD。"
+            "--time-range 需为 OneDay/OneWeek/OneMonth/OneYear，或日期区间 YYYY-MM-DD..YYYY-MM-DD。"
         )
 
     start_text, end_text = match.groups()
@@ -243,7 +263,7 @@ def _validate_time_range(time_range: Optional[str]) -> Optional[str]:
         start_date = datetime.date.fromisoformat(start_text)
         end_date = datetime.date.fromisoformat(end_text)
     except ValueError as exc:
-        raise ValueError("--time-range 中的日期必须是有效的 YYYY-MM-DD。") from exc
+        raise ValueError("--time-range 中的日期需为有效的 YYYY-MM-DD。") from exc
 
     if start_date > end_date:
         raise ValueError("--time-range 的开始日期不能晚于结束日期。")
@@ -343,9 +363,15 @@ def format_output(data: dict, search_type: str) -> str:
 # ---- CLI ----
 
 def main():
-    _load_legacy_env_file()
+    _load_legacy_env_files()
+    # 尝试从 skill 根目录加载 .env（与 scripts/ 同级）
+    _skill_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    _load_legacy_env_file(os.path.join(_skill_root, ".env"))
 
-    parser = argparse.ArgumentParser(description="火山引擎联网搜索 API\nhttps://www.volcengine.com/docs/85508/1650263")
+    parser = argparse.ArgumentParser(
+        description="火山引擎联网搜索 API\nhttps://www.volcengine.com/docs/85508/1650263\n"
+        "凭证：Claw 中直接在聊天框发 Key 即可；或 WEB_SEARCH_API_KEY / --api-key"
+    )
     parser.add_argument("query", help="搜索关键词")
     parser.add_argument("--type", "-t", default="web", choices=["web", "image"])
     parser.add_argument("--count", "-c", type=int, default=5)
@@ -360,6 +386,16 @@ def main():
 
     args = parser.parse_args()
 
+    if not args.query or not args.query.strip():
+        print("Error: 请输入搜索词。", file=sys.stderr)
+        sys.exit(1)
+    if len(args.query) > 100:
+        print("Error: 搜索词超过 100 字符，API 可能截断。建议精简后重试。", file=sys.stderr)
+        sys.exit(1)
+
+    if args.count < 1:
+        print("Error: --count 需 ≥ 1。", file=sys.stderr)
+        sys.exit(1)
     if args.type == "image" and args.count > 5:
         print("Error: image 类型最多返回 5 条，请调整 --count。", file=sys.stderr)
         sys.exit(1)
@@ -384,8 +420,10 @@ def main():
         if not ak or not sk:
             print(
                 "Error: 未找到凭证。请配置以下任一方式：\n"
-                "1) API Key：设置 WEB_SEARCH_API_KEY 或传入 --api-key\n"
-                "2) AK/SK：设置 VOLCENGINE_ACCESS_KEY 和 VOLCENGINE_SECRET_KEY",
+                "1) 【推荐】若在 Claw 中使用：拿 Key 后直接在聊天框发给我即可，无需编辑配置\n"
+                "2) API Key：设置 WEB_SEARCH_API_KEY 或传入 --api-key\n"
+                "3) AK/SK：设置 VOLCENGINE_ACCESS_KEY 和 VOLCENGINE_SECRET_KEY\n"
+                "开通指南：references/setup-guide.md 或 SKILL.md",
                 file=sys.stderr,
             )
             sys.exit(1)
@@ -405,7 +443,22 @@ def main():
     except requests.exceptions.HTTPError as exc:
         print(f"HTTP Error: {exc}", file=sys.stderr)
         if exc.response is not None:
-            print(exc.response.text, file=sys.stderr)
+            status = exc.response.status_code
+            body = exc.response.text or ""
+            if status == 429:
+                print(
+                    "提示：请求频率过高触发限流，建议降频后重试。"
+                    "详见 references/setup-guide.md",
+                    file=sys.stderr,
+                )
+            elif status == 401 and ("InvalidAccessKey" in body or "invalid" in body.lower()):
+                print(
+                    "提示：AK/SK 无效或已失效。请检查 VOLCENGINE_ACCESS_KEY / VOLCENGINE_SECRET_KEY，"
+                    "或改用 API Key（Claw 中可直接在聊天框发给我）。详见 references/setup-guide.md",
+                    file=sys.stderr,
+                )
+            else:
+                print(body, file=sys.stderr)
         sys.exit(1)
     except Exception as exc:
         print(f"Error: {exc}", file=sys.stderr)
@@ -417,7 +470,24 @@ def main():
 
     error = (data.get("ResponseMetadata") or {}).get("Error")
     if error:
-        print(f"API Error [{error.get('Code')}]: {error.get('Message')}", file=sys.stderr)
+        code = error.get("Code", "")
+        msg = error.get("Message", "")
+        print(f"API Error [{code}]: {msg}", file=sys.stderr)
+        if str(code).lower() == "invalid_api_key" or "10403" in str(code):
+            print(
+                "提示：请确认 API Key 来自联网搜索控制台 https://console.volcengine.com/search-infinity/api-key ，"
+                "而非火山方舟(Ark)。若在 Claw 中，可重新在聊天框发正确的 Key 给我。详见 references/setup-guide.md",
+                file=sys.stderr,
+            )
+        elif "429" in str(code) or "flowlimit" in str(code).lower() or "100018" in str(code):
+            print(
+                "提示：请求频率过高触发限流，建议降频后重试。",
+                file=sys.stderr,
+            )
+        else:
+            hint = ERROR_HINTS.get(str(code))
+            if hint:
+                print(hint, file=sys.stderr)
         sys.exit(1)
 
     print(format_output(data, args.type))

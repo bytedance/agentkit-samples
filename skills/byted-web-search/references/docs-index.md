@@ -1,98 +1,48 @@
 # Byted Web Search 文档索引
 
-以下资料主要对应火山引擎融合信息搜索 API，是本 skill 依赖的底层文档。
+火山引擎联网搜索 API 文档，详见官网。
 
-所有文档均位于火山引擎官网。由于官网页面为动态渲染，部分内容无法静态抓取，建议直接在浏览器中访问。
-
-## 核心文档
+## 核心
 
 | 文档 | 链接 |
 |------|------|
-| **融合信息搜索API**（本skill对应的接口） | https://www.volcengine.com/docs/85508/1650263 |
-| 火山如意数据结构 | https://www.volcengine.com/docs/85508/1995628 |
-| 产品简介 | https://www.volcengine.com/docs/85508/1510774 |
-| 产品计费 | https://www.volcengine.com/docs/85508/1510784 |
-| 快速入门 | https://www.volcengine.com/docs/85508/1544858 |
+| 联网搜索API | https://www.volcengine.com/docs/85508/1650263 |
+| 新版 API 参考 | https://www.volcengine.com/docs/87772/2272953 |
+| 产品计费 | https://www.volcengine.com/docs/87772/2272951 |
+| 产品简介 | https://www.volcengine.com/docs/87772/2272949 |
+| 新功能发布记录 | https://www.volcengine.com/docs/87772/2272950 |
+| 火山如意数据结构 | https://www.volcengine.com/docs/87772/2272956 |
 
-## 操作指南
+## 控制台
 
-| 文档 | 链接 |
-|------|------|
-| 联网问答Agent操作指南 | https://www.volcengine.com/docs/85508/1512748 |
-| 知识库操作指南 | https://www.volcengine.com/docs/85508/1666937 |
-| 数据中心操作指南 | https://www.volcengine.com/docs/85508/1512697 |
+开通 https://console.volcengine.com/search-infinity/web-search | API Key https://console.volcengine.com/search-infinity/api-key
 
-## 鉴权与SDK
-
-| 文档 | 链接 |
-|------|------|
-| Access Key管理 | https://www.volcengine.com/docs/6291/65568 |
-| 签名方法 | https://www.volcengine.com/docs/6369/67269 |
-| 官方签名示例（Python） | https://github.com/volcengine/volc-openapi-demos/blob/main/signature/python/sign.py |
-| volcengine-python-sdk | https://github.com/volcengine/volcengine-python-sdk |
-| veadk-python（Agent开发工具包） | https://pypi.org/project/veadk-python/ |
-
-## 控制台入口
-
-| 入口 | 链接 |
-|------|------|
-| 联网搜索API开通 | https://console.volcengine.com/ask-echo/web-search |
-| 联网问答Agent控制台 | https://console.volcengine.com/ask-echo |
-
-## API 关键参数速查
-
-以下基于官方文档整理，详细说明见融合信息搜索API文档页面。当前脚本默认已支持 `web` / `image`、`count`、`time-range`、`auth-level`、`query-rewrite` 等常用参数；其中 `image` 搜索可通过 `--type image` 使用，且 `--count` 最多为 5。下表仍保留 API 原生字段，便于后续扩展。
-
-### 请求
-
-```
-POST https://mercury.volcengineapi.com?Action=WebSearch&Version=2025-01-01
-Content-Type: application/json
-Authorization: HMAC-SHA256 Credential=..., SignedHeaders=..., Signature=...
-```
-
-ServiceName: `volc_torchlight_api`, Region: `cn-beijing`
-
-### 请求体字段
-
-| 字段 | 类型 | 必须 | 说明 |
-|------|------|------|------|
-| Query | String | 是 | 搜索关键词，1~100字符 |
-| SearchType | String | 是 | `web` / `web_summary` / `image` |
-| Count | Number | 否 | 返回条数（web最多50，image最多5） |
-| NeedSummary | Boolean | 否 | 需要精准摘要（web_summary必须true） |
-| TimeRange | String | 否 | `OneDay` / `OneWeek` / `OneMonth` / `OneYear` / `YYYY-MM-DD..YYYY-MM-DD` |
-| Filter | Object | 否 | 当前脚本主要使用 `AuthInfoLevel` |
-| Industry | String | 否 | finance / game |
-| ContentFormats | String | 否 | Text / Markdown |
-| QueryControl.QueryRewrite | Boolean | 否 | 开启 Query 改写；当前脚本已通过 `--query-rewrite` 暴露 |
-
-### 响应体关键字段
+## 参数速查
 
 | 字段 | 说明 |
 |------|------|
-| Result.ResultCount | 结果数量 |
-| Result.WebResults[] | 网页搜索结果数组 |
-| Result.ImageResults[] | 图片搜索结果数组 |
-| Result.Choices[] | LLM总结内容（web_summary流式） |
-| Result.Usage | Token消耗（web_summary尾帧） |
-| Result.TimeCost | 耗时（毫秒） |
-| ResponseMetadata.Error | 错误信息（如有） |
+| Query | 1~100 字符（超长可能被截断） |
+| SearchType | web / image（本 skill 支持）；API 另有 web_summary |
+| Count | web 最多 50，image 最多 5 |
+| TimeRange | OneDay/OneWeek/OneMonth/OneYear 或 YYYY-MM-DD..YYYY-MM-DD |
+| QueryControl.QueryRewrite | --query-rewrite |
 
-### WebResults 单项字段
+## 错误码
 
-Title, SiteName, Url, Snippet, Summary, Content, PublishTime, RankScore, AuthInfoDes, AuthInfoLevel
+| 错误码 | 含义 | 建议处理 |
+|------|------|------|
+| invalid_api_key | API Key 无效 | 确认 Key 来自联网搜索控制台，非 Ark Key |
+| 401 InvalidAccessKey | AK/SK 无效 | 检查 AK/SK 是否正确或已失效 |
+| 10400 | 通用参数错误 | 检查 Query、Count、TimeRange 等参数格式 |
+| 10402 | 非法搜索类型 | 检查 `SearchType` / `--type` 是否为 `web` 或 `image` |
+| 10403 | 非法账号或无权限 | 检查账号、Key 或权限配置 |
+| 10406 | 免费额度已耗尽 | 检查账户额度或联系支持 |
+| 10407 | 当前无可用免费策略 | 检查账户状态或联系支持 |
+| 10500 | 默认内部错误 | 稍后重试，或联系支持 |
+| 700429 | 免费限流命中 | 降频后重试 |
+| 100013 | 子账号未授权 | 授权 `TorchlightApiFullAccess` |
+| 429 / FlowLimitExceeded(100018) | 请求频率过高 | 降频后重试 |
 
-### ImageResults 单项字段
+## 相关（凭证不通用）
 
-Title, SiteName, Url, PublishTime, Image.Url, Image.Width, Image.Height, Image.Shape
-
-### 错误码
-
-| 码 | 说明 |
-|----|------|
-| 10400 | 参数错误 |
-| 10402 | 非法搜索类型 |
-| 10403 | 权限错误 |
-| 10500 | 内部错误（可重试） |
-| 100013 | AccessDenied（子账号未授权） |
+火山方舟联网搜索（Ark 工具）：https://www.volcengine.com/docs/82379/1756990
