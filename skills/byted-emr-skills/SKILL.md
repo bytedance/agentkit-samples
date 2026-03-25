@@ -109,12 +109,65 @@ export VOLCENGINE_REGION="cn-beijing"
   - 查看会话详情：获取会话的详细信息，包括问题描述、回答内容、会话状态等。
 - 所有分析诊断会话和报告操作，请严格按照`references/emr_agent/emr_agent_guide.md`中的说明进行操作。
 
+## 3. EMR on ECS 集群管理
+- 支持对基于 ECS 的传统 Hadoop 集群进行全生命周期管理。
+### 如何管理集群
+- 功能列表
+  - 查看集群详情：获取集群基础信息、状态、计费类型、访问地址等，必须使用OpenAPI`GetCluster`查询集群详情。
+  - 集群列表：按条件筛选、分页查询，必须使用OpenAPI`ListClusters`查询集群列表。
+  - 更新集群属性：修改集群名称、描述等，必须使用OpenAPI`UpdateClusterAttribute`更新集群属性。
+- 所有集群管理操作详情，请严格按照`references/emr_on_ecs/cluster/emr_on_ecs_cluster_guide.md`中的说明进行操作。
+### 节点组管理
+- 功能列表
+  - 列出节点组：查看集群内的节点组（如 Master、Core、Task）及其配置，必须使用OpenAPI`ListNodeGroups`列出节点组列表。
+  - 更新节点组属性：修改节点组名称、实例规格（支持升级）、磁盘扩容，必须使用OpenAPI`UpdateNodeGroupAttribute`更新节点组属性。
+  - 节点列表：查看节点组内所有 ECS 实例的详细信息，必须使用OpenAPI`ListNodes`查询节点组内所有节点实例的详细信息。
+  - 扩容节点组磁盘：扩容指定节点组的磁盘容量，必须使用OpenAPI`ResizeNodeGroupDisk`扩容节点组磁盘。
+  - 更新节点组ECS规格：修改指定节点组的ECS实例规格，必须使用OpenAPI`UpdateNodeGroupEcsSpec`更新节点组ECS规格。
+- 所有节点组管理操作详情，请严格按照`references/emr_on_ecs/node_group/emr_on_ecs_node_group_guide.md`中的说明进行操作。
+### 应用管理
+- 功能列表
+  - 列出应用：查看集群已安装的大数据组件，必须使用OpenAPI`ListApplications`列出应用列表。
+  - 组件列表：查看每个服务的角色分布，必须使用OpenAPI`ListComponents`列出组件列表。
+  - 组件实例列表：查看每个组件的实例列表，必须使用OpenAPI`ListComponentInstances`列出组件实例的实例列表。
+  - 执行应用操作：对组件进行启动、停止、重启、滚动重启等操作，必须使用OpenAPI`RunApplicationAction`执行应用操作。
+- 所有应用管理操作详情，请严格按照`references/emr_on_ecs/application/emr_on_ecs_application_guide.md`中的说明进行操作。
+### 应用配置管理
+- 功能列表
+  - 配置文件列表：查看集群中指定应用的配置文件列表，必须使用OpenAPI`ListApplicationConfigFiles`列出应用配置文件列表。
+  - 配置文件详情：查看集群中指定应用的配置文件内容、修改时间等信息，必须使用OpenAPI`GetApplicationConfigFile`查询应用配置文件详情。
+  - 配置项列表：查看集群中指定应用的配置项列表，包括配置项名称、当前值、默认值等信息，必须使用OpenAPI`ListApplicationConfigs`列出应用配置项列表。
+  - 配置项修改历史列表：查看集群中指定应用的配置项修改历史列表，必须使用OpenAPI`ListApplicationConfigHistories`列出应用配置项修改历史列表。
+  - 修改配置项：修改集群中指定应用的配置项值，必须使用OpenAPI`UpdateApplicationConfig`更新应用配置项。
+- 所有应用配置管理操作详情，请严格按照`references/emr_on_ecs/application_config/emr_on_ecs_application_config_guide.md`中的说明进行操作。
+### 操作审计管理
+- 操作列表查询：查看集群中所有操作日志、支持分页查询，必须使用OpenAPI`ListOperations`列出操作列表。
+- 所有操作审计管理操作详情，请严格按照`references/emr_on_ecs/operation/emr_on_ecs_operation_guide.md`中的说明进行操作。
+### 用户管理
+- 功能列表
+  - 创建集群用户：为集群新增用户，需指定用户名、密码等信息，必须使用OpenAPI`CreateClusterUser`创建集群用户。
+  - 修改已创建用户信息：修改指定集群中已存在用户的用户组或描述信息，必须使用OpenAPI`UpdateClusterUser`更新集群用户信息。
+  - 获取集群用户列表：查询指定集群的用户信息列表，必须使用OpenAPI`ListClusterUsers`列出集群用户列表。
+  - 获取用户详情: 查询指定集群的详细用户信息，必须使用OpenAPI`GetClusterUsers`查询集群用户详情。
+  - 更新集群用户密码：修改指定集群中已存在用户的登录密码，必须使用OpenAPI`UpdateClusterUserPassword`更新集群用户密码。
+- 所有用户管理操作详情，请严格按照`references/emr_on_ecs/user/emr_on_ecs_user_guide.md`中的说明进行操作。
+### 用户组管理
+- 功能列表
+  - 获取集群用户组列表: 查询指定集群的用户组信息列表，必须使用OpenAPI`ListClusterUserGroups`列出集群用户组列表。
+  - 集群用户组详情: 查询指定集群的详细用户组信息，必须使用OpenAPI`GetClusterUserGroups`查询集群用户组详情。
+  - 创建集群用户组：为指定集群创建新的用户组，必须使用OpenAPI`CreateClusterUserGroup`创建集群用户组。
+  - 更新集群用户组：修改指定集群中已存在用户组的描述或成员信息，必须使用OpenAPI`UpdateClusterUserGroup`更新集群用户组。
+- 所有用户组管理操作详情，请严格按照`references/emr_on_ecs/user_group/emr_on_ecs_user_group_guide.md`中的说明进行操作。
+
+
 # Available Scripts
 - `scripts/on_serverless/emr_serverless_manager.py`：统一的 EMR Serverless OpenAPI 调用入口（manage_emr_serverless），用于队列/作业实例/计算组等运维类接口调用。
 - `scripts/config/config.py`: 封装EMR所用到的配置、SDK Client构造等。
 - `scripts/emr_agent/expert.py`：与 EMR Agent 交互，实现智能诊断和知识问答。
 - `scripts/emr_agent/emr_agent_manager.py`：获取EMR Agent的会话列表，报告列表等。
 - `scripts/bin/install_serverless_sdk.sh`：安装 EMR on Serverless 形态的 Python SDK，用于 Serverless 队列管理、作业提交等操作。
+- `scripts/on_ecs/emr_on_ecs_manager.py`：统一的 EMR on ECS 形态的 OpenAPI 调用入口（manage_emr_on_ecs），用于集群/节点组/应用等运维类接口调用。
+- `scripts/on_ecs/emr_on_ecs_cli.py`：EMR on ECS 形态的命令行工具，用于集群/节点组/应用等运维类接口调用。
 
 # References
 - `references/emr_serverless/queue/emr_serverless_queue_guide.md`：EMR on Serverless形态的资源队列详细管理操作指南
@@ -122,6 +175,13 @@ export VOLCENGINE_REGION="cn-beijing"
 - `references/emr_serverless/job/emr_serverless_job_guide.md`: EMR on Serverless形态的作业模板（即作业定义）管理操作指南
 - `references/emr_serverless/compute/emr_serverless_compute_guide.md`: EMR on Serverless形态的计算组详细管理操作指南
 - `references/emr_agent/emr_agent_guide.md`：EMR Agent 详细操作指南，包括问题分析、获取历史会话、获取历史诊断报告等。
+- `references/emr_on_ecs/cluster/emr_on_ecs_cluster_guide.md`：EMR on ECS 集群管理操作指南，包括集群列表查询、集群详情查询、更新集群属性等。
+- `references/emr_on_ecs/node_group/emr_on_ecs_node_group_guide.md`：EMR on ECS 节点组管理操作指南，包括节点组列表查询、节点组详情查询、更新节点组属性等。
+- `references/emr_on_ecs/application/emr_on_ecs_application_guide.md`：EMR on ECS 应用管理操作指南，包括应用列表查询、组件列表查询、组件实例列表查询、执行应用操作等。
+- `references/emr_on_ecs/application_config/emr_on_ecs_application_config_guide.md`：EMR on ECS 应用配置管理操作指南，包括配置文件列表查询、配置文件详情查询、配置项列表查询、配置项修改历史列表查询、修改配置项等。
+- `references/emr_on_ecs/operation/emr_on_ecs_operation_guide.md`：EMR on ECS 操作审计管理操作指南，包括操作列表查询等。
+- `references/emr_on_ecs/user/emr_on_ecs_user_guide.md`：EMR on ECS 用户管理操作指南，包括创建用户、修改用户信息、查询用户列表、查询用户详情、更新用户密码等。
+- `references/emr_on_ecs/group/emr_on_ecs_group_guide.md`：EMR on ECS 用户组管理操作指南，包括查询用户组列表、查询用户组详情、创建用户组、更新用户组等。
 
 # Assets
 - `assets/libs/python_serverless-1.*-py3-none-any.whl`: EMR on Serverless 形态的 Python SDK 包，用于 EMR Serverless 作业提交等操作。
