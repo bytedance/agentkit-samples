@@ -2,6 +2,7 @@
 """
 InfoQuest Search CLI (Python Version)
 AI-optimized web search using BytePlus InfoQuest API
+Supports both web search and image search
 """
 
 import os
@@ -17,6 +18,8 @@ def usage():
 Options:
   -s, --site <domain>     Search within specific site (e.g., github.com)
   -d, --days <number>     Search within last N days
+  -i, --image             Perform image search (default: web search)
+  -z, --image-size <size> Image size filter: l (large), m (medium), i (icon)
   -h, --help              Show this help message
 
 Examples:
@@ -24,6 +27,9 @@ Examples:
   python3 search.py "machine learning" -d 7
   python3 search.py "Python tutorials" -s github.com
   python3 search.py "latest news" -d 1
+  python3 search.py "cat" -i
+  python3 search.py "landscape" -i -z l
+  python3 search.py "logo" -i -z i -s github.com
 """)
     sys.exit(2)
 
@@ -48,8 +54,8 @@ def prepare_headers(api_key: str) -> Dict[str, str]:
     
     return headers
 
-def clean_results(raw_results: List[Dict]) -> List[Dict]:
-    """Clean and deduplicate search results"""
+def clean_web_results(raw_results: List[Dict]) -> List[Dict]:
+    """Clean and deduplicate web search results"""
     seen_urls = set()
     clean_results = []
     
@@ -95,10 +101,36 @@ def clean_results(raw_results: List[Dict]) -> List[Dict]:
     
     return clean_results
 
-def perform_search(query: str, api_key: str, site: str = '', days: int = -1) -> List[Dict]:
+def clean_image_results(raw_results: List[Dict]) -> List[Dict]:
+    """Clean and deduplicate image search results"""
+    seen_urls = set()
+    clean_results = []
+    
+    for content_list in raw_results:
+        content = content_list.get('content', {})
+        results = content.get('results', {})
+        
+        # Process images_results (not organic)
+        if 'images_results' in results:
+            for result in results['images_results']:
+                clean_result = {}
+                if 'title' in result:
+                    clean_result['title'] = result['title']
+                if 'original' in result:
+                    clean_result['image_url'] = result['original']
+                
+                url = clean_result.get('image_url')
+                if url and url not in seen_urls:
+                    seen_urls.add(url)
+                    clean_results.append(clean_result)
+    
+    return clean_results
+
+def perform_web_search(query: str, api_key: str, site: str = '', days: int = -1) -> List[Dict]:
     """Perform web search using InfoQuest API"""
     headers = prepare_headers(api_key)
     params = {
+        'search_type': 'Web',
         'format': 'JSON',
         'query': query
     }
@@ -122,14 +154,58 @@ def perform_search(query: str, api_key: str, site: str = '', days: int = -1) -> 
         
         if 'search_result' in data:
             results = data['search_result'].get('results', [])
-            return clean_results(results)
+            return clean_web_results(results)
         elif 'content' in data:
             raise ValueError('web search API returned wrong format')
         else:
             return data
             
     except requests.exceptions.RequestException as e:
-        raise Exception(f"Search failed: {str(e)}")
+        raise Exception(f"Web search failed: {str(e)}")
+    except json.JSONDecodeError as e:
+        raise Exception(f"Invalid JSON response: {str(e)}")
+
+def perform_image_search(query: str, api_key: str, site: str = '', days: int = -1, image_size: str = '') -> List[Dict]:
+    """Perform image search using InfoQuest API"""
+    headers = prepare_headers(api_key)
+    params = {
+        'search_type': 'Images',
+        'format': 'JSON',
+        'query': query
+    }
+    
+    if days > 0:
+        params['time_range'] = days
+    
+    if site:
+        params['site'] = site
+    
+    if image_size:
+        if image_size not in ['l', 'm', 'i']:
+            raise ValueError("image_size must be 'l' (large), 'm' (medium), or 'i' (icon)")
+        params['image_size'] = image_size
+    
+    try:
+        response = requests.post(
+            'https://search.infoquest.bytepluses.com',
+            headers=headers,
+            json=params,
+            timeout=30
+        )
+        
+        response.raise_for_status()
+        data = response.json()
+        
+        if 'search_result' in data:
+            results = data['search_result'].get('results', [])
+            return clean_image_results(results)
+        elif 'content' in data:
+            raise ValueError('image search API returned wrong format')
+        else:
+            return data
+            
+    except requests.exceptions.RequestException as e:
+        raise Exception(f"Image search failed: {str(e)}")
     except json.JSONDecodeError as e:
         raise Exception(f"Invalid JSON response: {str(e)}")
 
@@ -143,12 +219,17 @@ def main():
   %(prog)s "machine learning" -d 7
   %(prog)s "Python tutorials" -s github.com
   %(prog)s "latest news" -d 1
+  %(prog)s "cat" -i
+  %(prog)s "landscape" -i -z l
+  %(prog)s "logo" -i -z i -s github.com
 """
     )
     
     parser.add_argument('query', help='Search query')
     parser.add_argument('-s', '--site', help='Search within specific site (e.g., github.com)', default='')
     parser.add_argument('-d', '--days', type=int, help='Search within last N days', default=-1)
+    parser.add_argument('-i', '--image', action='store_true', help='Perform image search (default: web search)')
+    parser.add_argument('-z', '--image-size', help="Image size filter: l (large), m (medium), i (icon)", default='')
     
     args = parser.parse_args()
     
@@ -156,15 +237,30 @@ def main():
     api_key = check_api_key()
     
     try:
-        # Perform search
-        results = perform_search(args.query, api_key, args.site, args.days)
-        
-        # Output results
-        output = {
-            'query': args.query,
-            'count': len(results),
-            'results': results
-        }
+        if args.image:
+            # Perform image search
+            results = perform_image_search(args.query, api_key, args.site, args.days, args.image_size)
+            search_type = 'image'
+            
+            # Output image search results
+            output = {
+                'query': args.query,
+                'total_results': len(results),
+                'results': results,
+                'usage_hint': "Use the 'image_url' values as reference images in image generation. Download them first if needed."
+            }
+        else:
+            # Perform web search
+            results = perform_web_search(args.query, api_key, args.site, args.days)
+            search_type = 'web'
+            
+            # Output web search results
+            output = {
+                'query': args.query,
+                'search_type': search_type,
+                'count': len(results),
+                'results': results
+            }
         
         print(json.dumps(output, indent=2, ensure_ascii=False))
         
