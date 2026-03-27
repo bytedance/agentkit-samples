@@ -1,0 +1,21 @@
+{
+  "name": "byted-mediakit-videoedit-template",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "start": "node ./node_modules/@remotion/cli/remotion-cli.js preview src/index.tsx",
+    "render": "node render.mjs"
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.0",
+    "@remotion/renderer": "4.0.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "remotion": "4.0.0"
+  },
+  "devDependencies": {
+    "@remotion/cli": "4.0.0",
+    "@types/react": "18.2.64",
+    "@types/react-dom": "18.2.25"
+  }
+}
