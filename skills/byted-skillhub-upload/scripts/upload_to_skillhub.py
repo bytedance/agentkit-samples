@@ -27,6 +27,13 @@ def _setup_logging(verbose: bool) -> None:
     )
 
 
+def _normalize_api_base(api_base: str) -> str:
+    formatted = api_base.strip()
+    if not formatted.startswith("http://") and not formatted.startswith("https://"):
+        formatted = f"http://{formatted}"
+    return formatted.rstrip("/")
+
+
 def _read_env() -> Tuple[str, str, Optional[str]]:
     api_host = os.getenv("ARK_SKILL_API_BASE")
     api_key = os.getenv("ARK_SKILL_API_KEY")
@@ -38,11 +45,11 @@ def _read_env() -> Tuple[str, str, Optional[str]]:
         sid = None
     logger.info(
         "读取环境变量: api_base=%s skill_space_id=%s api_key_len=%s",
-        api_host.strip(),
+        _normalize_api_base(api_host),
         sid or "-",
         len(api_key.strip()),
     )
-    return api_host.strip(), api_key.strip(), sid
+    return _normalize_api_base(api_host), api_key.strip(), sid
 
 
 def _sanitize_filename(name: str) -> str:
@@ -252,7 +259,7 @@ def create_skill(
     skill_space_ids: List[str],
     zip_bytes: bytes,
 ) -> CreateSkillResponse:
-    url = f"http://{api_host}/CreateSkill"
+    url = f"{api_host}/CreateSkill"
     logger.info(
         "准备上传: name=%s description=%s skill_spaces=%s zip_bytes=%s",
         name,

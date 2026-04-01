@@ -10,6 +10,13 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
 
+def _normalize_api_base(api_base: str) -> str:
+    formatted = api_base.strip()
+    if not formatted.startswith("http://") and not formatted.startswith("https://"):
+        formatted = f"http://{formatted}"
+    return formatted.rstrip("/")
+
+
 def _read_env() -> Tuple[str, str, Optional[str]]:
     api_host = os.getenv("ARK_SKILL_API_BASE")
     api_key = os.getenv("ARK_SKILL_API_KEY")
@@ -19,7 +26,7 @@ def _read_env() -> Tuple[str, str, Optional[str]]:
     sid = skill_space_id.strip() if skill_space_id else None
     if not sid:
         sid = None
-    return api_host.strip(), api_key.strip(), sid
+    return _normalize_api_base(api_host), api_key.strip(), sid
 
 
 def _post_json(
@@ -57,7 +64,7 @@ def _sanitize_name(name: str) -> str:
 def list_skills(
     api_host: str, api_key: str, skill_space_id: Optional[str], name: str
 ) -> Dict[str, Any]:
-    url = f"http://{api_host}/ListSkills"
+    url = f"{api_host}/ListSkills"
     filter_obj: Dict[str, Any] = {"Name": name}
     if skill_space_id:
         filter_obj["SkillSpaceId"] = skill_space_id
@@ -144,7 +151,7 @@ def extract_version_info(skill: Dict[str, Any]) -> Tuple[Optional[str], Optional
 def download_skill(
     api_host: str, api_key: str, skill_id: str, version_id: Optional[str]
 ) -> Tuple[bytes, Dict[str, str]]:
-    url = f"http://{api_host}/DownloadSkill"
+    url = f"{api_host}/DownloadSkill"
     payload: Dict[str, Any] = {"SkillId": skill_id, "IsPreview": False}
     if version_id:
         payload["SkillVersionId"] = version_id
