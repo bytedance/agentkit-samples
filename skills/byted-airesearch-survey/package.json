@@ -1,0 +1,110 @@
+{
+  "name": "byted-airesearch-survey",
+  "version": "0.1.7",
+  "agentkit_version": "0.1.7",
+  "license": "Apache-2.0",
+  "libraclaw": {
+    "type": "skill",
+    "skill_file": "SKILL.md",
+    "tools": [
+      {
+        "name": "ai_research_message",
+        "description": "Send one conversational AI research message to ABCompass and keep the session state.",
+        "entry_point": "scripts/ai_research_message.py",
+        "runtime": "python3",
+        "timeout": 150,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "message"
+          ],
+          "properties": {
+            "message": {
+              "type": "string",
+              "description": "The latest user message in the current research conversation."
+            },
+            "session_id": {
+              "type": "string",
+              "description": "Optional explicit session id. If omitted, the tool reuses local session state."
+            },
+            "research_method": {
+              "type": "string",
+              "enum": [
+                "qualitative",
+                "quantitative"
+              ],
+              "description": "Optional preferred research method for the first round."
+            },
+            "language": {
+              "type": "string",
+              "enum": [
+                "zh",
+                "en",
+                "auto"
+              ],
+              "description": "Optional output language passed to ABCompass."
+            },
+            "app_id": {
+              "type": "integer",
+              "description": "Optional ABCompass app id."
+            },
+            "api_key": {
+              "type": "string",
+              "description": "Optional AI Research API Key for first-time binding or explicit override."
+            },
+            "source_channel": {
+              "type": "string",
+              "description": "Optional source channel override. Defaults to skill in the AgentKit wrapper."
+            },
+            "request_kind": {
+              "type": "string",
+              "description": "Optional structured intent for this turn, such as new_request, revise, confirm_execute, query_status, query_result, query_plan, or expand_plan_detail."
+            },
+            "industry_hint": {
+              "type": "string",
+              "description": "Optional normalized industry resolved by the host model before calling the backend. Must be one of the directly executable industries."
+            },
+            "normalized_message": {
+              "type": "string",
+              "description": "Optional rewritten message that keeps the original intent but normalizes the industry/product wording before backend execution."
+            },
+            "host_capabilities": {
+              "type": "object",
+              "description": "Optional host capability declaration used to negotiate rendering and follow-up actions.",
+              "properties": {
+                "verbatim_markdown": {
+                  "type": "boolean"
+                },
+                "structured_actions": {
+                  "type": "boolean"
+                },
+                "clickable_links": {
+                  "type": "boolean"
+                },
+                "scheduled_followup": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "response_mode": {
+              "type": "string",
+              "enum": [
+                "sync_deferred",
+                "sync_blocking"
+              ],
+              "description": "Optional backend response mode. Claw should default to sync_deferred instead of stream."
+            },
+            "status_only": {
+              "type": "boolean",
+              "description": "Query /survey/skill/status directly for the current session instead of sending a new conversational turn."
+            },
+            "force_new_session": {
+              "type": "boolean",
+              "description": "Start a fresh research conversation instead of continuing the current session."
+            }
+          }
+        }
+      }
+    ]
+  }
+}

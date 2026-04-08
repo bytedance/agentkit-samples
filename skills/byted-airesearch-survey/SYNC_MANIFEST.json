@@ -1,0 +1,86 @@
+{
+  "generator": "scripts/sync_agentkit_samples_ai_research_skill.py",
+  "production_profile": {
+    "name": "agentkit_prod_sync_v1",
+    "sync_transport": "sync_only",
+    "core_runtime_shared": true,
+    "runtime_profile_path": "runtime_profile.json",
+    "debug_features_disabled": true,
+    "ppe_headers_disabled": true
+  },
+  "source_repo": "ABCompass",
+  "source_commit": "682afa6d675d10bf324ac451fd454eeb6bce88ef",
+  "source_skill_root": "skill_packages/ai-research",
+  "target_repo": "volcengine-agentkit-samples",
+  "target_skill_dir": "skills/byted-airesearch-survey",
+  "target_skill_name": "byted-airesearch-survey",
+  "target_version": "0.1.7",
+  "source_version": "1.9.0",
+  "files": {
+    "LICENSE": {
+      "sha256": "d5a7e465346a07d010e5dbde661c1d6c0cf0c18b27fb2748caee01890b20e22b",
+      "source": "skill_packages/ai-research/LICENSE",
+      "mode": "copy"
+    },
+    "SKILL.md": {
+      "sha256": "145eb3b6558e4a51928264bcab9a9b8f2c71f76d80fa602220280a6c74b333cb",
+      "source": "skill_packages/ai-research/sync_targets/volcengine-agentkit-samples/SKILL.md",
+      "mode": "overlay"
+    },
+    "agents/openai.yaml": {
+      "sha256": "4e26a8bd7b0ab921e5fea1625e5ce949d34138acf2eb41a101ea9857b5c97c3d",
+      "source": "skill_packages/ai-research/sync_targets/volcengine-agentkit-samples/agents/openai.yaml",
+      "mode": "overlay"
+    },
+    "build_info.json": {
+      "sha256": "7dbcc05328b7cb2c28c6a2b012f49692a862b0306db86df4a9ab69a2d2a789fc",
+      "source": "generated",
+      "mode": "generated"
+    },
+    "package.json": {
+      "sha256": "2e6e87df39aaa56b4c60ebe8de6fbf9fcd6d16f53fe6e5450b2c81b1d0f1789e",
+      "source": "skill_packages/ai-research/package.json",
+      "mode": "transform"
+    },
+    "references/industries.md": {
+      "sha256": "f4297c86ee2ae7b0186041b13dbb1315b28bbcd62ffa026b1622841aea3ca5b7",
+      "source": "skill_packages/ai-research/references/industries.md",
+      "mode": "copy"
+    },
+    "references/session-events.md": {
+      "sha256": "a01da4ea22f85e48f739e540ad70319bbf032c4b07891f4bfd5218f172622b79",
+      "source": "skill_packages/ai-research/references/session-events.md",
+      "mode": "copy"
+    },
+    "references/status-response-rules.md": {
+      "sha256": "1745e59da7ee28a455f14b29152e05a05fdfc1e88c428fbb9c8ebd7e7fd07eeb",
+      "source": "skill_packages/ai-research/references/status-response-rules.md",
+      "mode": "copy"
+    },
+    "references/user-facing-messages.md": {
+      "sha256": "a00f38adf8728954bd89007dd15e725e971abf49f5a81a4d86f6b988ea0fe0b9",
+      "source": "skill_packages/ai-research/sync_targets/volcengine-agentkit-samples/references/user-facing-messages.md",
+      "mode": "overlay"
+    },
+    "runtime_profile.json": {
+      "sha256": "c5a32466c91a4b4fd2f529986098e5e75236c3c3be2597a02628bddc6589781c",
+      "source": "skill_packages/ai-research/sync_targets/volcengine-agentkit-samples/runtime_profile.json",
+      "mode": "overlay"
+    },
+    "scripts/ai_research_common.py": {
+      "sha256": "17293c91ee5327974aa5183d68bc393423462defb293490347a742adaaea318d",
+      "source": "skill_packages/ai-research/tools/ai_research_common.py",
+      "mode": "copy"
+    },
+    "scripts/ai_research_message.py": {
+      "sha256": "d31207c8cfea1fe0724d41cc62f05bd37ad84322ced30e1b8bd88d364c84ac49",
+      "source": "skill_packages/ai-research/tools/ai_research_message.py",
+      "mode": "copy"
+    },
+    "scripts/send_survey_message.py": {
+      "sha256": "2d5c4cdb4f1b8026df7367f4cd90f36f15c2402ba7aff56369d3db44e64a550c",
+      "source": "skill_packages/ai-research/sync_targets/volcengine-agentkit-samples/scripts/send_survey_message.py",
+      "mode": "overlay"
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "profile_name": "production",
+  "default_source_channel": "skill",
+  "default_state_path": "~/.volcengine-agentkit/byted-airesearch-survey/session_state.json",
+  "extra_headers": {},
+  "user_safe_failure_markdown": "当前服务暂时不可用，我这次没能发起调研。你可以稍后重试，或者改成主动查询当前进展。",
+  "allowed_response_modes": [
+    "sync_deferred",
+    "sync_blocking"
+  ],
+  "env_aliases": {
+    "base_url": [
+      "BYTED_AI_RESEARCH_SURVEY_BASE_URL"
+    ],
+    "status_url": [
+      "BYTED_AI_RESEARCH_SURVEY_STATUS_URL"
+    ],
+    "credential": [
+      "BYTED_AI_RESEARCH_SURVEY_API_KEY"
+    ],
+    "source_channel": [
+      "BYTED_AI_RESEARCH_SURVEY_SOURCE_CHANNEL"
+    ],
+    "state_path": [
+      "BYTED_AI_RESEARCH_SURVEY_STATE_PATH"
+    ],
+    "request_timeout": [
+      "BYTED_AI_RESEARCH_SURVEY_REQUEST_TIMEOUT_SECONDS"
+    ],
+    "poll_timeout": [
+      "BYTED_AI_RESEARCH_SURVEY_POLL_TIMEOUT_SECONDS"
+    ],
+    "poll_interval": [
+      "BYTED_AI_RESEARCH_SURVEY_POLL_INTERVAL_SECONDS"
+    ]
+  },
+  "features": {
+    "debug_query": false,
+    "persist_request_debug": false
+  }
+}
