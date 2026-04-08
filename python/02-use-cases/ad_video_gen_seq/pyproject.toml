@@ -5,7 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "veadk-python==0.5.5",
+    "veadk-python==0.5.22",
     "uvicorn>=0.38.0",
     "moviepy>=2.2.1",
     "requests>=2.32.5",
