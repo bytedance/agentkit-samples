@@ -1,0 +1,15 @@
+[project]
+name = "smart-car-selector"
+version = "0.1.0"
+description = "Unified car selection assistant built with AgentKit"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { file = "LICENSE" }
+dependencies = [
+  "google-adk",
+  "agentkit-sdk-python>=0.4.2",
+  "veadk-python",
+  "requests",
+  "uvicorn",
+  "cozeloop",
+]
