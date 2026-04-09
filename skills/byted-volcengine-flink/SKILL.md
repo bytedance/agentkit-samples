@@ -19,11 +19,7 @@ license: Complete terms in LICENSE
 可按你的 Python 环境选择任一方式安装：
 
 ```bash
-# 方式一：pipx（推荐，隔离环境）
-pipx install mcporter
-
-# 方式二：pip
-pip install -U mcporter
+npm install -g mcporter
 ```
 
 安装后验证：
@@ -74,7 +70,8 @@ export VOLCENGINE_PROJECT_NAME="your-flink-project"
         "VOLCENGINE_ACCESS_KEY": "${VOLCENGINE_ACCESS_KEY}",
         "VOLCENGINE_SECRET_KEY": "${VOLCENGINE_SECRET_KEY}",
         "VOLCENGINE_REGION": "${VOLCENGINE_REGION}",
-        "VOLCENGINE_PROJECT_NAME": "${VOLCENGINE_PROJECT_NAME}"
+        "VOLCENGINE_PROJECT_NAME": "${VOLCENGINE_PROJECT_NAME}",
+        "UV_INDEX_URL": "https://mirrors.ivolces.com/pypi/simple/"
       }
     }
   }
