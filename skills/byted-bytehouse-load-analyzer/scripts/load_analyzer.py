@@ -33,6 +33,51 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 
+def is_cdw_environment():
+    """检测是否为CDW环境
+    根据BYTEHOUSE_HOST判断：
+    - CDW: tenant-xxxx-cn-shanghai-public.bytehouse.volces.com
+    - CE: xxxx-public.bytehouse-ce.volces.com
+    """
+    host = os.environ.get('BYTEHOUSE_HOST', '')
+    return '.bytehouse.volces.com' in host and '.bytehouse-ce.volces.com' not in host
+
+
+def get_system_table_name(table_name):
+    """根据环境返回正确的系统表名
+    """
+    if is_cdw_environment():
+        table_mapping = {
+            'query_log': 'bh_system.query_log',
+            'processes': 'system.processes',
+            'parts': 'system.cnch_parts_info'
+        }
+        return table_mapping.get(table_name, table_name)
+    else:
+        return f'system.{table_name}'
+
+
+def get_parts_table_columns():
+    """根据环境返回parts表的正确字段名
+    """
+    if is_cdw_environment():
+        # CDW system.cnch_parts_info 表字段
+        return {
+            'rows': 'total_rows_count',
+            'bytes': 'total_parts_size',
+            'active': 'ready_state',
+            'active_condition': "ready_state = 'Loaded'"
+        }
+    else:
+        # CE system.parts 表字段
+        return {
+            'rows': 'rows',
+            'bytes': 'bytes',
+            'active': 'active',
+            'active_condition': 'active'
+        }
+
+
 async def run_load_analysis():
     """运行负载分析"""
     print("=" * 80)
@@ -80,115 +125,141 @@ async def run_load_analysis():
             # 1. 获取查询负载统计
             print("\n1️⃣  获取查询负载统计...")
             try:
-                sql = """
-                    SELECT 
-                        count(*) as query_count,
-                        avg(query_duration_ms) as avg_duration_ms,
-                        max(query_duration_ms) as max_duration_ms,
-                        sum(read_rows) as total_read_rows,
-                        sum(read_bytes) as total_read_bytes,
-                        sum(written_rows) as total_written_rows,
-                        sum(written_bytes) as total_written_bytes
-                    FROM system.query_log
-                    WHERE 
-                        type = 'QueryFinish'
-                        AND event_time > now() - interval 1 hour
-                """
-                result = await session.call_tool("run_select_query", {"query": sql})
+                query_log_table = get_system_table_name('query_log')
+                if not query_log_table:
+                    print("   ℹ️  环境不支持查询日志表")
+                    analysis["query_load"] = {
+                        "time_range": "last_1_hour",
+                        "stats": "Not supported in this environment"
+                    }
+                else:
+                    sql = f"""
+                        SELECT 
+                            count(*) as query_count,
+                            avg(query_duration_ms) as avg_duration_ms,
+                            max(query_duration_ms) as max_duration_ms,
+                            sum(read_rows) as total_read_rows,
+                            sum(read_bytes) as total_read_bytes,
+                            sum(written_rows) as total_written_rows,
+                            sum(written_bytes) as total_written_bytes
+                        FROM {query_log_table}
+                        WHERE 
+                            type = 'QueryFinish'
+                            AND event_time > now() - interval 1 hour
+                    """
+                    result = await session.call_tool("run_select_query", {"query": sql})
                 
-                query_load_data = []
-                for content in result.content:
-                    if content.type == 'text':
-                        query_load_data = content.text
-                
-                analysis["query_load"] = {
-                    "time_range": "last_1_hour",
-                    "stats": query_load_data
-                }
-                print("   ✅ 成功获取查询负载统计")
+                    query_load_data = []
+                    for content in result.content:
+                        if content.type == 'text':
+                            query_load_data = content.text
+                    
+                    analysis["query_load"] = {
+                        "time_range": "last_1_hour",
+                        "stats": query_load_data
+                    }
+                    print("   ✅ 成功获取查询负载统计")
             except Exception as e:
                 print(f"   ⚠️  获取查询负载统计失败: {e}")
             
             # 2. 获取表负载统计（基于parts表）
             print("\n2️⃣  获取表负载统计...")
             try:
-                sql = """
-                    SELECT 
-                        database,
-                        table,
-                        sum(rows) as total_rows,
-                        sum(bytes) as total_bytes,
-                        count(*) as part_count,
-                        sum(active) as active_part_count
-                    FROM system.parts
-                    WHERE database != 'system'
-                    GROUP BY database, table
-                    ORDER BY total_bytes DESC
-                    LIMIT 20
-                """
-                result = await session.call_tool("run_select_query", {"query": sql})
+                parts_table = get_system_table_name('parts')
+                if not parts_table:
+                    print("   ℹ️  环境不支持parts表")
+                    analysis["table_load"] = {
+                        "top_tables": "Not supported in this environment"
+                    }
+                else:
+                    parts_columns = get_parts_table_columns()
+                    sql = f"""
+                        SELECT 
+                            database,
+                            table,
+                            sum({parts_columns['rows']}) as total_rows,
+                            sum({parts_columns['bytes']}) as total_bytes,
+                            count(*) as part_count,
+                            sum(if({parts_columns['active_condition']}, 1, 0)) as active_part_count
+                        FROM {parts_table}
+                        WHERE database != 'system'
+                        GROUP BY database, table
+                        ORDER BY total_bytes DESC
+                        LIMIT 20
+                    """
+                    result = await session.call_tool("run_select_query", {"query": sql})
                 
-                table_load_data = []
-                for content in result.content:
-                    if content.type == 'text':
-                        table_load_data = content.text
-                
-                analysis["table_load"] = {
-                    "top_tables": table_load_data
-                }
-                print("   ✅ 成功获取表负载统计")
+                    table_load_data = []
+                    for content in result.content:
+                        if content.type == 'text':
+                            table_load_data = content.text
+                    
+                    analysis["table_load"] = {
+                        "top_tables": table_load_data
+                    }
+                    print("   ✅ 成功获取表负载统计")
             except Exception as e:
                 print(f"   ⚠️  获取表负载统计失败: {e}")
             
             # 3. 获取QPS趋势（按分钟）
             print("\n3️⃣  获取QPS趋势...")
             try:
-                sql = """
-                    SELECT 
-                        toStartOfMinute(event_time) as time_bucket,
-                        count(*) as qps
-                    FROM system.query_log
-                    WHERE 
-                        type = 'QueryFinish'
-                        AND event_time > now() - interval 1 hour
-                    GROUP BY time_bucket
-                    ORDER BY time_bucket DESC
-                    LIMIT 60
-                """
-                result = await session.call_tool("run_select_query", {"query": sql})
+                query_log_table = get_system_table_name('query_log')
+                if not query_log_table:
+                    print("   ℹ️  环境不支持查询日志表")
+                    analysis["query_load"]["qps_trend"] = "Not supported in this environment"
+                else:
+                    sql = f"""
+                        SELECT 
+                            toStartOfMinute(event_time) as time_bucket,
+                            count(*) as qps
+                        FROM {query_log_table}
+                        WHERE 
+                            type = 'QueryFinish'
+                            AND event_time > now() - interval 1 hour
+                        GROUP BY time_bucket
+                        ORDER BY time_bucket DESC
+                        LIMIT 60
+                    """
+                    result = await session.call_tool("run_select_query", {"query": sql})
                 
-                qps_trend_data = []
-                for content in result.content:
-                    if content.type == 'text':
-                        qps_trend_data = content.text
-                
-                analysis["query_load"]["qps_trend"] = qps_trend_data
-                print("   ✅ 成功获取QPS趋势")
+                    qps_trend_data = []
+                    for content in result.content:
+                        if content.type == 'text':
+                            qps_trend_data = content.text
+                    
+                    analysis["query_load"]["qps_trend"] = qps_trend_data
+                    print("   ✅ 成功获取QPS趋势")
             except Exception as e:
                 print(f"   ⚠️  获取QPS趋势失败: {e}")
             
             # 4. 获取当前正在执行的查询
             print("\n4️⃣  获取当前正在执行的查询...")
             try:
-                sql = """
-                    SELECT 
-                        query_id,
-                        query,
-                        elapsed,
-                        read_rows,
-                        read_bytes
-                    FROM system.processes
-                    LIMIT 10
-                """
-                result = await session.call_tool("run_select_query", {"query": sql})
-                
-                current_queries_data = []
-                for content in result.content:
-                    if content.type == 'text':
-                        current_queries_data = content.text
-                
-                analysis["query_load"]["current_queries"] = current_queries_data
-                print("   ✅ 成功获取当前查询")
+                processes_table = get_system_table_name('processes')
+                if processes_table:
+                    # CE和CDW都使用system.processes表
+                    sql = f"""
+                        SELECT 
+                            query_id,
+                            query,
+                            elapsed,
+                            read_rows,
+                            read_bytes
+                        FROM {processes_table}
+                        LIMIT 10
+                    """
+                    result = await session.call_tool("run_select_query", {"query": sql})
+                    current_queries_data = []
+                    for content in result.content:
+                        if content.type == 'text':
+                            current_queries_data = content.text
+                    
+                    analysis["query_load"]["current_queries"] = current_queries_data
+                    print("   ✅ 成功获取当前查询")
+                else:
+                    print("   ℹ️  环境不支持获取当前查询")
+                    analysis["query_load"]["current_queries"] = "Not supported in this environment"
             except Exception as e:
                 print(f"   ⚠️  获取当前查询失败: {e}")
             

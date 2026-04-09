@@ -33,6 +33,28 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 
+def is_cdw_environment():
+    """检测是否为CDW环境
+    根据BYTEHOUSE_HOST判断：
+    - CDW: tenant-xxxx-cn-shanghai-public.bytehouse.volces.com
+    - CE: xxxx-public.bytehouse-ce.volces.com
+    """
+    host = os.environ.get('BYTEHOUSE_HOST', '')
+    return '.bytehouse.volces.com' in host and '.bytehouse-ce.volces.com' not in host
+
+
+def get_system_table_name(table_name):
+    """根据环境返回正确的系统表名
+    """
+    if is_cdw_environment():
+        table_mapping = {
+            'query_log': 'bh_system.query_log'
+        }
+        return table_mapping.get(table_name, table_name)
+    else:
+        return f'system.{table_name}'
+
+
 async def run_slow_query_analysis():
     """运行慢查询分析"""
     print("=" * 80)
@@ -44,6 +66,11 @@ async def run_slow_query_analysis():
     print("  - BYTEHOUSE_PORT")
     print("  - BYTEHOUSE_USER")
     print("  - BYTEHOUSE_PASSWORD")
+    print()
+    
+    # 检测环境类型
+    env_type = "CDW" if is_cdw_environment() else "CE"
+    print(f"🔍 检测到环境类型: {env_type}")
     print()
     
     # 从环境变量获取配置
@@ -78,97 +105,118 @@ async def run_slow_query_analysis():
             # 1. 查询最近1小时的慢查询
             print("\n1️⃣  查询最近1小时的慢查询...")
             try:
-                sql = """
-                    SELECT 
-                        query_id,
-                        query,
-                        query_duration_ms,
-                        read_rows,
-                        read_bytes,
-                        result_rows,
-                        result_bytes,
-                        exception,
-                        event_time
-                    FROM system.query_log
-                    WHERE 
-                        type = 'QueryFinish'
-                        AND event_time > now() - interval 1 hour
-                        AND query_duration_ms > 1000
-                    ORDER BY query_duration_ms DESC
-                    LIMIT 20
-                """
-                result = await session.call_tool("run_select_query", {"query": sql})
+                query_log_table = get_system_table_name('query_log')
+                if not query_log_table:
+                    print("   ℹ️  环境不支持查询日志表")
+                    analysis["slow_queries"] = {
+                        "count": "Not supported",
+                        "top_20": "Not supported in this environment"
+                    }
+                else:
+                    sql = f"""
+                        SELECT 
+                            query_id,
+                            query,
+                            query_duration_ms,
+                            read_rows,
+                            read_bytes,
+                            result_rows,
+                            result_bytes,
+                            exception,
+                            event_time
+                        FROM {query_log_table}
+                        WHERE 
+                            type = 'QueryFinish'
+                            AND event_time > now() - interval 1 hour
+                            AND query_duration_ms > 1000
+                        ORDER BY query_duration_ms DESC
+                        LIMIT 20
+                    """
+                    result = await session.call_tool("run_select_query", {"query": sql})
                 
-                slow_queries_data = []
-                for content in result.content:
-                    if content.type == 'text':
-                        slow_queries_data = content.text
-                
-                # 简单解析，实际项目中需要更完善的解析
-                analysis["slow_queries"] = {
-                    "count": "parsed_from_result",
-                    "top_20": slow_queries_data
-                }
-                print("   ✅ 成功获取慢查询数据")
+                    slow_queries_data = []
+                    for content in result.content:
+                        if content.type == 'text':
+                            slow_queries_data = content.text
+                    
+                    # 简单解析，实际项目中需要更完善的解析
+                    analysis["slow_queries"] = {
+                        "count": "parsed_from_result",
+                        "top_20": slow_queries_data
+                    }
+                    print("   ✅ 成功获取慢查询数据")
             except Exception as e:
                 print(f"   ⚠️  获取慢查询失败: {e}")
             
             # 2. 查询统计信息
             print("\n2️⃣  获取查询统计...")
             try:
-                sql = """
-                    SELECT 
-                        count(*) as total_queries,
-                        avg(query_duration_ms) as avg_duration_ms,
-                        sum(if(query_duration_ms > 1000, 1, 0)) as slow_query_count,
-                        sum(if(exception != '', 1, 0)) as error_query_count,
-                        sum(read_rows) as total_read_rows,
-                        sum(read_bytes) as total_read_bytes
-                    FROM system.query_log
-                    WHERE 
-                        type = 'QueryFinish'
-                        AND event_time > now() - interval 1 hour
-                """
-                result = await session.call_tool("run_select_query", {"query": sql})
+                query_log_table = get_system_table_name('query_log')
+                if not query_log_table:
+                    print("   ℹ️  环境不支持查询日志表")
+                    analysis["query_stats"] = {
+                        "time_range": "last_1_hour",
+                        "stats": "Not supported in this environment"
+                    }
+                else:
+                    sql = f"""
+                        SELECT 
+                            count(*) as total_queries,
+                            avg(query_duration_ms) as avg_duration_ms,
+                            sum(if(query_duration_ms > 1000, 1, 0)) as slow_query_count,
+                            sum(if(exception != '', 1, 0)) as error_query_count,
+                            sum(read_rows) as total_read_rows,
+                            sum(read_bytes) as total_read_bytes
+                        FROM {query_log_table}
+                        WHERE 
+                            type = 'QueryFinish'
+                            AND event_time > now() - interval 1 hour
+                    """
+                    result = await session.call_tool("run_select_query", {"query": sql})
                 
-                query_stats_data = []
-                for content in result.content:
-                    if content.type == 'text':
-                        query_stats_data = content.text
-                
-                analysis["query_stats"] = {
-                    "time_range": "last_1_hour",
-                    "stats": query_stats_data
-                }
-                print("   ✅ 成功获取查询统计")
+                    query_stats_data = []
+                    for content in result.content:
+                        if content.type == 'text':
+                            query_stats_data = content.text
+                    
+                    analysis["query_stats"] = {
+                        "time_range": "last_1_hour",
+                        "stats": query_stats_data
+                    }
+                    print("   ✅ 成功获取查询统计")
             except Exception as e:
                 print(f"   ⚠️  获取查询统计失败: {e}")
             
             # 3. 查询类型分布
             print("\n3️⃣  获取查询类型分布...")
             try:
-                sql = """
-                    SELECT 
-                        substring(query, 1, 20) as query_prefix,
-                        count(*) as query_count,
-                        avg(query_duration_ms) as avg_duration_ms
-                    FROM system.query_log
-                    WHERE 
-                        type = 'QueryFinish'
-                        AND event_time > now() - interval 1 hour
-                    GROUP BY query_prefix
-                    ORDER BY query_count DESC
-                    LIMIT 10
-                """
-                result = await session.call_tool("run_select_query", {"query": sql})
+                query_log_table = get_system_table_name('query_log')
+                if not query_log_table:
+                    print("   ℹ️  环境不支持查询日志表")
+                    analysis["query_type_distribution"] = "Not supported in this environment"
+                else:
+                    sql = f"""
+                        SELECT 
+                            substring(query, 1, 20) as query_prefix,
+                            count(*) as query_count,
+                            avg(query_duration_ms) as avg_duration_ms
+                        FROM {query_log_table}
+                        WHERE 
+                            type = 'QueryFinish'
+                            AND event_time > now() - interval 1 hour
+                        GROUP BY query_prefix
+                        ORDER BY query_count DESC
+                        LIMIT 10
+                    """
+                    result = await session.call_tool("run_select_query", {"query": sql})
                 
-                query_types_data = []
-                for content in result.content:
-                    if content.type == 'text':
-                        query_types_data = content.text
-                
-                analysis["query_type_distribution"] = query_types_data
-                print("   ✅ 成功获取查询类型分布")
+                    query_types_data = []
+                    for content in result.content:
+                        if content.type == 'text':
+                            query_types_data = content.text
+                    
+                    analysis["query_type_distribution"] = query_types_data
+                    print("   ✅ 成功获取查询类型分布")
             except Exception as e:
                 print(f"   ⚠️  获取查询类型分布失败: {e}")
             
