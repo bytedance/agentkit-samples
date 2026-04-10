@@ -4,7 +4,7 @@ description: >
 AI Video Intelligent Editing Skill. Input video file paths (supports multiple), optional danmaku file paths, optional subtitle file paths,
 combine danmaku and subtitle content to understand video context, automatically extract corresponding time segments based on user editing requests (such as "extract all highlight moments",
 "cut out the part explaining xxx"), splice and add transition effects, and finally synthesize the output video using FFmpeg.
-When users mention "video editing", "cut video based on danmaku", "extract danmaku highlight segments", "video clip splicing", "danmaku analysis editing",
+When users mention "cut video based on danmaku", "extract danmaku highlight segments", "danmaku analysis editing",
 "find highlights from danmaku", "intelligent editing", this Skill must be triggered.
 version: v1.0.1
 ---
