@@ -6,8 +6,10 @@ title: las_image_resample API 参考
 
 ## Base / Region
 
-- Endpoint: `https://operator.las.cn-beijing.volces.com/api/v1/process`
-- Method: POST
+- API Base: `https://operator.las.<region>.volces.com/api/v1`
+- Region:
+  - `cn-beijing`
+  - `cn-shanghai`
 
 鉴权：`Authorization: Bearer $LAS_API_KEY`
 
@@ -15,9 +17,9 @@ title: las_image_resample API 参考
 
 | 字段名 | 类型 | 是否必选 | 说明 |
 | :--- | :--- | :--- | :--- |
-| operator_id | string | 是 | 固定为 `las_image_resample` |
-| operator_version | string | 是 | 固定为 `v1` |
-| data | ImageResampleReqParams | 是 | 参数详情见下表 |
+| operator_id | string | 是 | 固定为 `las_image_resample`（CLI 自动填充） |
+| operator_version | string | 是 | 固定为 `v1`（CLI 自动填充） |
+| data | ImageResampleReqParams | 是 | **`data.json` 的内容对应此字段**，详情见下表 |
 
 ### ImageResampleReqParams
 
@@ -74,6 +76,8 @@ title: las_image_resample API 参考
 | 2001 | 通用服务端异常 |
 
 ## 请求示例
+
+> 以下为直接调用 HTTP API 的完整示例。通过 `lasutil` CLI 调用时，`data.json` 只需填写 `data` 字段内部的内容，`operator_id`/`operator_version` 由 CLI 的 `--operator-id` 参数自动注入。
 
 ```bash
 curl --location "https://operator.las.cn-beijing.volces.com/api/v1/process" \

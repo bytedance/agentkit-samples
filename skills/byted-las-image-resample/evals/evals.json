@@ -1,0 +1,23 @@
+{
+  "skill_name": "byted-las-image-resample",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "我有一张图片 https://example.com/sample.jpg，需要降采样到 1024x1024，并输出到 tos://bucket/output/。请给出 data.json 模板、lasutil process 命令，并说明结果里哪个字段是输出图像的 TOS 路径。",
+      "expected_output": "给出 data.json、lasutil process 命令、说明返回 data.image_path 为输出路径。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "我有一张 TOS 图片 tos://bucket/input/sample.jpg，需要降采样到 800x600，输出为 png 格式。请给出 data.json 模板（image_src_type、image_suffix 等）和 lasutil process 命令。",
+      "expected_output": "包含 image_src_type=image_tos、image_suffix=.png、target_size=[800,600] 的示例，以及 lasutil process 命令。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "我有一张本地图片 ./test.jpg，需要降低 DPI 到 72。请问应该如何使用 byted-las-image-resample，给出相关命令和参数配置。",
+      "expected_output": "包含 las_sdk.file.upload 将本地图片上传到 TOS 的步骤，以及设置 image_src_type=image_tos 和对应 dpi 的 data.json 模板。",
+      "files": []
+    }
+  ]
+}

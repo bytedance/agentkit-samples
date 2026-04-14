@@ -1,0 +1,23 @@
+{
+  "skill_name": "byted-las-pdf-parse-doubao",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "我有一个 PDF 文件 tos://bucket/input.pdf，需要解析成结构化内容。请给出 data.json 模板、lasutil submit 命令，并说明后续如何短轮询 poll 获取解析结果字段。",
+      "expected_output": "给出 data.json、submit 命令、说明 COMPLETED 后从返回 data 中读取结果字段，强调短轮询不阻塞。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "我有一个目录 tos://bucket/input/ 下很多 pdf 要批量解析。请给出 tos-ls 总清单、按 batch_001 分批、batch-submit/batch-poll 的流程。注意 input_field 要用 url。",
+      "expected_output": "给出 workdir/batch_001 的目录组织，batch-submit/batch-poll 命令与关键参数含义（jobs/max-seconds/progress-interval），并提醒用 -h 查看参数说明。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "openclaw 环境不允许长时间阻塞等待。请基于 lasutil batch-poll 的 max-seconds 给一个短轮询的推荐写法，并解释如何在多轮对话中持续推进进度。",
+      "expected_output": "建议多次调用 batch-poll，设置较小 max-seconds，解释 stopped/running 含义，强调不阻塞。",
+      "files": []
+    }
+  ]
+}

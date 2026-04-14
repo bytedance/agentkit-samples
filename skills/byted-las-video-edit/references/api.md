@@ -7,12 +7,12 @@ source: https://www.volcengine.com/docs/6492/2221469?lang=zh
 
 本文件把文档中最关键的 **REST API 参数/返回字段**整理为可检索的“参考页”，用于在执行任务时快速对照。
 
-## 基本信息
+## Base / Region
 
-- **Base（区分 Region）**:
-  - 北京：`https://operator.las.cn-beijing.volces.com/api/v1`
-  - 上海：`https://operator.las.cn-shanghai.volces.com/api/v1`
-  - Skill 里可用 `--region`（或 `LAS_REGION`/`REGION`/`region`）选择；也可用 `--api-base`（或 `LAS_API_BASE`）直接指定。
+- API Base: `https://operator.las.<region>.volces.com/api/v1`
+- Region:
+  - `cn-beijing`
+  - `cn-shanghai`
 - **鉴权**: Header `Authorization: Bearer $LAS_API_KEY`
 - **算子**:
   - `operator_id`: `las_video_edit`
@@ -28,9 +28,9 @@ source: https://www.volcengine.com/docs/6492/2221469?lang=zh
 
 ```json
 {
-  "operator_id": "las_video_edit",
-  "operator_version": "v1",
-  "data": {
+  "operator_id": "las_video_edit",       // CLI 自动填充，不要写入 data.json
+  "operator_version": "v1",              // CLI 自动填充，不要写入 data.json
+  "data": {                              // data.json 的内容对应此字段内部
     "video_url": "https://example.com/video.mp4",
     "task_name": "highlight_clip",
     "task_description": "提取戴帽子的小男孩的所有片段，包含台词",
@@ -44,7 +44,7 @@ source: https://www.volcengine.com/docs/6492/2221469?lang=zh
 }
 ```
 
-### `data` 字段说明
+### `data` 字段说明（即 `data.json` 中应填写的内容）
 
 - `video_url`（string，必填）
   - 视频文件可下载地址。
@@ -100,9 +100,9 @@ submit 的核心是拿到 `metadata.task_id`：
 
 ```json
 {
-  "operator_id": "las_video_edit",
-  "operator_version": "v1",
-  "task_id": "task-xxx"
+  "operator_id": "las_video_edit",       // CLI 自动填充
+  "operator_version": "v1",              // CLI 自动填充
+  "task_id": "task-xxx"                  // CLI 自动填充
 }
 ```
 

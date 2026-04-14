@@ -8,20 +8,19 @@ title: las_video_inpaint API 参考
 
 ## Base / Region
 
-- Submit: `POST https://operator.las.<region>.volces.com/api/v1/submit`
-- Poll: `POST https://operator.las.<region>.volces.com/api/v1/poll`
+- API Base: `https://operator.las.<region>.volces.com/api/v1`
 - Region:
-  - `cn-beijing` → `operator.las.cn-beijing.volces.com`
-  - `cn-shanghai` → `operator.las.cn-shanghai.volces.com`
+  - `cn-beijing`
+  - `cn-shanghai`
 - 鉴权：`Authorization: Bearer $LAS_API_KEY`
 
 ## Submit 请求体
 
 | 字段名 | 类型 | 是否必选 | 说明 |
 | :--- | :--- | :--- | :--- |
-| operator_id | string | 是 | 固定为 `las_video_inpaint` |
-| operator_version | string | 是 | 固定为 `v1` |
-| data | VideoInpaintUserReqParams | 是 | 参数详情见下 |
+| operator_id | string | 是 | 固定为 `las_video_inpaint`（CLI 自动填充） |
+| operator_version | string | 是 | 固定为 `v1`（CLI 自动填充） |
+| data | VideoInpaintUserReqParams | 是 | **`data.json` 的内容对应此字段**，详情见下 |
 
 ### VideoInpaintUserReqParams
 
@@ -41,9 +40,9 @@ title: las_video_inpaint API 参考
 
 | 字段名 | 类型 | 是否必选 | 说明 |
 | :--- | :--- | :--- | :--- |
-| operator_id | string | 是 | 固定为 `las_video_inpaint` |
-| operator_version | string | 是 | 固定为 `v1` |
-| task_id | string | 是 | submit 返回的任务 ID |
+| operator_id | string | 是 | 固定为 `las_video_inpaint`（CLI 自动填充） |
+| operator_version | string | 是 | 固定为 `v1`（CLI 自动填充） |
+| task_id | string | 是 | submit 返回的任务 ID（CLI 自动填充） |
 
 ## Poll 响应体（摘要）
 

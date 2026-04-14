@@ -1,130 +1,159 @@
 ---
 name: byted-las-video-edit
-description: |
-  Extract video clips from long videos based on natural-language descriptions.
-  Use this skill when user needs to:
-  - Extract highlights or specific scenes from videos
-  - Find specific people/objects in videos using reference images
-  - Split long videos into meaningful clips
-  - Generate video summaries with timestamps
-  Supports reference images for target identification, outputs TOS clip URLs.
-  Requires LAS_API_KEY for authentication.
+version: "1.0.1"
+description: "Extracts and clips video segments from long videos using natural language descriptions. AI-powered smart video editing, video trimming, and video cutting powered by Volcengine LAS. Describe what you want — scenes, people, objects, actions, events — and get trimmed clips automatically. Video search and video content retrieval: find and locate specific people, objects, or scenes in footage. Supports reference images for person matching and object matching (search video by image). Two modes: simple (fast) and detail (thorough, optional ASR). Use this skill when the user wants to edit/clip/cut videos using natural language descriptions, extract highlights or key moments from videos, find specific people/objects/scenes in video footage (by text or reference image), compile highlight reels from long videos, trim video segments, or do AI-powered smart video editing."
 ---
 
 # LAS 视频智能剪辑（`las_video_edit`）
 
-本 Skill 用于把「火山引擎 LAS 视频智能剪辑」文档里的 `submit/poll` 调用流程，封装成可重复使用的脚本化工作流：
+根据自然语言描述从长视频中提取精彩片段，支持参考图像辅助识别特定人物/物体。两种模式：`simple`（快速）和 `detail`（精细分析）。
 
-- 通过 `POST https://operator.las.cn-beijing.volces.com/api/v1/submit` 提交任务
-- 通过 `POST https://operator.las.cn-beijing.volces.com/api/v1/poll` 轮询任务状态并拿到剪辑结果
+## 设计模式
 
-## 你需要准备什么
+本 skill 主要采用：
+- **Tool Wrapper**：封装 `lasutil` CLI 调用
+- **Pipeline**：包含 Step 0 → Step N 的顺序工作流
 
-- `LAS_API_KEY`：优先从环境变量读取；也支持放在当前目录的 `env.sh`（内容形如 `export LAS_API_KEY="..."`）
-- Operator Region（二选一）：
-  - 环境变量：`LAS_REGION`（推荐）/ `REGION` / `region`，取值 `cn-beijing`（默认）或 `cn-shanghai`
-  - 或在命令里通过 `--region cn-shanghai` 指定
-- `video_url`：可下载的视频地址（`http/https` 或 `tos://bucket/key`）
-- `output_tos_path`：剪辑片段输出到的 TOS 目录（必须指定）
-- 剪辑需求：二选一
-  - `task_name`：内置场景名（优先级高）
-  - `task_description`：自然语言描述（推荐写清楚“要找谁/什么/在什么场景/是否需要台词”等）
+## 核心 API 与配置
 
-可选能力：
+- **算子 ID**: `las_video_edit`
+- **API**: 异步（`submit` → `poll`）
+- **环境变量**: `LAS_API_KEY` (必填)
 
-- `reference_images`：参考图像列表（URL 或 TOS），辅助识别角色/物品/场景
-- 参考图像结构：推荐用 `target + images[]` 的结构（详见 `references/api.md`），脚本侧用 `--ref-target` + 多个 `--ref-image` 来生成。
-- `mode`：处理模式（服务端合法值通常为 `simple`/`detail`；本脚本也兼容 `简单`/`精细` 等常见别名）
-- `segment_duration`：子视频切分时长（秒）
-- `min_segment_duration`：过滤过短片段（秒）
-- `output_format`：输出格式（示例支持 `mp4`/`mkv`）
+> 详细参数与接口定义见 [references/api.md](references/api.md)。
 
-## 参数与返回字段（详细版）
+## Gotchas
 
-参数/返回字段在执行时经常需要对照（比如 `mode`、`segment_duration`、`clips[]` 的结构）。完整速查见：
+- **输出路径格式**：`output_tos_path` 必须是 `tos://` 前缀的目录（不要以文件名结尾），服务端自动创建片段文件。
+- **模式选择**：`simple` 快速适用多数场景；`detail` 精细分析时间更长但效果更好。
+- **密钥安全**：若聊天框屏蔽密钥，让用户在当前目录创建 `env.sh` 并写入 `export LAS_API_KEY="..."`，SDK 会自动读取。
+- **免责声明**：最终回复结果时必须包含："本方式的计费均为预估计费，与实际费用有差距，实际费用以运行后火山产生的账单为准。计费说明请参考 [Volcengine LAS 定价](https://www.volcengine.com/docs/6492/1544808)。"，且禁止使用"实际费用"字眼描述预估价。
 
-- `references/api.md`
 
-## 推荐使用方式
+## 工作流（严格按步骤执行）
 
-本 Skill 自带可执行脚本：`scripts/skill.py`。
+复制此清单并跟踪进度：
 
-为方便在不同工程/不同 Agent 之间迁移，下面示例默认你位于该 Skill 目录（与 `SKILL.md` 同级），因此命令使用相对路径 `scripts/skill.py`。
-
-### 1) 提交任务并等待结果
-
-```bash
-python3 scripts/skill.py submit \
-  --video "https://example.com/video.mp4" \
-  --output-tos "tos://bucket/path/to/output" \
-  --task-desc "提取戴帽子的小男孩的所有片段，包含台词" \
-  --ref-target "戴帽子的小男孩" \
-  --ref-image "https://example.com/ref1.jpeg" \
-  --region cn-beijing \
-  --mode simple \
-  --out result.json
-
-如需直接传入 `reference_images` 的 JSON（高级用法，用于完全对齐服务端 schema），可用：
-
-```bash
-python3 scripts/skill.py submit \
-  --video "https://example.com/video.mp4" \
-  --output-tos "tos://bucket/path/to/output" \
-  --task-desc "找杜兰特" \
-  --ref-json '[{"target":"杜兰特","images":["https://...jpeg"]}]'
+```text
+执行进度：
+- [ ] Step 0: 前置检查
+- [ ] Step 1: 初始化与准备
+- [ ] Step 2: 预估价格
+- [ ] Step 3: 提交任务
+- [ ] Step 4: 异步查询
+- [ ] Step 5: 结果呈现
 ```
 
-### 2) 仅提交（不等待）
+### Step 0: 前置检查（⚠️ 必须在第一轮对话中完成）
+
+在接受用户的任务后，**不要立即开始执行**，必须首先进行以下环境检查：
+1. **检查 `LAS_API_KEY` 与 `LAS_REGION`**：确认环境变量或 `.env` 中是否已配置。
+   - 若无，必须立即向用户索要（提示：`LAS_REGION` 常见为 `cn-beijing`）。
+   - **注意**：`LAS_REGION` 必须与您的 API Key 及 TOS Bucket 所在的地域完全一致。如果用户中途切换了 Region，必须提醒用户其 TOS Bucket 也需对应更换，否则会导致权限异常或上传失败。
+2. **检查输入路径**：
+   - 如果用户要求处理的是**本地文件**，则需要先通过 File API 上传至 TOS（只需 `LAS_API_KEY`，无需额外 TOS 凭证）。
+   - 如果算子的**输出结果**存放在 TOS 上，且用户需要下载回本地，则需要 `VOLCENGINE_ACCESS_KEY` 和 `VOLCENGINE_SECRET_KEY`。对于**仅需要上传输入文件**的场景，TOS 凭证**不再必须**。
+3. **检查输出路径**：
+   - `output_tos_path` 为必填参数，必须由用户提供**自己可写的 TOS 目录路径**（格式：`tos://bucket/output_dir/`）。
+   - 服务端需要将剪辑输出的视频片段写入此目录。
+4. **确认无误后**：才能进入下一步。
+
+### Step 1: 初始化与准备
+
+**环境初始化（Agent 必做）**：
 
 ```bash
-python3 scripts/skill.py submit \
-  --video "https://example.com/video.mp4" \
-  --output-tos "tos://bucket/path/to/output" \
-  --task-desc "找出所有高光片段" \
-  --no-wait
+# 执行统一的环境初始化与更新脚本（会自动创建/激活虚拟环境，并检查更新）
+source "$(dirname "$0")/scripts/env_init.sh" las_video_edit
+workdir=$LAS_WORKDIR
 ```
 
-### 3) 轮询任务
+> 如果网络问题导致更新失败，脚本会跳过检查，使用本地已安装的 SDK 继续执行。
+
+- **处理本地文件时**：使用 File API 上传（只需 `LAS_API_KEY`，无需 TOS 凭证和 Bucket）：
+  ```bash
+  lasutil file-upload <local_path>
+  ```
+  上传成功后返回 JSON，取其中的 `presigned_url`（HTTPS 预签名下载链接，24 小时有效）传给算子作为输入 URL。
+
+### Step 2: 预估价格（⚠️ 必须获得用户确认）
+
+1. 读取 [references/prices.md](references/prices.md) 获取最新计费标准。
+2. 获取视频时长：
+   ```bash
+   lasutil media-duration <video_url>
+   ```
+3. 根据时长和模式单价计算总价，**将计费单价与预估总价一并告知用户并强制暂停执行**，明确等待用户回复确认。在用户明确回复"继续"、"确认"等同意指令前，**绝对禁止**进入下一步（执行/提交任务）。提示：预估仅供参考，实际以火山账单为准。计费说明请参考 [Volcengine LAS 定价](https://www.volcengine.com/docs/6492/1544808)。
+
+### Step 3: 提交任务 (Submit)
+
+构造基础 `data.json`：
+```json
+{
+  "video_url": "<presigned_url>",
+  "output_tos_path": "tos://<your-bucket>/output_dir/",
+  "task_description": "提取戴帽子的小男孩的所有片段，包含台词",
+  "reference_images": [
+    {"target": "戴帽子的小男孩", "images": ["https://example.com/ref1.jpeg"]}
+  ],
+  "mode": "simple"
+}
+```
+
+> **重要提示**: `output_tos_path` **必须由用户提供**，需要填写用户自己账号下可写的 TOS 目录（服务端会将剪辑后的视频片段写入此目录）。
+
+**单文件提交**：
+```bash
+data=$(cat "$workdir/data.json")
+lasutil submit las_video_edit "$data" > "$workdir/submit.json"
+```
+
+⚠️ **强制反馈**：任务提交成功后，**必须立即向用户返回生成的 `task_id`**，以便用户跟踪进度或在必要时手动查询。
+
+### Step 4: 异步查询 (Poll)
+
+⚠️ **异步任务与后台轮询约束**：
+- 如果你当前的环境**支持后台任务/异步长效运行**：你可以利用环境提供的后台能力（例如发起后台轮询任务），并在任务完成后主动将结果返回给用户。
+- 如果你当前的环境**不支持**长效后台任务（如普通的单轮对话沙箱），且直接 `sleep` 循环会导致超时崩溃：**绝对禁止在代码中执行死循环等待！** 此时必须立即向用户输出 Task ID 并结束当前轮次，告知用户："任务已提交，请稍后向我询问进度"。
+
+
+**单任务查询**：
+```bash
+lasutil poll las_video_edit {task_id}
+```
+- `COMPLETED` → 返回剪辑片段列表 `result.data.clips[]`。
+- `RUNNING`/`PENDING` → 稍后重试。
+
+### Step 5: 结果呈现
+
+**处理结果**：
 
 ```bash
-python3 scripts/skill.py poll task-xxx --region cn-shanghai
+# 保存片段列表到本地
+mkdir -p "./output/{task_id}"
+cat "./output/{task_id}/result.json" | jq '.data.clips' > "./output/{task_id}/clips.json"
+
+# 生成 CSV 摘要
+cat "./output/{task_id}/result.json" | jq -r '.data.clips[] | 
+  "\(.clip_id),\(.start_time),\(.end_time),\(.duration)s,\(.description),\(.clip_url)"' > "./output/{task_id}/clips.csv"
 ```
 
-## Region / Endpoint 的选择逻辑
+**视频片段**：
+- 视频片段已保存在 TOS，直接返回预签名 URL
+- 无需再次上传，直接提供下载链接即可
 
-脚本解析顺序：
+**向用户展示**：
+1. 片段数量、总时长
+2. 片段列表（CSV 格式）
+3. 每个片段的下载链接（`clip_url`）
+4. 本地文件路径：`./output/{task_id}/`
+5. 计费声明
 
-1) `--region` 命令行参数（`cn-beijing` 或 `cn-shanghai`）
-2) 环境变量 `LAS_REGION` / `REGION` / `region`
-3) 默认值 `cn-beijing`
 
-Endpoint 由 region 自动映射到 `operator.las.<region>.volces.com`，不支持自定义 API base。
+## 审查标准
 
-## 输出结果你会得到什么
-
-当任务 `COMPLETED` 时，返回里会包含：
-
-- `total_segments`
-- `clips[]`：每个片段的 `clip_id`、`start_time`、`end_time`、`duration`、`description`、`dialogue`、`clip_url(tos://...)` 等
-
-脚本会把核心信息打印为易读摘要，并可选将原始 JSON 落盘。
-
-## 常见问题
-
-### 1) 提示“无法找到 LAS_API_KEY”怎么办？
-
-- 优先推荐设置环境变量：`export LAS_API_KEY="..."`
-- 或在运行目录准备 `env.sh`，内容形如：`export LAS_API_KEY="..."`
-- 注意脚本是从“当前工作目录”读取 `env.sh`：如果你在别的目录运行，可能读不到。
-
-### 2) 返回 `Parameter.Invalid`（参数非法）可能是什么原因？
-
-- `mode` 不合法：服务端常见合法值为 `simple` / `detail`（脚本兼容 `normal/标准/精细` 等别名，但建议直接用 `simple/detail`）
-- `reference_images` 结构不符合服务端 schema：推荐结构为 `[{"target": "杜兰特", "images": ["https://...jpeg"]}]`；可用 `--ref-target` + 多个 `--ref-image` 或直接用 `--ref-json`
-- `output_tos_path` 不是 `tos://...` 目录（或无权限写入），导致生成片段失败
-- `video_url`/参考图 URL 不可下载、被鉴权拦截、或网络环境不可达
-
-### 3) TOS 路径格式有什么要求？
-
-- `output_tos_path` 必须是 `tos://bucket/prefix` 形式的“目录前缀”，不要写成本地路径或 `s3://`
-- 建议不要以文件名结尾（例如 `.../clip_001.mp4`），让服务端按 `clip_001.mp4, clip_002.mp4...` 自动落盘
+执行完成后，Agent 应自检：
+1. 环境变量是否正确配置
+2. 输入文件是否成功上传
+3. 输出结果是否正确呈现给用户
+4. 计费声明是否包含

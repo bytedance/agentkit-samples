@@ -6,20 +6,19 @@ title: las_vlm_video API 参考
 
 ## Base / Region
 
-- Endpoint: `https://operator.las.<region>.volces.com/api/v1/process`
-- Method: POST
+- API Base: `https://operator.las.<region>.volces.com/api/v1`
 - Region:
-  - `cn-beijing` → `operator.las.cn-beijing.volces.com`
-  - `cn-shanghai` → `operator.las.cn-shanghai.volces.com`
+  - `cn-beijing`
+  - `cn-shanghai`
 - 鉴权：`Authorization: Bearer $LAS_API_KEY`
 
 ## 请求体定义
 
 | 字段名 | 类型 | 是否必选 | 说明 |
 | :--- | :--- | :--- | :--- |
-| operator_id | string | 是 | 固定为 `las_vlm_video` |
-| operator_version | string | 是 | 固定为 `v1` |
-| data | vlm_info | 是 | 算子参数 |
+| operator_id | string | 是 | 固定为 `las_vlm_video`（CLI 自动填充） |
+| operator_version | string | 是 | 固定为 `v1`（CLI 自动填充） |
+| data | vlm_info | 是 | **`data.json` 的内容对应此字段**，算子参数 |
 
 ### vlm_info（常用字段）
 

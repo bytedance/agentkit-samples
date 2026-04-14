@@ -6,9 +6,10 @@ title: las_asr_pro API 速查
 
 ## Base / Region
 
-- Endpoint（文档给出的）：`https://operator.las.cn-beijing.volces.com`
-- API Base：`https://operator.las.<region>.volces.com/api/v1`
-- 常见 region：`cn-beijing` / `cn-shanghai`
+- API Base: `https://operator.las.<region>.volces.com/api/v1`
+- Region:
+  - `cn-beijing`
+  - `cn-shanghai`
 
 鉴权：`Authorization: Bearer $LAS_API_KEY`
 
@@ -22,9 +23,9 @@ title: las_asr_pro API 速查
 
 顶层字段：
 
-- `operator_id` (string, 必填)：`las_asr_pro`
-- `operator_version` (string, 必填)：`v1`
-- `data` (SpeechRecognition, 必填)
+- `operator_id` (string, 必填，CLI 自动填充)：`las_asr_pro`
+- `operator_version` (string, 必填，CLI 自动填充)：`v1`
+- `data` (SpeechRecognition, 必填) — **`data.json` 的内容对应此字段**
 
 `data` = SpeechRecognition：
 
@@ -98,9 +99,9 @@ Corpus：
 
 ### 请求体
 
-- `operator_id` (string, 必填)：`las_asr_pro`
-- `operator_version` (string, 必填)：`v1`
-- `task_id` (string, 必填)
+- `operator_id` (string, 必填，CLI 自动填充)：`las_asr_pro`
+- `operator_version` (string, 必填，CLI 自动填充)：`v1`
+- `task_id` (string, 必填，CLI 自动填充)
 
 ### 响应体
 

@@ -1,0 +1,20 @@
+{
+  "skill_name": "byted-las-audio-convert",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "我有一个本地的音频文件 test.mp3，我需要把它转换成 wav 格式，16000 采样率，请帮我完成。",
+      "expected_output": "包含 las_sdk.file.upload 将文件上传至 TOS 的步骤，然后使用 client.media.process 调用 byted-las-audio-convert 技能，配置 dst_format='wav', dst_sample_rate=16000。"
+    },
+    {
+      "id": 2,
+      "prompt": "我有一个 TOS 上的音频 tos://my-bucket/audio.m4a，需要将其转换为 2 通道的 mp3 格式并保存到 tos://my-bucket/output.mp3，请给出调用代码。",
+      "expected_output": "包含调用 client.media.process，配置 dst_format='mp3', dst_channels=2，并直接输入 TOS 路径的示例代码。"
+    },
+    {
+      "id": 3,
+      "prompt": "如果我需要调整音频的比特率到 128kbps，请问应该在 byted-las-audio-convert 的配置中如何传参？",
+      "expected_output": "说明需要在调用时设置 dst_bit_rate 参数为 128000 (128kbps) 的代码片段。"
+    }
+  ]
+}

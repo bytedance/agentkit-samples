@@ -2,29 +2,27 @@
 
 LAS-AI PDF 内容视觉解析算子（异步任务：submit -> poll）。
 
-## Endpoint
+## Base / Region
 
-- Base：`https://operator.las.<region>.volces.com/api/v1`
-- `POST /submit`
-- `POST /poll`
-
-常见 region：`cn-beijing` / `cn-shanghai`
+- API Base: `https://operator.las.<region>.volces.com/api/v1`
+- Region:
+  - `cn-beijing`
+  - `cn-shanghai`
 
 ## 鉴权
 
-控制台可能出现两种 Header 形式（以控制台“请求示例”为准）：
+控制台通过 Header 形式（以控制台“请求示例”为准）：
 
 - `Authorization: Bearer <API_KEY>`
-- `X-Api-Key: <API_KEY>`
 
 ## submit
 
-请求体：
+请求体（完整 HTTP body；通过 `lasutil` CLI 调用时，`data.json` 只需填写 `data` 内部的内容）：
 
 ```json
 {
-  "operator_id": "las_pdf_parse_doubao",
-  "operator_version": "v1",
+  "operator_id": "las_pdf_parse_doubao",   // CLI 自动填充
+  "operator_version": "v1",                 // CLI 自动填充
   "data": {
     "url": "https://...pdf",
     "parse_mode": "normal",
@@ -34,7 +32,7 @@ LAS-AI PDF 内容视觉解析算子（异步任务：submit -> poll）。
 }
 ```
 
-`data` 字段：
+`data` 字段（即 `data.json` 中应填写的内容）：
 
 | 字段名 | 类型 | 必选 | 说明 |
 |---|---|---:|---|
@@ -50,13 +48,13 @@ LAS-AI PDF 内容视觉解析算子（异步任务：submit -> poll）。
 
 ## poll
 
-请求体：
+请求体（`lasutil poll` 自动构造，无需手动编写）：
 
 ```json
 {
-  "operator_id": "las_pdf_parse_doubao",
-  "operator_version": "v1",
-  "task_id": "<task_id>"
+  "operator_id": "las_pdf_parse_doubao",   // CLI 自动填充
+  "operator_version": "v1",                 // CLI 自动填充
+  "task_id": "<task_id>"                    // CLI 自动填充
 }
 ```
 

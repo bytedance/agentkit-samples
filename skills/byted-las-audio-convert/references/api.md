@@ -6,8 +6,10 @@ title: las_audio_convert API 参考
 
 ## Base / Region
 
-- Endpoint: `https://operator.las.cn-beijing.volces.com/api/v1/process`
-- Method: POST
+- API Base: `https://operator.las.<region>.volces.com/api/v1`
+- Region:
+  - `cn-beijing`
+  - `cn-shanghai`
 
 鉴权：`Authorization: Bearer $LAS_API_KEY`
 
@@ -15,9 +17,9 @@ title: las_audio_convert API 参考
 
 | 字段名 | 类型 | 是否必选 | 说明 |
 | :--- | :--- | :--- | :--- |
-| operator_id | string | 是 | 固定为 `las_audio_convert` |
-| operator_version | string | 是 | 固定为 `v1` |
-| data | AudioConvertReqParams | 是 | 参数详情见下表 |
+| operator_id | string | 是 | 固定为 `las_audio_convert`（CLI 自动填充） |
+| operator_version | string | 是 | 固定为 `v1`（CLI 自动填充） |
+| data | AudioConvertReqParams | 是 | **`data.json` 的内容对应此字段**，详情见下表 |
 
 ### AudioConvertReqParams
 

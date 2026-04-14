@@ -1,0 +1,20 @@
+{
+  "skill_name": "byted-las-vlm-video",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "我有一个本地短视频 short.mp4，我想通过视觉大模型给它生成一段字幕配文，请用 Python 实现。",
+      "expected_output": "包含 las_sdk.file.upload 上传本地文件至 TOS，并调用 byted-las-vlm-video 生成描述的步骤。"
+    },
+    {
+      "id": 2,
+      "prompt": "我有一个 TOS 上的视频 tos://bucket/demo.mp4，我想提问：视频里的主角穿的是什么颜色的衣服？",
+      "expected_output": "包含调用 byted-las-vlm-video，并在 data 中配置 qa_list 参数的示例代码。"
+    },
+    {
+      "id": 3,
+      "prompt": "我想通过 byted-las-vlm-video 提取视频里的关键动作，并且将帧率控制在每秒1帧，该如何配置？",
+      "expected_output": "说明需要在调用时配置 frame_rate 参数为 1 的示例代码。"
+    }
+  ]
+}

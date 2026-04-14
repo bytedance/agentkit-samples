@@ -1,0 +1,20 @@
+{
+  "skill_name": "byted-las-long-video-understand",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "我有一个两小时的长视频 test.mp4，我想提取它的全文摘要和各个章节的重点，请用 Python 脚本实现。",
+      "expected_output": "包含 las_sdk.file.upload 将文件上传至 TOS 的步骤，使用 client.media.process 调用 byted-las-long-video-understand 技能，并获取返回结果中的章节列表和摘要。"
+    },
+    {
+      "id": 2,
+      "prompt": "我有一个 TOS 上的会议视频 tos://bucket/meeting.mp4，我需要提问：这个视频里主要讨论了哪些产品的发版计划？请给出代码。",
+      "expected_output": "包含调用 client.media.process 并在 data 中配置 qa_list 参数的示例代码。"
+    },
+    {
+      "id": 3,
+      "prompt": "如果我需要长视频的高光片段提取，该如何配置 data.json?",
+      "expected_output": "说明需要在调用时启用 highlights_extraction 或者配置相关分析任务的字段。"
+    }
+  ]
+}

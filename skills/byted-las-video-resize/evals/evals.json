@@ -1,0 +1,23 @@
+{
+  "skill_name": "byted-las-video-resize",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "我有一个视频 tos://bucket/input.mp4，想把分辨率调整到宽 1280-2560、高 720-1440 范围内，并输出到 tos://bucket/output/，文件名 resized.mp4。请给出 data.json 模板、lasutil submit 命令，并说明后续如何用短轮询 poll 拿到 data.output_path。",
+      "expected_output": "给出 data.json、submit 命令、说明 COMPLETED 后从 data.output_path 获取结果，强调短轮询不阻塞。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "我有一个目录 tos://bucket/input/ 下很多 mp4 要批量 resize。请给出 tos-ls 生成总清单、按 batch_001 目录分批、batch-submit/batch-poll 的完整流程。注意 input_field 要用 video_path。",
+      "expected_output": "给出 workdir/batch_001 的目录组织，batch-submit/batch-poll 命令与关键参数含义（jobs/max-seconds/progress-interval），并提醒用 -h 查看参数说明。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "用户给了本地文件 ./input.mp4，要求最终输出落到本地 ./output.mp4。请给出上传到 TOS、中转输出到 TOS、短轮询 poll、最后下载到本地的步骤。",
+      "expected_output": "包含 lasutil tos-upload/tos-download 的桥接步骤，以及 submit/poll 的命令示例。",
+      "files": []
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "skill_name": "byted-las-video-inpaint",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "我有一个带水印的视频（tos://bucket/input/watermark.mp4），帮我用 lasutil 提交修复任务并告诉我怎么轮询拿到输出的 inpainted_video_path。输出要包含完整命令和关键字段说明。",
+      "expected_output": "给出 data.json 模板、lasutil submit/poll 命令，解释 COMPLETED 后从 data.inpainted_video_path 获取结果。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "我有一个 TOS 目录 tos://bucket/input/ 下面很多 mp4，需要批量去水印。请给出可分批的 batch-submit/batch-poll 流程（含 workdir/batch_001 目录组织），并提醒我用 -h 查看参数含义。",
+      "expected_output": "给出 tos-ls 生成总清单、按批次子目录切分、batch-submit/batch-poll 示例命令，说明 jobs/interval/progress-interval/max-seconds 的含义与用法。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "我只有本地文件 ./input.mp4，想要最终输出落到本地 ./output.mp4，但算子只能写 TOS。请给出上传、提交、轮询、下载的完整步骤。",
+      "expected_output": "使用 lasutil tos-upload 上传到 TOS，中转 output_tos_path，完成后用 lasutil tos-download 下载到本地。",
+      "files": []
+    }
+  ]
+}

@@ -1,85 +1,150 @@
 ---
 name: byted-las-video-inpaint
-description: |
-  Video inpainting operator (las_video_inpaint) for removing watermarks/subtitles/logos from videos.
-  Use this skill when user needs to:
-  - Remove watermarks, subtitles, or scrolling subtitles from a video
-  - Repair a video by inpainting fixed regions (fixed_bboxes) or auto-detected regions
-  - Run video restoration and get the output TOS path + optional subtitle bbox
-  Supports input from public URL/intranet URL/TOS and outputs to TOS. If user provides local video files or requires local outputs, use byted-tosfile-access to upload/download as a TOS bridge.
-  Requires LAS_API_KEY for authentication.
+version: "1.0.1"
+description: "Removes unwanted visual elements from videos using AI-powered inpainting via Volcengine LAS. Video watermark removal, subtitle removal, logo removal, and text overlay removal — erases and cleans up watermarks, hardcoded subtitles, logos, text, and other fixed-region artifacts and obstructions from video footage. Video inpainting, video repair, video restoration, and video cleanup. Supports specifying exact bounding boxes for targeted removal and erasure. Handles videos up to 4 hours and 30GB. Use this skill when the user wants to remove watermarks from videos, erase hardcoded subtitles/captions, delete logo or text overlays, clean up video footage by removing unwanted objects, repair or restore videos by removing obstructions, do video inpainting on fixed regions, or remove visual artifacts from video content."
 ---
 
 # LAS 视频修复（`las_video_inpaint`）
 
-本 Skill 基于以下两个接口，封装 `submit/poll` 异步调用流程。
+去除视频中的水印、字幕、Logo。支持指定固定区域修复（`fixed_bboxes`）。多种修复后端可选。
 
-- `POST https://operator.las.cn-beijing.volces.com/api/v1/submit` 提交修复任务
-- `POST https://operator.las.cn-beijing.volces.com/api/v1/poll` 轮询任务状态并拿到修复后视频
+**使用限制**：视频时长 ≤ 4 小时，文件大小 ≤ 30GB。
 
-## 你需要准备什么
+## 设计模式
 
-- `LAS_API_KEY`：优先从环境变量读取；也支持放在当前目录的 `env.sh`
-- Operator Region（二选一）：
-  - 环境变量：`LAS_REGION`（推荐）/ `REGION` / `region`，取值 `cn-beijing`（默认）或 `cn-shanghai`
-  - 或命令中通过 `--region cn-shanghai` 指定
-- `video_url`：可下载的视频地址（`http/https` 或 `tos://bucket/key`）
-- `output_tos_path`：修复结果写入的 TOS 路径前缀（建议传目录前缀）。实际输出以 `inpainted_video_path` 为准
+本 skill 主要采用：
+- **Tool Wrapper**：封装 `lasutil` CLI 调用
+- **Pipeline**：包含 Step 0 → Step N 的顺序工作流
 
-## 参数与返回字段（详细版）
+## 核心 API 与配置
 
-完整速查见：
+- **算子 ID**: `las_video_inpaint`
+- **API**: 异步（`submit` → `poll`）
+- **环境变量**: `LAS_API_KEY` (必填)
 
-- [references/api.md](references/api.md)
+> 详细参数与接口定义见 [references/api.md](references/api.md)。
 
-## 推荐使用方式
+## Gotchas
 
-本 Skill 自带可执行脚本：`scripts/skill.py`。
 
-下面示例默认你位于该 Skill 目录（与 `SKILL.md` 同级），因此命令使用相对路径 `scripts/skill.py`。
+- **密钥安全**：若聊天框屏蔽密钥，让用户在当前目录创建 `env.sh` 并写入 `export LAS_API_KEY="..."`，SDK 会自动读取。
+- **免责声明**：最终回复结果时必须包含："本方式的计费均为预估计费，与实际费用有差距，实际费用以运行后火山产生的账单为准。计费说明请参考 [Volcengine LAS 定价](https://www.volcengine.com/docs/6492/1544808)。"，且禁止使用"实际费用"字眼描述预估价。
 
-### 1) 仅提交（返回 task_id）
 
-```bash
-python3 scripts/skill.py submit \
-  --video-url "tos://bucket/input.mp4" \
-  --output-tos-path "tos://bucket/output/" \
-  --targets watermark \
-  --targets subtitle \
-  --region cn-beijing \
-  --out submit.json
+## 工作流（严格按步骤执行）
+
+复制此清单并跟踪进度：
+
+```text
+执行进度：
+- [ ] Step 0: 前置检查
+- [ ] Step 1: 初始化与准备
+- [ ] Step 2: 预估价格
+- [ ] Step 3: 提交任务
+- [ ] Step 4: 异步查询
+- [ ] Step 5: 结果呈现
 ```
 
-### 2) 查询任务状态（poll）
+### Step 0: 前置检查（⚠️ 必须在第一轮对话中完成）
+
+在接受用户的任务后，**不要立即开始执行**，必须首先进行以下环境检查：
+1. **检查 `LAS_API_KEY` 与 `LAS_REGION`**：确认环境变量或 `.env` 中是否已配置。
+   - 若无，必须立即向用户索要（提示：`LAS_REGION` 常见为 `cn-beijing`）。
+   - **注意**：`LAS_REGION` 必须与您的 API Key 及 TOS Bucket 所在的地域完全一致。如果用户中途切换了 Region，必须提醒用户其 TOS Bucket 也需对应更换，否则会导致权限异常或上传失败。
+2. **检查输入路径**：
+   - 如果用户要求处理的是**本地文件**，则需要先通过 File API 上传至 TOS（只需 `LAS_API_KEY`，无需额外 TOS 凭证）。
+   - 如果算子的**输出结果**存放在 TOS 上，且用户需要下载回本地，则需要 `VOLCENGINE_ACCESS_KEY` 和 `VOLCENGINE_SECRET_KEY`。对于**仅需要上传输入文件**的场景，TOS 凭证**不再必须**。
+3. **检查输出路径**：
+   - `output_tos_path` 为必填参数，必须由用户提供**自己可写的 TOS 目录路径**（格式：`tos://bucket/output_dir/`）。
+   - 服务端需要将修复后的视频写入此目录。
+4. **确认无误后**：才能进入下一步。
+
+### Step 1: 初始化与准备
+
+**环境初始化（Agent 必做）**：
 
 ```bash
-python3 scripts/skill.py poll task-xxx \
-  --region cn-beijing \
-  --out result.json
+# 执行统一的环境初始化与更新脚本（会自动创建/激活虚拟环境，并检查更新）
+source "$(dirname "$0")/scripts/env_init.sh" las_video_inpaint
+workdir=$LAS_WORKDIR
 ```
 
-建议在对话中继续处理其他问题；每隔一段时间（例如 5-10 秒）再 poll 一次，直到 `task_status=COMPLETED` 后把 `data.inpainted_video_path` 返回给用户。
+> 如果网络问题导致更新失败，脚本会跳过检查，使用本地已安装的 SDK 继续执行。
+
+- **处理本地文件时**：使用 File API 上传（只需 `LAS_API_KEY`，无需 TOS 凭证和 Bucket）：
+  ```bash
+  lasutil file-upload <local_path>
+  ```
+  上传成功后返回 JSON，取其中的 `presigned_url`（HTTPS 预签名下载链接，24 小时有效）传给算子作为输入 URL。
+
+### Step 2: 预估价格（⚠️ 必须获得用户确认）
+
+1. 读取 [references/prices.md](references/prices.md) 获取最新计费标准。
+2. 获取视频时长：
+   ```bash
+   lasutil media-duration <video_url>
+   ```
+3. 根据时长和模式单价计算总价，**将计费单价与预估总价一并告知用户并强制暂停执行**，明确等待用户回复确认。在用户明确回复"继续"、"确认"等同意指令前，**绝对禁止**进入下一步（执行/提交任务）。提示：预估仅供参考，实际以火山账单为准。计费说明请参考 [Volcengine LAS 定价](https://www.volcengine.com/docs/6492/1544808)。
+
+### Step 3: 提交任务 (Submit)
+
+构造基础 `data.json`：
+```json
+{
+  "video_url": "<presigned_url>",
+  "output_tos_path": "tos://<your-bucket>/output_dir/",
+  "targets": ["watermark", "subtitle"]
+}
+```
+
+> **重要提示**: `output_tos_path` **必须由用户提供**，需要填写用户自己账号下可写的 TOS 目录（服务端会将修复后的视频写入此目录）。
+
+**单文件提交**：
+```bash
+data=$(cat "$workdir/data.json")
+lasutil submit las_video_inpaint "$data" > "$workdir/submit.json"
+```
+
+⚠️ **强制反馈**：任务提交成功后，**必须立即向用户返回生成的 `task_id`**，以便用户跟踪进度或在必要时手动查询。
+
+### Step 4: 异步查询 (Poll)
+
+⚠️ **异步任务与后台轮询约束**：
+- 如果你当前的环境**支持后台任务/异步长效运行**：你可以利用环境提供的后台能力（例如发起后台轮询任务），并在任务完成后主动将结果返回给用户。
+- 如果你当前的环境**不支持**长效后台任务（如普通的单轮对话沙箱），且直接 `sleep` 循环会导致超时崩溃：**绝对禁止在代码中执行死循环等待！** 此时必须立即向用户输出 Task ID 并结束当前轮次，告知用户："任务已提交，请稍后向我询问进度"。
 
 
-## 关键参数说明
+**单任务查询**：
+```bash
+lasutil poll las_video_inpaint {task_id}
+```
+- `COMPLETED` → 返回修复后视频路径 `result.data.inpainted_video_path`。
+- `RUNNING`/`PENDING` → 稍后重试。
 
-- `targets`：擦除目标类型，常用 `watermark/subtitle/scrolling_subtitle`，默认服务端通常为 `["watermark","subtitle"]`
-- `fixed_bboxes`：如果你只想修复某些固定区域，可用该参数。坐标以 `1000x1000` 为基准，会按实际分辨率缩放
-- `return_subtitle_bbox`：是否返回字幕 bbox（字符串 `x1,y1,x2,y2`，原视频像素坐标）
-- 如果你传入的是带 `.mp4` 的路径（看起来像文件），服务端可能仍会在该路径下追加任务目录与文件名；建议使用目录前缀，避免出现 `...mp4/<task_dir>/<file>.mp4` 的层级
+### Step 5: 结果呈现
 
-## 使用限制（摘要）
+**处理结果**：
 
-- 视频源需可访问（公网/火山内网/TOS）
-- 视频时长 ≤ 4 小时，大小 ≤ 30GB
+```bash
+# 获取修复后的视频 URL
+inpainted_url=$(cat "./output/{task_id}/result.json" | jq -r '.data.inpainted_video_path')
+echo "修复后的视频: $inpainted_url"
+```
 
-## 补充：本地文件作为输入输出
+**视频文件**：
+- 修复后的视频已保存在 TOS，直接返回预签名 URL
+- 无需再次上传
 
-`las_video_inpaint` 输入支持TOS或可下载URL，输出必须写入 TOS 上（最终以 `inpainted_video_path` 为准）。当用户给的是本地文件路径或希望本地落盘时，按下面规则处理，并配合 [byted-tosfile-access](../byted-tosfile-access/SKILL.md) 做上传/下载中转。
+**向用户展示**：
+1. 修复后的视频下载链接
+2. 本地结果路径：`./output/{task_id}/`
+3. 计费声明
 
-### 规则
 
-- 用户输入是本地路径：先用 byted-tosfile-access 上传到 TOS，得到 `tos://...` 再作为 `--video-url` 调用本技能。
-- 用户输出要求是本地路径：本技能先输出到 TOS（中转），待 `COMPLETED` 后用 byted-tosfile-access 把 `inpainted_video_path` 下载到本地。
-- 用户输入与输出都要求本地：必须追问用户提供一个“可写的 TOS 中转目录前缀”（例如 `tos://bucket/tmp/video_inpaint/`），用它同时承载上传的输入与算子输出。
-- 用户输入或输出有一项已经是 `tos://...` 且仍需要中转：优先复用该 bucket，并通过“路径改写”生成中转前缀，例如把 `tos://bucket/a/b/input.mp4` 改写成 `tos://bucket/a/b/video_inpaint/`（或 `tos://bucket/a/b/tmp/video_inpaint/`），避免覆盖原文件。
+## 审查标准
+
+执行完成后，Agent 应自检：
+1. 环境变量是否正确配置
+2. 输入文件是否成功上传
+3. 输出结果是否正确呈现给用户
+4. 计费声明是否包含
