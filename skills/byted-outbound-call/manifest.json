@@ -1,0 +1,22 @@
+{
+  "name": "arkclaw-outbound-call",
+  "version": "1.0.0",
+  "description": "AI智能代打电话，自动办理生活服务场景的预约/改订/取消事务，无需用户手动拨打电话。支持用户通过job_id查询外呼任务状态",
+  "emoji": "📞",
+  "author": "ArkClaw Team",
+  "license": "MIT",
+  "type": "skill",
+  "userInvocable": true,
+  "argumentHint": "<自然语言描述需求>",
+  "pipRequirements": [
+    "requests>=2.31.0"
+  ],
+  "requires": {
+    "env": [
+      "VOLCENGINE_ACCESS_KEY",
+      "VOLCENGINE_SECRET_KEY"
+    ],
+    "bins": ["python3"]
+  },
+  "entry": "SKILL.md"
+}
