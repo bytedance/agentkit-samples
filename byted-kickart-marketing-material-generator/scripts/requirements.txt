@@ -1,0 +1,8 @@
+pydantic==2.12.5
+qrcode==8.2
+pandas==2.3.3
+python-dotenv>=1.1.1
+requests>=2.31.0
+jsonpath>=0.82.2
+Pillow>=10.1.0
+urllib3>=2.1.0
