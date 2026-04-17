@@ -20,7 +20,9 @@ import sys
 import argparse
 import shutil
 import logging
+import requests
 from pathlib import Path
+from pydantic import BaseModel
 from typing import Optional
 from dotenv import load_dotenv
 
@@ -38,6 +40,74 @@ except ImportError:
         "veadk package not found. Please ensure veadk-python is in your PYTHONPATH or installed."
     )
     sys.exit(1)
+
+# def health_check(self) -> None:
+#     """Check the health of the server."""
+#     response = requests.get(f"http://{self.server_host}:{self.server_port}/ping")
+#     assert response.status_code == 200, (
+#         f"unexpected status code from A2A hub server: {response.status_code}"
+#     )
+
+
+def identify_volc_env() -> str:
+    """
+    Identify the Volcano Engine environment (vefaas or ecs).
+    """
+
+    VEFAAS_IAM_CRIDENTIAL_PATH = "/var/run/secrets/iam/credential"
+    ECS_CLOUD_LINUX_ENV_PATH = "/etc/cloud/cloud.cfg"
+    ECS_CLOUD_WINDOWS_ENV_PATH = r"C:\Program Files\Cloudbase Solutions\Cloudbase-Init"
+
+    if os.path.exists(VEFAAS_IAM_CRIDENTIAL_PATH):
+        print("vefaas")
+    elif os.path.exists(ECS_CLOUD_LINUX_ENV_PATH):
+        print("ecs")
+    elif os.path.exists(ECS_CLOUD_WINDOWS_ENV_PATH):
+        print("ecs")
+    else:
+        print("unknown")
+
+
+class VeECSCredential(BaseModel):
+    access_key_id: str
+    secret_access_key: str
+    session_token: str
+
+
+def get_credential_from_ecs_iam() -> VeECSCredential:
+    """
+    Get credential from ECS IAM by calling metadata service
+    """
+
+    # ECS_IAM_ROLE_URL = "http://100.96.0.96/volcstack/latest/iam/security_credentials/ServiceRoleForVolcECS"
+    ECS_IAM_ROLE_URL = "http://100.96.0.96/volcstack/latest/iam/security_credentials/AgentKit_Runtime_Default_ServiceRole_8xfe4ne"
+
+    try:
+        response = requests.get(ECS_IAM_ROLE_URL, timeout=10)
+        response.raise_for_status()
+
+        data = response.json()
+
+        # print("解析结果：")
+        # print(json.dumps(data, indent=4, ensure_ascii=False))
+
+        # 示例：单独提取字段
+        # access_key = data.get("AccessKeyId")
+        # secret_key = data.get("SecretAccessKey")
+        # session_token = data.get("SessionToken")
+        # expired_time = data.get("ExpiredTime")
+    except requests.exceptions.RequestException as e:
+        print(f"请求失败: {e}")
+    except json.JSONDecodeError as e:
+        print(f"JSON 解析失败: {e}")
+
+    logger.info("Get credential from ECS IAM successfully.")
+
+    return VeECSCredential(
+        access_key_id=data.get("AccessKeyId"),
+        secret_access_key=data.get("SecretAccessKey"),
+        session_token=data.get("SessionToken"),
+    )
 
 
 def download_skills(download_path: str, skill_names: Optional[list[str]] = None) -> str:
@@ -80,14 +150,27 @@ def download_skills(download_path: str, skill_names: Optional[list[str]] = None)
         secret_key = os.getenv("VOLCENGINE_SECRET_KEY")
         session_token = ""
 
-        if not (access_key and secret_key) and get_credential_from_vefaas_iam:
-            try:
-                cred = get_credential_from_vefaas_iam()
-                access_key = cred.access_key_id
-                secret_key = cred.secret_access_key
-                session_token = cred.session_token
-            except Exception as e:
-                logger.warning(f"Failed to get credential from vefaas iam: {e}")
+        if not (access_key and secret_key):
+            VOLC_ENV = identify_volc_env()
+            logger.info(f"Identified Volcano Engine environment: {VOLC_ENV}")
+
+            if VOLC_ENV == "vefaas" and get_credential_from_vefaas_iam:
+                try:
+                    cred = get_credential_from_vefaas_iam()
+                    access_key = cred.access_key_id
+                    secret_key = cred.secret_access_key
+                    session_token = cred.session_token
+                except Exception as e:
+                    logger.warning(f"Failed to get credential from vefaas iam: {e}")
+
+            if VOLC_ENV == "ecs":
+                try:
+                    cred = get_credential_from_ecs_iam()
+                    access_key = cred.access_key_id
+                    secret_key = cred.secret_access_key
+                    session_token = cred.session_token
+                except Exception as e:
+                    logger.warning(f"Failed to get credential from ecs iam: {e}")
 
         if not (access_key and secret_key):
             raise PermissionError(
