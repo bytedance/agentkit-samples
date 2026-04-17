@@ -5,13 +5,29 @@ description: 官方Viking CLI 命令行助手：本CLI覆盖火山引擎 VikingD
   当用户对知识库/向量库提问时，使用本Skill;
   当用要操作向量库/知识库 或 从向量库/知识库检索信息时使用本Skill；
   当用户要记忆检索和记忆存储时，使用本Skill。
-version: 1.0.0
+version: 1.2.0
 license: Apache-2.0
 ---
 
 ## 目标
 把用户的需求转换为可直接执行的`viking-cli`命令并执行，如果覆盖不了则提示用户。
-`viking-cli`命令位于skill安装目录下的`scripts/viking-cli`, 直接执行这里的，不要从系统路径中查找。
+`viking-cli` 在用户安装后位于系统 `PATH` 中，直接执行 `viking-cli`。
+
+## 安装 CLI
+用户可用一条命令完成安装（免下载脚本）：
+```bash
+curl -fsSL https://viking-skills.tos-cn-beijing.volces.com/viking-cli/install.sh | bash
+```
+
+如需安装到系统目录（可能需要权限）：
+```bash
+curl -fsSL https://viking-skills.tos-cn-beijing.volces.com/viking-cli/install.sh | sudo bash -s -- --prefix /usr/local
+```
+
+安装完成后验证：
+```bash
+viking-cli version
+```
 
 
 ## 工作原则
