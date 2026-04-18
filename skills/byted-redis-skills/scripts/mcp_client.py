@@ -35,7 +35,9 @@ class RedisMCPClient:
             args=[
                 "--from",
                 "git+https://github.com/volcengine/mcp-server.git#subdirectory=server/mcp_server_redis",
-                "mcp-server-redis"
+                "mcp-server-redis",
+                "-t",
+                "stdio",
             ],
             env=env
         )
