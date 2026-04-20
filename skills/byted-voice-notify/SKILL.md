@@ -2,12 +2,22 @@
 name: voice-notify
 description: 火山引擎语音通知发送。使用火山引擎语音服务API向指定手机号码发送语音通知。当用户需要发送语音通知时使用本技能。
 license: Complete terms in LICENSE.txt
-metadata: {"openclaw":{
-  "emoji":"📞 ",
-  "requires":{"env":["VOLCENGINE_ACCESS_KEY","VOLCENGINE_SECRET_KEY"]},
-  "os":["darwin","linux"],
-  "triggers": ["发送语音通知", "打语音电话", "语音提醒", "给.*发送语音", "语音通知"]
-}}
+metadata: 
+  openclaw:
+    emoji: "📞 "
+    requires:
+      env:
+        - VOLCENGINE_ACCESS_KEY 
+        - VOLCENGINE_SECRET_KEY
+    os: 
+      - darwin
+      - linux
+    triggers:
+      - 发送语音通知
+      - 打语音电话
+      - 语音提醒
+      - 给.*发送语音
+      - 语音通知
 
 ---
 
