@@ -1,7 +1,7 @@
 ---
 name: byted-viking-developer
 description: 指导开发者接入与使用Viking SDK, 覆盖 Viking 向量库、知识库、记忆库的安装、鉴权、接口调用与问题诊断, 当用户需要调用Viking SDK进行业务代码开发和Viking相关问题问答时使用.
-version: 1.1.0
+version: 1.2.0
 license: Apache-2.0
 ---
 
@@ -13,38 +13,23 @@ license: Apache-2.0
 
 本 Skill 旨在帮助开发者快速接入和使用 Viking 平台的 SDK，涵盖向量数据库 (VikingDB)、知识库 (KnowledgeBase) 和记忆库 (Memory) 三大核心能力。
 
-请根据您的具体需求，选择对应的 SDK 指引：
+调用本 Skill 处理 Viking 相关需求时，先执行本Skill安装路径下的`scripts/upgrade.py` 更新本地 `resources` 目录中的资源文件，再读取导引文档。
 
-### 1. 向量库 SDK (VikingDB)
-适用于需要高性能向量检索、标量检索、数据存储与管理的场景。支持 Python、Golang、Java 多语言接入。
-- **核心功能**: Collection/Index 管理、数据 CRUD、向量/标量检索、多模态检索等。
-- **多语言指引**:
-  - [Python SDK 文档导引](resources/vikingdb-python-sdk.md)
-  - [Go SDK 文档导引](resources/vikingdb-go-sdk.md)
-  - [Java SDK 文档导引](resources/vikingdb-java-sdk.md)
-- **辅助导引**:
-  - [常见问题导引](resources/vikingdb-qa.md)
-  - [性能优化导引](resources/vikingdb-performance-optim.md)
-  - [最佳实践导引](resources/vikingdb-best-practice.md)
-  - [其他文档导引](resources/vikingdb-other.md)
+所有文档导引统一收敛在 [resources/index.md](resources/index.md)。
 
-### 2. 知识库 SDK (KnowledgeBase)
-适用于构建 RAG (检索增强生成)、文档管理、智能问答等场景。
-- **核心功能**: 文档解析与管理、切片 (Point) 管理、全文/混合检索、RAG 生成、对话补全等。
-- **多语言指引**:
-  - [Python SDK 文档导引](resources/knowledge-python-sdk.md)
-  - [Go SDK 文档导引](resources/knowledge-go-sdk.md)
-  - [Java SDK 文档导引](resources/knowledge-java-sdk.md)
-- **辅助导引**:
-  - [常见问题导引](resources/knowledge-qa.md)
-  - [其他文档导引](resources/knowledge-other.md)
-  - [SDK 升级与使用说明](resources/Viking%20%E7%9F%A5%E8%AF%86%E5%BA%93/SDK%E5%8F%82%E8%80%83/SDK%20%E5%8D%87%E7%BA%A7%E4%B8%8E%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E.md)
+处理与本 Skill 相关的任何请求时，按以下顺序执行：
 
-### 3. 记忆库 SDK (Memory)
-适用于构建具备长期记忆能力的 AI Agent，支持存储和检索用户画像及事件记忆。
-- **核心功能**: Session 管理、事件记忆 (Event)、用户画像 (Profile)、记忆检索等。
-- **多语言指引**:
-  - [Python SDK 文档导引](resources/memory-python-sdk.md)
-- **辅助导引**:
-  - [最佳实践导引](resources/memory-best-practice.md)
-  - [其他文档导引](resources/memory-other.md)
+1. 运行本Skill安装路径下的`scripts/upgrade.py`，同步最新资源文件到 `resources/`。
+2. 再优先阅读 `resources/index.md`。
+3. 最后根据 `resources/index.md` 中的导航进入对应的导引文件、最佳实践、常见问题或专题文档。
+
+## 导引入口
+
+`resources/index.md` 已汇总以下内容：
+- VikingDB 向量库的 Python、Go、Java、NodeJS 等SDK 导引，以及常见问题、性能优化、最佳实践、其他文档。
+- KnowledgeBase 知识库的 Python、Go、Java、NodeJS 等SDK 导引，以及常见问题、其他文档、SDK 升级与使用说明。
+- Memory 记忆库的 Python、 Go 等SDK 导引，以及最佳实践、其他文档。
+
+
+## 使用建议
+- 若用户问题已经明确指向某个产品、语言或专题，再继续读取对应的下钻文档。
