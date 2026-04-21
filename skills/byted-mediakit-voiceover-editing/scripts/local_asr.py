@@ -19,12 +19,12 @@ Local ASR：使用 Qwen3-ASR + Silero VAD 进行本地语音转录。
 
 依赖：qwen-asr, torch, soundfile, ffmpeg-python (或 imageio-ffmpeg)
 """
+
 from __future__ import annotations
 
 import json
 import logging
 import os
-import sys
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 
 def _load_silero_vad(device: str = "cpu"):
     import torch
+
     model, utils = torch.hub.load(
         repo_or_dir="snakers4/silero-vad",
         model="silero_vad",
@@ -64,9 +65,21 @@ def _detect_speech_segments(
     os.close(fd)
     try:
         subprocess.run(
-            [_ffmpeg(), "-i", audio_path, "-ar", str(sampling_rate), "-ac", "1",
-             "-f", "wav", "-y", temp_wav],
-            capture_output=True, check=True,
+            [
+                _ffmpeg(),
+                "-i",
+                audio_path,
+                "-ar",
+                str(sampling_rate),
+                "-ac",
+                "1",
+                "-f",
+                "wav",
+                "-y",
+                temp_wav,
+            ],
+            capture_output=True,
+            check=True,
         )
         waveform, sr = sf.read(temp_wav)
         if len(waveform.shape) > 1:
@@ -78,7 +91,8 @@ def _detect_speech_segments(
 
     get_speech_timestamps = vad_utils[0]
     speech_timestamps = get_speech_timestamps(
-        waveform, vad_model,
+        waveform,
+        vad_model,
         sampling_rate=sampling_rate,
         threshold=threshold,
         min_speech_duration_ms=min_speech_duration * 1000,
@@ -87,11 +101,13 @@ def _detect_speech_segments(
 
     segments = []
     for ts in speech_timestamps:
-        segments.append({
-            "start": ts["start"] / sampling_rate,
-            "end": ts["end"] / sampling_rate,
-            "audio": waveform[ts["start"]:ts["end"]],
-        })
+        segments.append(
+            {
+                "start": ts["start"] / sampling_rate,
+                "end": ts["end"] / sampling_rate,
+                "audio": waveform[ts["start"] : ts["end"]],
+            }
+        )
     return segments
 
 
@@ -135,7 +151,9 @@ def transcribe_local(
     for i, segment in enumerate(speech_segments):
         try:
             audio_data = (segment["audio"], 16000)
-            results = model.transcribe(audio=audio_data, language=language, return_time_stamps=True)
+            results = model.transcribe(
+                audio=audio_data, language=language, return_time_stamps=True
+            )
         except Exception as e:
             logger.error(f"片段 {i} 转录失败: {e}")
             continue
@@ -146,18 +164,22 @@ def transcribe_local(
         words = []
         if r.time_stamps:
             for wts in r.time_stamps:
-                words.append({
-                    "text": wts.text.strip(),
-                    "start_time": int((segment["start"] + wts.start_time) * 1000),
-                    "end_time": int((segment["start"] + wts.end_time) * 1000),
-                })
+                words.append(
+                    {
+                        "text": wts.text.strip(),
+                        "start_time": int((segment["start"] + wts.start_time) * 1000),
+                        "end_time": int((segment["start"] + wts.end_time) * 1000),
+                    }
+                )
 
-        result_utterances.append({
-            "text": r.text.strip(),
-            "start_time": int(segment["start"] * 1000),
-            "end_time": int(segment["end"] * 1000),
-            "words": words,
-        })
+        result_utterances.append(
+            {
+                "text": r.text.strip(),
+                "start_time": int(segment["start"] * 1000),
+                "end_time": int(segment["end"] * 1000),
+                "words": words,
+            }
+        )
 
     # 兼容 asr_volc 输出格式
     output = {
@@ -171,7 +193,9 @@ def transcribe_local(
     }
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
+    output_path.write_text(
+        json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     logger.info(f"Local ASR 完成，{len(result_utterances)} 条语句 → {output_path}")
     return output
 
@@ -179,8 +203,10 @@ def transcribe_local(
 def _get_audio_duration(audio_path: str) -> float:
     try:
         import soundfile as sf
+
         with sf.SoundFile(audio_path) as f:
             return f.frames / f.samplerate
     except Exception:
         from ffmpeg_utils import probe_duration
+
         return probe_duration(Path(audio_path))

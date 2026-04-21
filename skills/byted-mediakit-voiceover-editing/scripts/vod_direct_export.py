@@ -161,7 +161,9 @@ def _validate_upload_info(upload: Dict[str, Any]) -> Dict[str, Any]:
     """
     space = (upload.get("SpaceName") or upload.get("Uploader") or "").strip()
     if not space:
-        raise ValueError("UploadInfo.SpaceName 为必选，请设置 SpaceName 或 VOLC_SPACE_NAME")
+        raise ValueError(
+            "UploadInfo.SpaceName 为必选，请设置 SpaceName 或 VOLC_SPACE_NAME"
+        )
 
     out = {"SpaceName": space}
 
@@ -221,7 +223,7 @@ def _maybe_guard_step6_mismatch(param_path: Path, data: Dict[str, Any]) -> None:
             f"- export_request._source_step6.sha1: {old_sha1}\n"
             f"- step6 当前 sha1: {new_sha1}\n\n"
             "请先重新运行 Step6a 生成最新 export_request.json：\n"
-            f"  cd {Path(__file__).resolve().parent} && python prepare_export_data.py --output-dir \"{step6_path.parent}\" \n"
+            f'  cd {Path(__file__).resolve().parent} && python prepare_export_data.py --output-dir "{step6_path.parent}" \n'
         )
 
 
@@ -243,10 +245,14 @@ class VodEditClient:
         resp = self._client.post(action=action, version=version, body=body)
         return json.loads(resp) if isinstance(resp, str) else (resp or {})
 
-    def submit(self, body: Dict[str, Any], version: str = "2018-01-01") -> Dict[str, Any]:
+    def submit(
+        self, body: Dict[str, Any], version: str = "2018-01-01"
+    ) -> Dict[str, Any]:
         return self.post("SubmitDirectEditTaskAsync", version, body)
 
-    def get_result(self, req_ids: List[str], version: str = "2018-01-01") -> Dict[str, Any]:
+    def get_result(
+        self, req_ids: List[str], version: str = "2018-01-01"
+    ) -> Dict[str, Any]:
         return self.post("GetDirectEditResult", version, {"ReqIds": req_ids})
 
 
@@ -274,7 +280,10 @@ def _build_edit_param_from_export_request(
     _normalize_track_trim(track)
 
     edit_param: Dict[str, Any] = {
-        "Canvas": {"Width": canvas.get("Width", 1280), "Height": canvas.get("Height", 2160)},
+        "Canvas": {
+            "Width": canvas.get("Width", 1280),
+            "Height": canvas.get("Height", 2160),
+        },
         "Output": {
             "Alpha": False,
             "Codec": {
@@ -292,7 +301,12 @@ def _build_edit_param_from_export_request(
     }
 
     upload_raw = data.get("Upload") or {}
-    space = space_name or upload_raw.get("SpaceName") or upload_raw.get("Uploader") or os.getenv("VOLC_SPACE_NAME")
+    space = (
+        space_name
+        or upload_raw.get("SpaceName")
+        or upload_raw.get("Uploader")
+        or os.getenv("VOLC_SPACE_NAME")
+    )
     video = video_name or upload_raw.get("VideoName", "口播剪辑")
     file = file_name or upload_raw.get("FileName")
 
@@ -328,10 +342,19 @@ def _ensure_audio_track(track: List[Any]) -> List[Any]:
             if not src or not (isinstance(tt, list) and len(tt) == 2):
                 continue
             extra = el.get("Extra") or []
-            trim = next((x for x in extra if isinstance(x, dict) and x.get("Type") == "trim"), None)
+            trim = next(
+                (x for x in extra if isinstance(x, dict) and x.get("Type") == "trim"),
+                None,
+            )
             ae: Dict[str, Any] = {"Type": "audio", "Source": src, "TargetTime": tt}
             if trim:
-                ae["Extra"] = [{"Type": "trim", "StartTime": trim.get("StartTime"), "EndTime": trim.get("EndTime")}]
+                ae["Extra"] = [
+                    {
+                        "Type": "trim",
+                        "StartTime": trim.get("StartTime"),
+                        "EndTime": trim.get("EndTime"),
+                    }
+                ]
             audio_elems.append(ae)
     if not audio_elems:
         return track
@@ -344,6 +367,7 @@ def _detect_local_mode() -> bool:
     """检测 local 模式（统一使用 execution_mode 模块）"""
     try:
         from execution_mode import detect_local_mode
+
         return detect_local_mode()
     except Exception:
         return os.getenv("EXECUTION_MODE", "").strip().lower() == "local"
@@ -367,6 +391,7 @@ def cmd_submit(args: argparse.Namespace) -> None:
     if _detect_local_mode():
         print("【local】使用本地 ffmpeg 导出视频...")
         from local_export import export_local
+
         output_file = export_local(param_p, _output_dir())
         result = {
             "Status": "success",
@@ -376,7 +401,9 @@ def cmd_submit(args: argparse.Namespace) -> None:
         }
         _output_dir().mkdir(parents=True, exist_ok=True)
         submit_path = _output_dir() / "export_submit.json"
-        submit_path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+        submit_path.write_text(
+            json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
         json_output = getattr(args, "json_output", False)
         if json_output:
             print(json.dumps(result, ensure_ascii=False))
@@ -408,7 +435,9 @@ def cmd_submit(args: argparse.Namespace) -> None:
     result = resp.get("Result") or {}
     req_id = result.get("ReqId")
     if not req_id:
-        raise SystemExit(f"❌ 未返回 ReqId，响应: {json.dumps(resp, ensure_ascii=False, indent=2)}")
+        raise SystemExit(
+            f"❌ 未返回 ReqId，响应: {json.dumps(resp, ensure_ascii=False, indent=2)}"
+        )
 
     _output_dir().mkdir(parents=True, exist_ok=True)
     submit_record = {
@@ -418,9 +447,11 @@ def cmd_submit(args: argparse.Namespace) -> None:
         "Response": resp,
     }
     submit_path = _output_dir() / "export_submit.json"
-    submit_path.write_text(json.dumps(submit_record, ensure_ascii=False, indent=2), encoding="utf-8")
+    submit_path.write_text(
+        json.dumps(submit_record, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     if not getattr(args, "json_output", False):
-        print(f"[OK] 已记录提交参数至 output/export_submit.json")
+        print("[OK] 已记录提交参数至 output/export_submit.json")
 
     json_output = getattr(args, "json_output", False)
     if not json_output:
@@ -439,6 +470,7 @@ def _fetch_play_url(output_vid: str, req_id: str) -> Optional[str]:
         return None
     try:
         from api_manage import ApiManage
+
         api = ApiManage()
         url = api.get_play_url(type="vid", source=output_vid, space_name=space)
         return url or None
@@ -448,7 +480,11 @@ def _fetch_play_url(output_vid: str, req_id: str) -> Optional[str]:
 
 
 def _poll_and_print(
-    client: VodEditClient, req_id: str, args: argparse.Namespace, *, json_output: bool = False
+    client: VodEditClient,
+    req_id: str,
+    args: argparse.Namespace,
+    *,
+    json_output: bool = False,
 ) -> None:
     interval = args.poll_interval
     timeout = args.timeout
@@ -474,11 +510,17 @@ def _poll_and_print(
                     print(f"🎬 OutputVid: {output_vid}")
                     if play_url:
                         print(f"🔗 PlayURL: {play_url}")
-                out_data = {"ReqId": req_id, "OutputVid": output_vid, "PlayURL": play_url}
+                out_data = {
+                    "ReqId": req_id,
+                    "OutputVid": output_vid,
+                    "PlayURL": play_url,
+                }
                 out_path = _output_dir() / "export_play_url.json"
-                out_path.write_text(json.dumps(out_data, ensure_ascii=False, indent=2), encoding="utf-8")
+                out_path.write_text(
+                    json.dumps(out_data, ensure_ascii=False, indent=2), encoding="utf-8"
+                )
                 if not json_output:
-                    print(f"[OK] 已保存至 output/export_play_url.json")
+                    print("[OK] 已保存至 output/export_play_url.json")
             if json_output:
                 result = {
                     "ReqId": req_id,
@@ -492,7 +534,12 @@ def _poll_and_print(
             return
         if time.time() - start > timeout:
             if json_output:
-                print(json.dumps({"error": f"超时 {timeout}s", "ReqId": req_id}, ensure_ascii=False))
+                print(
+                    json.dumps(
+                        {"error": f"超时 {timeout}s", "ReqId": req_id},
+                        ensure_ascii=False,
+                    )
+                )
             else:
                 raise TimeoutError(f"超时 {timeout}s，ReqId={req_id}")
             return
@@ -519,10 +566,16 @@ def cmd_query(args: argparse.Namespace) -> None:
             play_url = _fetch_play_url(output_vid, args.req_id)
             if play_url:
                 print(f"🔗 PlayURL: {play_url}")
-                out_data = {"ReqId": args.req_id, "OutputVid": output_vid, "PlayURL": play_url}
+                out_data = {
+                    "ReqId": args.req_id,
+                    "OutputVid": output_vid,
+                    "PlayURL": play_url,
+                }
                 out_path = _output_dir() / "export_play_url.json"
-                out_path.write_text(json.dumps(out_data, ensure_ascii=False, indent=2), encoding="utf-8")
-                print(f"[OK] 已保存至 output/export_play_url.json")
+                out_path.write_text(
+                    json.dumps(out_data, ensure_ascii=False, indent=2), encoding="utf-8"
+                )
+                print("[OK] 已保存至 output/export_play_url.json")
 
 
 def main() -> None:
@@ -532,7 +585,9 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
-    parser.add_argument("--output-dir", default="", help="输出目录，默认 output；可指定 output/<文件名>")
+    parser.add_argument(
+        "--output-dir", default="", help="输出目录，默认 output；可指定 output/<文件名>"
+    )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     # submit
@@ -542,21 +597,36 @@ def main() -> None:
         help="EditParam/export_request JSON 路径，默认 output/export_request.json",
     )
     p_submit.add_argument("--space-name", help="UploadInfo.SpaceName，覆盖 JSON 内值")
-    p_submit.add_argument("--video-name", default="口播剪辑", help="UploadInfo.VideoName")
-    p_submit.add_argument("--file-name", help="UploadInfo.FileName，如 Project/VideoFiles/xxx.mp4")
+    p_submit.add_argument(
+        "--video-name", default="口播剪辑", help="UploadInfo.VideoName"
+    )
+    p_submit.add_argument(
+        "--file-name", help="UploadInfo.FileName，如 Project/VideoFiles/xxx.mp4"
+    )
     p_submit.add_argument("--application", default="VideoTrackToB")
     p_submit.add_argument("--callback-args", default="")
-    p_submit.add_argument("--ensure-audio", action="store_true", default=True, help="无 audio 轨时从 video 镜像")
+    p_submit.add_argument(
+        "--ensure-audio",
+        action="store_true",
+        default=True,
+        help="无 audio 轨时从 video 镜像",
+    )
     p_submit.add_argument("--version", default="2018-01-01")
     p_submit.add_argument("--wait", action="store_true", help="提交后轮询直到完成")
-    p_submit.add_argument("--json-output", action="store_true", help="输出 JSON 结果（供 export_server 调用）")
+    p_submit.add_argument(
+        "--json-output",
+        action="store_true",
+        help="输出 JSON 结果（供 export_server 调用）",
+    )
     p_submit.add_argument("--poll-interval", type=float, default=3.0)
     p_submit.add_argument("--timeout", type=float, default=30 * 60)
     p_submit.set_defaults(func=cmd_submit)
 
     # query
     p_query = sub.add_parser("query", help="查询任务结果")
-    p_query.add_argument("--req-id", required=True, help="SubmitDirectEditTaskAsync 返回的 ReqId")
+    p_query.add_argument(
+        "--req-id", required=True, help="SubmitDirectEditTaskAsync 返回的 ReqId"
+    )
     p_query.add_argument("--version", default="2018-01-01")
     p_query.add_argument("--wait", action="store_true", help="轮询直到完成")
     p_query.add_argument("--poll-interval", type=float, default=3.0)

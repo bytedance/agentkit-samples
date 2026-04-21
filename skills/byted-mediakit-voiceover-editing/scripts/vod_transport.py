@@ -16,6 +16,7 @@
 """
 VOD 请求传输层：apig（SkillHub Bearer）优先，否则 cloud（火山 HMAC OpenAPI）。
 """
+
 from __future__ import annotations
 
 import json
@@ -44,9 +45,11 @@ def _normalize_skillhub_api_base(base: str) -> str:
 
 
 def resolve_vod_transport() -> Literal["apig", "cloud"]:
-    if (_strip_env("ARK_SKILL_API_BASE")
-            and _strip_env("ARK_SKILL_API_KEY")
-            and os.getenv("EXECUTION_MODE", "").strip().lower() == "apig"):
+    if (
+        _strip_env("ARK_SKILL_API_BASE")
+        and _strip_env("ARK_SKILL_API_KEY")
+        and os.getenv("EXECUTION_MODE", "").strip().lower() == "apig"
+    ):
         return "apig"
     return "cloud"
 
@@ -68,8 +71,14 @@ class SkillhubApigVodClient:
         return self._request(action, body or {}, "POST", version)
 
     def _request(
-        self, action: str, data: dict, method: str, version: str,
-        *, _max_retries: int = 3, _backoff: float = 1.0,
+        self,
+        action: str,
+        data: dict,
+        method: str,
+        version: str,
+        *,
+        _max_retries: int = 3,
+        _backoff: float = 1.0,
     ) -> str:
         import time as _time
 
@@ -81,7 +90,9 @@ class SkillhubApigVodClient:
         else:
             body_dict = data or {}
 
-        canonical_query = urlencode(sorted(query_params.items()), quote_via=quote, safe="-_.~")
+        canonical_query = urlencode(
+            sorted(query_params.items()), quote_via=quote, safe="-_.~"
+        )
         url = f"{self.api_base}?{canonical_query}"
 
         json_body = "" if method == "GET" else json.dumps(body_dict, ensure_ascii=False)
@@ -97,15 +108,21 @@ class SkillhubApigVodClient:
                 if method == "GET":
                     r = requests.get(url, headers=headers, timeout=30)
                 else:
-                    r = requests.post(url, headers=headers, data=json_body.encode("utf-8"), timeout=60)
+                    r = requests.post(
+                        url, headers=headers, data=json_body.encode("utf-8"), timeout=60
+                    )
                 if r.status_code != 200:
                     raise Exception(f"HTTP {r.status_code}: {r.text}")
                 return r.text
-            except (requests.exceptions.SSLError,
-                    requests.exceptions.ConnectionError) as e:
+            except (
+                requests.exceptions.SSLError,
+                requests.exceptions.ConnectionError,
+            ) as e:
                 last_exc = e
-                wait = _backoff * (2 ** attempt)
-                print(f"[APIG] {action} 请求失败(第{attempt+1}次): {type(e).__name__}, {wait:.1f}s 后重试...")
+                wait = _backoff * (2**attempt)
+                print(
+                    f"[APIG] {action} 请求失败(第{attempt + 1}次): {type(e).__name__}, {wait:.1f}s 后重试..."
+                )
                 _time.sleep(wait)
 
         raise last_exc  # type: ignore[misc]

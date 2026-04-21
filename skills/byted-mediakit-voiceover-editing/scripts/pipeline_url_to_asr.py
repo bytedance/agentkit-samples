@@ -50,7 +50,9 @@ def _output_dir() -> Path:
 
 def _write_json(name: str, data: Any) -> Path:
     out_path = _output_dir() / name
-    out_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    out_path.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     return out_path
 
 
@@ -95,7 +97,9 @@ def _infer_task_name_from_args(args: argparse.Namespace) -> str:
     return p.stem or "local_source"
 
 
-def _ensure_default_task_output_dir(args: argparse.Namespace, mode: ExecutionMode) -> None:
+def _ensure_default_task_output_dir(
+    args: argparse.Namespace, mode: ExecutionMode
+) -> None:
     """未传 --output-dir 时，为本次素材处理分配 output/<素材名(_01)>/ 并打印日志。"""
     global _OUTPUT_DIR_OVERRIDE
     if _OUTPUT_DIR_OVERRIDE is not None:
@@ -105,36 +109,49 @@ def _ensure_default_task_output_dir(args: argparse.Namespace, mode: ExecutionMod
 
     out_root = output_base("")
     task_name = _infer_task_name_from_args(args)
-    _OUTPUT_DIR_OVERRIDE = allocate_unique_task_output_dir(output_root=out_root, raw_task_name=task_name)
+    _OUTPUT_DIR_OVERRIDE = allocate_unique_task_output_dir(
+        output_root=out_root, raw_task_name=task_name
+    )
     _OUTPUT_DIR_OVERRIDE.mkdir(parents=True, exist_ok=True)
 
     try:
         rel = _OUTPUT_DIR_OVERRIDE.relative_to(get_project_root())
         print(f"【{mode.value}】未指定 --output-dir，使用任务目录: {rel}")
     except ValueError:
-        print(f"【{mode.value}】未指定 --output-dir，使用任务目录: {_OUTPUT_DIR_OVERRIDE}")
+        print(
+            f"【{mode.value}】未指定 --output-dir，使用任务目录: {_OUTPUT_DIR_OVERRIDE}"
+        )
 
 
-def _poll_upload(api, job_ids: List[str], *, interval_s: float = 5.0, max_attempts: int = 240) -> List[Dict[str, Any]]:
+def _poll_upload(
+    api, job_ids: List[str], *, interval_s: float = 5.0, max_attempts: int = 240
+) -> List[Dict[str, Any]]:
     joined = ",".join(job_ids)
-    last_urls: List[Dict[str, Any]] = []
     for attempt in range(max_attempts):
         resp = api.query_batch_upload_task_info(joined)
         urls = resp.get("Urls", []) if isinstance(resp, dict) else []
-        last_urls = urls
         states: Dict[str, int] = {}
         for u in urls:
             st = (u or {}).get("State", "unknown")
             states[st] = states.get(st, 0) + 1
-        print(f"[upload] attempt={attempt+1}/{max_attempts} states={states}")
-        done = all((u or {}).get("State") in ("success", "failed") for u in urls) and len(urls) == len(job_ids)
+        print(f"[upload] attempt={attempt + 1}/{max_attempts} states={states}")
+        done = all(
+            (u or {}).get("State") in ("success", "failed") for u in urls
+        ) and len(urls) == len(job_ids)
         if done:
             return urls
         time.sleep(interval_s)
     raise TimeoutError("upload polling timeout")
 
 
-def _poll_vcreative(api, vcreative_id: str, space_name: str, *, interval_s: float = 5.0, max_attempts: int = 240) -> Dict[str, Any]:
+def _poll_vcreative(
+    api,
+    vcreative_id: str,
+    space_name: str,
+    *,
+    interval_s: float = 5.0,
+    max_attempts: int = 240,
+) -> Dict[str, Any]:
     last: Dict[str, Any] = {}
     consecutive_errors = 0
     for attempt in range(max_attempts):
@@ -143,25 +160,41 @@ def _poll_vcreative(api, vcreative_id: str, space_name: str, *, interval_s: floa
             consecutive_errors = 0
         except Exception as e:
             msg = str(e)
-            retryable = "HTTP 5" in msg or "downstream service error" in msg.lower() or "InternalError" in msg or "CodeN\":1000" in msg
+            retryable = (
+                "HTTP 5" in msg
+                or "downstream service error" in msg.lower()
+                or "InternalError" in msg
+                or 'CodeN":1000' in msg
+            )
             consecutive_errors += 1
-            print(f"[vcreative] attempt={attempt+1}/{max_attempts} transient_error={retryable} err={msg[:220]}")
+            print(
+                f"[vcreative] attempt={attempt + 1}/{max_attempts} transient_error={retryable} err={msg[:220]}"
+            )
             if not retryable or consecutive_errors >= 12:
                 raise
             sleep_s = min(60.0, interval_s * (2 ** min(4, consecutive_errors - 1)))
             time.sleep(sleep_s)
             continue
         status = last.get("Status") if isinstance(last, dict) else None
-        print(f"[vcreative] attempt={attempt+1}/{max_attempts} status={status}")
+        print(f"[vcreative] attempt={attempt + 1}/{max_attempts} status={status}")
         if status == "success":
             return last
         if status == "failed_run":
-            raise RuntimeError(f"vcreative failed: {json.dumps(last, ensure_ascii=False)[:2000]}")
+            raise RuntimeError(
+                f"vcreative failed: {json.dumps(last, ensure_ascii=False)[:2000]}"
+            )
         time.sleep(interval_s)
     raise TimeoutError("vcreative polling timeout")
 
 
-def _poll_execution(api, task_type: str, run_id: str, *, interval_s: float = 5.0, max_attempts: int = 240) -> Dict[str, Any]:
+def _poll_execution(
+    api,
+    task_type: str,
+    run_id: str,
+    *,
+    interval_s: float = 5.0,
+    max_attempts: int = 240,
+) -> Dict[str, Any]:
     last: Dict[str, Any] = {}
     consecutive_errors = 0
     for attempt in range(max_attempts):
@@ -170,20 +203,31 @@ def _poll_execution(api, task_type: str, run_id: str, *, interval_s: float = 5.0
             consecutive_errors = 0
         except Exception as e:
             msg = str(e)
-            retryable = "HTTP 5" in msg or "downstream service error" in msg.lower() or "InternalError" in msg or "CodeN\":1000" in msg
+            retryable = (
+                "HTTP 5" in msg
+                or "downstream service error" in msg.lower()
+                or "InternalError" in msg
+                or 'CodeN":1000' in msg
+            )
             consecutive_errors += 1
-            print(f"[exec:{task_type}] attempt={attempt+1}/{max_attempts} transient_error={retryable} err={msg[:220]}")
+            print(
+                f"[exec:{task_type}] attempt={attempt + 1}/{max_attempts} transient_error={retryable} err={msg[:220]}"
+            )
             if not retryable or consecutive_errors >= 12:
                 raise
             sleep_s = min(60.0, interval_s * (2 ** min(4, consecutive_errors - 1)))
             time.sleep(sleep_s)
             continue
         status = last.get("Status") if isinstance(last, dict) else None
-        print(f"[exec:{task_type}] attempt={attempt+1}/{max_attempts} status={status}")
+        print(
+            f"[exec:{task_type}] attempt={attempt + 1}/{max_attempts} status={status}"
+        )
         if status == "Success":
             return last
         if status in ("Failed", "Fail", "Error"):
-            raise RuntimeError(f"execution failed: {json.dumps(last, ensure_ascii=False)[:2000]}")
+            raise RuntimeError(
+                f"execution failed: {json.dumps(last, ensure_ascii=False)[:2000]}"
+            )
         time.sleep(interval_s)
     raise TimeoutError(f"execution polling timeout: {task_type}")
 
@@ -217,13 +261,18 @@ def _normalize_preuploaded_source(source: str) -> Tuple[str, str]:
 # Local 模式实现：全部在本地执行，无需上传/空间/云端服务
 # ═════════════════════════════════════════════════════════════
 
+
 def _ensure_local_deps() -> None:
     """检查 local 模式依赖是否已安装，未安装则自动安装 requirements-local.txt。
     使用标记文件 + requirements-local.txt 时间戳比对跳过已安装的情况。"""
     scripts_dir = Path(__file__).resolve().parent
     req_file = scripts_dir / "requirements-local.txt"
     venv_dir = scripts_dir / ".venv"
-    marker = venv_dir / ".deps_local_installed" if venv_dir.is_dir() else scripts_dir / ".deps_local_installed"
+    marker = (
+        venv_dir / ".deps_local_installed"
+        if venv_dir.is_dir()
+        else scripts_dir / ".deps_local_installed"
+    )
 
     if marker.exists():
         if not req_file.exists() or marker.stat().st_mtime >= req_file.stat().st_mtime:
@@ -253,16 +302,20 @@ def _ensure_local_deps() -> None:
     if req_file.exists():
         print("[local] 自动安装 requirements-local.txt ...")
         import subprocess as _sp
+
         _sp.check_call(
             [sys.executable, "-m", "pip", "install", "-r", str(req_file)],
-            stdout=sys.stdout, stderr=sys.stderr,
+            stdout=sys.stdout,
+            stderr=sys.stderr,
         )
     else:
         import subprocess as _sp
+
         print(f"[local] 安装缺少的包: {' '.join(missing)} ...")
         _sp.check_call(
             [sys.executable, "-m", "pip", "install"] + missing,
-            stdout=sys.stdout, stderr=sys.stderr,
+            stdout=sys.stdout,
+            stderr=sys.stderr,
         )
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.touch()
@@ -292,6 +345,7 @@ def _run_local(args: argparse.Namespace) -> None:
         if is_url:
             step_log(mode, "step1", "下载远程文件到本地")
             import urllib.request
+
             dl_path = _output_dir() / f"source{args.ext}"
             urllib.request.urlretrieve(src, str(dl_path))
             source_path = dl_path
@@ -301,13 +355,16 @@ def _run_local(args: argparse.Namespace) -> None:
 
     # Step 1: 本地文件直接使用，无需上传
     step_log(mode, "step1", f"使用本地文件: {source_path}")
-    _write_json("step1_preuploaded.json", {
-        "AssetType": "LocalFile",
-        "AssetValue": str(source_path),
-        "LocalPath": str(source_path),
-        "PlayURL": str(source_path),
-        "_execution_mode": "local",
-    })
+    _write_json(
+        "step1_preuploaded.json",
+        {
+            "AssetType": "LocalFile",
+            "AssetValue": str(source_path),
+            "LocalPath": str(source_path),
+            "PlayURL": str(source_path),
+            "_execution_mode": "local",
+        },
+    )
 
     import ffmpeg_utils as fu
 
@@ -315,26 +372,33 @@ def _run_local(args: argparse.Namespace) -> None:
     step_log(mode, "step2", "提取音频 (ffmpeg)")
     audio_mp3 = _output_dir() / "extracted_audio.mp3"
     fu.extract_audio(source_path, audio_mp3)
-    _write_json("step2_extract_audio_result.json", {
-        "Status": "success",
-        "OutputJson": {"filename": str(audio_mp3)},
-        "_execution_mode": "local",
-    })
+    _write_json(
+        "step2_extract_audio_result.json",
+        {
+            "Status": "success",
+            "OutputJson": {"filename": str(audio_mp3)},
+            "_execution_mode": "local",
+        },
+    )
     step_log(mode, "step2", f"提取完成 → {audio_mp3}")
 
     # Step 3: 人声/背景音分离
     step_log(mode, "step3", "人声/背景音分离 (Demucs)")
     from local_av_separation import separate_voice_background
+
     sep_dir = _output_dir() / "separation"
     voice_path, bg_path = separate_voice_background(audio_mp3, sep_dir)
-    _write_json("step3_voice_separation_result.json", {
-        "Status": "Success",
-        "AudioUrls": [
-            {"Type": "voice", "DirectUrl": str(voice_path), "Url": str(voice_path)},
-            {"Type": "background", "DirectUrl": str(bg_path), "Url": str(bg_path)},
-        ],
-        "_execution_mode": "local",
-    })
+    _write_json(
+        "step3_voice_separation_result.json",
+        {
+            "Status": "Success",
+            "AudioUrls": [
+                {"Type": "voice", "DirectUrl": str(voice_path), "Url": str(voice_path)},
+                {"Type": "background", "DirectUrl": str(bg_path), "Url": str(bg_path)},
+            ],
+            "_execution_mode": "local",
+        },
+    )
     step_log(mode, "step3", f"分离完成 → 人声={voice_path} 背景={bg_path}")
 
     # Step 4: 人声降噪
@@ -342,11 +406,16 @@ def _run_local(args: argparse.Namespace) -> None:
     denoised_path = _output_dir() / "denoised_voice.mp3"
     try:
         fu.denoise_audio(voice_path, denoised_path, method="afftdn")
-        _write_json("step4_denoise_result.json", {
-            "Status": "Success",
-            "VideoUrls": [{"DirectUrl": str(denoised_path), "Url": str(denoised_path)}],
-            "_execution_mode": "local",
-        })
+        _write_json(
+            "step4_denoise_result.json",
+            {
+                "Status": "Success",
+                "VideoUrls": [
+                    {"DirectUrl": str(denoised_path), "Url": str(denoised_path)}
+                ],
+                "_execution_mode": "local",
+            },
+        )
         step_log(mode, "step4", f"降噪完成 → {denoised_path}")
     except Exception as e:
         print(f"[警告] 降噪失败: {e}，使用原人声文件继续")
@@ -354,23 +423,31 @@ def _run_local(args: argparse.Namespace) -> None:
 
     # Step 5: ASR 识别
     step_log(mode, "step5", "ASR 识别 (Qwen3-ASR)")
-    _write_json("step5_play_url.json", {
-        "PlayURL": str(denoised_path),
-        "DirectUrl": str(denoised_path),
-        "LocalPath": str(denoised_path),
-        "_execution_mode": "local",
-    })
+    _write_json(
+        "step5_play_url.json",
+        {
+            "PlayURL": str(denoised_path),
+            "DirectUrl": str(denoised_path),
+            "LocalPath": str(denoised_path),
+            "_execution_mode": "local",
+        },
+    )
     from local_asr import transcribe_local
+
     asr_output_path = _output_dir() / "step5_asr_raw_local.json"
-    asr_result = transcribe_local(str(denoised_path), asr_output_path)
     step_log(mode, "step5", f"ASR 完成 → {asr_output_path}")
 
-    step_log(mode, "done", "ASR 流水线完成。运行 prepare_export_data.py 进行数据预处理，之后可启动审核页或直接导出最终视频。")
+    step_log(
+        mode,
+        "done",
+        "ASR 流水线完成。运行 prepare_export_data.py 进行数据预处理，之后可启动审核页或直接导出最终视频。",
+    )
 
 
 # ═════════════════════════════════════════════════════════════
 # Cloud / APIG 模式实现（原有逻辑，增加日志前缀）
 # ═════════════════════════════════════════════════════════════
+
 
 def _run_cloud(args: argparse.Namespace, mode: ExecutionMode) -> None:
     """Cloud/APIG 模式：上传 → 提取音频 → 人声分离 → 降噪 → ASR（原流程）"""
@@ -401,16 +478,34 @@ def _run_cloud(args: argparse.Namespace, mode: ExecutionMode) -> None:
         asset_type = "Vid" if (args.vid or "").strip() else "DirectUrl"
         asset_value = (args.vid or args.directurl).strip()
         step_log(mode, "step1", f"跳过上传：使用已存在 {asset_type}={asset_value}")
-        _write_json("step1_preuploaded.json", {"AssetType": asset_type, "AssetValue": asset_value, "SpaceName": space_name})
+        _write_json(
+            "step1_preuploaded.json",
+            {
+                "AssetType": asset_type,
+                "AssetValue": asset_value,
+                "SpaceName": space_name,
+            },
+        )
     else:
         src = (args.source or "").strip()
-        if src.lower().startswith(("vid://", "directurl://")) or (src.lower().startswith("v0") and len(src) >= 8):
+        if src.lower().startswith(("vid://", "directurl://")) or (
+            src.lower().startswith("v0") and len(src) >= 8
+        ):
             asset_type, asset_value = _normalize_preuploaded_source(src)
             step_log(mode, "step1", f"跳过上传：识别为 {asset_type}={asset_value}")
-            _write_json("step1_preuploaded.json", {"AssetType": asset_type, "AssetValue": asset_value, "SpaceName": space_name})
+            _write_json(
+                "step1_preuploaded.json",
+                {
+                    "AssetType": asset_type,
+                    "AssetValue": asset_value,
+                    "SpaceName": space_name,
+                },
+            )
         else:
             step_log(mode, "step1", "上传素材")
-            upload_info = api.upload_media_auto(args.source, space_name=space_name, file_ext=args.ext)
+            upload_info = api.upload_media_auto(
+                args.source, space_name=space_name, file_ext=args.ext
+            )
             _write_json("step1_upload_submit.json", upload_info)
             if upload_info.get("type") == "url":
                 step_log(mode, "step1", "URL 上传方式")
@@ -425,7 +520,9 @@ def _run_cloud(args: argparse.Namespace, mode: ExecutionMode) -> None:
                 vid = upload_info.get("Vid") or ""
                 directurl = upload_info.get("DirectUrl") or ""
                 if not vid and not directurl:
-                    raise RuntimeError(f"Local upload returned empty Vid/DirectUrl: {upload_info}")
+                    raise RuntimeError(
+                        f"Local upload returned empty Vid/DirectUrl: {upload_info}"
+                    )
             step_log(mode, "step1", f"上传成功 Vid={vid} DirectUrl={directurl}")
             asset_type = "Vid" if vid else "DirectUrl"
             asset_value = vid or directurl
@@ -439,7 +536,9 @@ def _run_cloud(args: argparse.Namespace, mode: ExecutionMode) -> None:
     step1_data = {}
     if step1_path.is_file():
         step1_data = json.loads(step1_path.read_text(encoding="utf-8"))
-    step1_data.update({"AssetType": asset_type, "AssetValue": asset_value, "SpaceName": space_name})
+    step1_data.update(
+        {"AssetType": asset_type, "AssetValue": asset_value, "SpaceName": space_name}
+    )
     if asset_type == "Vid":
         step1_data["Vid"] = asset_value
         step1_data["DirectUrl"] = ""
@@ -447,14 +546,21 @@ def _run_cloud(args: argparse.Namespace, mode: ExecutionMode) -> None:
         step1_data["Vid"] = ""
         step1_data["DirectUrl"] = asset_value
     try:
-        step1_data["PlayURL"] = api.get_play_url(type=asset_type.lower(), source=asset_value, space_name=space_name, expired_minutes=60)
+        step1_data["PlayURL"] = api.get_play_url(
+            type=asset_type.lower(),
+            source=asset_value,
+            space_name=space_name,
+            expired_minutes=60,
+        )
     except Exception as e:
         print(f"[警告] 获取视频 PlayURL 失败: {e}")
     _write_json("step1_preuploaded.json", step1_data)
 
     # Step 2: 提取音频
     step_log(mode, "step2", "提取音频")
-    extract = api.extract_audio(type=asset_type.lower(), source=asset_value, space_name=space_name, format="mp3")
+    extract = api.extract_audio(
+        type=asset_type.lower(), source=asset_value, space_name=space_name, format="mp3"
+    )
     _write_json("step2_extract_audio_submit.json", extract)
     vcreative_id = extract.get("VCreativeId") or ""
     if not vcreative_id:
@@ -466,7 +572,9 @@ def _run_cloud(args: argparse.Namespace, mode: ExecutionMode) -> None:
 
     # Step 3: 人声/背景分离
     step_log(mode, "step3", "人声/背景音分离")
-    sep = api.voice_separation_task(type=asset_type, video=asset_value, space_name=space_name)
+    sep = api.voice_separation_task(
+        type=asset_type, video=asset_value, space_name=space_name
+    )
     _write_json("step3_voice_separation_submit.json", sep)
     run_id = sep.get("RunId") or ""
     if not run_id:
@@ -482,7 +590,9 @@ def _run_cloud(args: argparse.Namespace, mode: ExecutionMode) -> None:
         if (a or {}).get("Type") == "background":
             bg_file = (a or {}).get("DirectUrl") or ""
     if not voice_file:
-        raise RuntimeError(f"voice separation result missing voice DirectUrl: {sep_res}")
+        raise RuntimeError(
+            f"voice separation result missing voice DirectUrl: {sep_res}"
+        )
     step_log(mode, "step3", f"人声分离完成 人声={voice_file} 背景={bg_file}")
 
     # Step 4: 人声降噪
@@ -491,11 +601,13 @@ def _run_cloud(args: argparse.Namespace, mode: ExecutionMode) -> None:
     denoised_file = ""
     for attempt in range(1, denoise_max_retries + 1):
         try:
-            denoise = api.audio_noise_reduction_task(type="DirectUrl", audio=voice_file, space_name=space_name)
+            denoise = api.audio_noise_reduction_task(
+                type="DirectUrl", audio=voice_file, space_name=space_name
+            )
             _write_json("step4_denoise_submit.json", denoise)
             denoise_run = denoise.get("RunId") or ""
             if not denoise_run:
-                raise RuntimeError(f"audio_noise_reduction_task returned empty RunId")
+                raise RuntimeError("audio_noise_reduction_task returned empty RunId")
             denoise_res = _poll_execution(api, "audioNoiseReduction", denoise_run)
             _write_json("step4_denoise_result.json", denoise_res)
             for v in denoise_res.get("VideoUrls", []) or []:
@@ -510,7 +622,9 @@ def _run_cloud(args: argparse.Namespace, mode: ExecutionMode) -> None:
             msg = str(e)
             is_retryable = "500" in msg or "InternalError" in msg.lower()
             if is_retryable and attempt < denoise_max_retries:
-                step_log(mode, "step4", f"第 {attempt}/{denoise_max_retries} 次失败，重试...")
+                step_log(
+                    mode, "step4", f"第 {attempt}/{denoise_max_retries} 次失败，重试..."
+                )
                 time.sleep(5)
             else:
                 print(f"[警告] 降噪失败: {e}，使用原人声文件继续")
@@ -521,23 +635,48 @@ def _run_cloud(args: argparse.Namespace, mode: ExecutionMode) -> None:
 
     # Step 5: ASR 识别
     step_log(mode, "step5", "火山 ASR 识别")
-    play_url = api.get_play_url(type="directurl", source=denoised_file, space_name=space_name, expired_minutes=60)
-    _write_json("step5_play_url.json", {"PlayURL": play_url, "DirectUrl": denoised_file})
-    rid, asr_res = transcribe_audio_url(play_url, audio_type="m4a", output_dir=_output_dir())
+    play_url = api.get_play_url(
+        type="directurl",
+        source=denoised_file,
+        space_name=space_name,
+        expired_minutes=60,
+    )
+    _write_json(
+        "step5_play_url.json", {"PlayURL": play_url, "DirectUrl": denoised_file}
+    )
+    rid, asr_res = transcribe_audio_url(
+        play_url, audio_type="m4a", output_dir=_output_dir()
+    )
     _write_json(f"step5_asr_raw_{rid}.json", asr_res)
     step_log(mode, "step5", f"ASR 转录完成 输出: step5_asr_raw_{rid}.json")
 
 
 def main() -> None:
     global _OUTPUT_DIR_OVERRIDE
-    parser = argparse.ArgumentParser(description="URL/本地文件 -> 上传 -> 提取音频 -> 人声/背景 -> 降噪 -> ASR 转录")
-    parser.add_argument("source", nargs="?", help="素材来源：支持 http(s) URL 或本地文件路径")
+    parser = argparse.ArgumentParser(
+        description="URL/本地文件 -> 上传 -> 提取音频 -> 人声/背景 -> 降噪 -> ASR 转录"
+    )
+    parser.add_argument(
+        "source", nargs="?", help="素材来源：支持 http(s) URL 或本地文件路径"
+    )
     parser.add_argument("--ext", default=".mp4", help="FileExtension, 默认 .mp4")
-    parser.add_argument("--space", default="", help="SpaceName（默认读取 VOLC_SPACE_NAME）")
+    parser.add_argument(
+        "--space", default="", help="SpaceName（默认读取 VOLC_SPACE_NAME）"
+    )
     parser.add_argument("--vid", default="", help="直接指定 Vid（跳过上传）")
-    parser.add_argument("--directurl", default="", help="直接指定 DirectUrl 文件名（跳过上传）")
-    parser.add_argument("--output-dir", default="", help="输出目录，默认 output；可指定 output/<文件名> 或 output/<文件名>(01)")
-    parser.add_argument("--mode", default="", help="执行模式: apig / cloud / local（默认自动检测，优先级 apig>cloud>local）")
+    parser.add_argument(
+        "--directurl", default="", help="直接指定 DirectUrl 文件名（跳过上传）"
+    )
+    parser.add_argument(
+        "--output-dir",
+        default="",
+        help="输出目录，默认 output；可指定 output/<文件名> 或 output/<文件名>(01)",
+    )
+    parser.add_argument(
+        "--mode",
+        default="",
+        help="执行模式: apig / cloud / local（默认自动检测，优先级 apig>cloud>local）",
+    )
     args = parser.parse_args()
 
     if args.output_dir:
@@ -551,11 +690,15 @@ def main() -> None:
             try:
                 resolved.relative_to(out_base)
             except ValueError:
-                raise SystemExit(f"ERROR: --output-dir 必须在 {out_base} 下：{resolved}")
+                raise SystemExit(
+                    f"ERROR: --output-dir 必须在 {out_base} 下：{resolved}"
+                )
             _OUTPUT_DIR_OVERRIDE = resolved
         else:
             if not out_str.startswith("output/"):
-                raise SystemExit("ERROR: --output-dir 只允许传 `output/<文件名>`（相对路径）")
+                raise SystemExit(
+                    "ERROR: --output-dir 只允许传 `output/<文件名>`（相对路径）"
+                )
             resolved = (proj_root / out_str).resolve()
             try:
                 resolved.relative_to(out_base)
@@ -567,16 +710,21 @@ def main() -> None:
     else:
         _OUTPUT_DIR_OVERRIDE = None
 
-    if not args.source and not ((getattr(args, "vid", "") or "").strip() or (getattr(args, "directurl", "") or "").strip()):
-        raise ValueError("缺少 source：请提供素材 URL/本地路径，或使用 --vid / --directurl 跳过上传。")
+    if not args.source and not (
+        (getattr(args, "vid", "") or "").strip()
+        or (getattr(args, "directurl", "") or "").strip()
+    ):
+        raise ValueError(
+            "缺少 source：请提供素材 URL/本地路径，或使用 --vid / --directurl 跳过上传。"
+        )
 
     _load_skill_env()
 
     # 解析执行模式
     mode = resolve_mode(args.mode if args.mode else None)
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"  执行模式: {mode.value}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     # Step2 Gate：未完成配置确认禁止进入 Step3
     # - 若未传 --output-dir，则先为本次素材分配任务目录并打印，便于用户用同一目录执行 step2_confirm_config.py
@@ -584,7 +732,9 @@ def main() -> None:
     step2_ckpt = _output_dir() / "step2_config_confirmed.json"
     if not step2_ckpt.is_file():
         print("=" * 60)
-        print("⚠️  检测到 Step2 未确认（缺少 step2_config_confirmed.json），已阻断进入 Step3。")
+        print(
+            "⚠️  检测到 Step2 未确认（缺少 step2_config_confirmed.json），已阻断进入 Step3。"
+        )
         print()
         try:
             rel = _output_dir().relative_to(get_project_root())
@@ -593,7 +743,9 @@ def main() -> None:
             print(f"请先完成 Step2，并在同一输出目录生成 checkpoint：{_output_dir()}")
         print()
         print("执行命令：")
-        print(f"  cd {Path(__file__).resolve().parent} && python step2_confirm_config.py --output-dir \"{_output_dir()}\"")
+        print(
+            f'  cd {Path(__file__).resolve().parent} && python step2_confirm_config.py --output-dir "{_output_dir()}"'
+        )
         print("=" * 60)
         raise SystemExit(1)
 
@@ -601,17 +753,25 @@ def main() -> None:
         _run_local(args)
     else:
         # 前置校验（cloud/apig 需要 source 格式正确）
-        if args.source and not ((args.vid or "").strip() or (args.directurl or "").strip()):
+        if args.source and not (
+            (args.vid or "").strip() or (args.directurl or "").strip()
+        ):
             src = (args.source or "").strip()
-            if not src.lower().startswith(("vid://", "directurl://")) and not (src.lower().startswith("v0") and len(src) >= 8):
+            if not src.lower().startswith(("vid://", "directurl://")) and not (
+                src.lower().startswith("v0") and len(src) >= 8
+            ):
                 if src.lower().startswith(("http://", "https://")):
                     pass
                 elif "://" in src:
-                    raise ValueError(f"URL 必须以 http:// 或 https:// 开头，当前: {src[:50]}...")
+                    raise ValueError(
+                        f"URL 必须以 http:// 或 https:// 开头，当前: {src[:50]}..."
+                    )
                 else:
                     p = Path(src)
                     if not p.is_file():
-                        raise ValueError(f"本地文件不存在: {src}，请确认路径正确或使用 http(s):// 开头的 URL")
+                        raise ValueError(
+                            f"本地文件不存在: {src}，请确认路径正确或使用 http(s):// 开头的 URL"
+                        )
         _run_cloud(args, mode)
 
 

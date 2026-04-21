@@ -20,6 +20,7 @@ ffmpeg 工具封装：统一使用 imageio-ffmpeg 内嵌二进制，不依赖系
 注意：本模块仅在 local 模式下被导入，所有依赖（imageio-ffmpeg）延迟加载，
 cloud/apig 模式不会触发安装或导入。
 """
+
 from __future__ import annotations
 
 import shutil
@@ -40,6 +41,7 @@ def get_ffmpeg_exe() -> str:
     # 优先使用 imageio-ffmpeg 内嵌
     try:
         import imageio_ffmpeg
+
         _FFMPEG_EXE = imageio_ffmpeg.get_ffmpeg_exe()
         return _FFMPEG_EXE
     except ImportError:
@@ -76,33 +78,60 @@ def _run(cmd: list[str], desc: str = "") -> subprocess.CompletedProcess:
 # 基础音频操作
 # ─────────────────────────────────────────────
 
+
 def extract_audio(input_file: Path, output_mp3: Path) -> Path:
     """从视频/音频文件提取音频为 mp3"""
     output_mp3.parent.mkdir(parents=True, exist_ok=True)
-    _run([
-        _ffmpeg(), "-i", str(input_file),
-        "-vn", "-acodec", "libmp3lame", "-q:a", "2",
-        "-y", str(output_mp3),
-    ], "extract_audio")
+    _run(
+        [
+            _ffmpeg(),
+            "-i",
+            str(input_file),
+            "-vn",
+            "-acodec",
+            "libmp3lame",
+            "-q:a",
+            "2",
+            "-y",
+            str(output_mp3),
+        ],
+        "extract_audio",
+    )
     return output_mp3
 
 
-def convert_to_wav(input_file: Path, output_wav: Path,
-                   sample_rate: int = 44100, channels: int = 2) -> Path:
+def convert_to_wav(
+    input_file: Path, output_wav: Path, sample_rate: int = 44100, channels: int = 2
+) -> Path:
     """音频转码为 WAV (PCM s16le)"""
     output_wav.parent.mkdir(parents=True, exist_ok=True)
-    _run([
-        _ffmpeg(), "-i", str(input_file),
-        "-acodec", "pcm_s16le", "-ar", str(sample_rate), "-ac", str(channels),
-        "-y", str(output_wav),
-    ], "convert_to_wav")
+    _run(
+        [
+            _ffmpeg(),
+            "-i",
+            str(input_file),
+            "-acodec",
+            "pcm_s16le",
+            "-ar",
+            str(sample_rate),
+            "-ac",
+            str(channels),
+            "-y",
+            str(output_wav),
+        ],
+        "convert_to_wav",
+    )
     return output_wav
 
 
-def cut_audio(input_file: Path, output_file: Path,
-              start: float, duration: float,
-              codec: str = "pcm_s16le",
-              fade_ms: float = 5) -> Path:
+def cut_audio(
+    input_file: Path,
+    output_file: Path,
+    start: float,
+    duration: float,
+    codec: str = "pcm_s16le",
+    fade_ms: float = 5,
+) -> Path:
     """按时间戳剪切音频片段，首尾加短 fade 避免接缝爆音。"""
     output_file.parent.mkdir(parents=True, exist_ok=True)
     fade_s = fade_ms / 1000.0
@@ -113,9 +142,12 @@ def cut_audio(input_file: Path, output_file: Path,
 
     cmd = [
         _ffmpeg(),
-        "-ss", f"{start:.6f}",
-        "-i", str(input_file),
-        "-t", f"{duration:.6f}",
+        "-ss",
+        f"{start:.6f}",
+        "-i",
+        str(input_file),
+        "-t",
+        f"{duration:.6f}",
     ]
     if af_parts:
         cmd += ["-af", ",".join(af_parts)]
@@ -132,17 +164,30 @@ def concat_audio(input_files: list[Path], output_file: Path) -> Path:
             f.write(f"file '{p}'\n")
         list_path = f.name
     try:
-        _run([
-            _ffmpeg(), "-f", "concat", "-safe", "0", "-i", list_path,
-            "-acodec", "copy", "-y", str(output_file),
-        ], "concat_audio")
+        _run(
+            [
+                _ffmpeg(),
+                "-f",
+                "concat",
+                "-safe",
+                "0",
+                "-i",
+                list_path,
+                "-acodec",
+                "copy",
+                "-y",
+                str(output_file),
+            ],
+            "concat_audio",
+        )
     finally:
         Path(list_path).unlink(missing_ok=True)
     return output_file
 
 
-def mix_audios(tracks: list[tuple[Path, float]], output_file: Path,
-               duration: float | None = None) -> Path:
+def mix_audios(
+    tracks: list[tuple[Path, float]], output_file: Path, duration: float | None = None
+) -> Path:
     """混合多条音轨，每条可指定音量"""
     output_file.parent.mkdir(parents=True, exist_ok=True)
     cmd = [_ffmpeg()]
@@ -156,10 +201,16 @@ def mix_audios(tracks: list[tuple[Path, float]], output_file: Path,
         amix += f",atrim=duration={duration:.6f},asetpts=N/SR/TB"
     amix += "[out]"
     filter_parts.append(amix)
-    cmd.extend([
-        "-filter_complex", ";".join(filter_parts),
-        "-map", "[out]", "-y", str(output_file),
-    ])
+    cmd.extend(
+        [
+            "-filter_complex",
+            ";".join(filter_parts),
+            "-map",
+            "[out]",
+            "-y",
+            str(output_file),
+        ]
+    )
     _run(cmd, "mix_audios")
     return output_file
 
@@ -176,11 +227,18 @@ def speedup_audio(input_file: Path, output_file: Path, speed: float) -> Path:
         filters.append("atempo=0.5")
         remaining /= 0.5
     filters.append(f"atempo={remaining:.4f}")
-    _run([
-        _ffmpeg(), "-i", str(input_file),
-        "-af", ",".join(filters),
-        "-y", str(output_file),
-    ], "speedup_audio")
+    _run(
+        [
+            _ffmpeg(),
+            "-i",
+            str(input_file),
+            "-af",
+            ",".join(filters),
+            "-y",
+            str(output_file),
+        ],
+        "speedup_audio",
+    )
     return output_file
 
 
@@ -188,30 +246,55 @@ def speedup_audio(input_file: Path, output_file: Path, speed: float) -> Path:
 # 基础视频操作
 # ─────────────────────────────────────────────
 
+
 def mute_video(input_file: Path, output_file: Path) -> Path:
     """静音视频（移除音轨和字幕）"""
     output_file.parent.mkdir(parents=True, exist_ok=True)
-    _run([
-        _ffmpeg(), "-i", str(input_file),
-        "-an", "-sn", "-vcodec", "copy",
-        "-y", str(output_file),
-    ], "mute_video")
+    _run(
+        [
+            _ffmpeg(),
+            "-i",
+            str(input_file),
+            "-an",
+            "-sn",
+            "-vcodec",
+            "copy",
+            "-y",
+            str(output_file),
+        ],
+        "mute_video",
+    )
     return output_file
 
 
-def cut_video(input_file: Path, output_file: Path,
-              start: float, duration: float) -> Path:
+def cut_video(
+    input_file: Path, output_file: Path, start: float, duration: float
+) -> Path:
     """按时间戳精确剪切视频片段（重新编码，避免关键帧偏移导致拼接闪烁）"""
     output_file.parent.mkdir(parents=True, exist_ok=True)
-    _run([
-        _ffmpeg(), "-ss", f"{start:.6f}",
-        "-i", str(input_file),
-        "-t", f"{duration:.6f}",
-        "-c:v", "libx264", "-preset", "fast", "-crf", "18",
-        "-pix_fmt", "yuv420p",
-        "-an",
-        "-y", str(output_file),
-    ], "cut_video")
+    _run(
+        [
+            _ffmpeg(),
+            "-ss",
+            f"{start:.6f}",
+            "-i",
+            str(input_file),
+            "-t",
+            f"{duration:.6f}",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "fast",
+            "-crf",
+            "18",
+            "-pix_fmt",
+            "yuv420p",
+            "-an",
+            "-y",
+            str(output_file),
+        ],
+        "cut_video",
+    )
     return output_file
 
 
@@ -223,30 +306,56 @@ def concat_video(input_files: list[Path], output_file: Path) -> Path:
             f.write(f"file '{p}'\n")
         list_path = f.name
     try:
-        _run([
-            _ffmpeg(), "-f", "concat", "-safe", "0", "-i", list_path,
-            "-c:v", "libx264", "-preset", "fast", "-crf", "18",
-            "-pix_fmt", "yuv420p",
-            "-an",
-            "-y", str(output_file),
-        ], "concat_video")
+        _run(
+            [
+                _ffmpeg(),
+                "-f",
+                "concat",
+                "-safe",
+                "0",
+                "-i",
+                list_path,
+                "-c:v",
+                "libx264",
+                "-preset",
+                "fast",
+                "-crf",
+                "18",
+                "-pix_fmt",
+                "yuv420p",
+                "-an",
+                "-y",
+                str(output_file),
+            ],
+            "concat_video",
+        )
     finally:
         Path(list_path).unlink(missing_ok=True)
     return output_file
 
 
-def compile_video_audio(video: Path, audio: Path, output_file: Path,
-                        keep_video_audio: bool = False) -> Path:
+def compile_video_audio(
+    video: Path, audio: Path, output_file: Path, keep_video_audio: bool = False
+) -> Path:
     """合成视频+音频"""
     output_file.parent.mkdir(parents=True, exist_ok=True)
     cmd = [
         _ffmpeg(),
-        "-i", str(video),
-        "-i", str(audio),
-        "-map", "0:v:0", "-map", "1:a:0",
-        "-vcodec", "copy", "-acodec", "aac",
+        "-i",
+        str(video),
+        "-i",
+        str(audio),
+        "-map",
+        "0:v:0",
+        "-map",
+        "1:a:0",
+        "-vcodec",
+        "copy",
+        "-acodec",
+        "aac",
         "-shortest",
-        "-y", str(output_file),
+        "-y",
+        str(output_file),
     ]
     _run(cmd, "compile_video_audio")
     return output_file
@@ -255,7 +364,7 @@ def compile_video_audio(video: Path, audio: Path, output_file: Path,
 def speedup_video(input_file: Path, output_file: Path, speed: float) -> Path:
     """视频变速"""
     output_file.parent.mkdir(parents=True, exist_ok=True)
-    vf = f"setpts={1.0/speed:.6f}*PTS"
+    vf = f"setpts={1.0 / speed:.6f}*PTS"
     af_filters = []
     remaining = max(0.5, min(speed, 4.0))
     while remaining > 2.0:
@@ -265,16 +374,26 @@ def speedup_video(input_file: Path, output_file: Path, speed: float) -> Path:
         af_filters.append("atempo=0.5")
         remaining /= 0.5
     af_filters.append(f"atempo={remaining:.4f}")
-    _run([
-        _ffmpeg(), "-i", str(input_file),
-        "-vf", vf, "-af", ",".join(af_filters),
-        "-y", str(output_file),
-    ], "speedup_video")
+    _run(
+        [
+            _ffmpeg(),
+            "-i",
+            str(input_file),
+            "-vf",
+            vf,
+            "-af",
+            ",".join(af_filters),
+            "-y",
+            str(output_file),
+        ],
+        "speedup_video",
+    )
     return output_file
 
 
-def flip_video(input_file: Path, output_file: Path,
-               flip_x: bool = False, flip_y: bool = False) -> Path:
+def flip_video(
+    input_file: Path, output_file: Path, flip_x: bool = False, flip_y: bool = False
+) -> Path:
     """视频翻转"""
     output_file.parent.mkdir(parents=True, exist_ok=True)
     filters = []
@@ -284,14 +403,23 @@ def flip_video(input_file: Path, output_file: Path,
         filters.append("vflip")
     if not filters:
         import shutil as sh
+
         sh.copy2(str(input_file), str(output_file))
         return output_file
-    _run([
-        _ffmpeg(), "-i", str(input_file),
-        "-vf", ",".join(filters),
-        "-acodec", "copy",
-        "-y", str(output_file),
-    ], "flip_video")
+    _run(
+        [
+            _ffmpeg(),
+            "-i",
+            str(input_file),
+            "-vf",
+            ",".join(filters),
+            "-acodec",
+            "copy",
+            "-y",
+            str(output_file),
+        ],
+        "flip_video",
+    )
     return output_file
 
 
@@ -299,8 +427,8 @@ def flip_video(input_file: Path, output_file: Path,
 # 降噪
 # ─────────────────────────────────────────────
 
-def denoise_audio(input_file: Path, output_file: Path,
-                  method: str = "afftdn") -> Path:
+
+def denoise_audio(input_file: Path, output_file: Path, method: str = "afftdn") -> Path:
     """
     人声降噪 (ffmpeg 内置滤镜)。
 
@@ -316,11 +444,18 @@ def denoise_audio(input_file: Path, output_file: Path,
         af = "anlmdn=s=7:p=0.002:r=0.002:m=15"
     else:
         af = "highpass=f=80,lowpass=f=8000,afftdn=nf=-20"
-    _run([
-        _ffmpeg(), "-i", str(input_file),
-        "-af", af,
-        "-y", str(output_file),
-    ], f"denoise_audio({method})")
+    _run(
+        [
+            _ffmpeg(),
+            "-i",
+            str(input_file),
+            "-af",
+            af,
+            "-y",
+            str(output_file),
+        ],
+        f"denoise_audio({method})",
+    )
     return output_file
 
 
@@ -328,16 +463,25 @@ def denoise_audio(input_file: Path, output_file: Path,
 # 字幕压制
 # ─────────────────────────────────────────────
 
+
 def burn_ass_subtitle(video_in: Path, ass_file: Path, video_out: Path) -> Path:
     """将 ASS 字幕硬压到视频"""
     video_out.parent.mkdir(parents=True, exist_ok=True)
     escaped = str(ass_file).replace("\\", "/").replace(":", "\\:")
-    _run([
-        _ffmpeg(), "-i", str(video_in),
-        "-vf", f"ass='{escaped}'",
-        "-acodec", "copy",
-        "-y", str(video_out),
-    ], "burn_ass_subtitle")
+    _run(
+        [
+            _ffmpeg(),
+            "-i",
+            str(video_in),
+            "-vf",
+            f"ass='{escaped}'",
+            "-acodec",
+            "copy",
+            "-y",
+            str(video_out),
+        ],
+        "burn_ass_subtitle",
+    )
     return video_out
 
 
@@ -345,16 +489,24 @@ def burn_ass_subtitle(video_in: Path, ass_file: Path, video_out: Path) -> Path:
 # 信息查询
 # ─────────────────────────────────────────────
 
+
 def probe_duration(file_path: Path) -> float:
     """获取媒体文件时长（秒）"""
     import re
+
     result = subprocess.run(
         [_ffmpeg(), "-i", str(file_path), "-f", "null", "-"],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     m = re.search(r"Duration:\s*(\d+):(\d+):(\d+)\.(\d+)", result.stderr)
     if m:
-        h, mi, s, cs = int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4))
+        h, mi, s, cs = (
+            int(m.group(1)),
+            int(m.group(2)),
+            int(m.group(3)),
+            int(m.group(4)),
+        )
         return h * 3600 + mi * 60 + s + cs / 100.0
     return 0.0
 
@@ -362,14 +514,21 @@ def probe_duration(file_path: Path) -> float:
 def probe_video_info(file_path: Path) -> dict[str, Any]:
     """获取视频文件信息（宽、高、时长等），使用 ffmpeg -i 解析"""
     import re
+
     result = subprocess.run(
         [_ffmpeg(), "-i", str(file_path)],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     info: dict[str, Any] = {"Width": 0, "Height": 0, "Duration": 0.0}
     m = re.search(r"Duration:\s*(\d+):(\d+):(\d+)\.(\d+)", result.stderr)
     if m:
-        h, mi, s, cs = int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4))
+        h, mi, s, cs = (
+            int(m.group(1)),
+            int(m.group(2)),
+            int(m.group(3)),
+            int(m.group(4)),
+        )
         info["Duration"] = h * 3600 + mi * 60 + s + cs / 100.0
     m = re.search(r"Stream.*Video:.* (\d{2,5})x(\d{2,5})", result.stderr)
     if m:

@@ -21,6 +21,7 @@ Local 人声/背景音分离：使用 Demucs (htdemucs) 模型。
 
 注意：本模块仅在 local 模式下被导入，依赖延迟加载。
 """
+
 from __future__ import annotations
 
 import shutil
@@ -61,8 +62,13 @@ def separate_voice_background(
     wav = wav / (ref.std() + 1e-8)
 
     sources = apply_model(
-        model, wav[None], device="cpu",
-        shifts=1, split=True, overlap=0.25, progress=True,
+        model,
+        wav[None],
+        device="cpu",
+        shifts=1,
+        split=True,
+        overlap=0.25,
+        progress=True,
     )[0]
     sources = sources * ref.std() + ref.mean()
 
@@ -86,17 +92,35 @@ def separate_voice_background(
     background_mp3 = output_dir / "background.mp3"
 
     ffmpeg = _ffmpeg()
-    _run([
-        ffmpeg, "-i", str(vocals_wav),
-        "-codec:a", "libmp3lame", "-q:a", "2",
-        "-y", str(voice_mp3),
-    ], "vocals wav→mp3")
+    _run(
+        [
+            ffmpeg,
+            "-i",
+            str(vocals_wav),
+            "-codec:a",
+            "libmp3lame",
+            "-q:a",
+            "2",
+            "-y",
+            str(voice_mp3),
+        ],
+        "vocals wav→mp3",
+    )
 
-    _run([
-        ffmpeg, "-i", str(bgm_wav),
-        "-codec:a", "libmp3lame", "-q:a", "2",
-        "-y", str(background_mp3),
-    ], "bgm wav→mp3")
+    _run(
+        [
+            ffmpeg,
+            "-i",
+            str(bgm_wav),
+            "-codec:a",
+            "libmp3lame",
+            "-q:a",
+            "2",
+            "-y",
+            str(background_mp3),
+        ],
+        "bgm wav→mp3",
+    )
 
     if audio_wav.exists():
         audio_wav.unlink()

@@ -68,7 +68,9 @@ class VolcAsrConfig:
         )
 
 
-def _http_post_json(url: str, headers: Dict[str, str], payload: Dict[str, Any], timeout_s: int) -> Dict[str, Any]:
+def _http_post_json(
+    url: str, headers: Dict[str, str], payload: Dict[str, Any], timeout_s: int
+) -> Dict[str, Any]:
     resp = requests.post(url, headers=headers, json=payload, timeout=timeout_s)
     resp.raise_for_status()
     return resp.json()
@@ -124,7 +126,9 @@ def submit_bigmodel_task(
         v = data.get(k) if isinstance(data, dict) else None
         if isinstance(v, str) and v.strip():
             return v.strip()
-    raise RuntimeError(f"ASR submit failed: {json.dumps(data, ensure_ascii=False)[:2000]}")
+    raise RuntimeError(
+        f"ASR submit failed: {json.dumps(data, ensure_ascii=False)[:2000]}"
+    )
 
 
 def query_bigmodel_task(
@@ -176,19 +180,26 @@ def transcribe_audio_url(
         if isinstance(result, dict) and result.get("additions") is not None:
             out_dir = output_dir if output_dir is not None else get_output_dir()
             out_dir.mkdir(parents=True, exist_ok=True)
-            (out_dir / f"asr_raw_{rid}.json").write_text(json.dumps(last, ensure_ascii=False), encoding="utf-8")
+            (out_dir / f"asr_raw_{rid}.json").write_text(
+                json.dumps(last, ensure_ascii=False), encoding="utf-8"
+            )
             return rid, last
         if code == 0:
             out_dir = output_dir if output_dir is not None else get_output_dir()
             out_dir.mkdir(parents=True, exist_ok=True)
-            (out_dir / f"asr_raw_{rid}.json").write_text(json.dumps(last, ensure_ascii=False), encoding="utf-8")
+            (out_dir / f"asr_raw_{rid}.json").write_text(
+                json.dumps(last, ensure_ascii=False), encoding="utf-8"
+            )
             return rid, last
         if code == 1000:
             continue
-        if isinstance(result, dict) and "result" in last and (result.get("text") or "") == "":
+        if (
+            isinstance(result, dict)
+            and "result" in last
+            and (result.get("text") or "") == ""
+        ):
             continue
 
         raise RuntimeError(f"ASR failed: {json.dumps(last, ensure_ascii=False)[:2000]}")
 
     raise TimeoutError(f"ASR timeout: request_id={rid}")
-

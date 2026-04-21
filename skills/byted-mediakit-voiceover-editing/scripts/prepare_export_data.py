@@ -18,6 +18,7 @@ Step 6a 数据预处理：将 step6 转为 export_request.json + review_import_d
 输入：output/step6_speech_cut.json, step3, step1, step5
 输出：output/export_request.json, output/review_import_data.json
 """
+
 from __future__ import annotations
 
 import argparse
@@ -35,6 +36,7 @@ from project_paths import get_project_root
 def _load_skill_env() -> None:
     try:
         from dotenv import load_dotenv
+
         skill_dir = Path(__file__).resolve().parents[1]
         load_dotenv(dotenv_path=skill_dir / ".env", override=False)
     except Exception:
@@ -92,7 +94,7 @@ def _parse_json_file(path: Path) -> Any:
         if e.lineno and 1 <= e.lineno <= len(lines):
             start = max(0, e.lineno - 2)
             end = min(len(lines), e.lineno + 2)
-            ctx = "\n".join(f"  {i+1}: {lines[i]}" for i in range(start, end))
+            ctx = "\n".join(f"  {i + 1}: {lines[i]}" for i in range(start, end))
         raise RuntimeError(
             f"JSON 解析失败: {path}\n{e.msg} (line {e.lineno}, col {e.colno})\n{ctx}"
         ) from e
@@ -106,7 +108,9 @@ def _write_json(name: str, data: Any) -> Path:
 
 def _get_play_url_safe(api: Any, type_: str, source: str, space: str) -> Optional[str]:
     try:
-        return api.get_play_url(type=type_, source=source, space_name=space, expired_minutes=60)
+        return api.get_play_url(
+            type=type_, source=source, space_name=space, expired_minutes=60
+        )
     except Exception:
         return None
 
@@ -214,7 +218,9 @@ def _validate_concat_action_time(step6: Dict[str, Any]) -> List[str]:
             st = int(s.get("start_time") or 0)
             et = int(s.get("end_time") or 0)
             if et <= st:
-                issues.append(f"[强校验] actionTime[{j}] end<=start: segment_idx={idx} span=({st}-{et})")
+                issues.append(
+                    f"[强校验] actionTime[{j}] end<=start: segment_idx={idx} span=({st}-{et})"
+                )
                 continue
             spans.append((st, et))
 
@@ -281,7 +287,14 @@ def _correct_segment_times_from_step5(
             if s5_end <= seg_start_safe or s5_start >= seg_end:
                 continue
             words = s5.get("words") or []
-            valid_words = [w for w in words if (int(w.get("start_time") or -1) >= 0 and int(w.get("end_time") or -1) >= 0)]
+            valid_words = [
+                w
+                for w in words
+                if (
+                    int(w.get("start_time") or -1) >= 0
+                    and int(w.get("end_time") or -1) >= 0
+                )
+            ]
             if not valid_words:
                 continue
             found = True
@@ -298,7 +311,9 @@ def _correct_segment_times_from_step5(
             seg["end_time"] = last_ms
 
 
-def _text_from_step5_words(step5_segments: List[Dict], start_ms: int, end_ms: int) -> str:
+def _text_from_step5_words(
+    step5_segments: List[Dict], start_ms: int, end_ms: int
+) -> str:
     """从 step5 words 中按时间范围提取文本"""
     chars = []
     for s5 in step5_segments:
@@ -316,7 +331,9 @@ def _text_from_step5_words(step5_segments: List[Dict], start_ms: int, end_ms: in
 def _first_speech_start_ms(step5_segments: List[Dict]) -> int:
     """首个有字级时间戳的 segment 的首字 start_time（ms）"""
     for s5 in step5_segments:
-        words = [w for w in (s5.get("words") or []) if int(w.get("start_time") or -1) >= 0]
+        words = [
+            w for w in (s5.get("words") or []) if int(w.get("start_time") or -1) >= 0
+        ]
         if words:
             return min(int(w.get("start_time") or 0) for w in words)
     return 0
@@ -365,7 +382,10 @@ def _expand_concat_segments(
         if not action_time:
             expanded.append(seg)
             continue
-        spans = [(int(s.get("start_time") or 0), int(s.get("end_time") or 0)) for s in action_time]
+        spans = [
+            (int(s.get("start_time") or 0), int(s.get("end_time") or 0))
+            for s in action_time
+        ]
         spans.sort(key=lambda x: x[0])
         # 删前留后：仅 1 个 span 且在 keep 前有删前内容 → 插入 leading mute
         span_start = spans[0][0]
@@ -379,7 +399,13 @@ def _expand_concat_segments(
                 ds = int(d.get("start_time") or 0)
                 de = int(d.get("end_time") or 0)
                 dt = (d.get("deleted_text") or "").strip()
-                if ds < span_start and de <= span_start + 100 and src and dt and dt in src:
+                if (
+                    ds < span_start
+                    and de <= span_start + 100
+                    and src
+                    and dt
+                    and dt in src
+                ):
                     leading_s, leading_e = ds, span_start
                     break
         if leading_s is not None and leading_e is not None:
@@ -389,38 +415,48 @@ def _expand_concat_segments(
                 if muted_text
                 else f"句内静音 {leading_s}-{leading_e}ms，无说话，静音处理"
             )
-            expanded.append({
-                "text": muted_text or "",
-                "source_text": muted_text or "",
-                "start_time": leading_s,
-                "end_time": leading_e,
-                "reason": leading_reason,
-                "action": "mute",
-                "actionTime": [{"start_time": leading_s, "end_time": leading_e}],
-            })
-            expanded.append({
-                "text": _text_from_step5_words(step5_segments, spans[0][0], spans[0][1]),
-                "source_text": seg.get("source_text", ""),
-                "start_time": spans[0][0],
-                "end_time": spans[0][1],
-                "reason": seg.get("reason", ""),
-                "action": "keep",
-                "actionTime": [{"start_time": spans[0][0], "end_time": spans[0][1]}],
-            })
+            expanded.append(
+                {
+                    "text": muted_text or "",
+                    "source_text": muted_text or "",
+                    "start_time": leading_s,
+                    "end_time": leading_e,
+                    "reason": leading_reason,
+                    "action": "mute",
+                    "actionTime": [{"start_time": leading_s, "end_time": leading_e}],
+                }
+            )
+            expanded.append(
+                {
+                    "text": _text_from_step5_words(
+                        step5_segments, spans[0][0], spans[0][1]
+                    ),
+                    "source_text": seg.get("source_text", ""),
+                    "start_time": spans[0][0],
+                    "end_time": spans[0][1],
+                    "reason": seg.get("reason", ""),
+                    "action": "keep",
+                    "actionTime": [
+                        {"start_time": spans[0][0], "end_time": spans[0][1]}
+                    ],
+                }
+            )
             continue
         if len(spans) < 2:
             expanded.append(seg)
             continue
         for i, (s, e) in enumerate(spans):
-            expanded.append({
-                "text": _text_from_step5_words(step5_segments, s, e),
-                "source_text": seg.get("source_text", ""),
-                "start_time": s,
-                "end_time": e,
-                "reason": seg.get("reason", ""),
-                "action": "keep",
-                "actionTime": [{"start_time": s, "end_time": e}],
-            })
+            expanded.append(
+                {
+                    "text": _text_from_step5_words(step5_segments, s, e),
+                    "source_text": seg.get("source_text", ""),
+                    "start_time": s,
+                    "end_time": e,
+                    "reason": seg.get("reason", ""),
+                    "action": "keep",
+                    "actionTime": [{"start_time": s, "end_time": e}],
+                }
+            )
             if i + 1 < len(spans):
                 gap_s = e
                 gap_e = spans[i + 1][0]
@@ -431,15 +467,17 @@ def _expand_concat_segments(
                         if muted_text
                         else f"句内静音 {gap_s}-{gap_e}ms，无说话，静音处理"
                     )
-                    expanded.append({
-                        "text": muted_text or "",
-                        "source_text": muted_text or "",
-                        "start_time": gap_s,
-                        "end_time": gap_e,
-                        "reason": reason,
-                        "action": "mute",
-                        "actionTime": [{"start_time": gap_s, "end_time": gap_e}],
-                    })
+                    expanded.append(
+                        {
+                            "text": muted_text or "",
+                            "source_text": muted_text or "",
+                            "start_time": gap_s,
+                            "end_time": gap_e,
+                            "reason": reason,
+                            "action": "mute",
+                            "actionTime": [{"start_time": gap_s, "end_time": gap_e}],
+                        }
+                    )
     # 若首个有效段起始 > 0，补全开头静音（以 step5 首字为准，覆盖 0 到首字前）
     if expanded and first_speech_ms > 0:
         first = expanded[0]
@@ -485,9 +523,7 @@ def _fix_overlap(expanded: List[Dict]) -> List[Dict]:
         et = int(seg.get("end_time") or 0)
         prev_end = int(out[-1]["end_time"]) if out else 0
         next_start = (
-            int(expanded[i + 1]["start_time"])
-            if i + 1 < len(expanded)
-            else et + 1
+            int(expanded[i + 1]["start_time"]) if i + 1 < len(expanded) else et + 1
         )
         st = max(st, prev_end)
         et = min(et, next_start)
@@ -522,7 +558,11 @@ def _build_sentences(
     out = []
     for i, seg in enumerate(expanded):
         action = (seg.get("action") or "keep").lower()
-        status = STATUS_REMOVED if action == "delete" else (STATUS_MUTED if action == "mute" else STATUS_KEEP)
+        status = (
+            STATUS_REMOVED
+            if action == "delete"
+            else (STATUS_MUTED if action == "mute" else STATUS_KEEP)
+        )
         start_ms = int(seg.get("start_time") or 0)
         end_ms = int(seg.get("end_time") or 0)
         out_start = start_ms / 1000.0
@@ -532,14 +572,26 @@ def _build_sentences(
             out_start = o0 / 1000.0
             out_end = o1 / 1000.0
         reason = seg.get("reason") or ""
-        reason_tags = [reason] if reason and status in (STATUS_KEEP, STATUS_MUTED) else []
+        reason_tags = (
+            [reason] if reason and status in (STATUS_KEEP, STATUS_MUTED) else []
+        )
         raw_text = seg.get("text") or seg.get("source_text") or ""
         text = _strip_subtitle_punctuation(str(raw_text))
-        if status == STATUS_MUTED and reason and text and (text == reason or (len(text) > 10 and reason in text)):
+        if (
+            status == STATUS_MUTED
+            and reason
+            and text
+            and (text == reason or (len(text) > 10 and reason in text))
+        ):
             text = ""
         removed_text = (
-            text if status == STATUS_MUTED and text
-            else (reason if status == STATUS_MUTED and reason else _extract_removed_from_reason(reason))
+            text
+            if status == STATUS_MUTED and text
+            else (
+                reason
+                if status == STATUS_MUTED and reason
+                else _extract_removed_from_reason(reason)
+            )
         )
         item = {
             "id": str(i + 1),
@@ -583,14 +635,16 @@ def _build_voice_trim_segments(
         for span in action_time:
             s = int(span.get("start_time") or 0)
             e = int(span.get("end_time") or 0)
-            result.append({
-                "target_start_ms": s,
-                "target_end_ms": e,
-                "trim_start_ms": s,
-                "trim_end_ms": e,
-                "is_mute": is_mute,
-                "segment_idx": i,
-            })
+            result.append(
+                {
+                    "target_start_ms": s,
+                    "target_end_ms": e,
+                    "trim_start_ms": s,
+                    "trim_end_ms": e,
+                    "is_mute": is_mute,
+                    "segment_idx": i,
+                }
+            )
             if i not in seg_source_range:
                 seg_source_range[i] = (s, e)
             else:
@@ -604,7 +658,11 @@ def _apply_time_compensation(voice_segments: List[Dict]) -> None:
     """有留白时，前段结尾 +10ms 补偿"""
     GAP_MS = 10
     for i, vs in enumerate(voice_segments):
-        next_start = voice_segments[i + 1]["target_start_ms"] if i + 1 < len(voice_segments) else vs["target_end_ms"]
+        next_start = (
+            voice_segments[i + 1]["target_start_ms"]
+            if i + 1 < len(voice_segments)
+            else vs["target_end_ms"]
+        )
         gap = next_start - vs["target_end_ms"]
         if gap > 0:
             add = min(GAP_MS, gap)
@@ -668,13 +726,11 @@ def _validate_step6(step6: Dict[str, Any]) -> List[str]:
 
     # 检查每个 delete 段是否在 deleted_parts 中（时间容差 50ms，或文本重叠视为匹配）
     for st, et, src in delete_ranges:
-        matched = any(
-            _delete_range_matches((st, et, src), d) for d in deleted_parts
-        )
+        matched = any(_delete_range_matches((st, et, src), d) for d in deleted_parts)
         if not matched and src:
             issues.append(
                 f"[自检] delete 段 ({st}-{et}) 未在 deleted_parts 中: {src[:30]}... "
-                f"请在 deleted_parts 中添加: {{\"deleted_text\": \"...\", \"description\": \"...\", \"start_time\": {st}, \"end_time\": {et}}}"
+                f'请在 deleted_parts 中添加: {{"deleted_text": "...", "description": "...", "start_time": {st}, "end_time": {et}}}'
             )
 
     return issues
@@ -705,6 +761,7 @@ def _resolve_existing_file_path(path_str: str, output_dir: Path) -> str:
 def _local_media_url(local_path: str, host: str, port: int) -> str:
     """将本地文件路径转换为审核页可访问的 HTTP URL（须与 serve_review_page /local-media 一致）。"""
     from urllib.parse import quote
+
     if not local_path:
         return ""
     # quote 默认 safe='/'，保留路径分隔符，便于服务端匹配 /local-media/...
@@ -727,7 +784,9 @@ def _merge_intervals(intervals: list[tuple[int, int]]) -> list[tuple[int, int]]:
     return merged
 
 
-def _clip_text_lane_to_intervals(text_lane: list[dict], intervals: list[tuple[int, int]]) -> list[dict]:
+def _clip_text_lane_to_intervals(
+    text_lane: list[dict], intervals: list[tuple[int, int]]
+) -> list[dict]:
     """
     将字幕 text_lane 裁剪到有效音频区间，避免“无音频但有字幕”：
     - 不相交：丢弃
@@ -759,17 +818,46 @@ def _clip_text_lane_to_intervals(text_lane: list[dict], intervals: list[tuple[in
 def main() -> None:
     global _OUTPUT_DIR_OVERRIDE
     parser = argparse.ArgumentParser()
-    parser.add_argument("--step6", default="step6_speech_cut.json", help="step6 JSON 文件名")
-    parser.add_argument("--review", default="review_import_data.json", help="review JSON 输出文件名")
-    parser.add_argument("--export", default="export_request.json", help="export JSON 输出文件名")
+    parser.add_argument(
+        "--step6", default="step6_speech_cut.json", help="step6 JSON 文件名"
+    )
+    parser.add_argument(
+        "--review", default="review_import_data.json", help="review JSON 输出文件名"
+    )
+    parser.add_argument(
+        "--export", default="export_request.json", help="export JSON 输出文件名"
+    )
     parser.add_argument("--width", type=int, default=0, help="画布宽度，0 表示自动")
     parser.add_argument("--height", type=int, default=0, help="画布高度，0 表示自动")
-    parser.add_argument("--write-step6", action="store_true", help="将修正后的数据写回 step6 文件（去除 mute、校正时间）")
-    parser.add_argument("--platform-selection", default="platform_selection.json", help="平台选择 JSON（可选，若存在则用其 canvas/video_source）")
-    parser.add_argument("--output-dir", default="", help="输出目录，默认 output；可指定 output/<文件名>")
-    parser.add_argument("--review-host", default="127.0.0.1", help="审核页服务地址（local 模式用于生成媒体 URL）")
-    parser.add_argument("--review-port", type=int, default=5173, help="审核页服务端口（local 模式用于生成媒体 URL）")
-    parser.add_argument("--direct-export", action="store_true", help="local 模式下跳过审核页直接导出最终视频")
+    parser.add_argument(
+        "--write-step6",
+        action="store_true",
+        help="将修正后的数据写回 step6 文件（去除 mute、校正时间）",
+    )
+    parser.add_argument(
+        "--platform-selection",
+        default="platform_selection.json",
+        help="平台选择 JSON（可选，若存在则用其 canvas/video_source）",
+    )
+    parser.add_argument(
+        "--output-dir", default="", help="输出目录，默认 output；可指定 output/<文件名>"
+    )
+    parser.add_argument(
+        "--review-host",
+        default="127.0.0.1",
+        help="审核页服务地址（local 模式用于生成媒体 URL）",
+    )
+    parser.add_argument(
+        "--review-port",
+        type=int,
+        default=5173,
+        help="审核页服务端口（local 模式用于生成媒体 URL）",
+    )
+    parser.add_argument(
+        "--direct-export",
+        action="store_true",
+        help="local 模式下跳过审核页直接导出最终视频",
+    )
     args = parser.parse_args()
 
     if args.output_dir:
@@ -783,12 +871,16 @@ def main() -> None:
             try:
                 resolved.relative_to(out_base)
             except ValueError:
-                raise SystemExit(f"ERROR: --output-dir 必须在 {out_base} 下：{resolved}")
+                raise SystemExit(
+                    f"ERROR: --output-dir 必须在 {out_base} 下：{resolved}"
+                )
             _OUTPUT_DIR_OVERRIDE = resolved
         else:
             # 约束：只允许 output/<文件名>（相对路径）
             if not out_str.startswith("output/"):
-                raise SystemExit("ERROR: --output-dir 只允许传 `output/<文件名>`（相对路径）")
+                raise SystemExit(
+                    "ERROR: --output-dir 只允许传 `output/<文件名>`（相对路径）"
+                )
             resolved = (proj_root / out_str).resolve()
             try:
                 resolved.relative_to(out_base)
@@ -802,7 +894,11 @@ def main() -> None:
 
         out_root = get_project_root() / "output"
         if out_root.exists():
-            subdirs = [d for d in out_root.iterdir() if d.is_dir() and (d / args.step6).exists()]
+            subdirs = [
+                d
+                for d in out_root.iterdir()
+                if d.is_dir() and (d / args.step6).exists()
+            ]
             if len(subdirs) > 1:
                 print(
                     f"[提示] 检测到多个目录含 {args.step6}: {[d.name for d in subdirs]}，"
@@ -820,6 +916,7 @@ def main() -> None:
     _env_is_apig = False
     try:
         from execution_mode import resolve_mode, ExecutionMode
+
         _current_mode = resolve_mode(interactive=False)
         is_local = _current_mode == ExecutionMode.LOCAL
         _env_is_apig = _current_mode == ExecutionMode.APIG
@@ -828,7 +925,10 @@ def main() -> None:
         step1_check_path = _output_dir() / "step1_preuploaded.json"
         if step1_check_path.exists():
             _s1_tmp = _parse_json_file(step1_check_path)
-            if _s1_tmp.get("_execution_mode") == "local" or _s1_tmp.get("AssetType") == "LocalFile":
+            if (
+                _s1_tmp.get("_execution_mode") == "local"
+                or _s1_tmp.get("AssetType") == "LocalFile"
+            ):
                 is_local = True
 
     step6_path = _output_dir() / args.step6
@@ -876,11 +976,19 @@ def main() -> None:
             for u in raw.get("result", {}).get("utterances", []):
                 words = u.get("words") or []
                 if words:
-                    s5_segs.append({
-                        "start_time": u.get("start_time", 0),
-                        "end_time": u.get("end_time", 0),
-                        "words": [{"start_time": w.get("start_time", 0), "end_time": w.get("end_time", 0)} for w in words],
-                    })
+                    s5_segs.append(
+                        {
+                            "start_time": u.get("start_time", 0),
+                            "end_time": u.get("end_time", 0),
+                            "words": [
+                                {
+                                    "start_time": w.get("start_time", 0),
+                                    "end_time": w.get("end_time", 0),
+                                }
+                                for w in words
+                            ],
+                        }
+                    )
             break
     if s5_segs:
         _correct_segment_times_from_step5(segments, s5_segs)
@@ -888,10 +996,14 @@ def main() -> None:
     # 可选：将修正后的数据写回 step6（去除 mute、已校正时间）
     if args.write_step6:
         seg_key = "optimized_segments" if "optimized_segments" in step6 else "sentences"
-        filtered = [s for s in segments if (s.get("action") or "keep").lower() != "mute"]
+        filtered = [
+            s for s in segments if (s.get("action") or "keep").lower() != "mute"
+        ]
         step6_out = {**step6, seg_key: filtered}
         _write_json(args.step6, step6_out)
-        print(f"[OK] 已写回 output/{args.step6}（去除 {len(segments) - len(filtered)} 个 mute 段，时间已校正）")
+        print(
+            f"[OK] 已写回 output/{args.step6}（去除 {len(segments) - len(filtered)} 个 mute 段，时间已校正）"
+        )
 
     # URL 解析：local 模式无需 ApiManage/VOD，直接使用本地路径
     api = None
@@ -900,6 +1012,7 @@ def main() -> None:
     elif space:
         try:
             from api_manage import ApiManage
+
             api = ApiManage()
         except Exception as e:
             print(f"[警告] ApiManage 加载失败，将尽量使用 JSON 内已有 URL: {e}")
@@ -908,7 +1021,6 @@ def main() -> None:
     platform_path = _output_dir() / args.platform_selection
     vid = step1.get("Vid") or step1.get("AssetValue", "")
     video_directurl = step1.get("DirectUrl") or ""
-    asset_type = (step1.get("AssetType") or "").strip().lower()
     video_url = step1.get("PlayURL", "")
     if platform_path.exists():
         try:
@@ -922,7 +1034,12 @@ def main() -> None:
                 vid = ""
             if vs.get("Url"):
                 video_url = vs.get("Url", "")
-            if plat.get("canvas_width") and plat.get("canvas_height") and args.width <= 0 and args.height <= 0:
+            if (
+                plat.get("canvas_width")
+                and plat.get("canvas_height")
+                and args.width <= 0
+                and args.height <= 0
+            ):
                 args.width = int(plat["canvas_width"])
                 args.height = int(plat["canvas_height"])
         except Exception as e:
@@ -944,6 +1061,7 @@ def main() -> None:
         if local_source and Path(local_source).is_file():
             try:
                 from ffmpeg_utils import probe_video_info
+
                 info = probe_video_info(Path(local_source))
                 video_width = int(info.get("Width") or 1280)
                 video_height = int(info.get("Height") or 2160)
@@ -969,8 +1087,12 @@ def main() -> None:
         video_width, video_height = args.width, args.height
 
     audio_urls = step3.get("AudioUrls") or []
-    voice_info = next((a for a in audio_urls if (a.get("Type") or "").lower() == "voice"), {})
-    bg_info = next((a for a in audio_urls if (a.get("Type") or "").lower() == "background"), {})
+    voice_info = next(
+        (a for a in audio_urls if (a.get("Type") or "").lower() == "voice"), {}
+    )
+    bg_info = next(
+        (a for a in audio_urls if (a.get("Type") or "").lower() == "background"), {}
+    )
 
     # 人声轨必须用 step5（降噪后），ASR 与 actionTime 均基于此
     voice_url = step5.get("PlayURL") or voice_info.get("Url", "")
@@ -991,16 +1113,26 @@ def main() -> None:
     if is_local:
         _rh, _rp = args.review_host, args.review_port
         _od = _output_dir()
-        v_for_preview = _resolve_existing_file_path(str(video_url), _od) if video_url else ""
-        vo_for_preview = _resolve_existing_file_path(str(voice_url), _od) if voice_url else ""
+        v_for_preview = (
+            _resolve_existing_file_path(str(video_url), _od) if video_url else ""
+        )
+        vo_for_preview = (
+            _resolve_existing_file_path(str(voice_url), _od) if voice_url else ""
+        )
         if not vo_for_preview and voice_direct:
             vo_for_preview = _resolve_existing_file_path(str(voice_direct), _od)
         bg_for_preview = _resolve_existing_file_path(str(bg_url), _od) if bg_url else ""
         if not bg_for_preview and bg_direct:
             bg_for_preview = _resolve_existing_file_path(str(bg_direct), _od)
-        video_review_url = _local_media_url(v_for_preview, _rh, _rp) if v_for_preview else ""
-        voice_review_url = _local_media_url(vo_for_preview, _rh, _rp) if vo_for_preview else ""
-        bg_review_url = _local_media_url(bg_for_preview, _rh, _rp) if bg_for_preview else ""
+        video_review_url = (
+            _local_media_url(v_for_preview, _rh, _rp) if v_for_preview else ""
+        )
+        voice_review_url = (
+            _local_media_url(vo_for_preview, _rh, _rp) if vo_for_preview else ""
+        )
+        bg_review_url = (
+            _local_media_url(bg_for_preview, _rh, _rp) if bg_for_preview else ""
+        )
     else:
         video_review_url = video_url
         voice_review_url = voice_url
@@ -1009,16 +1141,22 @@ def main() -> None:
     # 总时长 (ms) - 取最后 segment 的 end_time
     total_ms = max((int(s.get("end_time") or 0) for s in segments), default=0)
 
-
     # Voice trim 片段（concat 的每个 actionTime span 独立为一段）
     # TargetTime 使用 step6 源时间 start_time/end_time，与 trim 一致
     deleted_parts = step6.get("deleted_parts") or []
-    voice_segments, seg_source_range = _build_voice_trim_segments(segments, s5_segs, deleted_parts)
+    voice_segments, seg_source_range = _build_voice_trim_segments(
+        segments, s5_segs, deleted_parts
+    )
     _apply_time_compensation(voice_segments)
     seg_source_range = _rebuild_seg_source_range(voice_segments)
 
     # Sentences 使用 step6 源时间，concat 展开为 保留+静音(间隙)+保留（展开后每段自有时长，不再用 seg_source_range）
-    sentences = _build_sentences(segments, step5_segments=s5_segs, seg_output_range=None, deleted_parts=deleted_parts)
+    sentences = _build_sentences(
+        segments,
+        step5_segments=s5_segs,
+        seg_output_range=None,
+        deleted_parts=deleted_parts,
+    )
 
     # 视频轨（单元素，全时长），主视频自带音轨需静音（人声/背景由独立轨提供）
     # Extra 含 transform（参考 review_import_data 489-501 完整结构）与 a_volume，均带全局唯一 ID
@@ -1042,32 +1180,45 @@ def main() -> None:
         "Volume": 0,
     }
     if is_local:
-
         local_video_path = step1.get("LocalPath") or step1.get("AssetValue", "")
         video_source_raw = local_video_path or vid or ""
-        video_source = _local_media_url(local_video_path, _rh, _rp) if local_video_path else video_source_raw
+        video_source = (
+            _local_media_url(local_video_path, _rh, _rp)
+            if local_video_path
+            else video_source_raw
+        )
     else:
-        video_source = f"vid://{vid}" if vid else (f"directurl://{video_directurl}" if video_directurl else "directurl://video")
+        video_source = (
+            f"vid://{vid}"
+            if vid
+            else (
+                f"directurl://{video_directurl}"
+                if video_directurl
+                else "directurl://video"
+            )
+        )
         video_source_raw = video_source  # cloud/apig 无需区分
-    video_lane = [{
-        "ID": vid_id,
-        "Type": "video",
-        "Source": video_source,
-        "TargetTime": [0, total_ms],
-        "Extra": [video_transform, video_volume],
-        "UserData": {
-            "id": vid_id,
-            "name": "main",
-            "source": video_source,
-            "type": "video",
-            "url": video_review_url,
-            "width": video_width,
-            "height": video_height,
-            "aspectRatio": video_width / video_height if video_height else 1,
-            "originalDuration": total_ms / 1000.0,
-            "laneLabel": "视频",
-        },
-    }]
+    video_lane = [
+        {
+            "ID": vid_id,
+            "Type": "video",
+            "Source": video_source,
+            "TargetTime": [0, total_ms],
+            "Extra": [video_transform, video_volume],
+            "UserData": {
+                "id": vid_id,
+                "name": "main",
+                "source": video_source,
+                "type": "video",
+                "url": video_review_url,
+                "width": video_width,
+                "height": video_height,
+                "aspectRatio": video_width / video_height if video_height else 1,
+                "originalDuration": total_ms / 1000.0,
+                "laneLabel": "视频",
+            },
+        }
+    ]
 
     # 人声轨（多个 trim 片段），严格遵守 step6 action：mute → a_volume:0
     # UserData.status='muted' 供审核页展示静音段样式（与字幕轨一致）
@@ -1075,18 +1226,22 @@ def main() -> None:
     voice_lane = []
     for i, vs in enumerate(voice_segments):
         voice_id = _element_id("voice", i)
-        extra = [{
-            "ID": _global_unique_id(),
-            "Type": "trim",
-            "StartTime": vs["trim_start_ms"],
-            "EndTime": vs["trim_end_ms"],
-        }]
-        if vs.get("is_mute"):
-            extra.append({
+        extra = [
+            {
                 "ID": _global_unique_id(),
-                "Type": "a_volume",
-                "Volume": 0,
-            })
+                "Type": "trim",
+                "StartTime": vs["trim_start_ms"],
+                "EndTime": vs["trim_end_ms"],
+            }
+        ]
+        if vs.get("is_mute"):
+            extra.append(
+                {
+                    "ID": _global_unique_id(),
+                    "Type": "a_volume",
+                    "Volume": 0,
+                }
+            )
         ud = {
             "id": voice_id,
             "source": voice_direct or "voice",
@@ -1099,18 +1254,22 @@ def main() -> None:
             ud["status"] = "muted"
         if is_local:
             voice_source_raw = voice_direct or voice_url
-            voice_source = _local_media_url(voice_source_raw, _rh, _rp) if voice_source_raw else ""
+            voice_source = (
+                _local_media_url(voice_source_raw, _rh, _rp) if voice_source_raw else ""
+            )
         else:
             voice_source = f"directurl://{voice_direct}" if voice_direct else voice_url
             voice_source_raw = voice_source  # cloud/apig 无需区分
-        voice_lane.append({
-            "ID": voice_id,
-            "Type": "audio",
-            "Source": voice_source,
-            "TargetTime": [vs["target_start_ms"], vs["target_end_ms"]],
-            "Extra": extra,
-            "UserData": ud,
-        })
+        voice_lane.append(
+            {
+                "ID": voice_id,
+                "Type": "audio",
+                "Source": voice_source,
+                "TargetTime": [vs["target_start_ms"], vs["target_end_ms"]],
+                "Extra": extra,
+                "UserData": ud,
+            }
+        )
 
     # 背景轨
     bg_id = _element_id("bg", 0)
@@ -1120,27 +1279,37 @@ def main() -> None:
     else:
         bg_source = f"directurl://{bg_direct}" if bg_direct else (bg_url or "")
         bg_source_raw = bg_source  # cloud/apig 无需区分
-    bg_lane = [{
-        "ID": bg_id,
-        "Type": "audio",
-        "Source": bg_source,
-        "TargetTime": [0, total_ms],
-        "Extra": [{
-            "ID": _global_unique_id(),
-            "Type": "a_volume",
-            "Volume": 0.3,
-        }],
-        "UserData": {
-            "id": bg_id,
-            "source": bg_direct or "bg",
-            "type": "audio",
-            "url": bg_review_url or "",
-            "laneLabel": "背景",
-        },
-    }] if (bg_url or bg_review_url) else []
+    bg_lane = (
+        [
+            {
+                "ID": bg_id,
+                "Type": "audio",
+                "Source": bg_source,
+                "TargetTime": [0, total_ms],
+                "Extra": [
+                    {
+                        "ID": _global_unique_id(),
+                        "Type": "a_volume",
+                        "Volume": 0.3,
+                    }
+                ],
+                "UserData": {
+                    "id": bg_id,
+                    "source": bg_direct or "bg",
+                    "type": "audio",
+                    "url": bg_review_url or "",
+                    "laneLabel": "背景",
+                },
+            }
+        ]
+        if (bg_url or bg_review_url)
+        else []
+    )
 
     # baseTrack 顺序：视频、背景、人声、字幕（字幕由 buildMergedTrack 追加）
-    base_track = [video_lane, bg_lane, voice_lane] if bg_lane else [video_lane, voice_lane]
+    base_track = (
+        [video_lane, bg_lane, voice_lane] if bg_lane else [video_lane, voice_lane]
+    )
 
     # 静音人声 ID 列表，供审核页按 ID 应用红色样式（SDK 可能不解析 trackStyle 时用）
     muted_voice_ids = []
@@ -1160,7 +1329,9 @@ def main() -> None:
         "track": base_track,
         "canvas": {"Width": video_width, "Height": video_height},
         "mutedVoiceIds": muted_voice_ids,
-        "_execution_mode": "local" if is_local else ("apig" if _env_is_apig else "cloud"),
+        "_execution_mode": "local"
+        if is_local
+        else ("apig" if _env_is_apig else "cloud"),
         "_source_step6": step6_fp,
     }
     _write_json(args.review, review_data)
@@ -1216,39 +1387,42 @@ def main() -> None:
             end_ms = int((s.get("end") or 0) * 1000)
         if start_ms >= end_ms:
             continue
-        text_lane.append({
-            "ID": "element" + _global_unique_id(),
-            "Type": "text",
-            "TargetTime": [start_ms, end_ms],
-            "Text": text,
-            "FontType": _FONT_TYPE,
-            "FontSize": SUBTITLE_FONT_SIZE,
-            "FontColor": "#ffffffff",
-            "ShadowColor": "#00000000",
-            "LineMaxWidth": 1,
-            "AlignType": 1,
-            "Extra": _text_extra(),
-            "UserData": {
-                "fontFamily": "noto sans",
-                "fontTypeUrl": _FONT_TYPE,
-                "fontTypeRef": _FONT_TYPE,
-            },
-        })
+        text_lane.append(
+            {
+                "ID": "element" + _global_unique_id(),
+                "Type": "text",
+                "TargetTime": [start_ms, end_ms],
+                "Text": text,
+                "FontType": _FONT_TYPE,
+                "FontSize": SUBTITLE_FONT_SIZE,
+                "FontColor": "#ffffffff",
+                "ShadowColor": "#00000000",
+                "LineMaxWidth": 1,
+                "AlignType": 1,
+                "Extra": _text_extra(),
+                "UserData": {
+                    "fontFamily": "noto sans",
+                    "fontTypeUrl": _FONT_TYPE,
+                    "fontTypeRef": _FONT_TYPE,
+                },
+            }
+        )
 
     has_mute = any(vs.get("is_mute") for vs in voice_segments)
     has_subtitle = not _skip_subtitle_export() and len(text_lane) > 0
     # export_request 使用原始路径（供 ffmpeg / VOD），base_track 使用 /local-media/ URL（供审核页预览）
     video_source_for_export = video_source_raw if is_local else video_source
-    bg_source_for_export = bg_source_raw if is_local else bg_source
     do_video_cut = _should_export_video_cut(has_subtitle, has_mute)
 
     def _voice_extra(vs):
-        ex = [{
-            "ID": _global_unique_id(),
-            "Type": "trim",
-            "StartTime": vs["trim_start_ms"],
-            "EndTime": vs["trim_end_ms"],
-        }]
+        ex = [
+            {
+                "ID": _global_unique_id(),
+                "Type": "trim",
+                "StartTime": vs["trim_start_ms"],
+                "EndTime": vs["trim_end_ms"],
+            }
+        ]
         if vs.get("is_mute"):
             ex.append({"ID": _global_unique_id(), "Type": "a_volume", "Volume": 0})
         return ex
@@ -1263,7 +1437,8 @@ def main() -> None:
     if do_video_cut:
         # 以音频为准：排除音量为 0（is_mute）的片段、时长=0 的片段；片段间直接拼接（无间隔）
         keep_voice = [
-            vs for vs in voice_segments
+            vs
+            for vs in voice_segments
             if not vs.get("is_mute")  # 音量为 0 的移除
             and (vs["trim_end_ms"] - vs["trim_start_ms"]) > 0
         ]
@@ -1275,13 +1450,23 @@ def main() -> None:
             cumul += dur
         total_output_ms = cumul
 
-        _export_voice_src = (voice_direct or voice_url) if is_local else (f"directurl://{voice_direct}" if voice_direct else voice_url)
+        _export_voice_src = (
+            (voice_direct or voice_url)
+            if is_local
+            else (f"directurl://{voice_direct}" if voice_direct else voice_url)
+        )
         export_voice_lane = [
             {
                 "Type": "audio",
                 "Source": _export_voice_src,
                 "TargetTime": [vs["out_start_ms"], vs["out_end_ms"]],
-                "Extra": [{"Type": "trim", "StartTime": vs["trim_start_ms"], "EndTime": vs["trim_end_ms"]}],
+                "Extra": [
+                    {
+                        "Type": "trim",
+                        "StartTime": vs["trim_start_ms"],
+                        "EndTime": vs["trim_end_ms"],
+                    }
+                ],
             }
             for vs in keep_voice
         ]
@@ -1312,76 +1497,120 @@ def main() -> None:
                 continue
             out_start = min(v["out_start_ms"] for v in grp)
             out_end = max(v["out_end_ms"] for v in grp)
-            cut_text_lane.append({
-                "ID": "element" + _global_unique_id(),
-                "Type": "text",
-                "TargetTime": [out_start, out_end],
-                "Text": text,
-                "FontType": _FONT_TYPE,
-                "FontSize": SUBTITLE_FONT_SIZE,
-                "FontColor": "#ffffffff",
-                "ShadowColor": "#00000000",
-                "LineMaxWidth": 1,
-                "AlignType": 1,
-                "Extra": _text_extra(),
-                "UserData": {
-                    "fontFamily": "noto sans",
-                    "fontTypeUrl": _FONT_TYPE,
-                    "fontTypeRef": _FONT_TYPE,
-                },
-            })
+            cut_text_lane.append(
+                {
+                    "ID": "element" + _global_unique_id(),
+                    "Type": "text",
+                    "TargetTime": [out_start, out_end],
+                    "Text": text,
+                    "FontType": _FONT_TYPE,
+                    "FontSize": SUBTITLE_FONT_SIZE,
+                    "FontColor": "#ffffffff",
+                    "ShadowColor": "#00000000",
+                    "LineMaxWidth": 1,
+                    "AlignType": 1,
+                    "Extra": _text_extra(),
+                    "UserData": {
+                        "fontFamily": "noto sans",
+                        "fontTypeUrl": _FONT_TYPE,
+                        "fontTypeRef": _FONT_TYPE,
+                    },
+                }
+            )
 
         # 字幕与音频对齐：仅保留在人声有效区间内的字幕（按 out_start/out_end）
-        audio_intervals = [(int(v["out_start_ms"]), int(v["out_end_ms"])) for v in keep_voice if int(v["out_end_ms"]) > int(v["out_start_ms"])]
+        audio_intervals = [
+            (int(v["out_start_ms"]), int(v["out_end_ms"]))
+            for v in keep_voice
+            if int(v["out_end_ms"]) > int(v["out_start_ms"])
+        ]
         cut_text_lane = _clip_text_lane_to_intervals(cut_text_lane, audio_intervals)
         export_track_clean = [export_video_lane]
         if bg_url:
-            export_track_clean.append([
-                {
-                    "Type": "audio",
-                    "Source": (bg_direct or bg_url) if is_local else (f"directurl://{bg_direct}" if bg_direct else bg_url),
-                    "TargetTime": [0, total_output_ms],
-                    "Extra": [
-                        {"Type": "trim", "StartTime": 0, "EndTime": total_output_ms},
-                        {"ID": _global_unique_id(), "Type": "a_volume", "Volume": 0.3},
-                    ],
-                }
-            ])
+            export_track_clean.append(
+                [
+                    {
+                        "Type": "audio",
+                        "Source": (bg_direct or bg_url)
+                        if is_local
+                        else (f"directurl://{bg_direct}" if bg_direct else bg_url),
+                        "TargetTime": [0, total_output_ms],
+                        "Extra": [
+                            {
+                                "Type": "trim",
+                                "StartTime": 0,
+                                "EndTime": total_output_ms,
+                            },
+                            {
+                                "ID": _global_unique_id(),
+                                "Type": "a_volume",
+                                "Volume": 0.3,
+                            },
+                        ],
+                    }
+                ]
+            )
         export_track_clean.append(export_voice_lane)
         if not _skip_subtitle_export():
             export_track_clean.append(cut_text_lane)
         else:
             print("[提示] VOD_EXPORT_SKIP_SUBTITLE=1，导出时跳过字幕压制")
-        print("[提示] TALKING_VIDEO_AUTO_EDIT_VIDEO_CUT=1 且（有字幕或音频静音），已移除 mute 段并无缝拼接")
+        print(
+            "[提示] TALKING_VIDEO_AUTO_EDIT_VIDEO_CUT=1 且（有字幕或音频静音），已移除 mute 段并无缝拼接"
+        )
     else:
-        _else_voice_src = (voice_direct or voice_url) if is_local else (f"directurl://{voice_direct}" if voice_direct else voice_url)
+        _else_voice_src = (
+            (voice_direct or voice_url)
+            if is_local
+            else (f"directurl://{voice_direct}" if voice_direct else voice_url)
+        )
         export_voice_lane = [
-            {"Type": "audio", "Source": _else_voice_src,
-             "TargetTime": [vs["target_start_ms"], vs["target_end_ms"]],
-             "Extra": _voice_extra(vs)}
+            {
+                "Type": "audio",
+                "Source": _else_voice_src,
+                "TargetTime": [vs["target_start_ms"], vs["target_end_ms"]],
+                "Extra": _voice_extra(vs),
+            }
             for vs in voice_segments
         ]
         export_video_extra = [video_transform, video_volume]
         export_track_clean = [
-            [{"Type": "video", "Source": video_source_for_export, "TargetTime": [0, total_ms],
-              "Extra": export_video_extra}],
+            [
+                {
+                    "Type": "video",
+                    "Source": video_source_for_export,
+                    "TargetTime": [0, total_ms],
+                    "Extra": export_video_extra,
+                }
+            ],
         ]
         if bg_url:
-            export_track_clean.append([
-                {"Type": "audio", "Source": (bg_direct or bg_url) if is_local else (f"directurl://{bg_direct}" if bg_direct else bg_url),
-                 "TargetTime": [0, total_ms], "Extra": [{
-                     "ID": _global_unique_id(),
-                     "Type": "a_volume",
-                     "Volume": 0.3,
-                 }]}
-            ])
+            export_track_clean.append(
+                [
+                    {
+                        "Type": "audio",
+                        "Source": (bg_direct or bg_url)
+                        if is_local
+                        else (f"directurl://{bg_direct}" if bg_direct else bg_url),
+                        "TargetTime": [0, total_ms],
+                        "Extra": [
+                            {
+                                "ID": _global_unique_id(),
+                                "Type": "a_volume",
+                                "Volume": 0.3,
+                            }
+                        ],
+                    }
+                ]
+            )
         export_track_clean.append(export_voice_lane)
         if not _skip_subtitle_export():
             # 字幕与音频对齐：仅保留在人声有效区间内的字幕（按 target_start/target_end）
             audio_intervals = [
                 (int(v["target_start_ms"]), int(v["target_end_ms"]))
                 for v in voice_segments
-                if not v.get("is_mute") and int(v["target_end_ms"]) > int(v["target_start_ms"])
+                if not v.get("is_mute")
+                and int(v["target_end_ms"]) > int(v["target_start_ms"])
             ]
             clipped = _clip_text_lane_to_intervals(text_lane, audio_intervals)
             export_track_clean.append(clipped)
@@ -1393,7 +1622,9 @@ def main() -> None:
         "Track": export_track_clean,
         "Upload": {"SpaceName": space, "VideoName": "口播剪辑"},
         "Uploader": space,
-        "_execution_mode": "local" if is_local else ("apig" if _env_is_apig else "cloud"),
+        "_execution_mode": "local"
+        if is_local
+        else ("apig" if _env_is_apig else "cloud"),
         "_source_step6": step6_fp,
     }
     _write_json(args.export, export_request)
@@ -1404,12 +1635,15 @@ def main() -> None:
     _schema_path = _skill_dir / "reference" / "内置" / "导出提交数据结构.md"
     if _schema_path.is_file():
         _out_schema = _output_dir() / "导出提交数据结构.md"
-        _out_schema.write_text(_schema_path.read_text(encoding="utf-8"), encoding="utf-8")
-        print(f"[OK] 已输出 导出提交数据结构.md 到 output 目录")
+        _out_schema.write_text(
+            _schema_path.read_text(encoding="utf-8"), encoding="utf-8"
+        )
+        print("[OK] 已输出 导出提交数据结构.md 到 output 目录")
 
     if is_local and args.direct_export:
         print("\n[local] --direct-export：跳过审核页，直接使用 ffmpeg 导出最终视频...")
         from local_export import export_local
+
         export_req_path = _output_dir() / args.export
         result_path = export_local(
             export_request_path=export_req_path,
@@ -1418,7 +1652,9 @@ def main() -> None:
         )
         print(f"[local] 导出完成 → {result_path}")
     elif is_local:
-        print(f"\n[local] 本地模式审核页媒体服务: http://{args.review_host}:{args.review_port}/local-media/...")
+        print(
+            f"\n[local] 本地模式审核页媒体服务: http://{args.review_host}:{args.review_port}/local-media/..."
+        )
         print("[local] 请启动审核页服务: python serve_review_page.py")
         print("[local] 如需跳过审核页直接导出，使用: --direct-export")
         print("CHECKPOINT: 两份 JSON 已生成，track 使用本地媒体 URL")

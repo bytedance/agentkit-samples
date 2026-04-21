@@ -27,7 +27,9 @@ from project_paths import get_project_root
 def _resolve_output_dir(output_dir: str) -> Path:
     out_str = str(output_dir).strip()
     if not out_str:
-        raise SystemExit("ERROR: --output-dir is required (use the same output dir as Step3)")
+        raise SystemExit(
+            "ERROR: --output-dir is required (use the same output dir as Step3)"
+        )
 
     proj_root = get_project_root()
     out_base = (proj_root / "output").resolve()
@@ -90,10 +92,14 @@ def _format_js_array(const_name: str, items: list[str], *, multiline: bool) -> s
     return "\n".join(lines)
 
 
-def _replace_const_array_in_md(md_text: str, const_name: str, new_const_block: str) -> str:
+def _replace_const_array_in_md(
+    md_text: str, const_name: str, new_const_block: str
+) -> str:
     pattern = rf"(const\s+{re.escape(const_name)}\s*=\s*\[[\s\S]*?\]\s*;?)"
     if not re.search(pattern, md_text):
-        raise ValueError(f"unable to replace const {const_name} array in markdown (pattern not found)")
+        raise ValueError(
+            f"unable to replace const {const_name} array in markdown (pattern not found)"
+        )
     return re.sub(pattern, new_const_block, md_text, count=1)
 
 
@@ -107,7 +113,9 @@ def _print_config_snapshot(snapshot: dict) -> None:
     print("=" * 60 + "\n")
 
 
-def _apply_updates(base: list[str], adds: list[str], removes: list[str]) -> tuple[list[str], dict]:
+def _apply_updates(
+    base: list[str], adds: list[str], removes: list[str]
+) -> tuple[list[str], dict]:
     orig = list(base)
     add_list = [a.strip() for a in (adds or []) if str(a).strip()]
     rm_set = {r.strip() for r in (removes or []) if str(r).strip()}
@@ -135,7 +143,9 @@ def _apply_updates(base: list[str], adds: list[str], removes: list[str]) -> tupl
     return out, diff
 
 
-def _append_change_log(*, change_log_path: Path, note: str, diffs: dict[str, dict]) -> None:
+def _append_change_log(
+    *, change_log_path: Path, note: str, diffs: dict[str, dict]
+) -> None:
     change_log_path.parent.mkdir(parents=True, exist_ok=True)
     ts = time.strftime("%Y-%m-%d %H:%M:%S")
     if change_log_path.exists():
@@ -161,15 +171,45 @@ def _append_change_log(*, change_log_path: Path, note: str, diffs: dict[str, dic
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Step2: 语气词/卡顿词确认与规则更新（确认完成后生成 checkpoint 文件）")
-    parser.add_argument("--output-dir", required=True, help="输出目录（必须与后续 Step3 使用同一目录）")
-    parser.add_argument("--note", default="", help="可选备注（例如本次确认的规则变更点）")
-    parser.add_argument("--add-filler", action="append", default=[], help="新增语气词（可重复传参）")
-    parser.add_argument("--remove-filler", action="append", default=[], help="移除语气词（可重复传参）")
-    parser.add_argument("--add-ending", action="append", default=[], help="新增结尾确认词/反问词（可重复传参）")
-    parser.add_argument("--remove-ending", action="append", default=[], help="移除结尾确认词/反问词（可重复传参）")
-    parser.add_argument("--add-stutter", action="append", default=[], help="新增卡顿词模式（可重复传参）")
-    parser.add_argument("--remove-stutter", action="append", default=[], help="移除卡顿词模式（可重复传参）")
+    parser = argparse.ArgumentParser(
+        description="Step2: 语气词/卡顿词确认与规则更新（确认完成后生成 checkpoint 文件）"
+    )
+    parser.add_argument(
+        "--output-dir", required=True, help="输出目录（必须与后续 Step3 使用同一目录）"
+    )
+    parser.add_argument(
+        "--note", default="", help="可选备注（例如本次确认的规则变更点）"
+    )
+    parser.add_argument(
+        "--add-filler", action="append", default=[], help="新增语气词（可重复传参）"
+    )
+    parser.add_argument(
+        "--remove-filler", action="append", default=[], help="移除语气词（可重复传参）"
+    )
+    parser.add_argument(
+        "--add-ending",
+        action="append",
+        default=[],
+        help="新增结尾确认词/反问词（可重复传参）",
+    )
+    parser.add_argument(
+        "--remove-ending",
+        action="append",
+        default=[],
+        help="移除结尾确认词/反问词（可重复传参）",
+    )
+    parser.add_argument(
+        "--add-stutter",
+        action="append",
+        default=[],
+        help="新增卡顿词模式（可重复传参）",
+    )
+    parser.add_argument(
+        "--remove-stutter",
+        action="append",
+        default=[],
+        help="移除卡顿词模式（可重复传参）",
+    )
     args = parser.parse_args()
 
     out_dir = _resolve_output_dir(args.output_dir)
@@ -200,22 +240,42 @@ def main() -> None:
         "stutterPatterns": {"added": [], "removed": []},
     }
 
-    filler_words2, diffs["fillerWords"] = _apply_updates(filler_words, args.add_filler, args.remove_filler)
-    ending_words2, diffs["endingFillerWords"] = _apply_updates(ending_words, args.add_ending, args.remove_ending)
-    stutter_patterns2, diffs["stutterPatterns"] = _apply_updates(stutter_patterns, args.add_stutter, args.remove_stutter)
+    filler_words2, diffs["fillerWords"] = _apply_updates(
+        filler_words, args.add_filler, args.remove_filler
+    )
+    ending_words2, diffs["endingFillerWords"] = _apply_updates(
+        ending_words, args.add_ending, args.remove_ending
+    )
+    stutter_patterns2, diffs["stutterPatterns"] = _apply_updates(
+        stutter_patterns, args.add_stutter, args.remove_stutter
+    )
     any_change = any(diffs[k]["added"] or diffs[k]["removed"] for k in diffs)
 
     if any_change:
         md_filler2 = md_filler
-        md_filler2 = _replace_const_array_in_md(md_filler2, "fillerWords", _format_js_array("fillerWords", filler_words2, multiline=False))
-        md_filler2 = _replace_const_array_in_md(md_filler2, "endingFillerWords", _format_js_array("endingFillerWords", ending_words2, multiline=False))
+        md_filler2 = _replace_const_array_in_md(
+            md_filler2,
+            "fillerWords",
+            _format_js_array("fillerWords", filler_words2, multiline=False),
+        )
+        md_filler2 = _replace_const_array_in_md(
+            md_filler2,
+            "endingFillerWords",
+            _format_js_array("endingFillerWords", ending_words2, multiline=False),
+        )
         rule_filler.write_text(md_filler2, encoding="utf-8")
 
         md_stutter2 = md_stutter
-        md_stutter2 = _replace_const_array_in_md(md_stutter2, "stutterPatterns", _format_js_array("stutterPatterns", stutter_patterns2, multiline=True))
+        md_stutter2 = _replace_const_array_in_md(
+            md_stutter2,
+            "stutterPatterns",
+            _format_js_array("stutterPatterns", stutter_patterns2, multiline=True),
+        )
         rule_stutter.write_text(md_stutter2, encoding="utf-8")
 
-        _append_change_log(change_log_path=change_log, note=(args.note or "").strip(), diffs=diffs)
+        _append_change_log(
+            change_log_path=change_log, note=(args.note or "").strip(), diffs=diffs
+        )
         print("✅ 已更新并记录到 变更记录.md")
 
         snapshot_after = {
@@ -265,11 +325,14 @@ def main() -> None:
     }
 
     out_path = out_dir / "step2_config_confirmed.json"
-    out_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    out_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     print(f"[OK] Step2 checkpoint 已生成: {out_path}")
-    print("[OK] 现在可以进入 Step3：运行 pipeline_url_to_asr.py（使用同一 --output-dir）")
+    print(
+        "[OK] 现在可以进入 Step3：运行 pipeline_url_to_asr.py（使用同一 --output-dir）"
+    )
 
 
 if __name__ == "__main__":
     main()
-

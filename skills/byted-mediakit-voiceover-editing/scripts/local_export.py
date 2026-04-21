@@ -23,11 +23,11 @@ Track 结构：
 每个 element:
   { Type: "video"|"audio"|"text", Source: "...", TargetTime: [start_ms, end_ms], Extra: [...] }
 """
+
 from __future__ import annotations
 
 import json
 import shutil
-import subprocess
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -51,7 +51,7 @@ def _resolve_source(source: str, output_dir: Path) -> Path | None:
     # 兼容旧格式：剥离 URL scheme 前缀后重试
     for prefix in ("vid://", "directurl://", "file://"):
         if s.startswith(prefix):
-            stripped = s[len(prefix):]
+            stripped = s[len(prefix) :]
             sp = Path(stripped)
             if sp.is_file():
                 return sp
@@ -61,7 +61,7 @@ def _resolve_source(source: str, output_dir: Path) -> Path | None:
     raw = s
     for prefix in ("vid://", "directurl://", "file://"):
         if raw.startswith(prefix):
-            raw = raw[len(prefix):]
+            raw = raw[len(prefix) :]
             break
 
     candidate = output_dir / raw
@@ -94,7 +94,6 @@ def export_local(
     """
     data = json.loads(export_request_path.read_text(encoding="utf-8"))
     track = realign_export_track(data.get("Track", []))
-    canvas = data.get("Canvas", {})
 
     output_dir.mkdir(parents=True, exist_ok=True)
     work_dir = Path(tempfile.mkdtemp(prefix="local_export_"))
@@ -124,6 +123,7 @@ def export_local(
         final_output = output_dir / output_filename
         if text_lane:
             from local_subtitle import burn_subtitles
+
             segments = _text_lane_to_segments(text_lane)
             if segments:
                 burn_subtitles(muxed, segments, final_output)
@@ -195,7 +195,9 @@ def _process_audio_lanes(
             raw_source = el.get("Source", "")
             source = _resolve_source(raw_source, output_dir)
             if not source:
-                print(f"[WARNING] 音频元素 lane{lane_idx}/{i} Source 无法解析: {raw_source!r}")
+                print(
+                    f"[WARNING] 音频元素 lane{lane_idx}/{i} Source 无法解析: {raw_source!r}"
+                )
                 continue
             trim = get_trim(el.get("Extra", []))
             vol = get_volume(el.get("Extra", []))
@@ -212,18 +214,29 @@ def _process_audio_lanes(
                 start_s = target[0] / 1000.0
                 dur_s = (target[1] - target[0]) / 1000.0
 
-            fu.cut_audio(source, out_seg, start=start_s, duration=dur_s, codec="pcm_s16le")
+            fu.cut_audio(
+                source, out_seg, start=start_s, duration=dur_s, codec="pcm_s16le"
+            )
 
             # 如果 volume 为 0（mute 段），生成静音替代
             if vol == 0:
                 silence = work_dir / f"silence_{lane_idx}_{i:04d}.wav"
-                fu._run([
-                    fu._ffmpeg(), "-f", "lavfi",
-                    "-i", f"anullsrc=r=48000:cl=stereo",
-                    "-t", f"{dur_s:.6f}",
-                    "-acodec", "pcm_s16le",
-                    "-y", str(silence),
-                ], "generate silence")
+                fu._run(
+                    [
+                        fu._ffmpeg(),
+                        "-f",
+                        "lavfi",
+                        "-i",
+                        "anullsrc=r=48000:cl=stereo",
+                        "-t",
+                        f"{dur_s:.6f}",
+                        "-acodec",
+                        "pcm_s16le",
+                        "-y",
+                        str(silence),
+                    ],
+                    "generate silence",
+                )
                 out_seg = silence
 
             lane_segments.append(out_seg)
@@ -256,9 +269,11 @@ def _text_lane_to_segments(lane: list[dict]) -> list[dict[str, Any]]:
         target = el.get("TargetTime", [0, 0])
         text = el.get("Text", "").strip()
         if text and len(target) >= 2:
-            segments.append({
-                "start": target[0] / 1000.0,
-                "end": target[1] / 1000.0,
-                "text": text,
-            })
+            segments.append(
+                {
+                    "start": target[0] / 1000.0,
+                    "end": target[1] / 1000.0,
+                    "text": text,
+                }
+            )
     return segments

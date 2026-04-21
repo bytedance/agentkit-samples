@@ -72,7 +72,13 @@ def result_data(resp: Dict[str, Any]) -> Dict[str, Any]:
 
 
 class FileSectionReader:
-    def __init__(self, file_object, size: int, init_offset: Optional[int] = None, can_reset: bool = False):
+    def __init__(
+        self,
+        file_object,
+        size: int,
+        init_offset: Optional[int] = None,
+        can_reset: bool = False,
+    ):
         self.file_object = file_object
         self.size = size
         self.offset = 0
@@ -106,7 +112,9 @@ def _normalize_headers(raw: Any) -> Dict[str, str]:
     return {}
 
 
-def _retry(fn: Callable[[], Any], tries: int = 3, delay: float = 1.0, backoff: float = 2.0) -> Any:
+def _retry(
+    fn: Callable[[], Any], tries: int = 3, delay: float = 1.0, backoff: float = 2.0
+) -> Any:
     last_err: Optional[BaseException] = None
     d = delay
     for attempt in range(tries):
@@ -133,7 +141,9 @@ class TosMediaUploader:
     def __init__(self, session: Optional[requests.Session] = None):
         self._session = session or requests.Session()
 
-    def _put_file(self, url: str, file_path: str, headers: Dict[str, str]) -> Tuple[bool, bytes]:
+    def _put_file(
+        self, url: str, file_path: str, headers: Dict[str, str]
+    ) -> Tuple[bool, bytes]:
         with open(file_path, "rb") as f:
             resp = self._session.put(url, headers=headers, data=f)
         headers["X-Tt-Logid"] = resp.headers.get("X-Tt-Logid", "")
@@ -141,7 +151,9 @@ class TosMediaUploader:
             return True, resp.content
         return False, resp.content
 
-    def _put_data(self, url: str, data: Optional[bytes], headers: Dict[str, str]) -> Tuple[bool, bytes]:
+    def _put_data(
+        self, url: str, data: Optional[bytes], headers: Dict[str, str]
+    ) -> Tuple[bool, bytes]:
         resp = self._session.put(url, headers=headers, data=data)
         headers["X-Tt-Logid"] = resp.headers.get("X-Tt-Logid", "")
         if resp.status_code == 200:
@@ -154,7 +166,9 @@ class TosMediaUploader:
         if storage_class == STORAGE_IA:
             headers["X-Upload-Storage-Class"] = "ia"
 
-    def direct_upload(self, host: str, oid: str, auth: str, file_path: str, storage_class: int) -> None:
+    def direct_upload(
+        self, host: str, oid: str, auth: str, file_path: str, storage_class: int
+    ) -> None:
         def _once():
             with open(file_path, "rb") as f:
                 data = f.read()
@@ -165,14 +179,24 @@ class TosMediaUploader:
             upload_status, resp = self._put_file(url, file_path, headers)
             resp_text = resp.decode("utf-8")
             if not upload_status:
-                raise RuntimeError("direct upload error: {}, logid: {}".format(resp_text, headers.get("X-Tt-Logid", "")))
+                raise RuntimeError(
+                    "direct upload error: {}, logid: {}".format(
+                        resp_text, headers.get("X-Tt-Logid", "")
+                    )
+                )
             body = json.loads(resp_text)
             if body.get("success") is None or body["success"] != 0:
-                raise RuntimeError("direct upload error: {}, logid: {}".format(resp_text, headers.get("X-Tt-Logid", "")))
+                raise RuntimeError(
+                    "direct upload error: {}, logid: {}".format(
+                        resp_text, headers.get("X-Tt-Logid", "")
+                    )
+                )
 
         _retry(_once)
 
-    def init_upload_part(self, host: str, oid: str, auth: str, is_large_file: bool, storage_class: int) -> str:
+    def init_upload_part(
+        self, host: str, oid: str, auth: str, is_large_file: bool, storage_class: int
+    ) -> str:
         def _once():
             url = "https://{}/{}?uploads".format(host, oid)
             headers = {"Authorization": auth}
@@ -182,10 +206,18 @@ class TosMediaUploader:
             upload_status, resp = self._put_data(url, None, headers)
             resp_text = resp.decode("utf-8")
             if not upload_status:
-                raise RuntimeError("init upload error: {}, logid: {}".format(resp_text, headers.get("X-Tt-Logid", "")))
+                raise RuntimeError(
+                    "init upload error: {}, logid: {}".format(
+                        resp_text, headers.get("X-Tt-Logid", "")
+                    )
+                )
             body = json.loads(resp_text)
             if body.get("success") is None or body["success"] != 0:
-                raise RuntimeError("init upload error: {}, logid: {}".format(resp_text, headers.get("X-Tt-Logid", "")))
+                raise RuntimeError(
+                    "init upload error: {}, logid: {}".format(
+                        resp_text, headers.get("X-Tt-Logid", "")
+                    )
+                )
             return body["payload"]["uploadID"]
 
         return _retry(_once)
@@ -202,7 +234,9 @@ class TosMediaUploader:
         storage_class: int,
     ) -> Tuple[str, Any]:
         def _once():
-            url = "https://{}/{}?partNumber={}&uploadID={}".format(host, oid, part_number, upload_id)
+            url = "https://{}/{}?partNumber={}&uploadID={}".format(
+                host, oid, part_number, upload_id
+            )
             check_sum = "%08x" % (crc32(data) & 0xFFFFFFFF)
             headers = {"Content-CRC32": check_sum, "Authorization": auth}
             if is_large_file:
@@ -211,10 +245,18 @@ class TosMediaUploader:
             upload_status, resp = self._put_data(url, data, headers)
             resp_text = resp.decode("utf-8")
             if not upload_status:
-                raise RuntimeError("upload part error: {}, logid: {}".format(resp_text, headers.get("X-Tt-Logid", "")))
+                raise RuntimeError(
+                    "upload part error: {}, logid: {}".format(
+                        resp_text, headers.get("X-Tt-Logid", "")
+                    )
+                )
             body = json.loads(resp_text)
             if body.get("success") is None or body["success"] != 0:
-                raise RuntimeError("upload part error: {}, logid: {}".format(resp_text, headers.get("X-Tt-Logid", "")))
+                raise RuntimeError(
+                    "upload part error: {}, logid: {}".format(
+                        resp_text, headers.get("X-Tt-Logid", "")
+                    )
+                )
             return check_sum, body["payload"]
 
         return _retry(_once)
@@ -223,7 +265,9 @@ class TosMediaUploader:
     def generate_merge_body(check_sum_list: List[str]) -> str:
         if len(check_sum_list) == 0:
             raise RuntimeError("crc32 list empty")
-        parts = ["{}:{}".format(i, check_sum_list[i]) for i in range(len(check_sum_list))]
+        parts = [
+            "{}:{}".format(i, check_sum_list[i]) for i in range(len(check_sum_list))
+        ]
         return ",".join(parts)
 
     def upload_merge_part(
@@ -241,7 +285,9 @@ class TosMediaUploader:
             object_content_type = ""
             if meta is not None and meta.get("ObjectContentType") is not None:
                 object_content_type = meta["ObjectContentType"]
-            url = "https://{}/{}?uploadID={}&ObjectContentType={}".format(host, oid, upload_id, object_content_type)
+            url = "https://{}/{}?uploadID={}&ObjectContentType={}".format(
+                host, oid, upload_id, object_content_type
+            )
             data = self.generate_merge_body(check_sum_list).encode("utf-8")
             headers = {"Authorization": auth}
             if is_large_file:
@@ -250,10 +296,18 @@ class TosMediaUploader:
             upload_status, resp = self._put_data(url, data, headers)
             resp_text = resp.decode("utf-8")
             if not upload_status:
-                raise RuntimeError("commit upload part error: {}, logid: {}".format(resp_text, headers.get("X-Tt-Logid", "")))
+                raise RuntimeError(
+                    "commit upload part error: {}, logid: {}".format(
+                        resp_text, headers.get("X-Tt-Logid", "")
+                    )
+                )
             body = json.loads(resp_text)
             if body.get("success") is None or body["success"] != 0:
-                raise RuntimeError("commit upload part error: {}, logid: {}".format(resp_text, headers.get("X-Tt-Logid", "")))
+                raise RuntimeError(
+                    "commit upload part error: {}, logid: {}".format(
+                        resp_text, headers.get("X-Tt-Logid", "")
+                    )
+                )
 
         _retry(_once)
 
@@ -279,22 +333,37 @@ class TosMediaUploader:
                 part_number = i
                 if is_large_file:
                     part_number = i + 1
-                part, payload = self.upload_part(host, oid, auth, upload_id, part_number, data, is_large_file, storage_class)
+                part, payload = self.upload_part(
+                    host,
+                    oid,
+                    auth,
+                    upload_id,
+                    part_number,
+                    data,
+                    is_large_file,
+                    storage_class,
+                )
                 if part_number == 1:
                     meta = payload["meta"]
                 parts.append(part)
             data = f.read()
             if is_large_file:
                 last_num = last_num + 1
-            part, payload = self.upload_part(host, oid, auth, upload_id, last_num, data, is_large_file, storage_class)
+            part, payload = self.upload_part(
+                host, oid, auth, upload_id, last_num, data, is_large_file, storage_class
+            )
             if last_num == 1:
                 meta = payload["meta"]
             parts.append(part)
-        self.upload_merge_part(host, oid, auth, upload_id, parts, is_large_file, storage_class, meta)
+        self.upload_merge_part(
+            host, oid, auth, upload_id, parts, is_large_file, storage_class, meta
+        )
 
     # --- VPC 预签名路径（对齐 VodService.vpc_*） ---
 
-    def vpc_upload(self, vpc_upload_address: Dict[str, Any], file_path: str, file_size: int) -> None:
+    def vpc_upload(
+        self, vpc_upload_address: Dict[str, Any], file_path: str, file_size: int
+    ) -> None:
         if vpc_upload_address.get("QuickCompleteMode") == "enable":
             return
         mode = vpc_upload_address.get("UploadMode") or ""
@@ -303,9 +372,13 @@ class TosMediaUploader:
             put_headers = _normalize_headers(vpc_upload_address.get("PutUrlHeaders"))
             self.vpc_put(put_url, put_headers, file_path)
         elif mode == "part":
-            self.vpc_part_upload(vpc_upload_address.get("PartUploadInfo") or {}, file_path, file_size)
+            self.vpc_part_upload(
+                vpc_upload_address.get("PartUploadInfo") or {}, file_path, file_size
+            )
 
-    def vpc_put(self, put_url: str, put_headers: Dict[str, str], file_path: str) -> None:
+    def vpc_put(
+        self, put_url: str, put_headers: Dict[str, str], file_path: str
+    ) -> None:
         with open(file_path, "rb") as f:
             resp = self._session.put(put_url, headers=put_headers, data=f)
         if resp.status_code != 200:
@@ -330,10 +403,14 @@ class TosMediaUploader:
             raise RuntimeError("etag list empty")
         s = []
         for i in range(len(etag_list)):
-            s.append("{" + '"PartNumber": {}, "ETag": {}'.format(i + 1, etag_list[i]) + "}")
+            s.append(
+                "{" + '"PartNumber": {}, "ETag": {}'.format(i + 1, etag_list[i]) + "}"
+            )
         return '{"Parts":[' + ",".join(s) + "]}"
 
-    def vpc_part_upload(self, part_upload_info: Dict[str, Any], file_path: str, file_size: int) -> None:
+    def vpc_part_upload(
+        self, part_upload_info: Dict[str, Any], file_path: str, file_size: int
+    ) -> None:
         chunk_sz = int(part_upload_info.get("PartSize") or 0)
         part_put_urls = part_upload_info.get("PartPutUrls") or []
         total_num = file_size // chunk_sz
@@ -353,12 +430,16 @@ class TosMediaUploader:
                 offset += chunk_sz
             last_chunk_size = file_size - offset
             put_url = part_put_urls[total_num]
-            sr = FileSectionReader(f, last_chunk_size, init_offset=offset, can_reset=True)
+            sr = FileSectionReader(
+                f, last_chunk_size, init_offset=offset, can_reset=True
+            )
             etag = self.vpc_part_put(put_url, sr)
             etag_list.append(etag)
 
         post_data = self.vpc_generate_body(etag_list).encode("utf-8")
-        complete_headers = _normalize_headers(part_upload_info.get("CompleteUrlHeaders"))
+        complete_headers = _normalize_headers(
+            part_upload_info.get("CompleteUrlHeaders")
+        )
         complete_url = part_upload_info.get("CompletePartUrl") or ""
         self.vpc_post(complete_url, post_data, complete_headers)
 
@@ -410,9 +491,20 @@ def upload_tob_from_apply_data(
             oid = store_infos[0].get("StoreUri") or ""
             try:
                 if file_size < chunk_size:
-                    uploader.direct_upload(tos_host, oid, auth, file_path, storage_class)
+                    uploader.direct_upload(
+                        tos_host, oid, auth, file_path, storage_class
+                    )
                 else:
-                    uploader.chunk_upload(file_path, tos_host, oid, auth, file_size, True, storage_class, chunk_size)
+                    uploader.chunk_upload(
+                        file_path,
+                        tos_host,
+                        oid,
+                        auth,
+                        file_size,
+                        True,
+                        storage_class,
+                        chunk_size,
+                    )
             except Exception as e:  # noqa: BLE001
                 log_print("upload failed, switch host to retry.. reason: {}".format(e))
                 continue
@@ -423,7 +515,9 @@ def upload_tob_from_apply_data(
     store_infos = upload_address.get("StoreInfos") or []
     hosts = upload_address.get("UploadHosts") or []
     if not store_infos or not hosts:
-        raise RuntimeError("ApplyUploadInfo: UploadAddress missing StoreInfos or UploadHosts")
+        raise RuntimeError(
+            "ApplyUploadInfo: UploadAddress missing StoreInfos or UploadHosts"
+        )
     oid = store_infos[0].get("StoreUri") or ""
     session_key = upload_address.get("SessionKey") or ""
     auth = store_infos[0].get("Auth") or ""
@@ -432,5 +526,7 @@ def upload_tob_from_apply_data(
     if file_size < chunk_size:
         uploader.direct_upload(host, oid, auth, file_path, storage_class)
     else:
-        uploader.chunk_upload(file_path, host, oid, auth, file_size, True, storage_class, chunk_size)
+        uploader.chunk_upload(
+            file_path, host, oid, auth, file_size, True, storage_class, chunk_size
+        )
     return session_key

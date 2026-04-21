@@ -19,6 +19,7 @@ Local 音视频操作：剪辑、拼接、合成、混音、变速、翻转。
 
 local 模式下所有操作直接在本地文件上执行，无需 VOD 空间。
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -47,6 +48,7 @@ def local_voice_separation(
 ) -> dict[str, Any]:
     """人声/背景分离，返回兼容 GetExecution 结果的 dict"""
     from local_av_separation import separate_voice_background
+
     voice, bg = separate_voice_background(source_path, output_dir)
     return {
         "Status": "Success",
@@ -64,6 +66,7 @@ def local_denoise(
 ) -> dict[str, Any]:
     """人声降噪，返回兼容结果"""
     from local_denoise import denoise_voice
+
     out = output_dir / "denoised_voice.mp3"
     denoise_voice(source_path, out, method=method)
     return {
@@ -180,6 +183,7 @@ def local_add_subtitle(
 ) -> dict[str, Any]:
     """字幕压制"""
     from local_subtitle import burn_subtitles
+
     out = output_dir / "subtitled_video.mp4"
     burn_subtitles(video_path, segments, out, **style_kwargs)
     return {"Status": "success", "OutputJson": {"filename": str(out)}}

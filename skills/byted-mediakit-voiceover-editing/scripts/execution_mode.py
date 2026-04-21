@@ -28,10 +28,10 @@
   - cloud 缺参 → exit 1（不降到 local，local 只能显式选择）
 若使用 --mode，切换模式是否写入 .env 见 persist_mode_to_env。
 """
+
 from __future__ import annotations
 
 import os
-import sys
 from enum import Enum
 from pathlib import Path
 from typing import Optional
@@ -46,6 +46,7 @@ class ExecutionMode(str, Enum):
 # ─── 自动加载 .env（保证 resolve_mode 自包含，不依赖调用方） ───
 _DOTENV_LOADED = False
 
+
 def _ensure_dotenv_loaded() -> None:
     """确保 .env 已加载到 os.environ（仅首次调用生效，override=False）"""
     global _DOTENV_LOADED
@@ -54,6 +55,7 @@ def _ensure_dotenv_loaded() -> None:
     _DOTENV_LOADED = True
     try:
         from dotenv import load_dotenv
+
         env_path = _get_env_file_path()
         if env_path.is_file():
             load_dotenv(dotenv_path=env_path, override=False)
@@ -61,7 +63,11 @@ def _ensure_dotenv_loaded() -> None:
         pass  # dotenv 不可用时仅靠进程环境
 
 
-_CLOUD_ENV_VARS_VOD = ["VOLC_ACCESS_KEY_ID", "VOLC_ACCESS_KEY_SECRET", "VOLC_SPACE_NAME"]
+_CLOUD_ENV_VARS_VOD = [
+    "VOLC_ACCESS_KEY_ID",
+    "VOLC_ACCESS_KEY_SECRET",
+    "VOLC_SPACE_NAME",
+]
 _CLOUD_ENV_VARS_ASR = ["ASR_API_KEY", "ASR_BASE_URL"]
 _APIG_ENV_VARS = ["ARK_SKILL_API_BASE", "ARK_SKILL_API_KEY"]
 
@@ -88,7 +94,9 @@ def _get_env_file_path() -> Path:
     return Path(__file__).resolve().parents[1] / ".env"
 
 
-def _apply_execution_mode_preference(mode: ExecutionMode, *, persist_to_dotenv: bool) -> None:
+def _apply_execution_mode_preference(
+    mode: ExecutionMode, *, persist_to_dotenv: bool
+) -> None:
     """当前进程始终设置 EXECUTION_MODE；是否写入 .env 由 persist_to_dotenv 决定。"""
     os.environ["EXECUTION_MODE"] = mode.value
     if persist_to_dotenv:
@@ -299,7 +307,7 @@ def _handle_missing_vars(
         desc = _ENV_HELP.get(var, "")
         print(f"   • {var}: {desc}")
     print()
-    print(f"📝 请在 .env 文件中补全上述变量后重试:")
+    print("📝 请在 .env 文件中补全上述变量后重试:")
     print(f"   {env_file}")
     print()
 
@@ -317,29 +325,29 @@ def _handle_missing_vars(
                 ExecutionMode.CLOUD,
                 persist_to_dotenv=persist_mode_to_env,
             )
-            print(f"→ APIG 补充变量不全，但 cloud 变量齐全，自动降级到 cloud 模式")
+            print("→ APIG 补充变量不全，但 cloud 变量齐全，自动降级到 cloud 模式")
             print("=" * 60)
             return ExecutionMode.CLOUD
         # cloud 也不齐 → exit（不降到 local）
-        print(f"[错误] apig 补充变量不全，cloud 变量也不全。")
+        print("[错误] apig 补充变量不全，cloud 变量也不全。")
         print()
         print("您有两个选择:")
         print(f"  ① 补全变量 → 在 {env_file} 中填写所需项，然后重新运行")
-        print( "  ② 切换到 local 模式（本地 ASR + ffmpeg，无需云端密钥）:")
+        print("  ② 切换到 local 模式（本地 ASR + ffmpeg，无需云端密钥）:")
         print(f"      在 {env_file} 中设置:  EXECUTION_MODE=local")
-        print( "      或启动时指定:           --mode local")
+        print("      或启动时指定:           --mode local")
         print("=" * 60)
         raise SystemExit(1)
 
     if intended_mode == ExecutionMode.CLOUD:
         # cloud 缺变量 → exit（不降到 local）
-        print(f"[错误] cloud 模式所需环境变量不全。")
+        print("[错误] cloud 模式所需环境变量不全。")
         print()
         print("您有两个选择:")
         print(f"  ① 补全变量 → 在 {env_file} 中填写上述缺失项，然后重新运行")
-        print( "  ② 切换到 local 模式（本地 ASR + ffmpeg，无需云端密钥）:")
+        print("  ② 切换到 local 模式（本地 ASR + ffmpeg，无需云端密钥）:")
         print(f"      在 {env_file} 中设置:  EXECUTION_MODE=local")
-        print( "      或启动时指定:           --mode local")
+        print("      或启动时指定:           --mode local")
         print("=" * 60)
         raise SystemExit(1)
 

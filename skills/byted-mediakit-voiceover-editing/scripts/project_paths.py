@@ -18,6 +18,7 @@
 
 不硬编码任何磁盘路径或固定目录名字符串；仅环境变量 + 相对于技能目录的层级推断。
 """
+
 from __future__ import annotations
 
 import os

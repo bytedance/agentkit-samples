@@ -17,9 +17,9 @@
 Local 字幕压制：生成 ASS 字幕文件 → ffmpeg 硬压到视频。
 适配自 video-translation/scripts/base/burn_subtitle.py。
 """
+
 from __future__ import annotations
 
-import math
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -242,9 +242,13 @@ def build_ass(
         text = str(seg.get("text", seg.get("Text", ""))).strip()
         if text:
             max_w = max(100, int(width - margin_l - margin_r))
-            wrapped = _wrap_text_to_lines(text, max_width_px=max_w, font_size=font_size, max_lines=max_lines)
+            wrapped = _wrap_text_to_lines(
+                text, max_width_px=max_w, font_size=font_size, max_lines=max_lines
+            )
             if wrapped:
-                wrapped = _truncate_last_line_with_ellipsis(wrapped, max_width_px=max_w, font_size=font_size)
+                wrapped = _truncate_last_line_with_ellipsis(
+                    wrapped, max_width_px=max_w, font_size=font_size
+                )
                 # 注意：ASS 换行控制符是 \N，不能被反斜杠转义为 \\N，否则会显示出一个 "\"
                 wrapped_escaped = [_ass_escape_text(line) for line in wrapped]
                 ass_text = r"\N".join(wrapped_escaped)

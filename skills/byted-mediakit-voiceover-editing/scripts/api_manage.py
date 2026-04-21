@@ -19,7 +19,7 @@ import uuid
 from pathlib import Path
 from dotenv import load_dotenv
 from vod_transport import get_vod_transport_client
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 from datetime import datetime, timezone, timedelta
 import hashlib
 import secrets
@@ -77,7 +77,9 @@ class ApiManage:
     # ----------------------------
     # Low-level request helpers
     # ----------------------------
-    def _get(self, action: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def _get(
+        self, action: str, params: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         # 统一做 JSON 解码，保证上层工具方法始终处理 dict
         try:
             response_text = self.client.get(
@@ -85,9 +87,15 @@ class ApiManage:
                 version=self._VOD_VERSIONS[action],
                 params=params or None,
             )
-            return json.loads(response_text) if isinstance(response_text, str) else (response_text or {})
+            return (
+                json.loads(response_text)
+                if isinstance(response_text, str)
+                else (response_text or {})
+            )
         except Exception as e:
-            raise Exception(f"VOD GET failed: action={action}, params={params}, error={e}")
+            raise Exception(
+                f"VOD GET failed: action={action}, params={params}, error={e}"
+            )
 
     def _post(self, action: str, body: Dict[str, Any]) -> Dict[str, Any]:
         # 统一做 JSON 解码，保证上层工具方法始终处理 dict
@@ -97,7 +105,11 @@ class ApiManage:
                 version=self._VOD_VERSIONS[action],
                 body=body,
             )
-            return json.loads(response_text) if isinstance(response_text, str) else (response_text or {})
+            return (
+                json.loads(response_text)
+                if isinstance(response_text, str)
+                else (response_text or {})
+            )
         except Exception as e:
             raise Exception(f"VOD POST failed: action={action}, body={body}, error={e}")
 
@@ -170,26 +182,42 @@ class ApiManage:
             return default
         s_clean = s.strip().replace(",", "")
         try:
-            if s_clean.isdigit() or (s_clean.startswith(("+", "-")) and s_clean[1:].isdigit()):
+            if s_clean.isdigit() or (
+                s_clean.startswith(("+", "-")) and s_clean[1:].isdigit()
+            ):
                 return int(s_clean)
             return float(s_clean)
         except Exception:
             return default
 
-    def _get_domain_config(self, domain: str, space_name: str, domain_type: str = "play") -> Dict[str, Any]:
+    def _get_domain_config(
+        self, domain: str, space_name: str, domain_type: str = "play"
+    ) -> Dict[str, Any]:
         detail = self._get(
             "DescribeDomainConfig",
-            params={"SpaceName": space_name, "Domain": domain, "DomainType": domain_type},
+            params={
+                "SpaceName": space_name,
+                "Domain": domain,
+                "DomainType": domain_type,
+            },
         )
         result = detail.get("Result", {}) if isinstance(detail, dict) else {}
         cdn_config = result.get("Config") or {}
         signed_url_auth_control = cdn_config.get("SignedUrlAuthControl") or {}
-        signed_url_auth_rules = (signed_url_auth_control.get("SignedUrlAuth") or {}).get("SignedUrlAuthRules", [])
+        signed_url_auth_rules = (
+            signed_url_auth_control.get("SignedUrlAuth") or {}
+        ).get("SignedUrlAuthRules", [])
         if not signed_url_auth_rules:
             return {}
-        signed_url_auth_action = (signed_url_auth_rules[0] or {}).get("SignedUrlAuthAction", {}) or {}
+        signed_url_auth_action = (signed_url_auth_rules[0] or {}).get(
+            "SignedUrlAuthAction", {}
+        ) or {}
         base_domain = result.get("Domain", {}) or {}
-        status = "enable" if base_domain.get("ConfigStatus") == "online" else base_domain.get("ConfigStatus")
+        status = (
+            "enable"
+            if base_domain.get("ConfigStatus") == "online"
+            else base_domain.get("ConfigStatus")
+        )
         return {
             "AuthType": signed_url_auth_action.get("URLAuthType"),
             "AuthKey": signed_url_auth_action.get("MasterSecretKey")
@@ -210,12 +238,19 @@ class ApiManage:
         while offset < total:
             data = self._get(
                 "ListDomain",
-                params={"SpaceName": space_name, "SourceStationType": 1, "DomainType": "play", "Offset": offset},
+                params={
+                    "SpaceName": space_name,
+                    "SourceStationType": 1,
+                    "DomainType": "play",
+                    "Offset": offset,
+                },
             )
             offset = int(data.get("Offset", 0) or 0)
             total = int(data.get("Total", 0) or 0)
             result = data.get("Result", {}) or {}
-            instances = ((result.get("PlayInstanceInfo") or {}).get("ByteInstances") or [])
+            instances = (result.get("PlayInstanceInfo") or {}).get(
+                "ByteInstances"
+            ) or []
             for item in instances:
                 domains = item.get("Domains") or []
                 for domain in domains:
@@ -227,7 +262,9 @@ class ApiManage:
         domain_list = [d for d in domain_list if d.get("CdnStatus") == "enable"]
         enriched: List[Dict[str, Any]] = []
         for d in domain_list:
-            auth_info = self._get_domain_config(d.get("Domain", ""), space_name, d.get("DomainType", "play"))
+            auth_info = self._get_domain_config(
+                d.get("Domain", ""), space_name, d.get("DomainType", "play")
+            )
             d2 = dict(d)
             d2["AuthInfo"] = auth_info
             enriched.append(d2)
@@ -235,13 +272,23 @@ class ApiManage:
         available = [
             d
             for d in enriched
-            if (not d.get("AuthInfo")) or ((d.get("AuthInfo") or {}).get("AuthType") == "typea")
+            if (not d.get("AuthInfo"))
+            or ((d.get("AuthInfo") or {}).get("AuthType") == "typea")
         ]
 
-        self._state["available_domains"] = {**(self._state.get("available_domains") or {}), space_name: available}
+        self._state["available_domains"] = {
+            **(self._state.get("available_domains") or {}),
+            space_name: available,
+        }
         return available
 
-    def _gen_url(self, space_name: str, domain_obj: Dict[str, Any], path: str, expired_minutes: int) -> str:
+    def _gen_url(
+        self,
+        space_name: str,
+        domain_obj: Dict[str, Any],
+        path: str,
+        expired_minutes: int,
+    ) -> str:
         available_domains_list = self._get_available_domain(space_name)
         if available_domains_list:
             domain_obj = available_domains_list[0]
@@ -249,14 +296,22 @@ class ApiManage:
         file_name = f"/{path}"
         auth_info = domain_obj.get("AuthInfo") or {}
         if auth_info.get("AuthType") == "typea":
-            expire_ts = int((datetime.now(timezone.utc) + timedelta(minutes=expired_minutes)).timestamp())
+            expire_ts = int(
+                (
+                    datetime.now(timezone.utc) + timedelta(minutes=expired_minutes)
+                ).timestamp()
+            )
             rand_str = self._random_string(16)
             key = auth_info.get("AuthKey") or ""
-            md5_input = f"{self._encode_path_str(file_name)}-{expire_ts}-{rand_str}-0-{key}".encode("utf-8")
+            md5_input = f"{self._encode_path_str(file_name)}-{expire_ts}-{rand_str}-0-{key}".encode(
+                "utf-8"
+            )
             md5_str = hashlib.md5(md5_input).hexdigest()
             url = f"{'https' if is_https else 'http'}://{domain_obj.get('Domain')}{file_name}?auth_key={expire_ts}-{rand_str}-0-{md5_str}"
             return self._encode_rfc3986_uri_component(url)
-        url = f"{'https' if is_https else 'http'}://{domain_obj.get('Domain')}{file_name}"
+        url = (
+            f"{'https' if is_https else 'http'}://{domain_obj.get('Domain')}{file_name}"
+        )
         return self._encode_rfc3986_uri_component(url)
 
     def _gen_wild_url(self, storage_config: Dict[str, Any], file_name: str) -> str:
@@ -269,15 +324,24 @@ class ApiManage:
         ):
             type_a = conf.get("TypeAConfig") or {}
             expire_seconds = self._str_to_number(type_a.get("ExpireTime") or 0, 0) or 0
-            expire_ts = int((datetime.now(timezone.utc) + timedelta(seconds=expire_seconds)).timestamp())
+            expire_ts = int(
+                (
+                    datetime.now(timezone.utc) + timedelta(seconds=expire_seconds)
+                ).timestamp()
+            )
             rand_str = self._random_string(16)
             key = type_a.get("MasterKey") or type_a.get("BackupKey") or ""
-            md5_input = f"{self._encode_path_str(file_path)}-{expire_ts}-{rand_str}-0-{key}".encode("utf-8")
+            md5_input = f"{self._encode_path_str(file_path)}-{expire_ts}-{rand_str}-0-{key}".encode(
+                "utf-8"
+            )
             md5_str = hashlib.md5(md5_input).hexdigest()
             sig_arg = type_a.get("SignatureArgs") or "auth_key"
             signed = f"{storage_config.get('StorageHost')}{file_path}?{sig_arg}={expire_ts}-{rand_str}-0-{md5_str}&preview=1"
             return self._encode_rfc3986_uri_component(signed)
-        if storage_config.get("StorageType") == "volc" and conf.get("Status") == "disable":
+        if (
+            storage_config.get("StorageType") == "volc"
+            and conf.get("Status") == "disable"
+        ):
             signed = f"{storage_config.get('StorageHost')}{file_path}?preview=1"
             return self._encode_rfc3986_uri_component(signed)
         return ""
@@ -288,10 +352,19 @@ class ApiManage:
             return cached
         reqs = self._get("GetStorageConfig", params={"SpaceName": space_name})
         storage_config = reqs.get("Result") or {}
-        self._state["storage_config"] = {**(self._state.get("storage_config") or {}), space_name: storage_config}
+        self._state["storage_config"] = {
+            **(self._state.get("storage_config") or {}),
+            space_name: storage_config,
+        }
         return storage_config
 
-    def get_play_url(self, type: str, source: str, space_name: Optional[str] = None, expired_minutes: int = 60) -> str:
+    def get_play_url(
+        self,
+        type: str,
+        source: str,
+        space_name: Optional[str] = None,
+        expired_minutes: int = 60,
+    ) -> str:
         """
         directurl: 生成可播放直链（可能带 typea 鉴权参数）
         vid: 通过 GetVideoPlayInfo 获取 PlayURL
@@ -306,7 +379,9 @@ class ApiManage:
         if type == "directurl":
             available_domains_list = self._get_available_domain(space_name)
             if available_domains_list:
-                return self._gen_url(space_name, available_domains_list[0], source, expired_minutes)
+                return self._gen_url(
+                    space_name, available_domains_list[0], source, expired_minutes
+                )
             storage_config = self.get_storage_config(space_name)
             return self._gen_wild_url(storage_config, source)
         if type == "vid":
@@ -314,7 +389,9 @@ class ApiManage:
             return info.get("PlayURL", "")
         raise ValueError(f"get_play_url: unsupported type: {type}")
 
-    def get_video_audio_info(self, type: str, source: str, space_name: Optional[str] = None) -> Dict[str, Any]:
+    def get_video_audio_info(
+        self, type: str, source: str, space_name: Optional[str] = None
+    ) -> Dict[str, Any]:
         if not space_name:
             space_name = os.getenv("VOLC_SPACE_NAME")
         if not space_name or not isinstance(space_name, str) or not space_name.strip():
@@ -331,16 +408,27 @@ class ApiManage:
             query_params["x-vod-process"] = ["video/info"]
             new_query = urlencode(query_params, doseq=True)
             info_url = urlunparse(
-                (parsed.scheme, parsed.netloc, parsed.path, parsed.params, new_query, parsed.fragment)
+                (
+                    parsed.scheme,
+                    parsed.netloc,
+                    parsed.path,
+                    parsed.params,
+                    new_query,
+                    parsed.fragment,
+                )
             )
             try:
                 req = urllib.request.Request(info_url)
                 with urllib.request.urlopen(req, timeout=30) as response:
                     result_data = json.loads(response.read().decode("utf-8"))
             except urllib.error.URLError as e:
-                raise Exception(f"get_video_audio_info: failed to fetch video info: {e}")
+                raise Exception(
+                    f"get_video_audio_info: failed to fetch video info: {e}"
+                )
             except json.JSONDecodeError as e:
-                raise Exception(f"get_video_audio_info: failed to parse JSON response: {e}")
+                raise Exception(
+                    f"get_video_audio_info: failed to parse JSON response: {e}"
+                )
 
             format_info = result_data.get("format", {}) or {}
             streams = result_data.get("streams", []) or []
@@ -376,13 +464,25 @@ class ApiManage:
             if video_stream:
                 result["CodecName"] = video_stream.get("codec_name", "")
                 result["AvgFrameRate"] = video_stream.get("avg_frame_rate", "")
-                result["Width"] = int(video_stream.get("width", 0)) if video_stream.get("width") else 0
-                result["Height"] = int(video_stream.get("height", 0)) if video_stream.get("height") else 0
+                result["Width"] = (
+                    int(video_stream.get("width", 0))
+                    if video_stream.get("width")
+                    else 0
+                )
+                result["Height"] = (
+                    int(video_stream.get("height", 0))
+                    if video_stream.get("height")
+                    else 0
+                )
                 if not result["BitRate"]:
                     result["BitRate"] = str(video_stream.get("bit_rate", ""))
 
             if audio_stream:
-                result["Channels"] = int(audio_stream.get("channels", 0)) if audio_stream.get("channels") else 0
+                result["Channels"] = (
+                    int(audio_stream.get("channels", 0))
+                    if audio_stream.get("channels")
+                    else 0
+                )
                 result["SampleRate"] = str(audio_stream.get("sample_rate", ""))
                 bits_per_sample = audio_stream.get("bits_per_sample")
                 if bits_per_sample not in (None, 0):
@@ -408,9 +508,13 @@ class ApiManage:
 
         raise ValueError(f"get_video_audio_info: unsupported type: {type}")
 
-    def update_media_publish_status(self, vid: str, space_name: str, publish_status: str) -> str:
+    def update_media_publish_status(
+        self, vid: str, space_name: str, publish_status: str
+    ) -> str:
         try:
-            self._post("UpdateMediaPublishStatus", {"Vid": vid, "Status": publish_status})
+            self._post(
+                "UpdateMediaPublishStatus", {"Vid": vid, "Status": publish_status}
+            )
             return "success"
         except Exception as e:
             raise Exception(f"update_media_publish_status failed: {e}")
@@ -425,7 +529,12 @@ class ApiManage:
     ) -> Dict[str, Any]:
         reqs = self._get(
             "GetVideoPlayInfo",
-            params={"Space": space_name, "Vid": vid, "DataType": 0, "OutputType": output_type},
+            params={
+                "Space": space_name,
+                "Vid": vid,
+                "DataType": 0,
+                "OutputType": output_type,
+            },
         )
         result = reqs.get("Result", {}) or {}
         video_detail = result.get("VideoDetail", {}) or {}
@@ -458,7 +567,10 @@ class ApiManage:
                         f"{vid}: GetVideoPlayInfo PublishStatus is not Published after "
                         "UpdateMediaPublishStatus; no PlayURL in response"
                     )
-            elif self.update_media_publish_status(vid, space_name, "Published") == "success":
+            elif (
+                self.update_media_publish_status(vid, space_name, "Published")
+                == "success"
+            ):
                 time.sleep(0.35)
                 url = self.get_play_video_info(
                     vid, space_name, "Origin", _publish_attempted=True
@@ -496,8 +608,14 @@ class ApiManage:
             return f"directurl://{source}"
         return source
 
-    def _async_vcreative_task(self, uploader_space: str, workflow_id: str, param_obj: Dict[str, Any]) -> Dict[str, Any]:
-        payload = {"ParamObj": param_obj, "Uploader": uploader_space, "WorkflowId": workflow_id}
+    def _async_vcreative_task(
+        self, uploader_space: str, workflow_id: str, param_obj: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        payload = {
+            "ParamObj": param_obj,
+            "Uploader": uploader_space,
+            "WorkflowId": workflow_id,
+        }
         resp = self._post("AsyncVCreativeTask", payload)
         result = resp.get("Result", {}) if isinstance(resp, dict) else {}
         base_resp = result.get("BaseResp", {}) or {}
@@ -508,15 +626,24 @@ class ApiManage:
             "StatusCode": base_resp.get("StatusCode", 0),
         }
 
-    def get_v_creative_task_result_once(self, VCreativeId: str, space_name: Optional[str] = None) -> Dict[str, Any]:
-        if not VCreativeId or not isinstance(VCreativeId, str) or not VCreativeId.strip():
+    def get_v_creative_task_result_once(
+        self, VCreativeId: str, space_name: Optional[str] = None
+    ) -> Dict[str, Any]:
+        if (
+            not VCreativeId
+            or not isinstance(VCreativeId, str)
+            or not VCreativeId.strip()
+        ):
             raise ValueError("get_v_creative_task_result: VCreativeId is required")
         if not space_name:
             space_name = os.getenv("VOLC_SPACE_NAME")
         if not space_name or not isinstance(space_name, str) or not space_name.strip():
             raise ValueError("get_v_creative_task_result: space_name is required")
 
-        reqs = self._get("GetVCreativeTaskResult", params={"VCreativeId": VCreativeId, "SpaceName": space_name})
+        reqs = self._get(
+            "GetVCreativeTaskResult",
+            params={"VCreativeId": VCreativeId, "SpaceName": space_name},
+        )
         result = reqs.get("Result", {}) if isinstance(reqs, dict) else {}
         status = result.get("Status", "")
         if status != "success":
@@ -580,7 +707,9 @@ class ApiManage:
         param_type = type or "video"
         if param_type == "audio":
             if not audios or not isinstance(audios, list):
-                raise ValueError("audio_video_stitching: audios is required for audio type")
+                raise ValueError(
+                    "audio_video_stitching: audios is required for audio type"
+                )
             formatted_audios: List[Any] = []
             for a in audios:
                 if isinstance(a, str):
@@ -594,7 +723,9 @@ class ApiManage:
             workflow_id = "loki://158487089"
         else:
             if not videos or not isinstance(videos, list):
-                raise ValueError("audio_video_stitching: videos is required for video type")
+                raise ValueError(
+                    "audio_video_stitching: videos is required for video type"
+                )
             formatted_videos: List[Any] = []
             for v in videos:
                 if isinstance(v, str):
@@ -604,12 +735,21 @@ class ApiManage:
                         formatted_videos.append(self._format_source("vid", v))
                 else:
                     formatted_videos.append(v)
-            param_obj = {"space_name": space_name, "videos": formatted_videos, "transitions": transitions or []}
+            param_obj = {
+                "space_name": space_name,
+                "videos": formatted_videos,
+                "transitions": transitions or [],
+            }
             workflow_id = "loki://154775772"
         return self._async_vcreative_task(space_name, workflow_id, param_obj)
 
     def audio_video_clipping(
-        self, type: str, source: str, start_time: float, end_time: float, space_name: str
+        self,
+        type: str,
+        source: str,
+        start_time: float,
+        end_time: float,
+        space_name: str,
     ) -> Dict[str, Any]:
         if not space_name or not isinstance(space_name, str) or not space_name.strip():
             raise ValueError("audio_video_clipping: space_name is required")
@@ -618,35 +758,71 @@ class ApiManage:
         if end_time <= start_time:
             raise ValueError("audio_video_clipping: end_time must be > start_time")
         param_type = type or "video"
-        formatted_source = self._format_source(param_type if param_type in ("vid", "directurl") else "vid", source)
-        param_obj = {"space_name": space_name, "source": formatted_source, "end_time": end_time, "start_time": start_time}
-        workflow_id = "loki://158666752" if param_type == "audio" else "loki://154419276"
+        formatted_source = self._format_source(
+            param_type if param_type in ("vid", "directurl") else "vid", source
+        )
+        param_obj = {
+            "space_name": space_name,
+            "source": formatted_source,
+            "end_time": end_time,
+            "start_time": start_time,
+        }
+        workflow_id = (
+            "loki://158666752" if param_type == "audio" else "loki://154419276"
+        )
         return self._async_vcreative_task(space_name, workflow_id, param_obj)
 
     def flip_video(
-        self, type: str, source: str, space_name: str, flip_x: bool = False, flip_y: bool = False
+        self,
+        type: str,
+        source: str,
+        space_name: str,
+        flip_x: bool = False,
+        flip_y: bool = False,
     ) -> Dict[str, Any]:
         if not space_name or not isinstance(space_name, str) or not space_name.strip():
             raise ValueError("flip_video: space_name is required")
         formatted_source = self._format_source(type or "vid", source)
-        param_obj = {"space_name": space_name, "source": formatted_source, "flip_x": bool(flip_x), "flip_y": bool(flip_y)}
+        param_obj = {
+            "space_name": space_name,
+            "source": formatted_source,
+            "flip_x": bool(flip_x),
+            "flip_y": bool(flip_y),
+        }
         return self._async_vcreative_task(space_name, "loki://165221855", param_obj)
 
-    def speedup_video(self, type: str, source: str, space_name: str, speed: float = 1.0) -> Dict[str, Any]:
+    def speedup_video(
+        self, type: str, source: str, space_name: str, speed: float = 1.0
+    ) -> Dict[str, Any]:
         if not (0.1 <= float(speed) <= 4):
             raise ValueError("speedup_video: speed must be between 0.1 and 4")
         formatted_source = self._format_source(type or "vid", source)
-        param_obj = {"space_name": space_name, "source": formatted_source, "speed": float(speed)}
+        param_obj = {
+            "space_name": space_name,
+            "source": formatted_source,
+            "speed": float(speed),
+        }
         return self._async_vcreative_task(space_name, "loki://165223469", param_obj)
 
-    def speedup_audio(self, type: str, source: str, space_name: str, speed: float = 1.0) -> Dict[str, Any]:
+    def speedup_audio(
+        self, type: str, source: str, space_name: str, speed: float = 1.0
+    ) -> Dict[str, Any]:
         if not (0.1 <= float(speed) <= 4):
             raise ValueError("speedup_audio: speed must be between 0.1 and 4")
         formatted_source = self._format_source(type or "vid", source)
-        param_obj = {"space_name": space_name, "source": formatted_source, "speed": float(speed)}
+        param_obj = {
+            "space_name": space_name,
+            "source": formatted_source,
+            "speed": float(speed),
+        }
         return self._async_vcreative_task(space_name, "loki://174663067", param_obj)
 
-    def image_to_video(self, images: List[Dict[str, Any]], space_name: str, transitions: Optional[List[str]] = None) -> Dict[str, Any]:
+    def image_to_video(
+        self,
+        images: List[Dict[str, Any]],
+        space_name: str,
+        transitions: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
         if not images or not isinstance(images, list):
             raise ValueError("image_to_video: images must be a non-empty list")
         formatted_images: List[Dict[str, Any]] = []
@@ -656,13 +832,21 @@ class ApiManage:
                 continue
             img_type = image.get("type", "vid")
             img_source = image.get("source", "")
-            formatted_source = self._format_source(img_type, img_source) if img_type in ("vid", "directurl") else img_source
+            formatted_source = (
+                self._format_source(img_type, img_source)
+                if img_type in ("vid", "directurl")
+                else img_source
+            )
             formatted = {"type": img_type, "source": formatted_source}
             for k in ("duration", "animation_type", "animation_in", "animation_out"):
                 if k in image:
                     formatted[k] = image[k]
             formatted_images.append(formatted)
-        param_obj = {"space_name": space_name, "images": formatted_images, "transitions": transitions or []}
+        param_obj = {
+            "space_name": space_name,
+            "images": formatted_images,
+            "transitions": transitions or [],
+        }
         return self._async_vcreative_task(space_name, "loki://167979998", param_obj)
 
     def compile_video_audio(
@@ -681,8 +865,16 @@ class ApiManage:
         v_source = video.get("source", "")
         a_type = audio.get("type", "vid")
         a_source = audio.get("source", "")
-        formatted_v = self._format_source(v_type, v_source) if v_type in ("vid", "directurl") else v_source
-        formatted_a = self._format_source(a_type, a_source) if a_type in ("vid", "directurl") else a_source
+        formatted_v = (
+            self._format_source(v_type, v_source)
+            if v_type in ("vid", "directurl")
+            else v_source
+        )
+        formatted_a = (
+            self._format_source(a_type, a_source)
+            if a_type in ("vid", "directurl")
+            else a_source
+        )
         param_obj: Dict[str, Any] = {
             "space_name": space_name,
             "video": formatted_v,
@@ -695,14 +887,22 @@ class ApiManage:
             param_obj["sync_method"] = sync_method
         return self._async_vcreative_task(space_name, "loki://167984726", param_obj)
 
-    def extract_audio(self, type: str, source: str, space_name: str, format: str = "mp3") -> Dict[str, Any]:
+    def extract_audio(
+        self, type: str, source: str, space_name: str, format: str = "mp3"
+    ) -> Dict[str, Any]:
         if format not in ("mp3", "m4a"):
             raise ValueError("extract_audio: format must be mp3 or m4a")
         formatted_source = self._format_source(type or "vid", source)
-        param_obj = {"space_name": space_name, "source": formatted_source, "format": format}
+        param_obj = {
+            "space_name": space_name,
+            "source": formatted_source,
+            "format": format,
+        }
         return self._async_vcreative_task(space_name, "loki://167986559", param_obj)
 
-    def mix_audios(self, audios: List[Dict[str, Any]], space_name: str) -> Dict[str, Any]:
+    def mix_audios(
+        self, audios: List[Dict[str, Any]], space_name: str
+    ) -> Dict[str, Any]:
         if not audios or not isinstance(audios, list):
             raise ValueError("mix_audios: audios must be a non-empty list")
         formatted: List[Any] = []
@@ -710,7 +910,11 @@ class ApiManage:
             if isinstance(a, dict):
                 a_type = a.get("type", "vid")
                 a_source = a.get("source", "")
-                formatted_source = self._format_source(a_type, a_source) if a_type in ("vid", "directurl") else a_source
+                formatted_source = (
+                    self._format_source(a_type, a_source)
+                    if a_type in ("vid", "directurl")
+                    else a_source
+                )
                 formatted.append(formatted_source)
             else:
                 formatted.append(a)
@@ -728,9 +932,21 @@ class ApiManage:
         v_source = video.get("source", "")
         s_type = sub_video.get("type", "vid")
         s_source = sub_video.get("source", "")
-        formatted_v = self._format_source(v_type, v_source) if v_type in ("vid", "directurl") else v_source
-        formatted_s = self._format_source(s_type, s_source) if s_type in ("vid", "directurl") else s_source
-        param_obj: Dict[str, Any] = {"space_name": space_name, "video": formatted_v, "sub_video": formatted_s}
+        formatted_v = (
+            self._format_source(v_type, v_source)
+            if v_type in ("vid", "directurl")
+            else v_source
+        )
+        formatted_s = (
+            self._format_source(s_type, s_source)
+            if s_type in ("vid", "directurl")
+            else s_source
+        )
+        param_obj: Dict[str, Any] = {
+            "space_name": space_name,
+            "video": formatted_v,
+            "sub_video": formatted_s,
+        }
         if sub_options and isinstance(sub_options, dict):
             param_obj["sub_options"] = {**sub_options}
         return self._async_vcreative_task(space_name, "loki://168021310", param_obj)
@@ -747,7 +963,11 @@ class ApiManage:
             raise ValueError("add_subtitle: subtitle_url or text_list is required")
         v_type = video.get("type", "vid")
         v_source = video.get("source", "")
-        formatted_v = self._format_source(v_type, v_source) if v_type in ("vid", "directurl") else v_source
+        formatted_v = (
+            self._format_source(v_type, v_source)
+            if v_type in ("vid", "directurl")
+            else v_source
+        )
         param_obj: Dict[str, Any] = {"space_name": space_name, "video": formatted_v}
         if subtitle_url:
             param_obj["subtitle_url"] = subtitle_url
@@ -762,7 +982,9 @@ class ApiManage:
     # ----------------------------
     # 说明：这类工具走「媒体处理执行引擎」，启动用 StartExecution，查询用 GetExecution，
 
-    def _build_media_input(self, asset_type: str, asset_value: str, space_name: str) -> Dict[str, Any]:
+    def _build_media_input(
+        self, asset_type: str, asset_value: str, space_name: str
+    ) -> Dict[str, Any]:
         if asset_type not in {"Vid", "DirectUrl"}:
             raise ValueError(f"type must be Vid or DirectUrl, but got {asset_type}")
         if not asset_value:
@@ -773,7 +995,10 @@ class ApiManage:
         if asset_type == "Vid":
             media_input["Vid"] = asset_value
         else:
-            media_input["DirectUrl"] = {"FileName": asset_value, "SpaceName": space_name}
+            media_input["DirectUrl"] = {
+                "FileName": asset_value,
+                "SpaceName": space_name,
+            }
         return media_input
 
     def _start_execution(self, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -796,7 +1021,9 @@ class ApiManage:
             "enhanceVideo",
         }
         if type not in valid_types:
-            raise ValueError(f"type must be one of {sorted(valid_types)}, but got {type}")
+            raise ValueError(
+                f"type must be one of {sorted(valid_types)}, but got {type}"
+            )
         if not run_id or not run_id.strip():
             raise ValueError("runId must be provided")
 
@@ -807,12 +1034,18 @@ class ApiManage:
 
         temp_result = response.get("Result", {}) if isinstance(response, dict) else {}
         space_name = (temp_result.get("Meta", {}) or {}).get("SpaceName", "")
-        output = ((temp_result.get("Output", {}) or {}).get("Task", {}) or {})
+        output = (temp_result.get("Output", {}) or {}).get("Task", {}) or {}
         status = temp_result.get("Status", "")
         if status != "Success":
-            return {"Status": status, "Code": temp_result.get("Code", ""), "SpaceName": space_name}
+            return {
+                "Status": status,
+                "Code": temp_result.get("Code", ""),
+                "SpaceName": space_name,
+            }
 
-        def handle_transcode_data(data: Dict[str, Any], space_name_inner: str) -> Dict[str, Any]:
+        def handle_transcode_data(
+            data: Dict[str, Any], space_name_inner: str
+        ) -> Dict[str, Any]:
             file_id = data.get("FileId")
             store_uri = data.get("StoreUri")
             file_name = ""
@@ -820,13 +1053,24 @@ class ApiManage:
                 parsed = urlparse(store_uri)
                 parts = parsed.path.split("/")[1:]
                 file_name = "/".join(parts)
-            return {"FileId": file_id, "DirectUrl": file_name, "Url": self.get_play_url("directurl", file_name, space_name_inner)}
+            return {
+                "FileId": file_id,
+                "DirectUrl": file_name,
+                "Url": self.get_play_url("directurl", file_name, space_name_inner),
+            }
 
-        enhance_type = {"enhanceVideo", "videSuperResolution", "videoInterlacing", "audioNoiseReduction"}
+        enhance_type = {
+            "enhanceVideo",
+            "videSuperResolution",
+            "videoInterlacing",
+            "audioNoiseReduction",
+        }
         video_matting = {"greenScreen", "portraitImageRetouching"}
 
         if type in enhance_type:
-            enhance_info = handle_transcode_data(output.get("Enhance", {}) or {}, space_name)
+            enhance_info = handle_transcode_data(
+                output.get("Enhance", {}) or {}, space_name
+            )
             video_urls.append(enhance_info)
         elif type in video_matting:
             video_matting_result = output.get("VideoMatting", {}) or {}
@@ -849,7 +1093,9 @@ class ApiManage:
                     {
                         "DirectUrl": seg_file_name,
                         "Vid": seg_file.get("Vid", ""),
-                        "Url": self.get_play_url("directurl", seg_file_name, space_name),
+                        "Url": self.get_play_url(
+                            "directurl", seg_file_name, space_name
+                        ),
                     }
                 )
         elif type == "voiceSeparation":
@@ -892,7 +1138,7 @@ class ApiManage:
             asr = output.get("Asr", {}) or {}
             utterances = asr.get("Utterances", []) or []
             for u in utterances:
-                attr = (u.get("Attribute", {}) or {})
+                attr = u.get("Attribute", {}) or {}
                 texts.append(
                     {
                         "Speaker": attr.get("Speaker", ""),
@@ -912,95 +1158,182 @@ class ApiManage:
         }
 
     # --- intelligent_slicing ---
-    def intelligent_slicing_task(self, type: str, video: str, space_name: str) -> Dict[str, Any]:
-        media_input = self._build_media_input(type, video, space_name)
-        params = {
-            "Input": media_input,
-            "Operation": {"Type": "Task", "Task": {"Type": "Segment", "Segment": {"MinDuration": 2.0, "Threshold": 15.0}}},
-        }
-        return self._start_execution(params)
-
-    # --- intelligent_matting ---
-    def green_screen_task(self, type: str, video: str, space_name: str, output_format: str = "WEBM") -> Dict[str, Any]:
-        valid_formats = {"MOV", "WEBM"}
-        fmt = (output_format or "").upper()
-        if fmt not in valid_formats:
-            raise ValueError(f"output_format must be one of {sorted(valid_formats)}, but got {output_format}")
+    def intelligent_slicing_task(
+        self, type: str, video: str, space_name: str
+    ) -> Dict[str, Any]:
         media_input = self._build_media_input(type, video, space_name)
         params = {
             "Input": media_input,
             "Operation": {
                 "Type": "Task",
-                "Task": {"Type": "VideoMatting", "VideoMatting": {"Model": "GreenScreen", "VideoOption": {"Format": fmt}, "NewVid": True}},
+                "Task": {
+                    "Type": "Segment",
+                    "Segment": {"MinDuration": 2.0, "Threshold": 15.0},
+                },
             },
         }
         return self._start_execution(params)
 
-    def portrait_image_retouching_task(self, type: str, video: str, space_name: str, output_format: str = "WEBM") -> Dict[str, Any]:
+    # --- intelligent_matting ---
+    def green_screen_task(
+        self, type: str, video: str, space_name: str, output_format: str = "WEBM"
+    ) -> Dict[str, Any]:
         valid_formats = {"MOV", "WEBM"}
         fmt = (output_format or "").upper()
         if fmt not in valid_formats:
-            raise ValueError(f"output_format must be one of {sorted(valid_formats)}, but got {output_format}")
+            raise ValueError(
+                f"output_format must be one of {sorted(valid_formats)}, but got {output_format}"
+            )
         media_input = self._build_media_input(type, video, space_name)
         params = {
             "Input": media_input,
             "Operation": {
                 "Type": "Task",
-                "Task": {"Type": "VideoMatting", "VideoMatting": {"Model": "Human", "VideoOption": {"Format": fmt}, "NewVid": True}},
+                "Task": {
+                    "Type": "VideoMatting",
+                    "VideoMatting": {
+                        "Model": "GreenScreen",
+                        "VideoOption": {"Format": fmt},
+                        "NewVid": True,
+                    },
+                },
+            },
+        }
+        return self._start_execution(params)
+
+    def portrait_image_retouching_task(
+        self, type: str, video: str, space_name: str, output_format: str = "WEBM"
+    ) -> Dict[str, Any]:
+        valid_formats = {"MOV", "WEBM"}
+        fmt = (output_format or "").upper()
+        if fmt not in valid_formats:
+            raise ValueError(
+                f"output_format must be one of {sorted(valid_formats)}, but got {output_format}"
+            )
+        media_input = self._build_media_input(type, video, space_name)
+        params = {
+            "Input": media_input,
+            "Operation": {
+                "Type": "Task",
+                "Task": {
+                    "Type": "VideoMatting",
+                    "VideoMatting": {
+                        "Model": "Human",
+                        "VideoOption": {"Format": fmt},
+                        "NewVid": True,
+                    },
+                },
             },
         }
         return self._start_execution(params)
 
     # --- audio_processing ---
-    def audio_noise_reduction_task(self, type: str, audio: str, space_name: str) -> Dict[str, Any]:
+    def audio_noise_reduction_task(
+        self, type: str, audio: str, space_name: str
+    ) -> Dict[str, Any]:
         media_input = self._build_media_input(type, audio, space_name)
         params = {
             "Input": media_input,
-            "Operation": {"Type": "Task", "Task": {"Type": "Enhance", "Enhance": {"Type": "Custom", "Modules": [{"Type": "AudioDenoise"}]}}},
+            "Operation": {
+                "Type": "Task",
+                "Task": {
+                    "Type": "Enhance",
+                    "Enhance": {
+                        "Type": "Custom",
+                        "Modules": [{"Type": "AudioDenoise"}],
+                    },
+                },
+            },
         }
         return self._start_execution(params)
 
-    def voice_separation_task(self, type: str, video: str, space_name: str) -> Dict[str, Any]:
-        media_input = self._build_media_input(type, video, space_name)
-        params = {"Input": media_input, "Operation": {"Type": "Task", "Task": {"Type": "AudioExtract", "AudioExtract": {"Voice": True}}}}
-        return self._start_execution(params)
-
-    # --- subtitle_processing ---
-    def asr_speech_to_text_task(self, type: str, video: str, space_name: str, language: Optional[str] = None) -> Dict[str, Any]:
-        media_input = self._build_media_input(type, video, space_name)
-        ask: Dict[str, Any] = {"WithSpeakerInfo": True}
-        if language:
-            ask["Language"] = language
-        params = {"Input": media_input, "Operation": {"Type": "Task", "Task": {"Type": "Asr", "Asr": ask}}}
-        return self._start_execution(params)
-
-    def ocr_text_to_subtitles_task(self, type: str, video: str, space_name: str) -> Dict[str, Any]:
-        media_input = self._build_media_input(type, video, space_name)
-        params = {"Input": media_input, "Operation": {"Type": "Task", "Task": {"Type": "Ocr", "Ocr": {}}}}
-        return self._start_execution(params)
-
-    def video_subtitles_removal_task(self, type: str, video: str, space_name: str) -> Dict[str, Any]:
-        media_input = self._build_media_input(type, video, space_name)
-        params = {
-            "Input": media_input,
-            "Operation": {"Type": "Task", "Task": {"Type": "Erase", "Erase": {"Mode": "Auto", "NewVid": True, "Auto": {"Type": "Subtitle"}}}},
-        }
-        return self._start_execution(params)
-
-    # --- video_enhancement ---
-    def video_quality_enhancement_task(self, type: str, video: str, space_name: str) -> Dict[str, Any]:
+    def voice_separation_task(
+        self, type: str, video: str, space_name: str
+    ) -> Dict[str, Any]:
         media_input = self._build_media_input(type, video, space_name)
         params = {
             "Input": media_input,
             "Operation": {
                 "Type": "Task",
-                "Task": {"Type": "Enhance", "Enhance": {"Type": "Moe", "MoeEnhance": {"Config": "short_series", "VideoStrategy": {"RepairStyle": 1, "RepairStrength": 0}}}},
+                "Task": {"Type": "AudioExtract", "AudioExtract": {"Voice": True}},
+            },
+        }
+        return self._start_execution(params)
+
+    # --- subtitle_processing ---
+    def asr_speech_to_text_task(
+        self, type: str, video: str, space_name: str, language: Optional[str] = None
+    ) -> Dict[str, Any]:
+        media_input = self._build_media_input(type, video, space_name)
+        ask: Dict[str, Any] = {"WithSpeakerInfo": True}
+        if language:
+            ask["Language"] = language
+        params = {
+            "Input": media_input,
+            "Operation": {"Type": "Task", "Task": {"Type": "Asr", "Asr": ask}},
+        }
+        return self._start_execution(params)
+
+    def ocr_text_to_subtitles_task(
+        self, type: str, video: str, space_name: str
+    ) -> Dict[str, Any]:
+        media_input = self._build_media_input(type, video, space_name)
+        params = {
+            "Input": media_input,
+            "Operation": {"Type": "Task", "Task": {"Type": "Ocr", "Ocr": {}}},
+        }
+        return self._start_execution(params)
+
+    def video_subtitles_removal_task(
+        self, type: str, video: str, space_name: str
+    ) -> Dict[str, Any]:
+        media_input = self._build_media_input(type, video, space_name)
+        params = {
+            "Input": media_input,
+            "Operation": {
+                "Type": "Task",
+                "Task": {
+                    "Type": "Erase",
+                    "Erase": {
+                        "Mode": "Auto",
+                        "NewVid": True,
+                        "Auto": {"Type": "Subtitle"},
+                    },
+                },
+            },
+        }
+        return self._start_execution(params)
+
+    # --- video_enhancement ---
+    def video_quality_enhancement_task(
+        self, type: str, video: str, space_name: str
+    ) -> Dict[str, Any]:
+        media_input = self._build_media_input(type, video, space_name)
+        params = {
+            "Input": media_input,
+            "Operation": {
+                "Type": "Task",
+                "Task": {
+                    "Type": "Enhance",
+                    "Enhance": {
+                        "Type": "Moe",
+                        "MoeEnhance": {
+                            "Config": "short_series",
+                            "VideoStrategy": {"RepairStyle": 1, "RepairStrength": 0},
+                        },
+                    },
+                },
             },
         }
         return self._start_execution(params)
 
     def video_super_resolution_task(
-        self, type: str, video: str, space_name: str, Res: Optional[str] = None, ResLimit: Optional[int] = None
+        self,
+        type: str,
+        video: str,
+        space_name: str,
+        Res: Optional[str] = None,
+        ResLimit: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         - type(str)：** 必选字段 **，文件类型，默认值为 `Vid` 。字段取值如下
@@ -1022,7 +1355,9 @@ class ApiManage:
         valid_res = {"240p", "360p", "480p", "540p", "720p", "1080p", "2k", "4k"}
         if Res is not None and Res not in valid_res:
             raise ValueError(f"Res must be one of {sorted(valid_res)}, but got {Res}")
-        if ResLimit is not None and (not isinstance(ResLimit, int) or ResLimit < 64 or ResLimit > 2160):
+        if ResLimit is not None and (
+            not isinstance(ResLimit, int) or ResLimit < 64 or ResLimit > 2160
+        ):
             raise ValueError("ResLimit must be an int in [64, 2160]")
         if Res is not None and ResLimit is not None:
             raise ValueError("Res and ResLimit cannot both be set")
@@ -1038,13 +1373,22 @@ class ApiManage:
                 "Type": "Task",
                 "Task": {
                     "Type": "Enhance",
-                    "Enhance": {"Type": "Moe", "MoeEnhance": {"Config": "common", "Target": target, "VideoStrategy": {"RepairStyle": 1, "RepairStrength": 0}}},
+                    "Enhance": {
+                        "Type": "Moe",
+                        "MoeEnhance": {
+                            "Config": "common",
+                            "Target": target,
+                            "VideoStrategy": {"RepairStyle": 1, "RepairStrength": 0},
+                        },
+                    },
                 },
             },
         }
         return self._start_execution(params)
 
-    def video_interlacing_task(self, type: str, video: str, space_name: str, Fps: float) -> Dict[str, Any]:
+    def video_interlacing_task(
+        self, type: str, video: str, space_name: str, Fps: float
+    ) -> Dict[str, Any]:
         if not isinstance(Fps, (int, float)) or Fps <= 0 or Fps > 120:
             raise ValueError("Fps must be > 0 and <= 120")
         media_input = self._build_media_input(type, video, space_name)
@@ -1054,7 +1398,14 @@ class ApiManage:
                 "Type": "Task",
                 "Task": {
                     "Type": "Enhance",
-                    "Enhance": {"Type": "Moe", "MoeEnhance": {"Config": "common", "Target": {"Fps": Fps}, "VideoStrategy": {"RepairStyle": 1, "RepairStrength": 0}}},
+                    "Enhance": {
+                        "Type": "Moe",
+                        "MoeEnhance": {
+                            "Config": "common",
+                            "Target": {"Fps": Fps},
+                            "VideoStrategy": {"RepairStyle": 1, "RepairStrength": 0},
+                        },
+                    },
                 },
             },
         }
@@ -1063,7 +1414,9 @@ class ApiManage:
     # ----------------------------
     # upload tools (ported from mcp_tools/upload.py, without pb SDK)
     # ----------------------------
-    def video_batch_upload(self, space_name: str, urls: List[Dict[str, str]]) -> Dict[str, Any]:
+    def video_batch_upload(
+        self, space_name: str, urls: List[Dict[str, str]]
+    ) -> Dict[str, Any]:
         """
         从公网 URL 批量拉取音视频/图片上传到点播空间（异步任务）。
 
@@ -1085,15 +1438,21 @@ class ApiManage:
             if not source_url:
                 raise ValueError("video_batch_upload: SourceUrl is required")
             if not file_ext or not file_ext.startswith("."):
-                raise ValueError("video_batch_upload: FileExtension must start with '.'")
+                raise ValueError(
+                    "video_batch_upload: FileExtension must start with '.'"
+                )
             # 使用 UUID 作为 FileName，避免原 URL 含特殊字符/中文等导致异常
-            url_sets.append({
-                "SourceUrl": source_url,
-                "FileExtension": file_ext,
-                "FileName": f"{uuid.uuid4().hex}{file_ext}",
-            })
+            url_sets.append(
+                {
+                    "SourceUrl": source_url,
+                    "FileExtension": file_ext,
+                    "FileName": f"{uuid.uuid4().hex}{file_ext}",
+                }
+            )
 
-        resp = self._post("UploadMediaByUrl", {"SpaceName": space_name, "URLSets": url_sets})
+        resp = self._post(
+            "UploadMediaByUrl", {"SpaceName": space_name, "URLSets": url_sets}
+        )
         result = resp.get("Result", {}) if isinstance(resp, dict) else {}
         data = result.get("Data", []) or []
         job_ids: List[str] = []
@@ -1145,7 +1504,9 @@ class ApiManage:
     # ----------------------------
     # hybrid upload: URL or local file
     # ----------------------------
-    def upload_media_auto(self, source: str, space_name: Optional[str] = None, file_ext: str = ".mp4") -> Dict[str, Any]:
+    def upload_media_auto(
+        self, source: str, space_name: Optional[str] = None, file_ext: str = ".mp4"
+    ) -> Dict[str, Any]:
         """
         根据 source 自动选择上传方式：
         - 以 http(s):// 开头：URL 上传（UploadMediaByUrl），返回 type=url + JobIds
@@ -1157,10 +1518,14 @@ class ApiManage:
         if not space_name:
             space_name = os.getenv("VOLC_SPACE_NAME", "").strip()
         if not space_name:
-            raise ValueError("upload_media_auto: VOLC_SPACE_NAME must be set or passed explicitly")
+            raise ValueError(
+                "upload_media_auto: VOLC_SPACE_NAME must be set or passed explicitly"
+            )
 
         if source.startswith(("http://", "https://")):
-            resp = self.video_batch_upload(space_name, [{"SourceUrl": source, "FileExtension": file_ext}])
+            resp = self.video_batch_upload(
+                space_name, [{"SourceUrl": source, "FileExtension": file_ext}]
+            )
             return {
                 "type": "url",
                 "JobIds": resp.get("JobIds", []),
@@ -1196,7 +1561,9 @@ class ApiManage:
             self._tos_uploader, apply_data, file_path, storage_class, chunk_size
         )
 
-        commit_resp = self._get("CommitUploadInfo", {"SpaceName": space_name, "SessionKey": session_key})
+        commit_resp = self._get(
+            "CommitUploadInfo", {"SpaceName": space_name, "SessionKey": session_key}
+        )
         raise_for_vod_response(commit_resp)
         data = result_data(commit_resp)
         return {
@@ -1205,4 +1572,3 @@ class ApiManage:
             "PosterUri": data.get("PosterUri"),
             "DirectUrl": (data.get("SourceInfo") or {}).get("FileName"),
         }
-

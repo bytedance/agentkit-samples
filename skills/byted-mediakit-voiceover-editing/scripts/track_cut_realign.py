@@ -19,6 +19,7 @@
 
 供 local_export、apply_review_to_export（APIG/Cloud 走 VOD）共用。
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -84,7 +85,9 @@ def realign_lanes_for_voice_cut(
 
     video_el = video_lane[0]
     video_source = video_el.get("Source", "")
-    video_extras_base = [e for e in (video_el.get("Extra") or []) if e.get("Type") != "trim"]
+    video_extras_base = [
+        e for e in (video_el.get("Extra") or []) if e.get("Type") != "trim"
+    ]
 
     kept: list[dict] = []
     for el in voice_lane:
@@ -97,10 +100,13 @@ def realign_lanes_for_voice_cut(
         orig_e = trim[1] if trim else target[1]
         if orig_e <= orig_s:
             continue
-        kept.append({
-            "orig_s": orig_s, "orig_e": orig_e,
-            "audio_source": el.get("Source", ""),
-        })
+        kept.append(
+            {
+                "orig_s": orig_s,
+                "orig_e": orig_e,
+                "audio_source": el.get("Source", ""),
+            }
+        )
 
     if not kept:
         return video_lane, audio_lanes, text_lane
@@ -117,19 +123,31 @@ def realign_lanes_for_voice_cut(
     new_voice: list[dict] = []
     for seg in kept:
         extra = [dict(e) for e in video_extras_base]
-        extra.append({"Type": "trim", "StartTime": seg["orig_s"], "EndTime": seg["orig_e"]})
-        new_video.append({
-            "Type": "video",
-            "Source": video_source,
-            "TargetTime": [seg["new_s"], seg["new_e"]],
-            "Extra": extra,
-        })
-        new_voice.append({
-            "Type": "audio",
-            "Source": seg["audio_source"],
-            "TargetTime": [seg["new_s"], seg["new_e"]],
-            "Extra": [{"Type": "trim", "StartTime": seg["orig_s"], "EndTime": seg["orig_e"]}],
-        })
+        extra.append(
+            {"Type": "trim", "StartTime": seg["orig_s"], "EndTime": seg["orig_e"]}
+        )
+        new_video.append(
+            {
+                "Type": "video",
+                "Source": video_source,
+                "TargetTime": [seg["new_s"], seg["new_e"]],
+                "Extra": extra,
+            }
+        )
+        new_voice.append(
+            {
+                "Type": "audio",
+                "Source": seg["audio_source"],
+                "TargetTime": [seg["new_s"], seg["new_e"]],
+                "Extra": [
+                    {
+                        "Type": "trim",
+                        "StartTime": seg["orig_s"],
+                        "EndTime": seg["orig_e"],
+                    }
+                ],
+            }
+        )
 
     new_audio_lanes: list[list[dict]] = []
     for i, lane in enumerate(audio_lanes):

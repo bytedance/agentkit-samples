@@ -22,6 +22,7 @@ VeVEditor 可能将 a_volume 作为独立元素，需合并到对应 video/audio
 Extra 所有子项必须包含全局唯一 ID。
 默认跳过字幕压制；环境变量 VOD_EXPORT_SKIP_SUBTITLE=0 时启用字幕压制。
 """
+
 import json
 import os
 import uuid
@@ -31,6 +32,7 @@ from typing import Any, Dict, List
 # 加载 skill .env 以便读取 VOD_EXPORT_SKIP_SUBTITLE
 try:
     from dotenv import load_dotenv
+
     skill_dir = Path(__file__).resolve().parents[1]
     load_dotenv(dotenv_path=skill_dir / ".env", override=False)
 except Exception:
@@ -41,6 +43,7 @@ def _skip_subtitle_export() -> bool:
     """是否跳过字幕压制：默认跳过；设为 0/false/no 时启用字幕压制"""
     v = (os.getenv("VOD_EXPORT_SKIP_SUBTITLE") or "").strip().lower()
     return v not in ("0", "false", "no")
+
 
 STATUS_REMOVED = "removed"
 STATUS_MUTED = "muted"
@@ -66,6 +69,7 @@ def _normalize_source(src: str) -> str:
     # local 模式: /local-media/ URL → 提取裸绝对路径
     import re
     from urllib.parse import unquote
+
     m = re.match(r"https?://[^/]+/local-media(/.*)", s)
     if m:
         return unquote(m.group(1))  # 裸绝对路径，如 /Users/.../background.mp3
@@ -167,7 +171,10 @@ def normalize_track_for_export(
                 continue
             tt = el.get("TargetTime") or [0, 0]
             if isinstance(tt, list) and len(tt) >= 2:
-                st, et = int(tt[0]) if tt[0] is not None else 0, int(tt[1]) if tt[1] is not None else 0
+                st, et = (
+                    int(tt[0]) if tt[0] is not None else 0,
+                    int(tt[1]) if tt[1] is not None else 0,
+                )
                 st, et = max(0, st), max(st + 1, et) if et <= st else max(0, et)
                 tt = [st, et]
             else:
@@ -188,33 +195,49 @@ def normalize_track_for_export(
                         # 无效 trim（EndTime<=StartTime）时用已归一化的 TargetTime，避免 VOD failed_run
                         if et <= st:
                             st, et = tt[0], tt[1]
-                        clean["Extra"].append(_ensure_extra_id({
-                            "Type": "trim",
-                            "StartTime": st,
-                            "EndTime": et,
-                        }))
+                        clean["Extra"].append(
+                            _ensure_extra_id(
+                                {
+                                    "Type": "trim",
+                                    "StartTime": st,
+                                    "EndTime": et,
+                                }
+                            )
+                        )
                     elif t == "a_volume":
                         has_volume = True
-                        clean["Extra"].append(_ensure_extra_id({"Type": "a_volume", "Volume": f.get("Volume", 1)}))
+                        clean["Extra"].append(
+                            _ensure_extra_id(
+                                {"Type": "a_volume", "Volume": f.get("Volume", 1)}
+                            )
+                        )
                     elif t == "transform" and typ == "video":
-                        clean["Extra"].append(_ensure_extra_id({
-                            "Type": "transform",
-                            "Width": f.get("Width", 1280),
-                            "Height": f.get("Height", 720),
-                            "PosX": f.get("PosX", 0),
-                            "PosY": f.get("PosY", 0),
-                            "Rotation": f.get("Rotation", 0),
-                            "FlipX": f.get("FlipX", False),
-                            "FlipY": f.get("FlipY", False),
-                            "ScaleX": f.get("ScaleX", 1),
-                            "ScaleY": f.get("ScaleY", 1),
-                        }))
+                        clean["Extra"].append(
+                            _ensure_extra_id(
+                                {
+                                    "Type": "transform",
+                                    "Width": f.get("Width", 1280),
+                                    "Height": f.get("Height", 720),
+                                    "PosX": f.get("PosX", 0),
+                                    "PosY": f.get("PosY", 0),
+                                    "Rotation": f.get("Rotation", 0),
+                                    "FlipX": f.get("FlipX", False),
+                                    "FlipY": f.get("FlipY", False),
+                                    "ScaleX": f.get("ScaleX", 1),
+                                    "ScaleY": f.get("ScaleY", 1),
+                                }
+                            )
+                        )
                 if not has_volume:
                     vol = vol_by_id.get(el_id)
                     if vol is not None:
-                        clean["Extra"].append(_ensure_extra_id({"Type": "a_volume", "Volume": vol}))
+                        clean["Extra"].append(
+                            _ensure_extra_id({"Type": "a_volume", "Volume": vol})
+                        )
                     elif typ == "audio" and ud.get("status") == STATUS_MUTED:
-                        clean["Extra"].append(_ensure_extra_id({"Type": "a_volume", "Volume": 0}))
+                        clean["Extra"].append(
+                            _ensure_extra_id({"Type": "a_volume", "Volume": 0})
+                        )
             elif typ == "text":
                 _font_type_default = (
                     "https://lf3-static.bytednsdoc.com/obj/eden-cn/ljhwz_kvc/"
@@ -231,21 +254,30 @@ def normalize_track_for_export(
                 ch = canvas.get("Height") if canvas else None
                 sub_pos = (
                     _subtitle_position(int(cw), int(ch))
-                    if (cw is not None and ch is not None and int(cw) > 0 and int(ch) > 0)
+                    if (
+                        cw is not None
+                        and ch is not None
+                        and int(cw) > 0
+                        and int(ch) > 0
+                    )
                     else None
                 )
                 if sub_pos:
-                    clean["Extra"] = [_ensure_extra_id({
-                        "Type": "transform",
-                        "PosX": sub_pos["PosX"],
-                        "PosY": sub_pos["PosY"],
-                        "Width": sub_pos["Width"],
-                        "Height": sub_pos["Height"],
-                        "Rotation": 0,
-                        "FlipX": False,
-                        "FlipY": False,
-                        "Alpha": 1,
-                    })]
+                    clean["Extra"] = [
+                        _ensure_extra_id(
+                            {
+                                "Type": "transform",
+                                "PosX": sub_pos["PosX"],
+                                "PosY": sub_pos["PosY"],
+                                "Width": sub_pos["Width"],
+                                "Height": sub_pos["Height"],
+                                "Rotation": 0,
+                                "FlipX": False,
+                                "FlipY": False,
+                                "Alpha": 1,
+                            }
+                        )
+                    ]
                 else:
                     clean["Extra"] = []
             else:
@@ -272,12 +304,18 @@ def apply_review_to_export(body: Dict[str, Any]) -> Dict[str, Any]:
         **{k: v for k, v in canvas.items() if k not in ("Width", "Height")},
     }
 
-    track_export = normalize_track_for_export(merged_track, filter_removed=True, canvas=canvas)
+    track_export = normalize_track_for_export(
+        merged_track, filter_removed=True, canvas=canvas
+    )
 
     # 二次校验：确保所有 audio/video 的 Source 带 directurl:// 前缀（防止遗漏）
     for lane in track_export:
         for el in lane or []:
-            if el and isinstance(el, dict) and (el.get("Type") or "").lower() in ("video", "audio"):
+            if (
+                el
+                and isinstance(el, dict)
+                and (el.get("Type") or "").lower() in ("video", "audio")
+            ):
                 src = el.get("Source", "")
                 if src:
                     el["Source"] = _normalize_source(src)

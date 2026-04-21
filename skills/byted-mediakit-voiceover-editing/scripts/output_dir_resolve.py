@@ -19,6 +19,7 @@
 未指定 --output-dir 时：在 output/ 根目录与各一级子目录中收集 review_import_data.json，
 取修改时间最新的一份，避免子目录任务仍命中过期的 output/review_import_data.json。
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -32,7 +33,6 @@ def output_base(output_dir_override: str = "") -> Path:
 
     out_str = str(output_dir_override).strip()
     proj_root = get_project_root()
-    out_base = (proj_root / "output").resolve()
 
     cand = Path(out_str)
     if cand.is_absolute():
@@ -57,7 +57,9 @@ def review_import_data_path(output_dir_override: str = "") -> Path:
         if direct.exists():
             return direct
         if base.is_dir():
-            for child in sorted(base.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True):
+            for child in sorted(
+                base.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True
+            ):
                 cand = child / "review_import_data.json"
                 if child.is_dir() and cand.exists():
                     return cand
@@ -116,7 +118,9 @@ def allocate_unique_task_output_dir(
         if not cand2.exists():
             return cand2
 
-    raise RuntimeError(f"unable to allocate unique output dir under {output_root} for task={base!r}")
+    raise RuntimeError(
+        f"unable to allocate unique output dir under {output_root} for task={base!r}"
+    )
 
 
 def infer_prepare_output_dir(step6_filename: str) -> Path:

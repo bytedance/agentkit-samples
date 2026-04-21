@@ -14,6 +14,7 @@
 # limitations under the License.
 
 """将 step5_asr_raw 的 words 逐字结构合并到 step5_asr_optimized.json"""
+
 from __future__ import annotations
 
 import argparse
@@ -26,7 +27,9 @@ from project_paths import get_project_root
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output-dir", default="", help="输出目录，默认 output；可指定 output/<文件名>")
+    parser.add_argument(
+        "--output-dir", default="", help="输出目录，默认 output；可指定 output/<文件名>"
+    )
     args = parser.parse_args()
 
     if args.output_dir:
@@ -39,11 +42,15 @@ def main() -> None:
             try:
                 resolved.relative_to(out_base)
             except ValueError:
-                raise SystemExit(f"ERROR: --output-dir 必须在 {out_base} 下：{resolved}")
+                raise SystemExit(
+                    f"ERROR: --output-dir 必须在 {out_base} 下：{resolved}"
+                )
             out_dir = resolved
         else:
             if not out_str.startswith("output/"):
-                raise SystemExit("ERROR: --output-dir 只允许传 `output/<文件名>`（相对路径）")
+                raise SystemExit(
+                    "ERROR: --output-dir 只允许传 `output/<文件名>`（相对路径）"
+                )
             resolved = (proj_root / out_str).resolve()
             try:
                 resolved.relative_to(out_base)
@@ -100,17 +107,23 @@ def main() -> None:
 
         # 输出 words，与源结构一致；-1 时间戳原样保留
         out_words = [
-            {"text": w["text"], "start_time": w["start_time"], "end_time": w["end_time"]}
+            {
+                "text": w["text"],
+                "start_time": w["start_time"],
+                "end_time": w["end_time"],
+            }
             for w in words
         ]
 
-        out_segments.append({
-            "text": seg["text"],
-            "source_text": src_text,
-            "start_time": seg["start_time"],
-            "end_time": seg["end_time"],
-            "words": out_words,
-        })
+        out_segments.append(
+            {
+                "text": seg["text"],
+                "source_text": src_text,
+                "start_time": seg["start_time"],
+                "end_time": seg["end_time"],
+                "words": out_words,
+            }
+        )
 
     opt["optimized_segments"] = out_segments
     opt_path.write_text(json.dumps(opt, ensure_ascii=False, indent=2), encoding="utf-8")

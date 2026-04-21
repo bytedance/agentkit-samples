@@ -17,6 +17,7 @@
 导出服务：接收审核页 POST，将 sentences + baseTrack + mergedTrack 转为服务端格式，
 写入 output/export_submit_<ts>.json，并调用 vod_direct_export.py 提交视频导出任务。
 """
+
 from __future__ import annotations
 
 import argparse
@@ -30,6 +31,7 @@ from pathlib import Path
 # 加载 .env 环境变量（保证 EXECUTION_MODE 等配置可见）
 try:
     from dotenv import load_dotenv as _load_dotenv
+
     _skill_dir_env = Path(__file__).resolve().parents[1]
     _env_path = _skill_dir_env / ".env"
     if _env_path.is_file():
@@ -102,7 +104,7 @@ def _apply_env_track_processing(export_req: dict) -> dict:
             for el in lane:
                 if not isinstance(el, dict):
                     continue
-                for extra in (el.get("Extra") or []):
+                for extra in el.get("Extra") or []:
                     if isinstance(extra, dict) and extra.get("Type") == "volume":
                         if extra.get("Volume", 1) == 0:
                             extra["Volume"] = 1
@@ -114,6 +116,7 @@ def _detect_local_mode() -> bool:
     """检测 local 模式（统一使用 execution_mode 模块）"""
     try:
         from execution_mode import detect_local_mode
+
         return detect_local_mode()
     except Exception:
         return os.getenv("EXECUTION_MODE", "").strip().lower() == "local"
@@ -137,10 +140,13 @@ class ExportHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
         if parsed.path in ("/export", "/", "/health"):
-            self._send_json(200, {
-                "ok": True,
-                "message": "导出服务运行中，请使用 POST /export 提交导出任务",
-            })
+            self._send_json(
+                200,
+                {
+                    "ok": True,
+                    "message": "导出服务运行中，请使用 POST /export 提交导出任务",
+                },
+            )
             return
         self.send_error(404, "Not Found")
 
@@ -209,7 +215,10 @@ class ExportHandler(BaseHTTPRequestHandler):
     def _run_local_export(self, out_path: Path) -> dict:
         """Local 模式：使用 ffmpeg 在本地合成（审核页导出用 export_reviewed.mp4 区分）"""
         from local_export import export_local
-        output_file = export_local(out_path, _output_dir(), output_filename="export_reviewed.mp4")
+
+        output_file = export_local(
+            out_path, _output_dir(), output_filename="export_reviewed.mp4"
+        )
         return {
             "Status": "success",
             "OutputFile": str(output_file),
@@ -223,12 +232,15 @@ class ExportHandler(BaseHTTPRequestHandler):
         cmd = [sys.executable, str(script_dir / "vod_direct_export.py")]
         if _EXPORT_OUTPUT_DIR is not None:
             cmd.extend(["--output-dir", str(_EXPORT_OUTPUT_DIR)])
-        cmd.extend([
-            "submit",
-            "--edit-param", str(out_path),
-            "--wait",
-            "--json-output",
-        ])
+        cmd.extend(
+            [
+                "submit",
+                "--edit-param",
+                str(out_path),
+                "--wait",
+                "--json-output",
+            ]
+        )
         proc = subprocess.run(
             cmd,
             cwd=script_dir,
@@ -246,7 +258,11 @@ class ExportHandler(BaseHTTPRequestHandler):
                     return json.loads(line)
             return {"message": "任务已提交", "path": str(out_path)}
         except (json.JSONDecodeError, IndexError):
-            return {"message": "任务已提交", "path": str(out_path), "stdout": proc.stdout[:500]}
+            return {
+                "message": "任务已提交",
+                "path": str(out_path),
+                "stdout": proc.stdout[:500],
+            }
 
     def _cors_headers(self):
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -268,10 +284,14 @@ class ExportHandler(BaseHTTPRequestHandler):
 
 def main() -> None:
     global _EXPORT_OUTPUT_DIR
-    parser = argparse.ArgumentParser(description="导出服务：接收审核页 POST，写入 export_submit_*.json")
+    parser = argparse.ArgumentParser(
+        description="导出服务：接收审核页 POST，写入 export_submit_*.json"
+    )
     parser.add_argument("--port", type=int, default=7860, help="端口，默认 7860")
     parser.add_argument("--host", default="127.0.0.1", help="主机，默认 127.0.0.1")
-    parser.add_argument("--output-dir", default="", help="输出目录，默认 output；可指定 output/<文件名>")
+    parser.add_argument(
+        "--output-dir", default="", help="输出目录，默认 output；可指定 output/<文件名>"
+    )
     args = parser.parse_args()
 
     if args.output_dir:
@@ -295,7 +315,9 @@ def main() -> None:
             server = HTTPServer((args.host, port), ExportHandler)
             break
         except OSError as e:
-            if getattr(e, "errno", None) == errno.EADDRINUSE or "Address already in use" in str(e):
+            if getattr(
+                e, "errno", None
+            ) == errno.EADDRINUSE or "Address already in use" in str(e):
                 port = args.port + attempt + 1
                 if attempt < 19:
                     continue
@@ -304,7 +326,9 @@ def main() -> None:
     if port != args.port:
         print(f"[提示] 端口 {args.port} 已被占用，已使用 {port}")
     print(f"导出服务已启动: {url}/export")
-    print(f"审核页点击「提交视频导出任务」后，将保存数据并调用 vod_direct_export 导出视频")
+    print(
+        "审核页点击「提交视频导出任务」后，将保存数据并调用 vod_direct_export 导出视频"
+    )
     try:
         server.serve_forever()
     except KeyboardInterrupt:
