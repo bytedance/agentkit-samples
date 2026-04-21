@@ -16,7 +16,6 @@ import requests
 from urllib.parse import urlencode
 
 import logging
-from model import *
 
 # 请求接口信息
 ADDR = os.getenv("ARK_SKILL_API_BASE")
@@ -26,8 +25,16 @@ REGION = "cn-north"
 ACTION = "SubmitAiTemplateTaskAsync"
 VERSION = "2025-11-25"
 
+
 # 请求示例
-def _do_request(method: str, queries: dict, body: bytes, action: str, version: str = VERSION, service: str=SERVICE):
+def _do_request(
+    method: str,
+    queries: dict,
+    body: bytes,
+    action: str,
+    version: str = VERSION,
+    service: str = SERVICE,
+):
     """发起请求（支持GET/POST，包含签名逻辑）"""
     # 1. 处理查询参数，添加Action和Version
     queries["Action"] = action or ACTION
@@ -42,13 +49,14 @@ def _do_request(method: str, queries: dict, body: bytes, action: str, version: s
     headers = {
         "Content-Type": "application/json",
         "ServiceName": service,
-        "Authorization": "Bearer " + TOKEN
+        "Authorization": "Bearer " + TOKEN,
     }
 
     # 6. 发起请求并处理响应
     logging.info(f">>> {method.upper()} {url} {headers} {body}")
-    response = requests.request(method=method.upper(),url=url,headers=headers,data=body,timeout=30)
+    response = requests.request(
+        method=method.upper(), url=url, headers=headers, data=body, timeout=30
+    )
     logging.info(f"<<< {response.headers} {response.text}")
 
     return response
-

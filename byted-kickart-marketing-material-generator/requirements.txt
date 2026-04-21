@@ -1,5 +1,0 @@
-requests>=2.31.0
-qrcode>=7.4.2
-jsonpath>=0.82.2
-Pillow>=10.1.0
-urllib3>=2.1.0
