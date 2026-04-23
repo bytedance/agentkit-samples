@@ -1,0 +1,5 @@
+# 火山引擎 RDS PostgreSQL 运维助手工具依赖
+
+## Python 依赖包
+
+volcengine-python-sdk[rdspostgresqlv2,vpc]>=1.0.0
