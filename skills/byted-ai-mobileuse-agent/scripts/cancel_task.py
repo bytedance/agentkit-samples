@@ -17,7 +17,7 @@ import json
 import time
 from typing import Any, Dict, Optional
 
-from sdk_client import UniversalClient, error_envelope
+from sdk_client import UniversalClient, error_envelope, has_ark_proxy_env, read_env_aksk
 
 
 def as_non_empty_str(v: Any) -> Optional[str]:
@@ -60,29 +60,39 @@ def _extract_task_status(resp: Any) -> Optional[int]:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--access-key", required=True)
-    ap.add_argument("--secret-key", required=True)
+
     ap.add_argument("--run-id", required=True)
     ap.add_argument("--thread-id", default=None)
-    ap.add_argument("--wait", type=int, default=20, help="Wait for cancellation to take effect (seconds). Default 20.")
-    ap.add_argument("--interval", type=int, default=2, help="Poll interval (seconds). Default 2.")
+    ap.add_argument(
+        "--wait",
+        type=int,
+        default=20,
+        help="Wait for cancellation to take effect (seconds). Default 20.",
+    )
+    ap.add_argument(
+        "--interval", type=int, default=2, help="Poll interval (seconds). Default 2."
+    )
     ap.add_argument("--pretty", action="store_true")
     args = ap.parse_args()
 
     try:
+        if not has_ark_proxy_env():
+            read_env_aksk()
         run_id = as_non_empty_str(args.run_id)
         if not run_id:
             raise ValueError("RunId is required (--run-id)")
 
         thread_id = as_non_empty_str(args.thread_id)
-        client = UniversalClient(access_key=args.access_key, secret_key=args.secret_key)
+        client = UniversalClient()
 
         terminal_statuses = {3, 5, 6, 7}
         body: Dict[str, Any] = {"RunId": run_id}
         if thread_id:
             body["ThreadId"] = thread_id
 
-        step_raw = client.call(method="GET", action="ListAgentRunCurrentStep", body=body)
+        step_raw = client.call(
+            method="GET", action="ListAgentRunCurrentStep", body=body
+        )
         status = _extract_task_status(step_raw)
         if status in terminal_statuses:
             out: Dict[str, Any] = {
@@ -95,16 +105,24 @@ def main() -> int:
                 "current_step_raw": step_raw,
                 "cancel_raw": None,
             }
-            print(json.dumps(out, ensure_ascii=False, indent=2 if args.pretty else None) + "\n", end="")
+            print(
+                json.dumps(out, ensure_ascii=False, indent=2 if args.pretty else None)
+                + "\n",
+                end="",
+            )
             return 0
 
-        cancel_raw = client.call(method="POST", action="CancelTask", body={"RunId": run_id})
+        cancel_raw = client.call(
+            method="POST", action="CancelTask", body={"RunId": run_id}
+        )
 
         deadline = time.time() + max(0, int(args.wait))
         last_raw = step_raw
         last_status = status
         while time.time() < deadline:
-            last_raw = client.call(method="GET", action="ListAgentRunCurrentStep", body=body)
+            last_raw = client.call(
+                method="GET", action="ListAgentRunCurrentStep", body=body
+            )
             last_status = _extract_task_status(last_raw)
             if last_status in terminal_statuses:
                 break
@@ -119,7 +137,11 @@ def main() -> int:
             "current_step_raw": last_raw,
             "cancel_raw": cancel_raw,
         }
-        print(json.dumps(out, ensure_ascii=False, indent=2 if args.pretty else None) + "\n", end="")
+        print(
+            json.dumps(out, ensure_ascii=False, indent=2 if args.pretty else None)
+            + "\n",
+            end="",
+        )
         return 0
     except Exception as e:
         out = error_envelope(err=e)

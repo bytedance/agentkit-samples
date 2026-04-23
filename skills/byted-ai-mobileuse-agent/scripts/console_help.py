@@ -33,7 +33,9 @@ def _find_section(lines: list[str], header_prefix: str) -> Optional[Tuple[int, i
 
     end = len(lines)
     for j in range(start + 1, len(lines)):
-        if lines[j].strip().startswith("### 流程 ") or lines[j].strip().startswith("## "):
+        if lines[j].strip().startswith("### 流程 ") or lines[j].strip().startswith(
+            "## "
+        ):
             end = j
             break
     return start, end
@@ -42,15 +44,30 @@ def _find_section(lines: list[str], header_prefix: str) -> Optional[Tuple[int, i
 def _pick_topic(question: str) -> str:
     q = (question or "").lower()
 
-    if any(k in q for k in ["首次使用授权", "授权", "serviceroleforipaas", "paasservicerole", "角色权限"]):
+    if any(
+        k in q
+        for k in [
+            "首次使用授权",
+            "授权",
+            "serviceroleforipaas",
+            "paasservicerole",
+            "角色权限",
+        ]
+    ):
         return "### 流程 2:"
     if any(k in q for k in ["创建业务", "业务创建", "product_id", "业务id"]):
         return "### 流程 4:"
-    if any(k in q for k in ["订购", "资源订购", "实例", "pod_id", "就绪", "体验 mobile use agent"]):
+    if any(
+        k in q
+        for k in ["订购", "资源订购", "实例", "pod_id", "就绪", "体验 mobile use agent"]
+    ):
         return "### 流程 5:"
     if any(k in q for k in ["操作应用指南", "指南", "上传", "升级", "包名"]):
         return "### 流程 6:"
-    if any(k in q for k in ["技能配置", "技能存储位置", "tos://", "对象存储桶", "bucket", "skill"]):
+    if any(
+        k in q
+        for k in ["技能配置", "技能存储位置", "tos://", "对象存储桶", "bucket", "skill"]
+    ):
         return "### 流程 7: 配置技能"
     if any(k in q for k in ["上架应用", "应用管理", "apk", "新增应用"]):
         return "### 流程 7： 上架应用"
@@ -91,7 +108,9 @@ def _match_section(lines: list[str], topic: str) -> Optional[Tuple[int, int]]:
                 start = i
                 end = len(lines)
                 for j in range(i + 1, len(lines)):
-                    if lines[j].strip().startswith("### 流程 ") or lines[j].strip().startswith("## "):
+                    if lines[j].strip().startswith("### 流程 ") or lines[
+                        j
+                    ].strip().startswith("## "):
                         end = j
                         break
                 return start, end

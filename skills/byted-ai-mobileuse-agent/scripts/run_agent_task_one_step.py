@@ -15,10 +15,15 @@
 import argparse
 import json
 import time
-import uuid
 from typing import Any, Dict, Optional
 
-from sdk_client import UniversalClient, error_envelope, extract_result_payload
+from sdk_client import (
+    UniversalClient,
+    error_envelope,
+    extract_result_payload,
+    has_ark_proxy_env,
+    read_env_aksk,
+)
 
 
 def as_non_empty_str(v: Any) -> Optional[str]:
@@ -36,11 +41,18 @@ def build_request(
     thread_id: str,
     max_step: Optional[int],
     timeout: Optional[int],
+    is_screen_record: bool,
+    tos_bucket: Optional[str],
+    tos_endpoint: Optional[str],
+    tos_region: Optional[str],
 ) -> Dict[str, Any]:
     resolved_product_id = as_non_empty_str(product_id)
     resolved_pod_id = as_non_empty_str(pod_id)
     resolved_prompt = as_non_empty_str(prompt)
     resolved_thread_id = as_non_empty_str(thread_id)
+    resolved_tos_bucket = as_non_empty_str(tos_bucket)
+    resolved_tos_endpoint = as_non_empty_str(tos_endpoint)
+    resolved_tos_region = as_non_empty_str(tos_region)
 
     if not resolved_product_id:
         raise ValueError("ProductId is required (--product-id)")
@@ -63,6 +75,14 @@ def build_request(
         req["MaxStep"] = int(max_step)
     if timeout is not None:
         req["Timeout"] = int(timeout)
+    if is_screen_record:
+        req["IsScreenRecord"] = True
+    if resolved_tos_bucket is not None:
+        req["TosBucket"] = resolved_tos_bucket
+    if resolved_tos_endpoint is not None:
+        req["TosEndpoint"] = resolved_tos_endpoint
+    if resolved_tos_region is not None:
+        req["TosRegion"] = resolved_tos_region
 
     return req
 
@@ -104,18 +124,46 @@ def _emit(event: Dict[str, Any]) -> None:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--access-key", required=True)
-    ap.add_argument("--secret-key", required=True)
+
     ap.add_argument("--product-id", required=True)
     ap.add_argument("--pod-id", required=True)
     ap.add_argument("--prompt", required=True)
     ap.add_argument("--thread-id", required=True)
-    ap.add_argument("--max-step", type=int, default=None, help="Optional. Max agent steps (1~500).")
-    ap.add_argument("--timeout", type=int, default=None, help="Optional. Timeout in seconds (1~86400).")
+    ap.add_argument(
+        "--max-step", type=int, default=None, help="Optional. Max agent steps (1~500)."
+    )
+    ap.add_argument(
+        "--timeout",
+        type=int,
+        default=None,
+        help="Optional. Timeout in seconds (1~86400).",
+    )
+    ap.add_argument(
+        "--is-screen-record",
+        action="store_true",
+        help="Optional. Enable screen recording. Default off.",
+    )
+    ap.add_argument(
+        "--tos-bucket",
+        default=None,
+        help="Optional. TOS bucket for screen recording storage.",
+    )
+    ap.add_argument(
+        "--tos-endpoint",
+        default=None,
+        help="Optional. TOS endpoint for screen recording storage.",
+    )
+    ap.add_argument(
+        "--tos-region",
+        default=None,
+        help="Optional. TOS region for screen recording storage.",
+    )
     ap.add_argument("--pretty", action="store_true")
     args = ap.parse_args()
 
     try:
+        if not has_ark_proxy_env():
+            read_env_aksk()
         req = build_request(
             product_id=args.product_id,
             pod_id=args.pod_id,
@@ -123,8 +171,12 @@ def main() -> int:
             thread_id=args.thread_id,
             max_step=args.max_step,
             timeout=args.timeout,
+            is_screen_record=bool(args.is_screen_record),
+            tos_bucket=args.tos_bucket,
+            tos_endpoint=args.tos_endpoint,
+            tos_region=args.tos_region,
         )
-        client = UniversalClient(access_key=args.access_key, secret_key=args.secret_key)
+        client = UniversalClient()
         raw_start = client.call(method="POST", action="RunAgentTaskOneStep", body=req)
         started = extract_result_payload(raw_start)
         run_id = as_non_empty_str(started.get("RunId")) or ""
@@ -152,7 +204,9 @@ def main() -> int:
                 step_body: Dict[str, Any] = {"RunId": run_id}
                 if thread_id:
                     step_body["ThreadId"] = thread_id
-                last_step_raw = client.call(method="GET", action="ListAgentRunCurrentStep", body=step_body)
+                last_step_raw = client.call(
+                    method="GET", action="ListAgentRunCurrentStep", body=step_body
+                )
                 status = _extract_task_status(last_step_raw)
                 _emit(
                     {
@@ -169,14 +223,20 @@ def main() -> int:
 
         agent_result_raw: Optional[Dict[str, Any]] = None
         if run_id and status in terminal_statuses:
-            agent_result_raw = client.call(method="GET", action="GetAgentResult", body={"RunId": run_id, "IsDetail": True})
+            agent_result_raw = client.call(
+                method="GET",
+                action="GetAgentResult",
+                body={"RunId": run_id, "IsDetail": True},
+            )
 
         out = {
             "type": "result",
             "ok": True,
             "run_id": run_id,
             "run_name": as_non_empty_str(started.get("RunName")) or "",
-            "thread_id": as_non_empty_str(started.get("ThreadId")) or as_non_empty_str(args.thread_id) or "",
+            "thread_id": as_non_empty_str(started.get("ThreadId"))
+            or as_non_empty_str(args.thread_id)
+            or "",
             "raw_response": raw_start,
             "current_step_status": status,
             "current_step_raw": last_step_raw,

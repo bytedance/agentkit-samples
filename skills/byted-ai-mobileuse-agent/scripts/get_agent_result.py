@@ -16,7 +16,7 @@ import argparse
 import json
 from typing import Any, Dict, Optional
 
-from sdk_client import UniversalClient, error_envelope
+from sdk_client import UniversalClient, error_envelope, has_ark_proxy_env, read_env_aksk
 
 
 def as_non_empty_str(v: Any) -> Optional[str]:
@@ -28,22 +28,32 @@ def as_non_empty_str(v: Any) -> Optional[str]:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--access-key", required=True)
-    ap.add_argument("--secret-key", required=True)
+
     ap.add_argument("--run-id", required=True)
     ap.add_argument("--thread-id", default=None)
     ap.add_argument("--pretty", action="store_true")
     args = ap.parse_args()
 
     try:
+        if not has_ark_proxy_env():
+            read_env_aksk()
         run_id = as_non_empty_str(args.run_id)
         if not run_id:
             raise ValueError("RunId is required (--run-id)")
 
-        client = UniversalClient(access_key=args.access_key, secret_key=args.secret_key)
-        raw = client.call(method="GET", action="GetAgentResult", body={"RunId": run_id, "IsDetail": True})
+        client = UniversalClient()
+        raw = client.call(
+            method="GET",
+            action="GetAgentResult",
+            body={"RunId": run_id, "IsDetail": True},
+        )
         thread_id = as_non_empty_str(args.thread_id) or ""
-        out: Dict[str, Any] = {"ok": True, "run_id": run_id, "thread_id": thread_id, "raw_response": raw}
+        out: Dict[str, Any] = {
+            "ok": True,
+            "run_id": run_id,
+            "thread_id": thread_id,
+            "raw_response": raw,
+        }
         if args.pretty:
             print(json.dumps(out, ensure_ascii=False, indent=2) + "\n", end="")
         else:

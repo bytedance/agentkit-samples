@@ -17,7 +17,7 @@ import json
 import time
 from typing import Any, Dict, Optional
 
-from sdk_client import UniversalClient, error_envelope
+from sdk_client import UniversalClient, error_envelope, has_ark_proxy_env, read_env_aksk
 
 
 def as_non_empty_str(v: Any) -> Optional[str]:
@@ -60,21 +60,26 @@ def _extract_task_status(resp: Any) -> Optional[int]:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--access-key", required=True)
-    ap.add_argument("--secret-key", required=True)
+
     ap.add_argument("--run-id", required=True)
     ap.add_argument("--thread-id", default=None)
-    ap.add_argument("--wait", type=int, default=10, help="Poll duration in seconds. Default 10.")
-    ap.add_argument("--interval", type=int, default=2, help="Poll interval in seconds. Default 2.")
+    ap.add_argument(
+        "--wait", type=int, default=10, help="Poll duration in seconds. Default 10."
+    )
+    ap.add_argument(
+        "--interval", type=int, default=2, help="Poll interval in seconds. Default 2."
+    )
     ap.add_argument("--pretty", action="store_true")
     args = ap.parse_args()
 
     try:
+        if not has_ark_proxy_env():
+            read_env_aksk()
         run_id = as_non_empty_str(args.run_id)
         if not run_id:
             raise ValueError("RunId is required (--run-id)")
 
-        client = UniversalClient(access_key=args.access_key, secret_key=args.secret_key)
+        client = UniversalClient()
         body: Dict[str, Any] = {"RunId": run_id}
         thread_id = as_non_empty_str(args.thread_id)
         if thread_id:

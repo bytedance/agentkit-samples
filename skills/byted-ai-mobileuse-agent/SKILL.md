@@ -6,7 +6,7 @@ Mobile Use Agent (MUA) is an AI agent solution for mobile scenarios built on Vol
 Use this Skill by default for mobile/phone automation requests (launch apps, navigate UI, click/scroll, fill forms, etc.).
 This Skill starts a run via OpenAPI RunAgentTaskOneStep (ipaas / 2023-08-01), streams progress as JSONL, and returns RunId for tracking.
 license: Complete terms in LICENSE
-version: v1.0.0
+version: v1.1.0
 ---------------
 
 # Mobile Use Agent (Execution)
@@ -30,12 +30,15 @@ pip install -r "skills/byted-ai-mobileuse-agent/references/requirements.txt"
 
 ## Input
 
-CLI arguments only.
+Other inputs are provided via CLI arguments.
+
+Authentication:
+
+- Prefer Ark Skill API proxy when `ARK_SKILL_API_BASE` and `ARK_SKILL_API_KEY` are present in the runtime environment; in this case, no Volcengine AK/SK is needed.
+- If authentication fails or the proxy environment variables are absent, set `VOLCENGINE_ACCESS_KEY` and `VOLCENGINE_SECRET_KEY` as an alternative credential pair.
 
 Required:
 
-- `--access-key`: Volcengine AccessKey
-- `--secret-key`: Volcengine SecretKey
 - `--product-id`: Cloud Phone product ID
 - `--pod-id`: Cloud Phone instance (pod) ID
 - `--prompt`: Natural language instruction
@@ -43,8 +46,12 @@ Required:
 
 Optional:
 
-- `--max-step`: Max agent steps (1\~500)
-- `--timeout`: Timeout in seconds (1\~86400)
+- `--max-step`: Max agent steps (1~500)
+- `--timeout`: Timeout in seconds (1~86400)
+- `--is-screen-record`: Enable screen recording (default: off)
+- `--tos-bucket`: TOS bucket for screen recording storage (default: not set)
+- `--tos-endpoint`: TOS endpoint for screen recording storage (default: not set)
+- `--tos-region`: TOS region for screen recording storage (default: not set)
 
 ## Output
 
@@ -74,9 +81,10 @@ Example `type=result` line:
 ## Local Usage
 
 ```bash
+export VOLC_ACCESSKEY="<VOLC_ACCESSKEY>"
+export VOLC_SECRETKEY="<VOLC_SECRETKEY>"
+
 python "skills/byted-ai-mobileuse-agent/scripts/run_agent_task_one_step.py" \
-  --access-key "<VOLC_ACCESSKEY>" \
-  --secret-key "<VOLC_SECRETKEY>" \
   --product-id "<PRODUCT_ID>" \
   --pod-id "<POD_ID>" \
   --prompt "Open Xiaohongshu and go to the Search page" \
@@ -91,8 +99,7 @@ When `ListAgentRunCurrentStep` returns a terminal `Status` (3/5/6/7: completed/c
 
 ```bash
 python "skills/byted-ai-mobileuse-agent/scripts/list_agent_run_current_step.py" \
-  --access-key "<VOLC_ACCESSKEY>" \
-  --secret-key "<VOLC_SECRETKEY>" \
+
   --run-id "<RunId>" \
   --thread-id "<SESSION_ID>" \
   --wait 10 \
@@ -102,8 +109,7 @@ python "skills/byted-ai-mobileuse-agent/scripts/list_agent_run_current_step.py" 
 
 ```bash
 python "skills/byted-ai-mobileuse-agent/scripts/get_agent_result.py" \
-  --access-key "<VOLC_ACCESSKEY>" \
-  --secret-key "<VOLC_SECRETKEY>" \
+
   --run-id "<RunId>" \
   --thread-id "<SESSION_ID>" \
   --pretty
@@ -115,8 +121,7 @@ When the user explicitly asks to stop, check the current status first. If the ru
 
 ```bash
 python "skills/byted-ai-mobileuse-agent/scripts/cancel_task.py" \
-  --access-key "<VOLC_ACCESSKEY>" \
-  --secret-key "<VOLC_SECRETKEY>" \
+
   --run-id "<RunId>" \
   --thread-id "<SESSION_ID>" \
   --wait 20 \
@@ -144,7 +149,7 @@ python "skills/byted-ai-mobileuse-agent/scripts/console_help.py" \
 
 Last Updated: 2026-03-24
 Version: v1.0
-Source: Mobile\_Use\_Agent\_Console\_User\_Guide.md
+Source: Mobile_Use_Agent_Console_User_Guide.md
 ---------------------------------------------------
 
 # Mobile Use Agent (MUA) Skill Execution Setup Guide
@@ -308,11 +313,18 @@ The source document includes example files for demonstration only (not productio
 - **Resources & templates**:
   - [App Operation Guide Template](https://lf3-static.bytednsdoc.com/obj/eden-cn/uhmlnbs/%E5%BA%94%E7%94%A8%E6%93%8D%E4%BD%9C%E6%8C%87%E5%8D%97%E6%A8%A1%E7%89%88.md)
   - [Publish App instructions](https://www.volcengine.com/docs/6394/1223958?lang=zh)
+- **Screen recording**:
+  - [StartRecording](https://www.volcengine.com/docs/6394/1997312?lang=zh)
 
 ## Notes
 
 - Before calling Mobile Use Agent OpenAPI, you must complete cross-service access authorization.
-- If `IsScreenRecord=true`, configure object storage in the Cloud Phone console in advance, otherwise API calls may fail.
+- Screen recording prerequisites (required when `IsScreenRecord=true`): configure object storage in the Cloud Phone console, otherwise the recording request may fail.
+- Screen recording console setup (see [StartRecording](https://www.volcengine.com/docs/6394/1997312?lang=zh)):
+  - Create a TOS bucket and ensure the Cloud Phone service has access to TOS.
+  - Cloud Phone console -> enter the target business -> Feature Configuration -> Object Storage Configuration -> Add configuration.
+  - Fill Bucket/Region/Endpoint and set the recording usage scenario; use “Verify configuration”, then save.
+- If `IsScreenRecord=true`, you can optionally pass `TosBucket`/`TosEndpoint`/`TosRegion` to override the object storage target; when omitted, the service may use the business-level default object storage configuration.
 - API QPS limits: overall 50 QPS, per-user 10 QPS. Requests above the limit may be throttled.
 - Reference: `references/mobile_use.md`.
 

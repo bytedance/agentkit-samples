@@ -13,7 +13,52 @@
 # limitations under the License.
 
 import os
+import json
+import urllib.error
+import urllib.parse
+import urllib.request
 from typing import Any, Dict, Optional, Tuple
+
+
+def _as_non_empty_str(v: Any) -> Optional[str]:
+    if v is None:
+        return None
+    s = str(v).strip()
+    return s or None
+
+
+def _env(name: str) -> Optional[str]:
+    return _as_non_empty_str(os.getenv(name))
+
+
+def read_env_ark_proxy() -> Tuple[Optional[str], Optional[str]]:
+    return _env("ARK_SKILL_API_BASE"), _env("ARK_SKILL_API_KEY")
+
+
+def read_env_aksk() -> Tuple[str, str]:
+    ak = (
+        _env("VOLC_ACCESSKEY")
+        or _env("VOLC_ACCESS_KEY_ID")
+        or _env("VOLCSTACK_ACCESS_KEY_ID")
+        or _env("VOLCENGINE_ACCESS_KEY")
+    )
+    sk = (
+        _env("VOLC_SECRETKEY")
+        or _env("VOLC_SECRET_ACCESS_KEY")
+        or _env("VOLCSTACK_SECRET_ACCESS_KEY")
+        or _env("VOLCENGINE_SECRET_KEY")
+    )
+    if not ak or not sk:
+        raise RuntimeError(
+            "缺少鉴权环境变量: VOLC_ACCESSKEY/VOLC_SECRETKEY "
+            "(兼容: VOLC_ACCESS_KEY_ID/VOLC_SECRET_ACCESS_KEY, VOLCSTACK_ACCESS_KEY_ID/VOLCSTACK_SECRET_ACCESS_KEY; 可替代: VOLCENGINE_ACCESS_KEY/VOLCENGINE_SECRET_KEY)"
+        )
+    return ak, sk
+
+
+def has_ark_proxy_env() -> bool:
+    api_base, api_key = read_env_ark_proxy()
+    return bool(api_base and api_key)
 
 
 class UniversalClient:
@@ -44,8 +89,24 @@ class UniversalClient:
         host = os.environ.get("VOLC_HOST")
         if host:
             configuration.host = host
-        configuration.ak = self.access_key or os.environ.get("VOLC_ACCESSKEY")
-        configuration.sk = self.secret_key or os.environ.get("VOLC_SECRETKEY")
+        ak = (
+            _as_non_empty_str(self.access_key)
+            or _env("VOLC_ACCESSKEY")
+            or _env("VOLC_ACCESS_KEY_ID")
+            or _env("VOLCSTACK_ACCESS_KEY_ID")
+            or _env("VOLCENGINE_ACCESS_KEY")
+        )
+        sk = (
+            _as_non_empty_str(self.secret_key)
+            or _env("VOLC_SECRETKEY")
+            or _env("VOLC_SECRET_ACCESS_KEY")
+            or _env("VOLCSTACK_SECRET_ACCESS_KEY")
+            or _env("VOLCENGINE_SECRET_KEY")
+        )
+        if not ak or not sk:
+            ak, sk = read_env_aksk()
+        configuration.ak = ak
+        configuration.sk = sk
         configuration.region = os.environ.get("VOLC_REGION", self.region)
 
         api = volcenginesdkcore.UniversalApi(volcenginesdkcore.ApiClient(configuration))
@@ -54,6 +115,16 @@ class UniversalClient:
         return self._sdk, self._api
 
     def call(self, *, method: str, action: str, body: Dict[str, Any]) -> Dict[str, Any]:
+        api_base, api_key = read_env_ark_proxy()
+        if api_base and api_key:
+            return self._call_via_ark_proxy(
+                method=method,
+                action=action,
+                body=body,
+                api_base=api_base,
+                api_key=api_key,
+            )
+
         sdk, api = self._init_sdk()
         request_body = sdk.Flatten(body).flat()
         info = sdk.UniversalInfo(
@@ -68,6 +139,54 @@ class UniversalClient:
             return resp
         return {"Result": resp}
 
+    def _call_via_ark_proxy(
+        self,
+        *,
+        method: str,
+        action: str,
+        body: Dict[str, Any],
+        api_base: str,
+        api_key: str,
+    ) -> Dict[str, Any]:
+        url = f"{api_base.rstrip('/')}/?Action={urllib.parse.quote(action)}&Version={urllib.parse.quote(self.version)}"
+        headers = {
+            "ServiceName": self.service,
+            "Authorization": f"Bearer {api_key}",
+            "Accept": "application/json",
+        }
+
+        resolved_method = (method or "POST").upper()
+        if resolved_method == "GET":
+            if body:
+                query = urllib.parse.urlencode(body, doseq=True)
+                url = f"{url}&{query}"
+            data = None
+        else:
+            headers["Content-Type"] = "application/json"
+            data = json.dumps(body or {}, ensure_ascii=False).encode("utf-8")
+
+        req = urllib.request.Request(
+            url, data=data, headers=headers, method=resolved_method
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                resp_body = resp.read()
+            try:
+                parsed = json.loads(resp_body.decode("utf-8"))
+            except Exception:
+                parsed = None
+            if isinstance(parsed, dict):
+                return parsed
+            return {"Result": parsed}
+        except urllib.error.HTTPError as e:
+            try:
+                detail = e.read().decode("utf-8")
+            except Exception:
+                detail = ""
+            raise RuntimeError(f"HTTP 错误: {e.code} {e.reason} {detail}".strip())
+        except urllib.error.URLError as e:
+            raise RuntimeError(f"网络错误: {e.reason}")
+
 
 def extract_result_payload(resp: Any) -> Dict[str, Any]:
     if not isinstance(resp, dict):
@@ -79,7 +198,9 @@ def extract_result_payload(resp: Any) -> Dict[str, Any]:
     return {}
 
 
-def error_envelope(*, err: Exception, raw_response: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def error_envelope(
+    *, err: Exception, raw_response: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
     return {
         "ok": False,
         "error": {"type": type(err).__name__, "message": str(err)},
