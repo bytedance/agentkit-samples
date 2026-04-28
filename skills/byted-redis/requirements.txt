@@ -1,0 +1,5 @@
+# Volcengine Redis MCP Skill Dependencies
+
+## Python Dependencies
+mcp>=1.1.0
+volcengine-python-sdk>=4.0.24
