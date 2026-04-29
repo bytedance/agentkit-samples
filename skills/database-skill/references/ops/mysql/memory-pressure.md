@@ -14,89 +14,46 @@
 
 > 函数参数详见 [api/ops.md](../../api/ops.md)。
 
-## 排查步骤
+## 必看数据
 
-### 步骤 0: 获取支持的监控指标（推荐先执行）
+| 优先级 | 函数 | 关键参数 | 目的 |
+|--------|------|----------|------|
+| P0 | `get_metric_data` | `metric_name="MemUtil"` | 确认内存使用率和趋势 |
+| P0 | `execute_sql` | `sql="SELECT ... FROM information_schema.INNODB_BUFFER_POOL_STATS"` | 查看 InnoDB Buffer Pool 状态（FREE_BUFFERS / DATABASE_PAGES / TOTAL_MEM_ALLOC） |
+| P1 | `execute_sql` | `sql="SELECT ... FROM performance_schema.memory_summary_global_by_event_name ORDER BY HIGH_NUMBER_OF_BYTES_USED DESC LIMIT 20"` | 查看各组件内存使用 TOP 20 |
+| P1 | `list_connections` | — | 查看活跃连接数，每个连接占用独立内存 |
+| P2 | `get_metric_items` | — | 获取支持的监控指标列表，按需选取更多指标 |
 
-> **提示**：在获取具体指标数据之前，建议先调用 `get_metric_items` 查看当前实例支持哪些指标，然后选择合适的指标进行获取。
+## 诊断路径
 
-```python
-# 获取当前实例支持的监控指标列表
-get_metric_items(client,
-)
-```
+1. **确认趋势** → MySQL: `get_metric_data(MemUtil)`；VeDB: 用 `describe_health_summary` 看内存环比 — 判断是逐步上涨还是突然飙升
+2. **检查 Buffer Pool** → `execute_sql("SELECT ... FROM INNODB_BUFFER_POOL_STATS")` — FREE_BUFFERS 接近 0 说明缓存已满
+3. **检查内存分布** → `execute_sql("SELECT ... FROM memory_summary_global_by_event_name")` — 找占用最多的组件
+   - sort/join buffer 占比高 → 有大排序/JOIN 操作，转查 `describe_slow_logs`
+   - 连接内存占比高 → 查 `list_connections` 确认连接数是否过多
+4. **需要处理时** → 终止大查询走 `kill_process`，Buffer Pool 调整走控制台参数管理
 
-### 步骤 1: 检查内存使用率
+## 关键分析维度
 
-```python
-import time
-now = int(time.time())
+- **Buffer Pool 使用率**：FREE_BUFFERS 是否接近 0，说明缓存已满
+- **连接数**：每个连接占用 sort_buffer + join_buffer + thread_stack 等独立内存，连接数过多会导致内存压力
+- **内存组件分布**：`memory_summary_global_by_event_name` 中哪个组件占用最多（InnoDB、temp table、sort buffer 等）
+- **增长趋势**：内存是逐步上涨还是突然飙升，判断是泄漏还是突发大查询
 
-# 获取内存使用率
-get_metric_data(client,
-    metric_name="MemUtil",
-    period=60,
-    start_time=now - 300,
-    end_time=now,
-    instance_id="mysql-xxx",
-)
-```
+## 根因判断知识
 
-### 步骤 2: 检查 InnoDB Buffer Pool
+| 现象组合 | 通常根因 | 进一步确认 |
+|----------|----------|------------|
+| Buffer Pool FREE_BUFFERS=0 + 缓存命中率下降 | Buffer Pool 配置过小 | 检查 `innodb_buffer_pool_size` 与数据集大小的比例 |
+| 连接数高 + 内存持续上涨 | 连接过多消耗内存 | 检查连接数 × per-thread buffer 的总量 |
+| `memory_summary` 中 sort/join buffer 占比高 | 大排序/JOIN 操作 | 检查慢查询中是否有大量 filesort / Using temporary |
+| 内存缓慢增长不释放 | 内存泄漏（罕见） | 对比不同时间段 `memory_summary`，看是否某组件持续增长 |
+| 内存突然飙升 + 某个大查询正在运行 | 大查询消耗内存 | 检查 `list_connections` 中运行时间最长的 SQL |
 
-```python
-# 获取 buffer pool 大小
-execute_sql(client,
-    sql="SHOW VARIABLES LIKE 'innodb_buffer_pool_size';",
-    instance_id="mysql-xxx",
-    database="performance_schema",
-)
+## 约束与边界
 
-# 获取 buffer pool 状态
-execute_sql(client,
-    sql="""
-    SELECT
-        POOL_ID,
-        POOL_SIZE,
-        FREE_BUFFERS,
-        DATABASE_PAGES,
-        OLD_DATABASE_PAGES,
-        TOTAL_MEM_ALLOC
-    FROM information_schema.INNODB_BUFFER_POOL_STATS;
-    """,
-    instance_id="mysql-xxx",
-    database="information_schema",
-)
-```
-
-### 步骤 3: 分析内存使用情况
-
-```python
-# 检查各组件内存使用
-execute_sql(client,
-    sql="""
-    SELECT
-        EVENT_NAME,
-        CURRENT_NUMBER_OF_BYTES_USED,
-        HIGH_NUMBER_OF_BYTES_USED
-    FROM memory_summary_global_by_event_name
-    ORDER BY HIGH_NUMBER_OF_BYTES_USED DESC
-    LIMIT 20;
-    """,
-    instance_id="mysql-xxx",
-    database="performance_schema",
-)
-```
-
-## 常见根因
-
-| 根因 | 说明 |
-|-------|-------------|
-| Buffer Pool 太小 | innodb_buffer_pool_size 配置过小 |
-| 连接数过多 | 连接数过多，内存不足 |
-| 大查询 | 大查询消耗过多内存 |
-| 内存泄漏 | 内存泄漏 |
-| Sort/Join Buffer | 大排序/联接操作占用内存 |
+- `execute_sql` 仅支持只读操作，无法执行 `SET GLOBAL` 修改参数
+- Buffer Pool 大小调整需到**火山引擎控制台 → 参数管理**修改 `innodb_buffer_pool_size`，或通过**实例扩容**增加内存规格
 
 ## ⚠️ 应急处置（需确认后执行）
 
@@ -112,10 +69,6 @@ kill_process(client,
     instance_id="mysql-xxx",
 )
 ```
-
-### 调整 Buffer Pool 大小
-
-> `execute_sql` 仅支持只读操作，无法执行 `SET GLOBAL`。需到**火山引擎控制台 → 参数管理**修改 `innodb_buffer_pool_size`，或通过**实例扩容**增加内存规格。
 
 ## 预防措施
 

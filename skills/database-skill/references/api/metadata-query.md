@@ -27,6 +27,25 @@ description: "元数据探查与数据查询函数的参数、返回格式、数
 
 ---
 
+> **调用前提**：
+> ```python
+> cd skills/database-skill/scripts && python3 -c "
+> from toolbox import create_client, <函数名>
+> client = create_client(region='cn-beijing')  # 可选参数见下方 create_client 说明
+> result = <函数名>(client, ...)
+> print(result)
+> "
+> ```
+>
+> **`create_client` 参数**（均可选，不传时从环境变量读取）：
+> | 参数 | 说明 |
+> |:---|:---|
+> | `region` | 地域，如 `"cn-beijing"`。环境变量 `VOLCENGINE_REGION` |
+> | `instance_id` | 默认实例 ID。环境变量 `VOLCENGINE_INSTANCE_ID` |
+> | `database` | 默认数据库名。环境变量 `VOLCENGINE_DATABASE` |
+>
+> 下方函数签名中 `client` 参数类型为 `ToolboxClient`（即 `create_client()` 返回值）。
+
 ## 元数据函数
 
 ### list_instances
@@ -34,7 +53,7 @@ description: "元数据探查与数据查询函数的参数、返回格式、数
 查询实例列表。**必须传过滤项**，不传等于查全量，无意义。
 
 ```python
-list_instances(client,
+list_instances(client,        # ToolboxClient: create_client() 返回值
     instance_id=None,     # str: 按实例 ID 搜索
     query=None,           # str: 模糊搜索（不确定是 ID 还是名称时用这个）
     instance_name=None,   # str: 按实例名称搜索
@@ -57,7 +76,7 @@ list_instances(client,
 列出实例下的数据库。
 
 ```python
-list_databases(client,
+list_databases(client,        # ToolboxClient: create_client() 返回值
     instance_id=None,    # str: 不传则用 create_client() 默认值
     page_number=1,       # int
     page_size=10,        # int
@@ -73,12 +92,12 @@ list_databases(client,
 列出数据库中的表。
 
 ```python
-list_tables(client,
+list_tables(client,           # ToolboxClient: create_client() 返回值
     instance_id=None,    # str
     database=None,       # str
     schema=None,         # str: Postgres 必传（默认查 public）
     page_number=1,       # int
-    page_size=10,        # int
+    page_size=50,        # int
     fetch_all=False,     # bool: True 时自动翻页获取全部表
 )
 ```
@@ -97,7 +116,7 @@ list_tables(client,
 获取表结构（列名、类型、注释等）。
 
 ```python
-get_table_info(client,
+get_table_info(client,        # ToolboxClient: create_client() 返回值
     table="表名",        # str: 必传
     instance_id=None,    # str
     database=None,       # str
@@ -123,7 +142,7 @@ get_table_info(client,
 自然语言转 SQL（仅生成，不执行）。
 
 ```python
-nl2sql(client,
+nl2sql(client,                # ToolboxClient: create_client() 返回值
     query="自然语言问题",  # str: 必传
     instance_id=None,     # str
     database=None,        # str
@@ -142,7 +161,7 @@ nl2sql(client,
 执行查询。MySQL / VeDB / PG / SQLServer 使用 SQL，MongoDB 使用 Mongo 语法，Redis 使用 Redis 命令。
 
 ```python
-execute_sql(client,
+execute_sql(client,           # ToolboxClient: create_client() 返回值
     sql="SELECT ...",    # str: 必传（MongoDB 传 Mongo 语法，Redis 传 Redis 命令）
     instance_id=None,    # str
     database=None,       # str（Redis 须传数字 0-15）
@@ -166,7 +185,7 @@ execute_sql(client,
 执行 SQL 返回 pandas DataFrame，是 `execute_sql` 的便捷封装。
 
 ```python
-query_sql(client,
+query_sql(client,             # ToolboxClient: create_client() 返回值
     sql="SELECT ...",    # str: 必传
     instance_id=None,    # str
     database=None,       # str

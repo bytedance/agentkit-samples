@@ -13,79 +13,40 @@
 
 > 函数参数详见 [api/ops.md](../../api/ops.md)。
 
-## 排查步骤
+## 必看数据
 
-### 步骤 0: 获取支持的监控指标（推荐先执行）
+| 优先级 | 函数 | 关键参数 | 目的 |
+|:---|:---|:---|:---|
+| P0 | `get_metric_data` | `metric_name="NetworkReceiveThroughput"`, `period=60` | 网络入流量趋势，判断是否有异常波动 |
+| P0 | `get_metric_data` | `metric_name="NetworkTransmitThroughput"`, `period=60` | 网络出流量趋势 |
+| P0 | `execute_sql` | `sql="SHOW GLOBAL STATUS LIKE 'Aborted%';"` | 查看异常断开连接数（Aborted_clients / Aborted_connects） |
+| P1 | `execute_sql` | `sql="SHOW GLOBAL STATUS LIKE 'Connection%';"` | 查看连接统计 |
+| P1 | `list_connections` | `show_sleep=True` | 查看活跃会话，筛选异常状态（Timeout/Disconnect） |
+| P2 | `get_metric_items` | — | 获取支持的监控指标列表，按需选取更多指标 |
 
-> **提示**：在获取具体指标数据之前，建议先调用 `get_metric_items` 查看当前实例支持哪些指标，然后选择合适的指标进行获取。
+## 关键分析维度
 
-```python
-# 获取当前实例支持的监控指标列表
-get_metric_items(client,
-)
-```
+- **断连模式**：Aborted_clients（已连接后断开）vs Aborted_connects（连接阶段失败）— 前者多为网络问题，后者多为认证/连接数问题
+- **时间相关性**：网络抖动是否与特定时段、特定操作关联
+- **来源分布**：是所有来源 IP 都有问题还是特定来源 — 用 `list_connections` 按 host 分析
+- **流量特征**：是否有突发大流量导致网络拥塞
 
-### 步骤 1: 检查网络指标
+## 根因判断知识
 
-```python
-import time
-now = int(time.time())
+| 现象组合 | 通常根因 | 进一步确认 |
+|:---|:---|:---|
+| Aborted_clients 快速增长 + 连接数正常 | 客户端网络不稳定或未正确关闭连接 | 检查应用日志中的连接错误 |
+| Aborted_connects 增长 + 连接数接近上限 | 连接数打满导致新连接被拒 | 转到[连接数打满](connection-full.md)排查 |
+| 网络入出流量突然归零或剧烈波动 | 网络设备故障（交换机/网卡） | 联系基础设施团队检查 |
+| 特定来源 IP 集中出现断连 | 客户端侧网络问题或 DNS 解析异常 | 建议应用使用 IP 连接而非主机名 |
+| 周期性连接超时 + 响应延迟增大 | 网络带宽拥塞 | 检查网络流量峰值是否接近带宽上限 |
 
-# 获取网络流量
-get_metric_data(client,
-    metric_name="NetworkReceiveThroughput",
-    period=60,
-    start_time=now - 300,
-    end_time=now,
-    instance_id="mysql-xxx",
-)
+## 约束与边界
 
-get_metric_data(client,
-    metric_name="NetworkTransmitThroughput",
-    period=60,
-    start_time=now - 300,
-    end_time=now,
-    instance_id="mysql-xxx",
-)
-```
-
-### 步骤 2: 检查连接错误
-
-```python
-# 检查连接错误
-execute_sql(client,
-    sql="SHOW GLOBAL STATUS LIKE 'Aborted%';",
-    instance_id="mysql-xxx",
-    database="performance_schema",
-)
-
-# 检查连接统计
-execute_sql(client,
-    sql="SHOW GLOBAL STATUS LIKE 'Connection%';",
-    instance_id="mysql-xxx",
-    database="performance_schema",
-)
-```
-
-### 步骤 3: 检查异常状态连接
-
-```python
-# 查询活跃会话，从返回结果中筛选异常状态（Timeout/Disconnect 等）
-list_connections(client,
-    show_sleep=True,
-    instance_id="mysql-xxx",
-)
-```
-
-## 常见根因
-
-| 根因 | 说明 |
-|-------|-------------|
-| 网络拥塞 | 网络拥塞 |
-| 硬件问题 | 网卡/交换机故障 |
-| DNS 问题 | DNS 解析问题 |
-| 防火墙 | 防火墙规则变化 |
-| 高延迟 | 网络延迟高 |
+- `get_metric_data` / `get_metric_items` 仅 MySQL 支持
+- `execute_sql` 仅支持只读操作，无法执行 `SET GLOBAL` 修改超时参数
+- 超时参数调整（`connect_timeout`、`wait_timeout`）需到**火山引擎控制台 → 参数管理**修改
+- 网络层面的问题（路由、交换机、DNS）超出数据库工具能力范围，需联系基础设施团队
 
 ## ⚠️ 应急处置（需确认后执行）
 
@@ -108,4 +69,4 @@ list_connections(client,
 
 ## 关联场景
 
-- [主从延迟](replication-delay.md)
+- [连接数打满](connection-full.md)

@@ -14,6 +14,8 @@
 - **核心产出**：每次完整分析必须包含 ① HTML 交互报告 ② PNG 静态截图 ③ 结构化文字结论
 - **生成报告前必须问**：受众是谁？用途是什么？
 
+> 函数参数、数据库兼容性、返回格式详见 [api/metadata-query.md](../api/metadata-query.md)。
+
 ## 工作流（7 步）
 
 | 步骤 | 目标 | 关键 API | 输出 |
@@ -115,9 +117,9 @@ client = create_client()
 df_orders = query_sql(client, sql="SELECT * FROM orders LIMIT 1000", database="company")
 analyzer.register_dataframe('orders', df_orders)
 
-# 注册本地文件
-analyzer.register_file('sales', '../data/regional_sales.csv')
-analyzer.register_file('products', '../data/business_data.xlsx', sheet='Product Inventory')
+# 注册本地文件（路径替换为用户实际文件）
+analyzer.register_file('sales', '<path/to/sales.csv>')
+analyzer.register_file('products', '<path/to/products.xlsx>', sheet='Product Inventory')
 
 # 跨源 SQL 联合查询（基于 DuckDB）
 result = analyzer.query("""

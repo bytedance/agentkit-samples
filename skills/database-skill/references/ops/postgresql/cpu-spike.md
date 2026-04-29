@@ -13,61 +13,46 @@ CPU 打满是指 PostgreSQL 实例的 CPU 使用率持续接近或达到 100%，
 
 > 函数参数详见 [api/ops.md](../../api/ops.md) 和 [api/metadata-query.md](../../api/metadata-query.md)。
 
-## 排查步骤
+## 必看数据
 
-### 步骤 1: 确认 CPU 及整体健康状态
+| 优先级 | 函数 | 关键参数 | 目的 |
+|--------|------|----------|------|
+| P0 | `list_connections` | — | 查看活跃会话，定位长时间运行的查询 |
+| P0 | `describe_health_summary` | — | 获取最近一小时整体健康状态（CPU/内存/连接数/QPS/TPS，含环比同比） |
+| P1 | `execute_sql` | `sql="SELECT ... FROM pg_locks ... WHERE NOT granted"` | 检查锁等待情况 |
 
-```python
-import time
-now = int(time.time())
+## 诊断路径
 
-# 获取最近一小时健康概览（CPU/内存/连接数/QPS/TPS 等，含环比同比）
-describe_health_summary(client,
-    end_time=now,
-    instance_id="pg-xxx",
-)
-```
+1. **看活跃会话** → `list_connections` — 找长时间运行的查询和相同 SQL 模板的堆积
+2. **整体健康** → `describe_health_summary` — 确认 CPU/QPS/TPS 的环比变化
+   - 如果 QPS/TPS 翻倍 → 突发流量，确认业务侧
+   - 如果 QPS 正常但 CPU 高 → 单条 SQL 消耗大，转查慢查询
+3. **定位慢 SQL** → 对活跃会话中长时间运行的 SQL 执行 EXPLAIN ANALYZE
+   - 如果多个会话在等锁 → 转查 `describe_trx_and_locks` / `describe_lock_wait`
+4. **需要终止时** → 从 `list_connections` 获取 `process_id` + `node_id` 传给 `kill_process`
 
-### 步骤 2: 查看活跃会话
+## 关键分析维度
 
-```python
-# 查询活跃会话（按执行时间降序）
-list_connections(client,
-    instance_id="pg-xxx",
-)
-```
+- **时间相关性**：CPU 飙升的起始时间是否与流量高峰/发布上线/定时任务重合
+- **会话特征**：活跃会话中是否有长时间运行的查询（time > 300s）、大量活跃连接
+- **查询计划**：高频 SQL 是否缺少索引导致 Seq Scan
+- **锁竞争**：是否有未授予的锁（`NOT granted`），导致连接堆积
 
-关注：长时间运行的查询（time > 300s）、大量活跃连接。
+## 根因判断知识
 
-### 步骤 4: 检查锁
+| 现象组合 | 通常根因 | 进一步确认 |
+|----------|----------|------------|
+| 活跃会话大量相同 SQL + 无索引 | 全表扫描（Seq Scan） | 对目标 SQL 执行 EXPLAIN ANALYZE 检查 |
+| QPS/TPS 突然翻倍 + 连接数暴增 | 突发流量 | 确认业务发布、活动等 |
+| 多会话等待锁 + granted=false | 锁竞争 | 用 `pg_locks` + `pg_stat_activity` 关联分析阻塞源 |
+| 长时间运行的 PL/pgSQL 函数 | 自定义函数消耗 CPU | 检查函数内部逻辑复杂度 |
+| 大数据量 JOIN/SORT | 复杂查询 | 检查 SQL 是否含多表 JOIN、ORDER BY、子查询 |
 
-```python
-# 检查锁
-execute_sql(client,
-    instance_id="pg-xxx",
-    sql="""
-    SELECT
-        pid,
-        relname,
-        mode,
-        granted,
-        duration
-    FROM pg_locks l
-    JOIN pg_stat_activity a ON l.pid = a.pid
-    WHERE NOT granted;
-    """, database="postgres"
-)
-```
+## 约束与边界
 
-## 常见根因
-
-| 根因 | 说明 |
-|-------|-------------|
-| 复杂查询 | 复杂查询消耗 CPU |
-| 缺少索引 | 缺少索引导致全表扫描 |
-| 高并发 | 并发请求过多 |
-| 大数据处理 | 大数据量处理 |
-| 函数执行 | 自定义函数消耗 CPU |
+- PostgreSQL 不支持 `get_metric_items` / `get_metric_data`，通过 `describe_health_summary` 获取整体指标
+- `execute_sql` 仅支持只读操作，无法执行 `SET` 修改参数
+- 锁信息需通过 SQL 查询 `pg_locks` + `pg_stat_activity` 获取
 
 ## ⚠️ 应急处置（需确认后执行）
 

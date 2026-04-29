@@ -1,9 +1,0 @@
-customer_id,survey_date,satisfaction_score,nps_score,feedback_category
-1,2024-01-15,4.5,9,Product Quality
-2,2024-01-20,3.8,6,Delivery Speed
-3,2024-02-01,4.2,8,Customer Service
-4,2024-02-10,4.8,10,Overall Experience
-5,2024-02-15,3.5,5,Pricing
-1,2024-03-01,4.7,9,Product Quality
-2,2024-03-10,4.0,7,Delivery Speed
-3,2024-03-15,4.5,9,Customer Service

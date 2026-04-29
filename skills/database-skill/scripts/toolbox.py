@@ -19,6 +19,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Literal, Optional, List, Union
 
 from dbw_client import DBWClient
+from error_codes import DbwApiError
 
 
 # ──────────────────────────────────────────────
@@ -45,37 +46,39 @@ _ENV_PATH = os.path.join(
 )
 
 # 各函数不支持的实例类型（"External" 匹配所有 External-* 前缀的实例）
+# 注意：instance_type 取自 client.get_instance_type()，与 dbw API ds_type 一致；
+# SQL Server 的实际值为 "MSSQL"（不是 "SQLServer"）。
 _UNSUPPORTED: dict[str, set[str]] = {
     "list_databases": {"Redis"},
     "list_tables": {"Redis"},
     "get_table_info": {"Mongo", "Redis"},
     "nl2sql": {"Redis"},
     "query_sql": {"Mongo", "Redis"},
-    "describe_slow_logs": {"SQLServer", "Redis", "External"},
-    "describe_aggregate_slow_logs": {"SQLServer", "Redis", "External"},
-    "describe_slow_log_time_series_stats": {"SQLServer", "Redis", "External"},
-    "describe_full_sql_detail": {"SQLServer", "Mongo", "Redis", "External"},
-    "describe_deadlock": {"Postgres", "SQLServer", "Mongo", "Redis", "External"},
-    "describe_trx_and_locks": {"SQLServer", "Mongo", "Redis", "External"},
-    "describe_lock_wait": {"SQLServer", "Mongo", "Redis", "External"},
-    "create_trx_export_task": {"SQLServer", "Mongo", "Redis", "External"},
-    "describe_err_logs": {"SQLServer", "Mongo", "Redis", "External"},
-    "describe_table_space": {"SQLServer", "Mongo", "Redis", "External"},
-    "describe_table_spaces": {"SQLServer", "Mongo", "Redis", "External"},
-    "describe_health_summary": {"SQLServer", "Mongo", "Redis", "External"},
-    "describe_instance_nodes": {"Redis", "External"},
-    "get_metric_items": {"VeDBMySQL", "Postgres", "SQLServer", "Mongo", "Redis", "External"},
-    "get_metric_data": {"VeDBMySQL", "Postgres", "SQLServer", "Mongo", "Redis", "External"},
-    "describe_table_metric": {"SQLServer", "Mongo", "Redis", "External"},
-    "list_connections": {"SQLServer", "Redis", "External"},
-    "list_history_connections": {"SQLServer", "Redis", "External"},
-    "create_dml_sql_change_ticket": {"Mongo", "Redis"},
-    "create_ddl_sql_change_ticket": {"Mongo", "Redis"},
+    "describe_slow_logs": {"MSSQL", "Redis", "External"},
+    "describe_aggregate_slow_logs": {"MSSQL", "Redis", "External"},
+    "describe_slow_log_time_series_stats": {"MSSQL", "Redis", "External"},
+    "describe_full_sql_detail": {"MSSQL", "Mongo", "Redis", "External"},
+    "describe_deadlock": {"Postgres", "MSSQL", "Mongo", "Redis", "External"},
+    "describe_trx_and_locks": {"MSSQL", "Mongo", "Redis", "External"},
+    "describe_lock_wait": {"MSSQL", "Mongo", "Redis", "External"},
+    "create_trx_export_task": {"MSSQL", "Mongo", "Redis", "External"},
+    "describe_err_logs": {"MSSQL", "Mongo", "Redis", "External"},
+    "describe_table_space": {"MSSQL", "Mongo", "Redis", "External"},
+    "describe_table_spaces": {"MSSQL", "Mongo", "Redis", "External"},
+    "describe_health_summary": {"MSSQL", "Mongo", "Redis", "External"},
+    "describe_instance_nodes": {"MSSQL", "Redis", "External"},
+    "get_metric_items": {"VeDBMySQL", "Postgres", "MSSQL", "Mongo", "Redis", "External"},
+    "get_metric_data": {"VeDBMySQL", "Postgres", "MSSQL", "Mongo", "Redis", "External"},
+    "describe_table_metric": {"MSSQL", "Mongo", "Redis", "External"},
+    "list_connections": {"MSSQL", "Redis", "External"},
+    "list_history_connections": {"MSSQL", "Redis", "External"},
+    "create_dml_sql_change_ticket": {"MSSQL", "Mongo", "Redis", "External"},
+    "create_ddl_sql_change_ticket": {"MSSQL", "Mongo", "Redis", "External"},
 }
 
 _TYPE_DISPLAY = {
     "MySQL": "MySQL", "VeDBMySQL": "VeDB-MySQL", "Postgres": "PostgreSQL",
-    "SQLServer": "SQL Server", "Mongo": "MongoDB", "Redis": "Redis", "External": "External",
+    "MSSQL": "SQL Server", "Mongo": "MongoDB", "Redis": "Redis", "External": "External",
 }
 
 
@@ -111,6 +114,57 @@ def _error(message: str, error_detail: Any = None, context: Optional[dict] = Non
     if error_detail:
         result["error"] = error_detail
     return result
+
+
+def _sql_failed(reason_detail: Optional[str], state: str, context: Optional[dict] = None) -> dict[str, Any]:
+    """execute_sql 的 state=Failed 分支：原样返回 reason_detail，由 agent 解读原始错误。"""
+    return _error(
+        reason_detail or "SQL执行失败",
+        {"state": state, "reason_detail": reason_detail},
+        context=context,
+    )
+
+
+def _validate_time_range(start_time: int, end_time: int, max_span_days: int = 30) -> Optional[dict[str, Any]]:
+    """校验 start_time/end_time 合法性（客户端侧，让存量版本也能拦参数）。
+
+    与业界云厂商慢日志接口保持一致采用 30 天上限（dbw-mgr 服务端新版本是 31 天，
+    客户端更严 1 天留端到端缓冲，避免时区/数据延迟导致的 31 天边缘失败）。
+    """
+    if not start_time or not end_time:
+        return _error("start_time 和 end_time 不能为空")
+    if start_time >= end_time:
+        return _error("start_time 必须小于 end_time")
+    if end_time - start_time > max_span_days * 24 * 3600:
+        return _error(f"时间范围不能超过 {max_span_days} 天")
+    return None
+
+
+def _validate_pagination(page_number: int, page_size: int) -> Optional[dict[str, Any]]:
+    """校验分页参数（客户端侧，dbw-mgr MR 5292 前服务端不做校验）。"""
+    if page_number < 1:
+        return _error("page_number 必须 ≥ 1")
+    if page_size < 1 or page_size > 100:
+        return _error("page_size 必须在 1~100 之间")
+    return None
+
+
+def _wrap_exception(func_label: str, exc: Exception, context: Optional[dict] = None) -> dict[str, Any]:
+    """把上游异常（尤其是 DbwApiError）转成结构化错误字典。"""
+    if isinstance(exc, DbwApiError):
+        detail: dict[str, Any] = {"code": exc.code}
+        if exc.code_n is not None:
+            detail["code_n"] = exc.code_n
+        if exc.request_id:
+            detail["request_id"] = exc.request_id
+        if exc.message:
+            detail["raw_message"] = exc.message
+        if exc.hint:
+            detail["hint"] = exc.hint
+        if exc.subtype:
+            detail["subtype"] = exc.subtype
+        return _error(f"{func_label}失败: {exc}", detail, context=context)
+    return _error(f"{func_label}失败: {exc}", context=context)
 
 
 def _to_result(data: Any, message: str = "操作成功", context: Optional[dict] = None) -> dict[str, Any]:
@@ -172,6 +226,119 @@ def _truncate_list(data: dict, *, limit: int = 50, label: str = "data") -> dict:
         "returned_count": limit,
         "artifact_path": artifact_path,
         **{k: (v[:limit] if isinstance(v, list) else v) for k, v in data.items()},
+    }
+
+
+# ──────────────────────────────────────────────
+# 数据归约工具
+# ──────────────────────────────────────────────
+
+def _dump_artifact(data: Any, *, label: str, description: str = "") -> Optional[str]:
+    """将大数据写入临时 JSON 文件，返回文件路径。写入失败返回 None。
+
+    文件头部带 _artifact_meta 描述数据结构，便于后续读取时快速了解内容。
+    """
+    import datetime
+    meta = {
+        "_artifact_meta": {
+            "label": label,
+            "description": description,
+            "created_at": datetime.datetime.now().isoformat(),
+        },
+        "data": data,
+    }
+    try:
+        tmp = tempfile.NamedTemporaryFile(
+            prefix=f"dbw_{label}_", suffix=".json", dir="/tmp", delete=False, mode="w")
+        json.dump(meta, tmp, ensure_ascii=False, indent=2, default=str)
+        tmp.close()
+        return tmp.name
+    except Exception:
+        return None
+
+
+def _compute_connection_stats(sessions: list[dict]) -> dict:
+    """从原始 session 列表计算多维度统计摘要。纯数学运算，不含判断逻辑。
+
+    时间分桶边界：0-10s / 10-60s / 1-5min / 5-60min / >1h。
+    """
+    from collections import Counter, defaultdict
+
+    total = len(sessions)
+    if total == 0:
+        return {"total": 0, "sleep_count": 0, "sleep_ratio": 0.0,
+                "active_count": 0, "active_ratio": 0.0,
+                "by_command": {}, "by_user_top10": [], "by_db_top10": [],
+                "by_ip_top10": [], "by_time_bucket": {},
+                "user_count": 0, "ip_count": 0}
+
+    # by command
+    cmd_counter = Counter(s.get("command", "") for s in sessions)
+    sleep_count = cmd_counter.get("Sleep", 0)
+    active_count = total - sleep_count
+
+    # by user — count + avg_time
+    user_stats = defaultdict(lambda: {"count": 0, "total_time": 0})
+    for s in sessions:
+        user = s.get("user", "")
+        user_stats[user]["count"] += 1
+        user_stats[user]["total_time"] += int(s.get("time", 0))
+
+    by_user_top10 = []
+    for user, st in sorted(user_stats.items(), key=lambda x: -x[1]["count"])[:10]:
+        avg_time = st["total_time"] / st["count"] if st["count"] else 0
+        by_user_top10.append({
+            "user": user, "count": st["count"],
+            "ratio": round(st["count"] / total, 3),
+            "avg_time": round(avg_time, 1),
+        })
+
+    # by db
+    db_counter = Counter(s.get("db") or "(none)" for s in sessions)
+    by_db_top10 = [{"db": db, "count": cnt, "ratio": round(cnt / total, 3)}
+                   for db, cnt in db_counter.most_common(10)]
+
+    # by ip
+    def _extract_ip(host: str) -> str:
+        return host.split(":")[0] if host else ""
+    ip_counter = Counter(_extract_ip(s.get("host", "")) for s in sessions)
+    by_ip_top10 = [{"ip": ip, "count": cnt, "ratio": round(cnt / total, 3)}
+                   for ip, cnt in ip_counter.most_common(10)]
+
+    # by time bucket
+    buckets = {"0-10s": 0, "10-60s": 0, "1-5min": 0, "5-60min": 0, ">1h": 0}
+    sleep_times = []
+    for s in sessions:
+        t = int(s.get("time", 0))
+        if t <= 10:
+            buckets["0-10s"] += 1
+        elif t <= 60:
+            buckets["10-60s"] += 1
+        elif t <= 300:
+            buckets["1-5min"] += 1
+        elif t <= 3600:
+            buckets["5-60min"] += 1
+        else:
+            buckets[">1h"] += 1
+        if s.get("command") == "Sleep":
+            sleep_times.append(t)
+
+    avg_sleep_time = round(sum(sleep_times) / len(sleep_times), 1) if sleep_times else 0.0
+
+    return {
+        "total": total,
+        "by_command": dict(cmd_counter.most_common()),
+        "sleep_count": sleep_count,
+        "sleep_ratio": round(sleep_count / total, 3),
+        "active_count": active_count,
+        "active_ratio": round(active_count / total, 3),
+        "avg_sleep_time": avg_sleep_time,
+        "by_user_top10": by_user_top10,
+        "by_db_top10": by_db_top10,
+        "by_ip_top10": by_ip_top10,
+        "by_time_bucket": buckets,
+        "user_count": len(user_stats),
+        "ip_count": len(ip_counter),
     }
 
 
@@ -483,7 +650,8 @@ def nl2sql(
         result = client.dbw.nl2sql(req)
         return _to_result(result, "SQL生成成功", context=ctx)
     except Exception as e:
-        return _error(f"nl2sql失败: {str(e)}")
+
+        return _wrap_exception("nl2sql", e)
 
 
 def execute_sql(
@@ -533,11 +701,7 @@ def execute_sql(
                         "rows": _normalize_rows(columns, rows),
                     }, "查询成功", context=ctx)
                 else:
-                    return _error(
-                        first.get("ReasonDetail", "SQL执行失败"),
-                        {"state": state, "reason_detail": first.get("ReasonDetail")},
-                        context=ctx,
-                    )
+                    return _sql_failed(first.get("ReasonDetail"), state, ctx)
 
             # 适配 snake_case 返回
             if "results" in result and isinstance(result["results"], list) and result["results"]:
@@ -554,11 +718,7 @@ def execute_sql(
                         "rows": _normalize_rows(columns, rows),
                     }, "查询成功", context=ctx)
                 else:
-                    return _error(
-                        first.get("reason_detail", "SQL执行失败"),
-                        {"state": state, "reason_detail": first.get("reason_detail")},
-                        context=ctx,
-                    )
+                    return _sql_failed(first.get("reason_detail"), state, ctx)
 
             # 旧格式兜底
             state = result.get("state", "")
@@ -573,14 +733,10 @@ def execute_sql(
                     "rows": _normalize_rows(columns, rows),
                 }, "查询成功", context=ctx)
             else:
-                return _error(
-                    result.get("reason_detail", "SQL执行失败"),
-                    {"state": state, "reason_detail": result.get("reason_detail")},
-                    context=ctx,
-                )
+                return _sql_failed(result.get("reason_detail"), state, ctx)
         return _to_result(result, "执行完成", context=ctx)
     except Exception as e:
-        return _error(f"execute_sql失败: {str(e)}")
+        return _wrap_exception("execute_sql", e)
 
 
 def query_sql(
@@ -661,7 +817,7 @@ def list_databases(
 
         return _to_result(result, context=ctx)
     except Exception as e:
-        return _error(f"list_databases失败: {str(e)}")
+        return _wrap_exception("list_databases", e)
 
 
 def list_tables(
@@ -670,7 +826,7 @@ def list_tables(
     database: Optional[str] = None,
     schema: Optional[str] = None,
     page_number: int = 1,
-    page_size: int = 10,
+    page_size: int = 50,
     fetch_all: bool = False,
 ) -> dict[str, Any]:
     """列出数据库中的表。fetch_all=True 获取全部表。"""
@@ -730,7 +886,7 @@ def list_tables(
 
         return _to_result(result, context=ctx)
     except Exception as e:
-        return _error(f"list_tables失败: {str(e)}")
+        return _wrap_exception("list_tables", e)
 
 
 def get_table_info(
@@ -793,7 +949,7 @@ def get_table_info(
 
         return _to_result(result, context=ctx)
     except Exception as e:
-        return _error(f"get_table_info失败: {str(e)}")
+        return _wrap_exception("get_table_info", e)
 
 
 def _pg_get_table_info(
@@ -906,7 +1062,7 @@ def list_instances(
 
         return _to_result(result, context=ctx)
     except Exception as e:
-        return _error(f"describe_instances失败: {str(e)}")
+        return _wrap_exception("describe_instances", e)
 
 
 # ──────────────────────────────────────────────
@@ -918,13 +1074,10 @@ def create_dml_sql_change_ticket(
     sql_text: str,
     instance_id: Optional[str] = None,
     database: Optional[str] = None,
-    ticket_execute_type: str = "Auto",
-    exec_start_time: Optional[int] = None,
-    exec_end_time: Optional[int] = None,
     title: Optional[str] = None,
     memo: Optional[str] = None,
 ) -> dict[str, Any]:
-    """创建 DML 工单（数据变更）。"""
+    """创建 DML 工单（数据变更）。执行方式固定为 Manual（审批后由用户手动触发）。"""
     try:
         if not sql_text:
             return _error("sql_text 参数不能为空")
@@ -945,12 +1098,8 @@ def create_dml_sql_change_ticket(
             "instance_type": p["instance_type"],
             "database_name": p["database"],
             "sql_text": sql_text,
-            "ticket_execute_type": ticket_execute_type or "Auto",
+            "ticket_execute_type": "Manual",
         }
-        if exec_start_time:
-            req["exec_start_time"] = exec_start_time
-        if exec_end_time:
-            req["exec_end_time"] = exec_end_time
         if title:
             req["title"] = title
         if memo:
@@ -973,7 +1122,7 @@ def create_dml_sql_change_ticket(
 
         return _to_result(result, "工单创建成功", context=ctx)
     except Exception as e:
-        return _error(f"create_dml_sql_change_ticket失败: {str(e)}")
+        return _wrap_exception("create_dml_sql_change_ticket", e)
 
 
 def create_ddl_sql_change_ticket(
@@ -981,13 +1130,10 @@ def create_ddl_sql_change_ticket(
     sql_text: str,
     instance_id: Optional[str] = None,
     database: Optional[str] = None,
-    ticket_execute_type: str = "Auto",
-    exec_start_time: Optional[int] = None,
-    exec_end_time: Optional[int] = None,
     title: Optional[str] = None,
     memo: Optional[str] = None,
 ) -> dict[str, Any]:
-    """创建 DDL 工单（结构变更）。"""
+    """创建 DDL 工单（结构变更）。执行方式固定为 Manual（审批后由用户手动触发）。"""
     try:
         if not sql_text:
             return _error("sql_text 参数不能为空")
@@ -1008,12 +1154,8 @@ def create_ddl_sql_change_ticket(
             "instance_type": p["instance_type"],
             "database_name": p["database"],
             "sql_text": sql_text,
-            "ticket_execute_type": ticket_execute_type or "Auto",
+            "ticket_execute_type": "Manual",
         }
-        if exec_start_time:
-            req["exec_start_time"] = exec_start_time
-        if exec_end_time:
-            req["exec_end_time"] = exec_end_time
         if title:
             req["title"] = title
         if memo:
@@ -1036,7 +1178,7 @@ def create_ddl_sql_change_ticket(
 
         return _to_result(result, "工单创建成功", context=ctx)
     except Exception as e:
-        return _error(f"create_ddl_sql_change_ticket失败: {str(e)}")
+        return _wrap_exception("create_ddl_sql_change_ticket", e)
 
 
 def describe_tickets(
@@ -1087,7 +1229,7 @@ def describe_tickets(
 
         return _to_result(result)
     except Exception as e:
-        return _error(f"describe_tickets失败: {str(e)}")
+        return _wrap_exception("describe_tickets", e)
 
 
 def describe_ticket_detail(client: ToolboxClient, ticket_id: str) -> dict[str, Any]:
@@ -1117,7 +1259,7 @@ def describe_ticket_detail(client: ToolboxClient, ticket_id: str) -> dict[str, A
 
         return _to_result(result)
     except Exception as e:
-        return _error(f"describe_ticket_detail失败: {str(e)}")
+        return _wrap_exception("describe_ticket_detail", e)
 
 
 def describe_workflow(client: ToolboxClient, ticket_id: str) -> dict[str, Any]:
@@ -1147,7 +1289,7 @@ def describe_workflow(client: ToolboxClient, ticket_id: str) -> dict[str, Any]:
 
         return _to_result(result)
     except Exception as e:
-        return _error(f"describe_workflow失败: {str(e)}")
+        return _wrap_exception("describe_workflow", e)
 
 
 # ──────────────────────────────────────────────
@@ -1159,16 +1301,28 @@ def describe_slow_logs(
     start_time: int,
     end_time: int,
     instance_id: Optional[str] = None,
+    database: Optional[str] = None,
     page_number: int = 1,
     page_size: int = 10,
     order_by: str = "QueryTime",
     sort_by: str = "DESC",
+    users: Optional[list[str]] = None,
+    source_ips: Optional[list[str]] = None,
+    min_query_time: Optional[float] = None,
+    max_query_time: Optional[float] = None,
     node_id: Optional[str] = None,
 ) -> dict[str, Any]:
-    """查询慢查询日志明细。start_time/end_time 为 Unix 时间戳（秒）。"""
+    """查询慢查询日志明细。start_time/end_time 为 Unix 时间戳（秒）。
+    database: 按数据库名过滤。
+
+    客户端侧校验（让存量版本服务端不做校验时也能拿到友好报错）：
+    start_time 必填且 end_time > start_time；时间跨度 ≤ 30 天；
+    page_number ≥ 1；1 ≤ page_size ≤ 100。
+    """
     try:
-        if not start_time or not end_time:
-            return _error("start_time 和 end_time 不能为空")
+        err = _validate_time_range(start_time, end_time) or _validate_pagination(page_number, page_size)
+        if err:
+            return err
         prep = _prepare(client, instance_id=instance_id)
         if not prep["ok"]:
             return prep["error"]
@@ -1177,6 +1331,18 @@ def describe_slow_logs(
         unsupported = _check_supported("describe_slow_logs", p["instance_type"], ctx)
         if unsupported:
             return unsupported
+
+        search_param: dict[str, Any] = {}
+        if database:
+            search_param["DBs"] = [database]
+        if users:
+            search_param["Users"] = users
+        if source_ips:
+            search_param["SourceIPs"] = source_ips
+        if min_query_time is not None:
+            search_param["MinQueryTime"] = min_query_time
+        if max_query_time is not None:
+            search_param["MaxQueryTime"] = max_query_time
 
         args = {
             "instance_id": p["instance_id"],
@@ -1191,6 +1357,8 @@ def describe_slow_logs(
         }
         if node_id:
             args["node_id"] = node_id
+        if search_param:
+            args["search_param"] = search_param
 
         result = client.dbw.describe_slow_logs(args)
 
@@ -1207,14 +1375,19 @@ def describe_slow_logs(
                 "ip": log.get("source_ip", ""),
                 "database": log.get("db", ""),
             } for log in result.get("slow_logs", [])]
+            total = result.get("total", 0)
+            returned_count = len(logs)
             return _ok({
-                "total": result.get("total", 0),
+                "total": total,
+                "page_number": page_number,
+                "page_size": page_size,
+                "returned_count": returned_count,
                 "logs": logs,
-            }, f"共 {len(logs)} 条慢查询", context=ctx)
+            }, f"返回 {returned_count}/{total} 条慢查询（第 {page_number} 页，每页 {page_size} 条）", context=ctx)
 
         return _to_result(result, context=ctx)
     except Exception as e:
-        return _error(f"describe_slow_logs失败: {str(e)}")
+        return _wrap_exception("describe_slow_logs", e)
 
 
 def describe_aggregate_slow_logs(
@@ -1222,17 +1395,28 @@ def describe_aggregate_slow_logs(
     start_time: int,
     end_time: int,
     instance_id: Optional[str] = None,
+    database: Optional[str] = None,
     page_number: int = 1,
     page_size: int = 10,
     order_by: str = "TotalQueryTime",
     sort_by: str = "DESC",
-    search_param: Optional[dict] = None,
+    users: Optional[list[str]] = None,
+    source_ips: Optional[list[str]] = None,
+    keywords: Optional[list[str]] = None,
+    tables: Optional[list[str]] = None,
+    min_query_time: Optional[float] = None,
+    max_query_time: Optional[float] = None,
     node_id: Optional[str] = None,
 ) -> dict[str, Any]:
-    """查询慢查询聚合统计（推荐首选）。"""
+    """查询慢查询聚合统计（推荐首选）。
+    database: 按数据库名过滤；keywords: SQL 关键词过滤；tables: 按表名过滤。
+
+    客户端校验：时间跨度 ≤ 30 天；page_number ≥ 1；1 ≤ page_size ≤ 100。
+    """
     try:
-        if not start_time or not end_time:
-            return _error("start_time 和 end_time 不能为空")
+        err = _validate_time_range(start_time, end_time) or _validate_pagination(page_number, page_size)
+        if err:
+            return err
         prep = _prepare(client, instance_id=instance_id)
         if not prep["ok"]:
             return prep["error"]
@@ -1241,6 +1425,22 @@ def describe_aggregate_slow_logs(
         unsupported = _check_supported("describe_aggregate_slow_logs", p["instance_type"], ctx)
         if unsupported:
             return unsupported
+
+        search_param: dict[str, Any] = {}
+        if database:
+            search_param["DBs"] = [database]
+        if users:
+            search_param["Users"] = users
+        if source_ips:
+            search_param["SourceIPs"] = source_ips
+        if keywords:
+            search_param["Keywords"] = keywords
+        if tables:
+            search_param["Tables"] = tables
+        if min_query_time is not None:
+            search_param["MinQueryTime"] = min_query_time
+        if max_query_time is not None:
+            search_param["MaxQueryTime"] = max_query_time
 
         args = {
             "instance_id": p["instance_id"],
@@ -1282,13 +1482,22 @@ def describe_aggregate_slow_logs(
             } for log in result.get("aggregate_slow_logs", [])]
 
             total = result.get("total", 0)
-            data = _truncate_list({"logs": logs}, limit=50, label="slow_agg")
-            data["total"] = total
-            return _ok(data, f"共 {total} 条聚合慢查询", context=ctx)
+            returned_count = len(logs)
+            trunc = _truncate_list({"logs": logs}, limit=50, label="slow_agg")
+            data = {
+                "total": total,
+                "page_number": page_number,
+                "page_size": page_size,
+                "returned_count": returned_count,
+                "truncated": trunc["truncated"],
+                "artifact_path": trunc["artifact_path"],
+                "logs": trunc["logs"],
+            }
+            return _ok(data, f"返回 {returned_count}/{total} 条聚合慢查询（第 {page_number} 页，每页 {page_size} 条）", context=ctx)
 
         return _to_result(result, context=ctx)
     except Exception as e:
-        return _error(f"describe_aggregate_slow_logs失败: {str(e)}")
+        return _wrap_exception("describe_aggregate_slow_logs", e)
 
 
 def describe_slow_log_time_series_stats(
@@ -1296,14 +1505,20 @@ def describe_slow_log_time_series_stats(
     start_time: int,
     end_time: int,
     instance_id: Optional[str] = None,
+    database: Optional[str] = None,
     interval: int = 300,
-    search_param: Optional[dict] = None,
+    min_query_time: Optional[float] = None,
+    max_query_time: Optional[float] = None,
     node_id: Optional[str] = None,
 ) -> dict[str, Any]:
-    """查询慢查询时间序列趋势。"""
+    """查询慢查询时间序列趋势。database: 按数据库名过滤。
+
+    客户端校验：时间跨度 ≤ 30 天。
+    """
     try:
-        if not start_time or not end_time:
-            return _error("start_time, end_time 不能为空")
+        err = _validate_time_range(start_time, end_time)
+        if err:
+            return err
         prep = _prepare(client, instance_id=instance_id)
         if not prep["ok"]:
             return prep["error"]
@@ -1312,6 +1527,14 @@ def describe_slow_log_time_series_stats(
         unsupported = _check_supported("describe_slow_log_time_series_stats", p["instance_type"], ctx)
         if unsupported:
             return unsupported
+
+        search_param: dict[str, Any] = {}
+        if database:
+            search_param["DBs"] = [database]
+        if min_query_time is not None:
+            search_param["MinQueryTime"] = min_query_time
+        if max_query_time is not None:
+            search_param["MaxQueryTime"] = max_query_time
 
         args = {
             "instance_id": p["instance_id"],
@@ -1336,7 +1559,7 @@ def describe_slow_log_time_series_stats(
 
         return _to_result(result, context=ctx)
     except Exception as e:
-        return _error(f"describe_slow_log_time_series_stats失败: {str(e)}")
+        return _wrap_exception("describe_slow_log_time_series_stats", e)
 
 
 def describe_full_sql_detail(
@@ -1344,11 +1567,20 @@ def describe_full_sql_detail(
     start_time: int,
     end_time: int,
     instance_id: Optional[str] = None,
-    page_size: int = 10,
-    search_param: Optional[dict] = None,
+    database: Optional[str] = None,
+    page_size: int = 50,
+    users: Optional[list[str]] = None,
+    source_ips: Optional[list[str]] = None,
+    keywords: Optional[list[str]] = None,
+    tables: Optional[list[str]] = None,
+    sql_methods: Optional[list[str]] = None,
+    min_exec_time: Optional[int] = None,
+    max_exec_time: Optional[int] = None,
     context: Optional[str] = None,
 ) -> dict[str, Any]:
-    """查询完整 SQL 历史详情。"""
+    """查询完整 SQL 历史详情。支持游标翻页（context 参数）。
+    database: 按数据库名过滤。min_exec_time/max_exec_time: 执行时间过滤（毫秒）。
+    context: 翻页游标，从上次返回的 data.context 获取。list_over=True 时已无更多数据。"""
     try:
         if not start_time or not end_time:
             return _error("start_time, end_time 不能为空")
@@ -1361,13 +1593,31 @@ def describe_full_sql_detail(
         if unsupported:
             return unsupported
 
+        search_param: dict[str, Any] = {}
+        if database:
+            search_param["DBs"] = [database]
+        if users:
+            search_param["Users"] = users
+        if source_ips:
+            search_param["SourceIPs"] = source_ips
+        if keywords:
+            search_param["KeyWords"] = keywords
+        if tables:
+            search_param["Tables"] = tables
+        if sql_methods:
+            search_param["SqlMethods"] = sql_methods
+        if min_exec_time is not None:
+            search_param["DuringDown"] = min_exec_time
+        if max_exec_time is not None:
+            search_param["DuringUp"] = max_exec_time
+
         args = {
             "FollowInstanceID": p["instance_id"],
             "instance_type": p["instance_type"],
             "start_time": start_time,
             "end_time": end_time,
             "page_size": page_size,
-            "search_param": search_param or {},
+            "search_param": search_param,
         }
         if context:
             args["context"] = context
@@ -1395,16 +1645,21 @@ def describe_full_sql_detail(
                 "node_id": sql.get("node_id", ""),
                 "sql_template": sql.get("sql_template", ""),
             } for sql in (result.get("describe_full_sql_detail_rows") or [])]
+            total = result.get("total", 0)
+            returned_count = len(normalized)
+            list_over = result.get("list_over", False)
             return _ok({
-                "total": result.get("total", 0),
-                "list_over": result.get("list_over", False),
+                "total": total,
+                "page_size": page_size,
+                "returned_count": returned_count,
+                "list_over": list_over,
                 "context": result.get("context", ""),
                 "sql_list": normalized,
-            }, f"共 {len(normalized)} 条 SQL 详情", context=ctx)
+            }, f"返回 {returned_count}/{total} 条 SQL 详情（{'已到末页' if list_over else '可用 context 翻页'}）", context=ctx)
 
         return _to_result(result, context=ctx)
     except Exception as e:
-        return _error(f"describe_full_sql_detail失败: {str(e)}")
+        return _wrap_exception("describe_full_sql_detail", e)
 
 
 # ──────────────────────────────────────────────
@@ -1513,7 +1768,7 @@ def describe_health_summary(
 
         return _to_result(result, "查询健康概览成功", context=ctx)
     except Exception as e:
-        return _error(f"describe_health_summary失败: {str(e)}")
+        return _wrap_exception("describe_health_summary", e)
 
 
 # ──────────────────────────────────────────────
@@ -1556,7 +1811,7 @@ def get_metric_data(
         result = client.dbw.get_metric_data(req)
         return _to_result(result, "获取监控数据成功", context=ctx)
     except Exception as e:
-        return _error(f"get_metric_data失败: {str(e)}")
+        return _wrap_exception("get_metric_data", e)
 
 
 def get_metric_items(
@@ -1577,7 +1832,7 @@ def get_metric_items(
         result = client.dbw.get_metric_items({"InstanceType": p["instance_type"]})
         return _to_result(result, "获取监控指标项成功", context=ctx)
     except Exception as e:
-        return _error(f"get_metric_items失败: {str(e)}")
+        return _wrap_exception("get_metric_items", e)
 
 
 def describe_table_metric(
@@ -1617,7 +1872,7 @@ def describe_table_metric(
         result = client.dbw.describe_table_metric(req)
         return _to_result(result, "获取表监控成功", context=ctx)
     except Exception as e:
-        return _error(f"describe_table_metric失败: {str(e)}")
+        return _wrap_exception("describe_table_metric", e)
 
 
 
@@ -1746,11 +2001,23 @@ def list_connections(
                 futures = [pool.submit(_fetch_node, nid) for nid in node_ids_to_query]
                 for fut in as_completed(futures):
                     all_sessions.extend(fut.result())
-            all_sessions.sort(key=lambda s: int(s.get("time", 0)), reverse=True)
+            all_sessions.sort(key=lambda s: float(s.get("time", 0)), reverse=True)
             total = len(all_sessions)
             start = (page_number - 1) * page_size
             paged = all_sessions[start:start + page_size]
-            return _ok({"total": total, "returned_count": len(paged), "sessions": paged},
+            result_data: dict[str, Any] = {
+                "total": total, "page_number": page_number, "page_size": page_size,
+                "returned_count": len(paged), "sessions": paged,
+            }
+            # 大数据量时自动计算统计摘要 + 落盘全量数据
+            if total > 100:
+                result_data["stats"] = _compute_connection_stats(all_sessions)
+                artifact = _dump_artifact(
+                    {"sessions": all_sessions},
+                    label="connections", description=f"全量连接数据({total}条)")
+                if artifact:
+                    result_data["artifact_path"] = artifact
+            return _ok(result_data,
                        f"共 {total} 个实时会话，本页返回 {len(paged)} 个", context=ctx)
         else:
             # 非 VeDB：直接透传分页参数
@@ -1768,11 +2035,22 @@ def list_connections(
             dlist = details.get("dialog_details") or details.get("DialogDetails") or []
             total = details.get("total", details.get("Total", len(dlist)))
             sessions = _parse_sessions(dlist)
-            sessions.sort(key=lambda s: int(s.get("time", 0)), reverse=True)
-            return _ok({"total": total, "returned_count": len(sessions), "sessions": sessions},
+            sessions.sort(key=lambda s: float(s.get("time", 0)), reverse=True)
+            result_data: dict[str, Any] = {
+                "total": total, "page_number": page_number, "page_size": page_size,
+                "returned_count": len(sessions), "sessions": sessions,
+            }
+            # 当前页数据较多时计算统计摘要（帮助 Agent 快速了解分布）
+            if len(sessions) >= 50:
+                result_data["stats"] = _compute_connection_stats(sessions)
+                if total > len(sessions):
+                    result_data["stats"]["note"] = (
+                        f"统计基于当前页 {len(sessions)} 条数据，"
+                        f"总共 {total} 条。如需全量统计请翻页拉取。")
+            return _ok(result_data,
                        f"共 {total} 个实时会话，本页返回 {len(sessions)} 个", context=ctx)
     except Exception as e:
-        return _error(f"list_connections失败: {str(e)}")
+        return _wrap_exception("list_connections", e)
 
 
 
@@ -1940,7 +2218,7 @@ def list_history_connections(
             "summary": summary,
         }, f"快照时间 {target_time}，共 {total} 个连接", context=ctx)
     except Exception as e:
-        return _error(f"list_history_connections失败: {str(e)}")
+        return _wrap_exception("list_history_connections", e)
 
 
 def kill_process(
@@ -2058,7 +2336,7 @@ def kill_process(
         return _to_result(result, f"已终止 {total_killed} 个匹配会话", context=ctx)
 
     except Exception as e:
-        return _error(f"kill_process失败: {str(e)}")
+        return _wrap_exception("kill_process", e)
 
 
 # ──────────────────────────────────────────────
@@ -2175,17 +2453,47 @@ def _analyze_trx_and_lock(
                     item["lock_list"] = lock_list[:5]
 
     total = analysis_data.get("total") or analysis_data.get("Total") or len(items)
+    returned_count = len(items)
 
     result_data = {
         "total": total,
-        "items": items,
+        "page_number": page_number,
+        "page_size": page_size,
+        "returned_count": returned_count,
         "diagnosis_time": diagnosis_time,
         "node_id": nid,
+        "items": items,
     }
 
     type_label = {"TrxAndLock": "事务和锁", "Deadlock": "死锁", "LockWait": "锁等待"}
     label = type_label.get(diagnosis_type, diagnosis_type)
-    return _ok(result_data, f"{label}分析完成，共 {total} 条记录", context=ctx)
+    return _ok(result_data, f"{label}分析完成，返回 {returned_count}/{total} 条记录（第 {page_number} 页）", context=ctx)
+
+
+def describe_instance_nodes(
+    client: ToolboxClient,
+    instance_id: Optional[str] = None,
+) -> dict[str, Any]:
+    """查询实例节点列表。用于获取 node_id（VeDB describe_deadlock 等场景需要）。"""
+    try:
+        prep = _prepare(client, instance_id=instance_id)
+        if not prep["ok"]:
+            return prep["error"]
+        p, ctx = prep["params"], prep["ctx"]
+
+        unsupported = _check_supported("describe_instance_nodes", p["instance_type"], ctx)
+        if unsupported:
+            return unsupported
+
+        result = client.dbw.describe_instance_nodes({
+            "DSType": p["instance_type"],
+            "InstanceId": p["instance_id"],
+        })
+
+        nodes = result.get("nodes_info") or []
+        return _ok({"total": len(nodes), "nodes": nodes}, f"共 {len(nodes)} 个节点", context=ctx)
+    except Exception as e:
+        return _wrap_exception("describe_instance_nodes", e)
 
 
 def describe_deadlock(
@@ -2202,7 +2510,7 @@ def describe_deadlock(
             page_number=page_number, page_size=page_size, search_param=None,
         )
     except Exception as e:
-        return _error(f"describe_deadlock失败: {str(e)}")
+        return _wrap_exception("describe_deadlock", e)
 
 
 def describe_trx_and_locks(
@@ -2210,23 +2518,37 @@ def describe_trx_and_locks(
     instance_id: Optional[str] = None,
     page_number: int = 1,
     page_size: int = 50,
-    search_param: Optional[dict] = None,
+    lock_status: Optional[str] = None,
+    trx_status: Optional[str] = None,
+    process_id: Optional[str] = None,
+    trx_id: Optional[str] = None,
+    block_trx_id: Optional[str] = None,
 ) -> dict[str, Any]:
     """触发事务和锁分析并返回结果。自动查询 Primary 节点执行分析。
-
-    search_param 过滤条件（TrxAndLockQueryFilter）：
-      LockStatus: "LockHold" / "LockWait" / "LockHoldAndWait"
-      TrxStatus: "RUNNING" / "LOCKWAIT" / "ROLLING_BACK" / "COMMITTING"
-      ProcessId / TrxId / BlockTrxId: 精确匹配
-    """
+    lock_status: "LockHold"（仅持锁）/ "LockWait"（仅等锁）/ "LockHoldAndWait"
+    trx_status: "RUNNING" / "LOCKWAIT" / "ROLLING_BACK" / "COMMITTING"
+    process_id / trx_id / block_trx_id: 精确匹配。"""
     try:
+        search_param: dict[str, Any] = {}
+        if lock_status:
+            search_param["LockStatus"] = lock_status
+        if trx_status:
+            search_param["TrxStatus"] = trx_status
+        if process_id:
+            search_param["ProcessId"] = process_id
+        if trx_id:
+            search_param["TrxId"] = trx_id
+        if block_trx_id:
+            search_param["BlockTrxId"] = block_trx_id
+
         return _analyze_trx_and_lock(
             client, "TrxAndLock", "describe_trx_and_locks",
             instance_id=instance_id,
-            page_number=page_number, page_size=page_size, search_param=search_param,
+            page_number=page_number, page_size=page_size,
+            search_param=search_param if search_param else None,
         )
     except Exception as e:
-        return _error(f"describe_trx_and_locks失败: {str(e)}")
+        return _wrap_exception("describe_trx_and_locks", e)
 
 
 def describe_lock_wait(
@@ -2234,23 +2556,34 @@ def describe_lock_wait(
     instance_id: Optional[str] = None,
     page_number: int = 1,
     page_size: int = 50,
-    search_param: Optional[dict] = None,
+    r_trx_state: Optional[str] = None,
+    b_trx_state: Optional[str] = None,
+    r_trx_id: Optional[str] = None,
+    b_trx_id: Optional[str] = None,
 ) -> dict[str, Any]:
     """触发锁等待分析并返回结果。自动查询 Primary 节点执行分析。
-
-    search_param 过滤条件（LockWaitQueryFilter）：
-      RTrxState: 等待方事务状态 "RUNNING" / "LOCKWAIT" / "ROLLING_BACK" / "COMMITTING"
-      BTrxState: 阻塞方事务状态（同上）
-      RTrxId / BTrxId: 精确匹配事务 ID
-    """
+    r_trx_state: 等待方（被阻塞）事务状态 "RUNNING" / "LOCKWAIT" / "ROLLING_BACK" / "COMMITTING"
+    b_trx_state: 阻塞方事务状态（同上）
+    r_trx_id / b_trx_id: 精确匹配事务 ID。"""
     try:
+        search_param: dict[str, Any] = {}
+        if r_trx_state:
+            search_param["RTrxState"] = r_trx_state
+        if b_trx_state:
+            search_param["BTrxState"] = b_trx_state
+        if r_trx_id:
+            search_param["RTrxId"] = r_trx_id
+        if b_trx_id:
+            search_param["BTrxId"] = b_trx_id
+
         return _analyze_trx_and_lock(
             client, "LockWait", "describe_lock_wait",
             instance_id=instance_id,
-            page_number=page_number, page_size=page_size, search_param=search_param,
+            page_number=page_number, page_size=page_size,
+            search_param=search_param if search_param else None,
         )
     except Exception as e:
-        return _error(f"describe_lock_wait失败: {str(e)}")
+        return _wrap_exception("describe_lock_wait", e)
 
 
 def create_trx_export_task(
@@ -2279,7 +2612,7 @@ def create_trx_export_task(
         result = client.dbw.create_trx_export_task(req)
         return _to_result(result, "创建事务导出任务成功", context=ctx)
     except Exception as e:
-        return _error(f"create_trx_export_task失败: {str(e)}")
+        return _wrap_exception("create_trx_export_task", e)
 
 
 
@@ -2321,7 +2654,7 @@ def describe_err_logs(
         result = client.dbw.describe_err_logs(req)
         return _to_result(result, "查询错误日志成功", context=ctx)
     except Exception as e:
-        return _error(f"describe_err_logs失败: {str(e)}")
+        return _wrap_exception("describe_err_logs", e)
 
 
 def describe_table_space(
@@ -2357,7 +2690,7 @@ def describe_table_space(
         result = client.dbw.describe_table_space(req)
         return _to_result(result, "查询表空间详情成功", context=ctx)
     except Exception as e:
-        return _error(f"describe_table_space失败: {str(e)}")
+        return _wrap_exception("describe_table_space", e)
 
 
 def describe_table_spaces(
@@ -2383,7 +2716,7 @@ def describe_table_spaces(
         result = client.dbw.describe_table_spaces(req)
         return _to_result(result, "查询表空间列表成功")
     except Exception as e:
-        return _error(f"describe_table_spaces失败: {str(e)}")
+        return _wrap_exception("describe_table_spaces", e)
 
 
 # ──────────────────────────────────────────────

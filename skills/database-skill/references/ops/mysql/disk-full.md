@@ -14,115 +14,49 @@
 
 > 函数参数详见 [api/ops.md](../../api/ops.md)。
 
-## 排查步骤
+## 必看数据
 
-### 步骤 0: 获取支持的监控指标（推荐先执行）
+| 优先级 | 函数 | 关键参数 | 目的 |
+|--------|------|----------|------|
+| P0 | `describe_table_space` | — | 获取所有库表的数据量和索引大小，定位空间消耗最大的表 |
+| P0 | `describe_table_space` | `database="db_name"`, `table_name="table_name"` | 查看特定表的详细空间信息 |
+| P1 | `get_metric_data` | `metric_name="DiskUtil"` | 确认磁盘使用率趋势和增长速度 |
+| P1 | — | ~~`SHOW BINARY LOGS`~~ 被平台拦截 | Binlog 占用需到**控制台 → 日志管理**查看 |
+| P2 | `execute_sql` | `sql="SELECT ... FROM information_schema.FILES WHERE FILE_TYPE='TABLESPACE'"` | 检查 InnoDB 表空间文件大小 |
+| P2 | `get_metric_items` | — | 获取支持的监控指标列表，按需选取更多指标 |
 
-> **提示**：在获取具体指标数据之前，建议先调用 `get_metric_items` 查看当前实例支持哪些指标，然后选择合适的指标进行获取。
+## 诊断路径
 
-```python
-# 获取当前实例支持的监控指标列表
-get_metric_items(client,
-)
-```
+1. **定位大表** → `describe_table_space` — 找空间消耗最大的表和库
+2. **检查 Binlog** — `SHOW BINARY LOGS` 被平台 SQL parser 拦截不可执行；通过 `describe_table_space` 的整体空间占用间接判断 Binlog 是否异常，或到控制台 → 日志管理查看
+3. **确认趋势** → MySQL: `get_metric_data(DiskUtil)`；VeDB: 用 `describe_health_summary` — 判断是突发还是持续增长
+   - 突发 → 检查是否有大查询/DDL 产生临时文件
+   - 持续增长 → 数据增长未配套清理策略
+4. **需要清理时** → 旧数据走 `create_dml_sql_change_ticket`，无用索引走 `create_ddl_sql_change_ticket`
 
-### 步骤 1: 检查磁盘使用率
+## 关键分析维度
 
-```python
-import time
-now = int(time.time())
+- **空间占用分布**：数据 vs 索引 vs Binlog vs 临时文件各占多少
+- **增长速度**：通过磁盘使用率趋势判断是突发还是持续增长
+- **碎片率**：表碎片空间占比，OPTIMIZE TABLE 可回收
+- **Binlog 累积**：Binlog 未清理可能占用大量空间
 
-# 获取磁盘使用率
-get_metric_data(client,
-    metric_name="DiskUtil",
-    period=60,
-    start_time=now - 300,
-    end_time=now,
-    instance_id="mysql-xxx"
-)
-```
+## 根因判断知识
 
-### 步骤 2: 查找大表
+| 现象组合 | 通常根因 | 进一步确认 |
+|----------|----------|------------|
+| 某几张表数据量远超其他表 | 数据快速增长未清理 | 检查表的行数增长趋势和数据保留策略 |
+| SHOW BINARY LOGS 显示大量文件 | Binlog 累积未清理 | 检查 `binlog_expire_logs_seconds` 配置 |
+| 表数据量不大但空间占用高 | 碎片空间（删除数据后未回收） | 对比 `describe_table_space` 的数据大小与文件大小 |
+| 磁盘突然满 + 有大查询/DDL 运行 | 临时表/排序文件占用 | 检查是否有正在执行的大排序或 DDL |
+| InnoDB 表空间文件远大于数据量 | Undo/Redo 日志过大 | 检查 `information_schema.FILES` 中的文件大小 |
 
-```python
-# 获取表空间详情（含各表数据量、索引大小）
-describe_table_space(client, instance_id="mysql-xxx")
-```
+## 约束与边界
 
-### 步骤 3: 分析表空间
-
-```python
-# 获取详细表空间信息
-describe_table_space(client,
-    database="db_name",
-    table_name="table_name",
-    instance_id="mysql-xxx"
-)
-```
-
-### 步骤 4: 检查 Binlog 使用情况
-
-```python
-# 检查 binlog 使用情况
-execute_sql(client,
-    sql="SHOW BINARY LOGS;",
-    instance_id="mysql-xxx",
-    database="mysql",
-)
-
-# 检查 binlog 大小
-execute_sql(client,
-    sql="""
-    SELECT
-        log_name,
-        file_size,
-        (SELECT SUM(file_size) FROM mysql.bbinlog_files) AS total_size
-    FROM mysql.bbinlog_files
-    ORDER BY log_name;
-    """,
-    instance_id="mysql-xxx",
-    database="mysql",
-)
-```
-
-### 步骤 5: 检查 InnoDB 表空间
-
-```python
-# 检查 InnoDB 文件大小
-execute_sql(client,
-    sql="""
-    SELECT
-        FILE_NAME,
-        TABLESPACE_NAME,
-        INITIAL_SIZE,
-        TOTAL_EXTENTS * EXTENT_SIZE AS TOTAL_SIZE
-    FROM information_schema.FILES
-    WHERE FILE_TYPE = 'TABLESPACE';
-    """,
-    instance_id="mysql-xxx",
-    database="information_schema",
-)
-```
-
-## 常见根因
-
-| 根因 | 说明 |
-|-------|-------------|
-| 数据增长 | 数据快速增长，未及时清理 |
-| Binlog 累积 | Binlog 未清理，磁盘占满 |
-| 临时表 | 临时表/排序文件占用空间 |
-| Undo/Redo | Undo/Redo 日志过大 |
-| 慢查询 | 大排序操作产生临时文件 |
-
-## 修复建议（排查后必须给出）
-
-排查完成后，**必须**向用户提供至少 2 条可操作的修复建议，从以下常见方案中选择：
-
-1. **清理/归档旧数据** — 对占空间最大的表，归档或删除历史数据（通过 DML 工单）
-2. **OPTIMIZE TABLE** — 对碎片率高的表执行 `OPTIMIZE TABLE` 回收空间（通过 DDL 工单）
-3. **扩容存储** — 在火山引擎控制台调整实例磁盘规格（适用于数据持续增长的场景）
-4. **清理 Binlog** — 清理过期的 Binlog 日志
-5. **删除未使用的索引** — 减少不必要的索引占用
+- `execute_sql` 仅支持只读操作，无法执行 `PURGE BINARY LOGS`、`OPTIMIZE TABLE`
+- Binlog 清理需到**火山引擎控制台 → 日志管理**操作
+- 数据变更（DELETE）须通过 DML 工单执行
+- DDL 操作（OPTIMIZE TABLE、DROP INDEX）须通过 DDL 工单执行
 
 ## ⚠️ 应急处置（需确认后执行）
 
@@ -185,4 +119,3 @@ create_ddl_sql_change_ticket(client,
 ## 关联场景
 
 - [临时表溢出](temp-table-overflow.md)
-- [Binlog 延迟](binlog-delay.md)

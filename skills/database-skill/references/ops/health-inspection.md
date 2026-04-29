@@ -46,10 +46,12 @@ describe_health_summary(client,
 |:---|:---|:---|:---|
 | CPU 使用率 | < 60% | 60-80% | > 80% |
 | 内存使用率 | < 70% | 70-85% | > 85% |
-| 连接数使用率 | < 60% | 60-80% | > 80% |
+| 连接数使用率 [^1] | < 60% | 60-80% | > 80% |
 | BufferPool 命中率 | > 99% | 95-99% | < 95% |
 | 慢查询数量 | 0 | > 0 | 持续增长 |
 | 环比/同比 | 波动 < 20% | 波动 20-50% | 波动 > 50% |
+
+[^1]: 连接数使用率 = 活跃会话数 / max_connections，**不含 Sleep 连接**。连接打满场景需额外查 `list_connections(show_sleep=True)` 获取实际总连接数。
 
 ### 第 2 项：慢查询
 
@@ -67,20 +69,35 @@ describe_aggregate_slow_logs(client,
 
 关注 Top 5 慢 SQL 模板：执行次数、平均耗时、总耗时。
 
+**判断标准：**
+
+| 指标 | 正常 | 关注 | 异常 |
+|:---|:---|:---|:---|
+| 慢查询总数（24h） | 0 | 1-100 | > 100 或持续增长 |
+| Top1 平均耗时 | < 1s | 1-10s | > 10s |
+| Top1 执行次数 | < 10 | 10-100 | > 100（高频慢查询） |
+
 ### 第 3 项：活跃会话
 
 **MySQL / VeDB / PG / MongoDB**：
 
 ```python
 list_connections(client, instance_id="xxx")
-# 若需包含 Sleep 连接：show_sleep=True
+# 巡检时建议同时加 show_sleep=True 查看全量连接，便于发现空闲连接堆积
+# list_connections(client, instance_id="xxx", show_sleep=True)
 # 若 API 返回失败（如 VeDB 连接问题），fallback:
 # execute_sql(client, sql="SHOW PROCESSLIST", instance_id="xxx", database="xxx")
 ```
 
 **Redis 替代**：`execute_sql(client, sql="CLIENT LIST", instance_id="redis-xxx", database="0")` — 关注 idle 时间长的连接。
 
-关注：是否有长时间运行的查询（> 60s）、是否有大量 Sleep/idle 连接、是否有锁等待。
+**判断标准：**
+
+| 指标 | 正常 | 关注 | 异常 |
+|:---|:---|:---|:---|
+| 执行时间 > 60s 的活跃查询 | 0 | 1-3 | > 3 |
+| Sleep/idle 连接占比 | < 50% | 50-80% | > 80% |
+| 总连接数 vs max_connections | < 60% | 60-80% | > 80% |
 
 **可选：历史连接趋势**（需实例已开启会话快照采集）：
 
@@ -105,7 +122,12 @@ describe_err_logs(client,
 )
 ```
 
-关注有无 OOM、crash、replication error 等关键错误。
+**判断标准：**
+
+| 指标 | 正常 | 关注 | 异常 |
+|:---|:---|:---|:---|
+| 错误日志数（24h） | 0 | 1-10 | > 10 或含 OOM/crash |
+| 关键词（OOM / crash / replication error） | 无 | — | 出现任意一个 |
 
 ### 第 5 项：表空间（MySQL / VeDB / PG）
 
@@ -113,7 +135,13 @@ describe_err_logs(client,
 describe_table_space(client, instance_id="xxx")
 ```
 
-关注：磁盘使用率、Top 大表、碎片率高的表。
+**判断标准：**
+
+| 指标 | 正常 | 关注 | 异常 |
+|:---|:---|:---|:---|
+| 磁盘使用率 | < 60% | 60-80% | > 80% |
+| 单表大小 | < 10GB | 10-50GB | > 50GB |
+| 碎片率（data_free / data_length） | < 20% | 20-50% | > 50% |
 
 ### 第 6 项：事务与锁检查（MySQL / VeDB / PG）
 

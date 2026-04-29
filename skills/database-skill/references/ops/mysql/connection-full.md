@@ -6,6 +6,11 @@
 
 **诊断原则：连接数打满是结果，不是原因。** 排查时必须按用户、来源 IP、状态等维度分组统计，定位哪个服务/客户端贡献了异常连接数，而不是只看总数。
 
+> **VeDB 注意**：
+> - 不支持 `get_metric_items` / `get_metric_data`，跳过监控指标步骤，直接用 `list_connections` 获取连接总数
+> - `list_connections` 自动查所有节点并合并，注意区分读写节点的连接分布
+> - `describe_health_summary` 可用，但连接数使用率口径为活跃连接（不含 Sleep）
+
 ## 典型症状
 
 - 应用报错: `Too many connections`
@@ -15,143 +20,59 @@
 
 > 函数参数详见 [api/ops.md](../../api/ops.md)。
 
-## 排查步骤
+## 必看数据
 
-> **重要约束**：连接数打满时，`execute_sql` 也需要建立新连接，会直接报 `Too many connections` 失败。以下步骤优先使用管理 API（`get_metric_data`、`list_connections` 等），它们不占用数据库连接，连接打满时仍可正常调用。
+> **重要约束**：连接数打满时，`execute_sql` 也需要建立新连接，会直接报 `Too many connections` 失败。以下函数优先使用管理 API，它们不占用数据库连接，连接打满时仍可正常调用。
 
-### 步骤 0: 获取支持的监控指标（推荐先执行）
-
-> **提示**：在获取具体指标数据之前，建议先调用 `get_metric_items` 查看当前实例支持哪些指标，然后选择合适的指标进行获取。
-
-```python
-# 获取当前实例支持的监控指标列表
-get_metric_items(client)
-```
-
-### 步骤 1: 检查当前连接数
-
-```python
-import time
-now = int(time.time())
-
-# 获取连接数时序数据
-get_metric_data(client,
-    metric_name="ThreadsConnected",
-    period=60,
-    start_time=now - 300,
-    end_time=now,
-    instance_id="mysql-xxx",
-)
-```
+| 优先级 | 函数 | 关键参数 | 目的 |
+|:---|:---|:---|:---|
+| P0 | `describe_health_summary` | `diag_type="ALL"` | 连接使用率概览（⚠️ 不含 Sleep 连接） |
+| P0 | `list_connections` | **`show_sleep=True`** | 全量连接（含 Sleep），数据量大时自动返回 `stats` 统计摘要 |
+| P1 | `get_metric_items` → `get_metric_data` | `metric_name="ThreadsConnected"` | 连接数时序趋势（仅 MySQL，VeDB 不支持） |
+| P1 | `list_history_connections` | 对比 1h 前 / 6h 前，`show_sleep=True` | 趋势对比，判断是突增还是持续增长 |
+| P2 | `describe_lock_wait` | — | 排除锁等待导致的连接堆积 |
+| P2 | `describe_aggregate_slow_logs` | 最近 1h | 排除慢查询导致的连接堆积 |
 
 > `max_connections` 的精确值需到**火山引擎控制台 → 参数管理**查看，连接打满时无法通过 `execute_sql` 查询。
 
-### 步骤 3: 分析连接状态
+## 诊断路径
 
-```python
-# 查询会话（含 Sleep 连接）
-# ⚠️ 不要直接输出全部 sessions！拿到数据后做分组统计再输出
-# 完整参数（筛选、分页）见 api/ops.md 中 list_connections 说明
-from collections import Counter, defaultdict
+1. **确认规模** → `describe_health_summary` 看连接使用率 — ⚠️ 不含 Sleep，仅作初筛
+2. **拉全量连接** → `list_connections(show_sleep=True)` — 从 `stats` 摘要判断模式：
+   - Sleep > 70% 且集中单用户 → 连接泄漏方向
+   - 活跃 > 50% → 不是泄漏，转查慢查询或锁等待
+3. **对比历史** → `list_history_connections(show_sleep=True)` — 区分突增 vs 持续增长
+   - 突增 + 伴随错误日志 → 查 `describe_err_logs` 确认是否重连风暴
+4. **需要终止时** → 从 `list_connections` 获取目标会话信息，按条件（`command_type`/`users`/`min_time`）或精确（`process_ids` + `node_id`）调 `kill_process`
 
-# 1) 分页拉取全量会话
-all_sessions = []
-page = 1
-while True:
-    result = list_connections(client, show_sleep=True, page_number=page, instance_id="mysql-xxx")
-    all_sessions.extend(result["data"]["sessions"])
-    total = result["data"]["total"]
-    if len(all_sessions) >= total:
-        break
-    page += 1
+## 关键统计维度
 
-print(f"总连接数: {total}")
+`list_connections` 返回数据量大时自动包含 `stats` 统计摘要（by_command、by_user_top10、by_db_top10、by_ip_top10、by_time_bucket 等），按以下维度分析：
 
-# 2) 单维度统计 — 快速定位异常维度
-# 按用户：哪个账号连接数最多，平均时间多长
-# 诊断提示：avg 短（< 10s）= 正常短查询；avg 长（> 60s）+ Sleep 多 = 疑似连接泄漏
-print("=== 按用户 ===")
-user_time = defaultdict(lambda: {"count": 0, "total_time": 0})
-for s in all_sessions:
-    user_time[s["user"]]["count"] += 1
-    user_time[s["user"]]["total_time"] += int(s["time"])
-for user, st in sorted(user_time.items(), key=lambda x: -x[1]["count"]):
-    avg = st["total_time"] // st["count"]
-    print(f"  {user}: {st['count']}个 ({st['count']*100//total}%), avg={avg}s")
+- **by Command**：Sleep vs 活跃的比例 — 判断是空闲堆积还是负载过高
+- **by User**：是否集中在少数用户 — 判断是单应用泄漏还是全局问题
+- **by Host/IP**：是否来自少数 IP — 定位问题服务器
+- **by Database**：哪个库连接最多 — 缩小排查范围
+- **by Time Bucket**：空闲时长分布（0-10s / 10-60s / 1-5min / 5-60min / >1h）— 区分正常空闲和泄漏
 
-# 按状态：Sleep 占比高说明空闲连接堆积
-print("=== 按状态 ===")
-for cmd, cnt in Counter(s["command"] for s in all_sessions).most_common():
-    print(f"  {cmd}: {cnt}")
+## 根因判断知识
 
-# 按数据库：哪个库的连接最多
-print("=== 按数据库 ===")
-for db, cnt in Counter(s.get("db") or "(none)" for s in all_sessions).most_common():
-    print(f"  {db}: {cnt}")
+| 现象组合 | 通常根因 | 进一步确认 |
+|:---|:---|:---|
+| Sleep > 70%，集中单用户(>40%)，avg 空闲 > 5min | 连接泄漏 | 查 `list_history_connections` 是否持续增长；检查该用户对应的应用连接池配置 |
+| 活跃 > 50%，多用户分散 | 连接池容量不足 | 查 `max_connections` 配置；确认是否有扩容空间 |
+| 大量 Locked / Waiting for lock 状态 | 锁等待导致堆积 | 查 `describe_lock_wait` |
+| 活跃连接执行时间普遍 > 60s | 慢查询阻塞 | 查 `describe_aggregate_slow_logs` |
+| Sleep > 70%，用户分散，无明显单点 | 全局 wait_timeout 过大 | 检查 `wait_timeout` 配置（默认 28800s = 8h） |
+| 短时间连接数翻倍，伴随错误日志 | 应用重连风暴 | 查 `describe_err_logs` 看是否有大量连接错误 |
 
-# 按来源 IP：均匀分布=多副本连接池问题，集中在少数 IP=单点泄漏
-print("=== 按来源 IP（Top 10）===")
-for ip, cnt in Counter(s["host"].split(":")[0] for s in all_sessions).most_common(10):
-    print(f"  {ip}: {cnt}")
+## 约束与边界
 
-# 按执行时间分布：大量长时间 Sleep 说明连接池未回收空闲连接
-print("=== 按执行时间分布 ===")
-buckets = {"0-10s": 0, "10-60s": 0, "1-5min": 0, "5-60min": 0, ">1h": 0}
-for s in all_sessions:
-    t = int(s["time"])
-    if t <= 10: buckets["0-10s"] += 1
-    elif t <= 60: buckets["10-60s"] += 1
-    elif t <= 300: buckets["1-5min"] += 1
-    elif t <= 3600: buckets["5-60min"] += 1
-    else: buckets[">1h"] += 1
-for b, cnt in buckets.items():
-    print(f"  {b}: {cnt}")
-
-# 3) 联合维度统计 — 定位具体根因
-# 用户×数据库：哪个账号连了哪个库
-print("=== 用户×数据库 ===")
-for (user, db), cnt in Counter((s["user"], s.get("db") or "(none)") for s in all_sessions).most_common():
-    print(f"  {user} → {db}: {cnt}")
-
-# 用户×状态×平均时间：哪个账号的哪种状态占了多久
-print("=== 用户×状态（含时间汇总）===")
-user_cmd_stats = defaultdict(lambda: {"count": 0, "total_time": 0, "max_time": 0})
-for s in all_sessions:
-    key = (s["user"], s["command"])
-    t = int(s["time"])
-    user_cmd_stats[key]["count"] += 1
-    user_cmd_stats[key]["total_time"] += t
-    user_cmd_stats[key]["max_time"] = max(user_cmd_stats[key]["max_time"], t)
-for (user, cmd), st in sorted(user_cmd_stats.items(), key=lambda x: -x[1]["count"]):
-    avg = st["total_time"] // st["count"]
-    print(f"  {user}/{cmd}: {st['count']}个, avg={avg}s, max={st['max_time']}s")
-```
-
-### 步骤 4: 对比历史连接分布（可选）
-
-如需确认连接数何时开始上涨、是否为持续性泄漏：
-
-```python
-# 查询问题出现前的连接快照（需实例已开启会话快照采集）
-list_history_connections(client,
-    start_time=now - 7200,
-    end_time=now - 3600,
-    show_sleep=True,
-    instance_id="mysql-xxx",
-)
-```
-
-对比 `summary.by_user` 与当前分布，定位连接增长最快的来源。
-
-## 常见根因
-
-| 根因     | 说明                 |
-| ------ | ------------------ |
-| 连接泄漏   | 应用未正确关闭数据库连接       |
-| 连接过多   | 并发请求过多，连接池配置不当     |
-| 长查询    | 查询耗时过长，占用连接        |
-| 空闲连接   | 长时间空闲的 Sleep 连接未释放 |
-| 应用 Bug | 连接未正确释放            |
+- **VeDB**：不支持 `get_metric_items` / `get_metric_data`，跳过监控指标，直接用 `list_connections` 获取连接总数
+- **VeDB**：`list_connections` 自动查所有节点并合并，注意区分读写节点的连接分布
+- **连接数使用率**（`describe_health_summary`）= 活跃会话数 / max_connections，不含 Sleep 连接
+- **kill_process**：必须经过用户明确确认后才能执行
+- **数据量**：`list_connections` 数据量大时自动计算统计摘要并落盘全量数据到 `artifact_path`
 
 ## 修复建议（排查后必须给出）
 
@@ -208,4 +129,3 @@ kill_process(client,
 
 - [会话堆积](session-pileup.md)
 - [慢查询](slow-query.md)
-

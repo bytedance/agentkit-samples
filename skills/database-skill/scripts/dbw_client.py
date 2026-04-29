@@ -11,6 +11,8 @@ import base64
 import os
 from typing import Any, Dict, Optional
 
+from error_codes import DbwApiError
+
 _SKILL_HEADERS = {"X-Volc-Dbw-Skill": "database-skill"}
 
 
@@ -24,32 +26,38 @@ class DBWClient:
         instance_id: Optional[str] = None,
         database: Optional[str] = None,
     ):
-        self.region = region or os.environ.get("VOLCENGINE_REGION", "cn-beijing")
+        # 优先级：构造参数 > OS env > .env > 默认值
+        self.region = region or os.environ.get("VOLCENGINE_REGION")
         self.ak = ak or os.environ.get("VOLCENGINE_ACCESS_KEY")
         self.sk = sk or os.environ.get("VOLCENGINE_SECRET_KEY")
         self.host = host
         self.instance_id = instance_id or os.environ.get("VOLCENGINE_INSTANCE_ID")
         self.database = database or os.environ.get("VOLCENGINE_DATABASE")
-
-        # APIG 鉴权（优先级高于 AK/SK）
         self.api_base = os.environ.get("ARK_SKILL_API_BASE")
         self.api_key = os.environ.get("ARK_SKILL_API_KEY")
 
-        # Load from .env if still missing
-        if (not self.api_base or not self.api_key) and (not self.ak or not self.sk):
-            try:
-                env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), ".env")
-                if os.path.exists(env_path):
-                    env_vars = self._parse_env_file(env_path)
-                    self.api_base = self.api_base or env_vars.get("ARK_SKILL_API_BASE")
-                    self.api_key = self.api_key or env_vars.get("ARK_SKILL_API_KEY")
-                    self.ak = self.ak or env_vars.get("VOLCENGINE_ACCESS_KEY")
-                    self.sk = self.sk or env_vars.get("VOLCENGINE_SECRET_KEY")
-                    self.region = env_vars.get("VOLCENGINE_REGION") or self.region
-                    self.instance_id = self.instance_id or env_vars.get("VOLCENGINE_INSTANCE_ID")
-                    self.database = self.database or env_vars.get("VOLCENGINE_DATABASE")
-            except Exception:
-                pass
+        # .env 补全缺失值
+        try:
+            env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), ".env")
+            if os.path.exists(env_path):
+                env_vars = self._parse_env_file(env_path)
+                self.ak = self.ak or env_vars.get("VOLCENGINE_ACCESS_KEY")
+                self.sk = self.sk or env_vars.get("VOLCENGINE_SECRET_KEY")
+                self.api_base = self.api_base or env_vars.get("ARK_SKILL_API_BASE")
+                self.api_key = self.api_key or env_vars.get("ARK_SKILL_API_KEY")
+                self.region = self.region or env_vars.get("VOLCENGINE_REGION")
+                self.instance_id = self.instance_id or env_vars.get("VOLCENGINE_INSTANCE_ID")
+                self.database = self.database or env_vars.get("VOLCENGINE_DATABASE")
+        except Exception:
+            pass
+
+        # region 确定：AK/SK 用配置值（默认 cn-beijing）；APIG 一律从实例探测
+        if self.ak and self.sk:
+            self.region = self.region or "cn-beijing"
+        elif self.api_base and self.api_key:
+            self.region = self._detect_region() or "cn-beijing"
+        else:
+            self.region = self.region or "cn-beijing"
 
     @staticmethod
     def _parse_env_file(path: str) -> Dict[str, str]:
@@ -81,6 +89,20 @@ class DBWClient:
                 if value:
                     result[key] = value
         return result
+
+    def _detect_region(self) -> Optional[str]:
+        """APIG 模式下通过 DescribeInstances 探测实际 region。"""
+        try:
+            result = self._call_api("DescribeInstances", {
+                "PageSize": 1, "InstancesVersion": "v2",
+            })
+            for inst in result.get("instances", []):
+                r = inst.get("region_id")
+                if r:
+                    return r
+        except Exception:
+            pass
+        return None
 
     def _sign_request(
         self,
@@ -148,25 +170,24 @@ class DBWClient:
                 body_dict[self._pascal_case(k)] = v
         body = json.dumps(body_dict)
 
-        use_apig = bool(self.api_base and self.api_key)
         use_aksk = bool(self.ak and self.sk)
+        use_apig = bool(self.api_base and self.api_key)
 
-        if not use_apig and not use_aksk:
-            env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), ".env")
+        if not use_aksk and not use_apig:
             raise ValueError(
-                f"缺少火山引擎凭证，请在配置文件中补充：{env_path}\n"
-                f"\n"
-                f'export VOLCENGINE_ACCESS_KEY=""       # [必须] 火山引擎 Access Key\n'
-                f'export VOLCENGINE_SECRET_KEY=""       # [必须] 火山引擎 Secret Key\n'
-                f'export VOLCENGINE_REGION="cn-beijing" # [可选] 地域，默认 cn-beijing\n'
-                f'export VOLCENGINE_INSTANCE_ID=""      # [可选] 数据库实例 ID\n'
-                f'export VOLCENGINE_DATABASE=""         # [可选] 数据库名\n'
+                "缺少火山引擎凭证，请配置环境变量：\n"
+                "\n"
+                'export VOLCENGINE_ACCESS_KEY=""       # [必须] 火山引擎 Access Key\n'
+                'export VOLCENGINE_SECRET_KEY=""       # [必须] 火山引擎 Secret Key\n'
+                'export VOLCENGINE_REGION="cn-beijing" # [可选] 地域，默认 cn-beijing\n'
+                'export VOLCENGINE_INSTANCE_ID=""      # [可选] 数据库实例 ID\n'
+                'export VOLCENGINE_DATABASE=""         # [可选] 数据库名\n'
             )
 
-        if use_apig:
-            url, headers = self._build_apig_request(action, service)
-        else:
+        if use_aksk:
             url, headers = self._build_aksk_request(action, service, method, body)
+        else:
+            url, headers = self._build_apig_request(action, service)
         return self._do_request(url, headers, body, method)
 
     def _build_apig_request(self, action: str, service: str) -> tuple:
@@ -207,21 +228,40 @@ class DBWClient:
                 result = json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             error_body = e.read().decode("utf-8")
-            msg = f"HTTP {e.code}: {error_body}"
-            if e.code == 409 and "CreateSessionError" in error_body:
-                msg += (
-                    "\n\n💡 提示：CreateSessionError 通常意味着当前账号无权访问该实例，"
-                    "或实例不可用。请确认：\n"
-                    "  1. 实例状态是否为 Running\n"
-                    "  2. 联系实例管理员在 DBW 控制台添加授权"
-                )
-            raise ValueError(msg)
+            try:
+                parsed = json.loads(error_body)
+                meta = parsed.get("ResponseMetadata") if isinstance(parsed, dict) else None
+                meta = meta if isinstance(meta, dict) else {}
+                err_field = meta.get("Error")
+                # 兼容老版本 dbw-mgr：Error 可能是 dict / 字符串 / None
+                err = err_field if isinstance(err_field, dict) else {}
+                code = err.get("Code") or ""
+                message = err.get("Message") or (err_field if isinstance(err_field, str) else error_body)
+                request_id = meta.get("RequestId") or ""
+                code_n = err.get("CodeN")
+                if code or request_id:
+                    raise DbwApiError(code, message, request_id, code_n)
+            except DbwApiError:
+                raise
+            except Exception:
+                pass
+            # Fallback: 非结构化响应（HTML/纯文本等），统一抛出 DbwApiError 并尽量携带 RequestId
+            rid = ""
+            if hasattr(e, "headers") and e.headers:
+                rid = e.headers.get("X-Request-Id") or e.headers.get("x-request-id") or ""
+            raise DbwApiError("SystemError", f"HTTP {e.code}: {error_body}", rid, None)
 
-        if "ResponseMetadata" in result:
-            meta = result["ResponseMetadata"]
-            request_id = meta.get("RequestId", "Unknown")
-            if meta.get("Error"):
-                raise ValueError(f"API Error: {meta['Error']} (RequestId: {request_id})")
+        if isinstance(result, dict) and "ResponseMetadata" in result:
+            meta = result["ResponseMetadata"] if isinstance(result["ResponseMetadata"], dict) else {}
+            err_field = meta.get("Error")
+            err = err_field if isinstance(err_field, dict) else {}
+            if err:
+                raise DbwApiError(
+                    err.get("Code") or "",
+                    err.get("Message") or "",
+                    meta.get("RequestId") or "",
+                    err.get("CodeN"),
+                )
 
         if "Result" in result:
             res = result["Result"]
@@ -230,10 +270,6 @@ class DBWClient:
                     return res
                 return self._convert_pascal_to_snake(res)
             return res
-        elif "ResponseMetadata" in result:
-            meta = result["ResponseMetadata"]
-            if meta.get("Error"):
-                raise ValueError(f"API Error: {meta['Error']}")
 
         return result
 

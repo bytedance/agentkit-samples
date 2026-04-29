@@ -13,52 +13,47 @@
 
 > 函数参数详见 [api/ops.md](../../api/ops.md) 和 [api/metadata-query.md](../../api/metadata-query.md)。
 
-## 排查步骤
+## 必看数据
 
-### 步骤 1: 检查磁盘使用率及健康状态
+| 优先级 | 函数 | 关键参数 | 目的 |
+|--------|------|----------|------|
+| P0 | `describe_table_space` | — | 获取所有库表的数据量和索引大小，定位空间消耗最大的表 |
+| P0 | `describe_health_summary` | — | 获取最近一小时整体健康状态，了解整体负载和趋势 |
+| P1 | `execute_sql` | `sql="SELECT pg_current_wal_lsn(), ..."` | 检查 WAL 使用情况和增长 |
+| P1 | `describe_table_space` | `database="db_name"`, `table_name="table_name"` | 查看特定表的详细空间信息 |
 
-```python
-import time
-now = int(time.time())
+## 诊断路径
 
-# 获取最近一小时健康概览（含内存使用率、连接数使用率等，可间接了解整体负载）
-describe_health_summary(client,
-    end_time=now,
-    instance_id="pg-xxx",
-)
-```
+1. **定位大表** → `describe_table_space` — 找空间消耗最大的表和库
+2. **检查 WAL** → `execute_sql("SELECT pg_current_wal_lsn(), ...")` — WAL 累积是 PG 常见空间大户
+   - WAL 快速增长 → 检查复制状态和归档进程
+3. **检查膨胀** → `execute_sql("SELECT ... FROM pg_stat_user_tables WHERE n_dead_tup > ...")` — dead tuple 多说明需要 VACUUM
+   - 表数据不大但空间占用高 → 碎片/膨胀，走 DDL 工单执行 VACUUM
+4. **需要清理时** → VACUUM 走 `create_ddl_sql_change_ticket`，旧数据走 `create_dml_sql_change_ticket`
 
-### 步骤 2: 查找大表
+## 关键分析维度
 
-```python
-# 获取表空间详情（含各表数据量、索引大小）
-describe_table_space(client, instance_id="pg-xxx")
-```
+- **空间占用分布**：数据 vs 索引 vs WAL vs 临时文件各占多少
+- **表膨胀**：dead tuple 比例高说明需要 VACUUM
+- **WAL 累积**：WAL 日志积压可能占用大量空间（复制延迟、归档失败）
+- **索引膨胀**：索引大小与数据量不成比例，可能需要 REINDEX
 
-### 步骤 3: 检查 WAL 使用情况
+## 根因判断知识
 
-```python
-# 检查 WAL 目录大小
-execute_sql(client,
-    instance_id="pg-xxx",
-    sql="""
-    SELECT
-        pg_current_wal_lsn(),
-        pg_walfile_name(pg_current_wal_lsn()),
-        pg_wal_lsn_diff(pg_current_wal_lsn(), '0/0') AS wal_used;
-    """, database="postgres"
-)
-```
+| 现象组合 | 通常根因 | 进一步确认 |
+|----------|----------|------------|
+| 某几张表空间占用远超其他表 | 数据快速增长未清理 | 检查表的行数和数据保留策略 |
+| WAL LSN 快速增长 | WAL 累积（复制延迟/归档失败） | 检查复制状态和归档进程 |
+| 表数据量不大但空间占用高 | 表膨胀（dead tuple 未回收） | 检查 `pg_stat_user_tables` 的 n_dead_tup |
+| 索引大小远超数据大小 | 索引膨胀 | 对比索引大小与表数据大小的比例 |
+| VACUUM 长时间未完成 | VACUUM 被阻塞或进度缓慢 | 检查 `pg_stat_progress_vacuum` |
 
-## 常见根因
+## 约束与边界
 
-| 根因 | 说明 |
-|-------|-------------|
-| 数据增长 | 数据快速增长，未及时清理 |
-| WAL 累积 | WAL 日志积压 |
-| 索引膨胀 | 索引膨胀 |
-| 临时表 | 临时表占用空间 |
-| VACUUM 未完成 | VACUUM 未完成 |
+- PostgreSQL 不支持 `get_metric_items` / `get_metric_data`，通过 `describe_health_summary` 获取整体指标
+- `execute_sql` 仅支持只读操作，无法执行 `VACUUM`、`REINDEX`
+- `VACUUM` 须通过 DDL 工单执行
+- 数据变更（DELETE）须通过 DML 工单执行
 
 ## ⚠️ 应急处置（需确认后执行）
 

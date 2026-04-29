@@ -14,45 +14,46 @@
 
 > 函数参数详见 [api/ops.md](../../api/ops.md) 和 [api/metadata-query.md](../../api/metadata-query.md)。
 
-## 排查步骤
+## 必看数据
 
-### 步骤 1: 检查内存使用率
+| 优先级 | 函数 | 关键参数 | 目的 |
+|--------|------|----------|------|
+| P0 | `describe_health_summary` | — | 获取最近一小时整体健康状态（含内存使用率、连接数使用率，含环比同比） |
+| P0 | `execute_sql` | `sql="SHOW shared_buffers;"` | 查看 Shared Buffers 配置 |
+| P1 | `execute_sql` | `sql="SHOW work_mem;"` | 查看 work_mem 配置（每个排序/哈希操作使用的内存上限） |
+| P1 | `list_connections` | — | 查看活跃连接数，每个连接占用独立内存 |
 
-```python
-import time
-now = int(time.time())
+## 诊断路径
 
-# 获取最近一小时健康概览（含内存使用率、连接数使用率等）
-describe_health_summary(client,
-    end_time=now,
-    instance_id="pg-xxx",
-)
-```
+1. **整体状况** → `describe_health_summary` — 确认内存使用率和环比变化趋势
+2. **检查配置** → `execute_sql("SHOW shared_buffers")` + `execute_sql("SHOW work_mem")` — 确认内存分配是否合理
+   - shared_buffers 远小于实例总内存 25% → 配置过小
+   - work_mem 偏大 + 并发高 → 排序/Hash 操作内存爆炸
+3. **检查连接数** → `list_connections` — PG 每连接一个进程，连接多 = 内存消耗线性增长
+   - 连接数高 + 未用连接池 → 建议上 PgBouncer
+4. **需要处理时** → 终止大查询走 `kill_process`，参数调整走控制台参数管理
 
-### 步骤 2: 检查内存配置
+## 关键分析维度
 
-```python
-# 获取 shared buffers
-execute_sql(client,
-    instance_id="pg-xxx",
-    sql="SHOW shared_buffers;", database="postgres"
-)
+- **Shared Buffers 大小**：是否与数据集大小匹配，通常建议为总内存的 25%
+- **work_mem 配置**：过大的 work_mem × 高并发连接数 = 内存爆炸
+- **连接数**：PostgreSQL 每个连接是独立进程，内存占用比 MySQL 更高
+- **增长趋势**：通过 `describe_health_summary` 的环比判断是否持续恶化
 
-# 获取 work mem
-execute_sql(client,
-    instance_id="pg-xxx",
-    sql="SHOW work_mem;", database="postgres"
-)
-```
+## 根因判断知识
 
-## 常见根因
+| 现象组合 | 通常根因 | 进一步确认 |
+|----------|----------|------------|
+| 内存高 + shared_buffers 占比低 | Shared Buffers 配置过小 | 对比 shared_buffers 与实例总内存 |
+| 连接数高 + 内存持续上涨 | 连接过多（每连接一个进程） | 检查是否使用连接池（PgBouncer） |
+| work_mem 较大 + 并发排序查询多 | 排序操作占用过多内存 | 检查慢查询中是否有大量 Sort/Hash 操作 |
+| 内存突然飙升 + 某大查询运行中 | 大查询消耗内存 | 检查 `list_connections` 中运行时间最长的查询 |
 
-| 根因 | 说明 |
-|-------|-------------|
-| Shared Buffers 太小 | shared_buffers 配置过小 |
-| 连接数过多 | 连接数过多 |
-| 大查询 | 大查询消耗过多内存 |
-| 复杂排序 | 复杂排序占用内存 |
+## 约束与边界
+
+- PostgreSQL 不支持 `get_metric_items` / `get_metric_data`，通过 `describe_health_summary` 获取整体指标
+- `execute_sql` 仅支持只读操作，无法执行 `ALTER SYSTEM SET` 修改参数
+- 参数调整需到**火山引擎控制台 → 参数管理**修改，或通过**实例扩容**增加内存规格
 
 ## ⚠️ 应急处置（需确认后执行）
 
