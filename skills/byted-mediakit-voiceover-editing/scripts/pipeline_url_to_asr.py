@@ -432,7 +432,6 @@ def _run_local(args: argparse.Namespace) -> None:
             "_execution_mode": "local",
         },
     )
-    from local_asr import transcribe_local
 
     asr_output_path = _output_dir() / "step5_asr_raw_local.json"
     step_log(mode, "step5", f"ASR 完成 → {asr_output_path}")

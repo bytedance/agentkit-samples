@@ -378,7 +378,6 @@ def _expand_concat_segments(
             continue
         action_time = seg.get("actionTime") or []
         seg_start = int(seg.get("start_time") or 0)
-        seg_end = int(seg.get("end_time") or 0)
         if not action_time:
             expanded.append(seg)
             continue

@@ -81,7 +81,6 @@ def main() -> None:
     ui = 0
     for seg in opt.get("optimized_segments", []):
         start_ms = ms(seg["start_time"])
-        end_ms = ms(seg["end_time"])
         opt_text = seg.get("text", "")
         src_text = seg.get("source_text", "")
 

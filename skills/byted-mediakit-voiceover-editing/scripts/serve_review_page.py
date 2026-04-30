@@ -372,7 +372,9 @@ def main() -> None:
                     raise RuntimeError(f"vod_direct_export 失败: {err[:500]}")
 
                 lines = [
-                    l.strip() for l in proc.stdout.strip().split("\n") if l.strip()
+                    line.strip()
+                    for line in proc.stdout.strip().split("\n")
+                    if line.strip()
                 ]
                 result = {"message": "任务已提交", "path": str(req_path)}
                 for line in reversed(lines):

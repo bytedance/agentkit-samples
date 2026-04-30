@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import errno
 import json
+import os
 import subprocess
 import sys
 import time
@@ -252,7 +253,9 @@ class ExportHandler(BaseHTTPRequestHandler):
             err = proc.stderr or proc.stdout or "未知错误"
             raise RuntimeError(f"vod_direct_export 失败: {err[:500]}")
         try:
-            lines = [l.strip() for l in proc.stdout.strip().split("\n") if l.strip()]
+            lines = [
+                line.strip() for line in proc.stdout.strip().split("\n") if line.strip()
+            ]
             for line in reversed(lines):
                 if line.startswith("{"):
                     return json.loads(line)
