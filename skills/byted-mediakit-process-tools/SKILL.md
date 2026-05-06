@@ -1,5 +1,5 @@
 ---
-name: byted-mediakit-tools
+name: byted-mediakit-process-tools
 description: 火山引擎 AI MediaKit 音视频处理工具集，提供视频理解、音频提取、视频剪辑、音视频拼接、画质增强、文生视频、音视频合成，以及本地翻转、调速、字幕、水印、转码等能力。当用户提及音频剪辑、视频剪辑、音视频拼接、文生视频、音频提取、画质增强、视频理解、音视频合成、媒体裁剪、视频翻转、调速、加字幕、加水印、转码等需求时必须调用本Skill。当用户需要视频理解时，宿主agent必须自动解析用户的具体要求作为prompt参数传入，同时传入视频URL和fps参数；max_frames 为可选参数。
 version: 1.0.0
 license: Apache-2.0
@@ -43,7 +43,7 @@ metadata:
 
 > ⚠️ **严格执行**：音视频裁剪、拼接、音频提取、音视频合成会自动选择执行后端：云端环境完整且输入为 URL 时走 AMK 云端；云端必需配置/依赖缺失，或输入是本地文件路径时，自动走本地 FFmpeg。视频翻转、调速、加字幕、加水印、转码是本地原生命令，始终走本地 FFmpeg。不要为了这些本地能力向用户索取云端环境变量。
 
-> `<SKILL_DIR>` 为 `byted-mediakit-tools` 所在目录。
+> `<SKILL_DIR>` 为 `byted-mediakit-process-tools` 所在目录。
 > 当前方法返回的 `链接仅供下载，不支持播放能力`
 > `禁止修改任何返回数据信息`，如 `play_url` 、`request_id` 、`task_id` 等
 > 用户明确声明需要重新执行时：除 `understand_video_content` 外的方法需 **生成新的 `client_token`（不要复用上一次的 `client_token`）**，避免命中上次的幂等结果
@@ -153,7 +153,7 @@ python -m pip install -r requirements.txt
 ### 视频理解
 
 ```bash
-./byted-mediakit-tools.sh understand_video_content \
+./byted-mediakit-process-tools.sh understand_video_content \
   --video_url "https://example.com/video.mp4" \
   --prompt "总结视频内容" \
   --fps 1
@@ -163,14 +163,14 @@ python -m pip install -r requirements.txt
 
 ```bash
 # 云端：输入为 URL 且 AMK 配置完整
-./byted-mediakit-tools.sh trim_media_duration \
+./byted-mediakit-process-tools.sh trim_media_duration \
   --type video \
   --source "https://example.com/video.mp4" \
   --start_time 0 \
   --end_time 10
 
 # 本地回退：输入为本地文件，或 AMK 配置不完整
-./byted-mediakit-tools.sh trim_media_duration \
+./byted-mediakit-process-tools.sh trim_media_duration \
   --type video \
   --source "/path/to/input.mp4" \
   --start_time 0 \
@@ -181,7 +181,7 @@ python -m pip install -r requirements.txt
 ### 音视频拼接
 
 ```bash
-./byted-mediakit-tools.sh concat_media_segments \
+./byted-mediakit-process-tools.sh concat_media_segments \
   --type video \
   --sources "https://example.com/1.mp4" "https://example.com/2.mp4"
 ```
@@ -189,7 +189,7 @@ python -m pip install -r requirements.txt
 ### 音频提取
 
 ```bash
-./byted-mediakit-tools.sh extract_audio \
+./byted-mediakit-process-tools.sh extract_audio \
   --video_url "https://example.com/video.mp4" \
   --format mp3
 ```
@@ -197,7 +197,7 @@ python -m pip install -r requirements.txt
 ### 画质增强
 
 ```bash
-./byted-mediakit-tools.sh enhance_video \
+./byted-mediakit-process-tools.sh enhance_video \
   --video_url "https://example.com/video.mp4" \
   --tool_version professional \
   --resolution 1080p
@@ -206,7 +206,7 @@ python -m pip install -r requirements.txt
 ### 图片生成视频
 
 ```bash
-./byted-mediakit-tools.sh image_to_video \
+./byted-mediakit-process-tools.sh image_to_video \
   --images "image_url=https://example.com/1.jpg,duration=3,animation_type=zoom_in" \
            "image_url=https://example.com/2.jpg,duration=3,animation_type=pan_left"
 ```
@@ -214,7 +214,7 @@ python -m pip install -r requirements.txt
 ### 音视频合成
 
 ```bash
-./byted-mediakit-tools.sh mux_audio_video \
+./byted-mediakit-process-tools.sh mux_audio_video \
   --video_url "https://example.com/video.mp4" \
   --audio_url "https://example.com/audio.mp3" \
   --is_audio_reserve false
@@ -223,25 +223,25 @@ python -m pip install -r requirements.txt
 ### 本地翻转 / 调速 / 字幕 / 水印 / 转码
 
 ```bash
-./byted-mediakit-tools.sh flip-video -i input.mp4 --direction horizontal -o flipped.mp4
-./byted-mediakit-tools.sh adjust-speed -i input.mp4 --speed 2.0 -o speed.mp4
-./byted-mediakit-tools.sh add-subtitle -i input.mp4 --subtitle sub.srt -o subtitled.mp4
-./byted-mediakit-tools.sh add-overlay -i input.mp4 --image logo.png --position top-right -o watermarked.mp4
-./byted-mediakit-tools.sh transcode -i input.mov --format mp4 --codec h264 -o output.mp4
+./byted-mediakit-process-tools.sh flip-video -i input.mp4 --direction horizontal -o flipped.mp4
+./byted-mediakit-process-tools.sh adjust-speed -i input.mp4 --speed 2.0 -o speed.mp4
+./byted-mediakit-process-tools.sh add-subtitle -i input.mp4 --subtitle sub.srt -o subtitled.mp4
+./byted-mediakit-process-tools.sh add-overlay -i input.mp4 --image logo.png --position top-right -o watermarked.mp4
+./byted-mediakit-process-tools.sh transcode -i input.mov --format mp4 --codec h264 -o output.mp4
 ```
 
 ### 异步任务（不等待结果）
 
 ```bash
 # 使用 --no-wait 立即返回 task_id
-./byted-mediakit-tools.sh --no-wait trim_media_duration \
+./byted-mediakit-process-tools.sh --no-wait trim_media_duration \
   --type video \
   --source "https://example.com/video.mp4" \
   --start_time 0 \
   --end_time 10
 
 # 查询任务结果
-./byted-mediakit-tools.sh query_task --task_id "amk-xxx-xxx"
+./byted-mediakit-process-tools.sh query_task --task_id "amk-xxx-xxx"
 ```
 
 ---
@@ -284,7 +284,7 @@ python -m pip install -r requirements.txt
   "status": "pending",
   "task_id": "amk-xxx-xxx",
   "message": "任务已提交，已跳过等待，可调用 query_task 接口传入 task_id 查询结果",
-  "query_example": "./byted-mediakit-tools.sh query_task --task_id amk-xxx-xxx"
+  "query_example": "./byted-mediakit-process-tools.sh query_task --task_id amk-xxx-xxx"
 }
 ```
 

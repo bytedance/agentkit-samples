@@ -1,5 +1,5 @@
 ---
-name: byted-vod-tools
+name: byted-vod-process-tools
 description: "Volcengine VOD audio and video processing tools skill. Use when users need VOD-based media processing or editing: upload local/URL media, stitch videos, trim clips, flip frames, change playback speed, create image-to-video, compose audio/video, extract audio, mix audio, separate vocals/accompaniment, denoise audio, enhance quality, AI super-resolution, frame interpolation, ASR speech-to-text, OCR text extraction, subtitle removal, subtitle embedding, scene slicing, portrait/green-screen matting, highlight extraction, comic style transfer, video translation, drama recap narration, drama script restoration, media info lookup, or playback URL retrieval. The skill submits async VOD jobs, polls task status, and returns generated output links. Not for pure text generation, real-time streaming, or source-free generative video creation."
 version: 1.0.5
 license: Apache-2.0
@@ -265,4 +265,4 @@ python <SKILL_DIR>/scripts/poll_translation.py <ProjectId> my_space
 
 ## 计费说明
 
-仅当用户主动咨询费用或计费规则时，再参考 `references/00-billing-instructions.md` 中的计费说明，向用户简要说明 byted-vod-tools 所依赖的 VOD 资源的计费构成，避免在普通剪辑/处理对话中主动展开计费细节。
+仅当用户主动咨询费用或计费规则时，再参考 `references/00-billing-instructions.md` 中的计费说明，向用户简要说明 byted-vod-process-tools 所依赖的 VOD 资源的计费构成，避免在普通剪辑/处理对话中主动展开计费细节。

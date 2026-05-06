@@ -38,7 +38,7 @@
   "status": "pending",
   "task_id": "amk-xxx-xxx",
   "message": "任务已提交，已跳过等待，可调用 query_task 接口传入 task_id 查询结果",
-  "query_example": "./byted-mediakit-tools.sh query_task --task_id amk-xxx-xxx"
+  "query_example": "./byted-mediakit-process-tools.sh query_task --task_id amk-xxx-xxx"
 }
 ```
 

@@ -1,6 +1,6 @@
 # Local FFmpeg Fallback
 
-`byted-mediakit-tools` includes `scripts/local_ffmpeg_tool.py` for local processing when cloud execution is unavailable or unsuitable.
+`byted-mediakit-process-tools` includes `scripts/local_ffmpeg_tool.py` for local processing when cloud execution is unavailable or unsuitable.
 
 ## Routing Rules
 
@@ -33,7 +33,7 @@ Do not ask users to provide cloud environment variables for local-supported comm
 ## Examples
 
 ```bash
-./byted-mediakit-tools.sh trim_media_duration \
+./byted-mediakit-process-tools.sh trim_media_duration \
   --type video \
   --source ./input.mp4 \
   --start_time 1 \
@@ -42,14 +42,14 @@ Do not ask users to provide cloud environment variables for local-supported comm
 ```
 
 ```bash
-./byted-mediakit-tools.sh concat_media_segments \
+./byted-mediakit-process-tools.sh concat_media_segments \
   --type video \
   --sources ./a.mp4 ./b.mp4 \
   --output ./concat.mp4
 ```
 
 ```bash
-./byted-mediakit-tools.sh mux_audio_video \
+./byted-mediakit-process-tools.sh mux_audio_video \
   --video_url ./video.mp4 \
   --audio_url ./audio.mp3 \
   --is_audio_reserve false \
@@ -57,14 +57,14 @@ Do not ask users to provide cloud environment variables for local-supported comm
 ```
 
 ```bash
-./byted-mediakit-tools.sh flip-video \
+./byted-mediakit-process-tools.sh flip-video \
   -i ./input.mp4 \
   --direction horizontal \
   -o ./flipped.mp4
 ```
 
 ```bash
-./byted-mediakit-tools.sh transcode \
+./byted-mediakit-process-tools.sh transcode \
   -i ./input.mov \
   --format mp4 \
   --codec h264 \
