@@ -9,14 +9,15 @@ https://www.volcengine.com → 注册（手机/飞书/抖音）→ 实名认证
 ## 2. 开通
 
 [联网搜索开通](https://console.volcengine.com/search-infinity/web-search) →【正式开通】
-
-计费：约 0.03 元/次。https://www.volcengine.com/docs/85508/1510784
+用户每月都会自动获得500次免费使用额度。
 
 ## 3. 获取凭证
 
 **方式 A（推荐）**：[API Key 管理](https://console.volcengine.com/search-infinity/api-key) →【创建 API Key】→ 复制保存
 
 **方式 B（AK/SK）**：控制台头像 → API 访问密钥 → 创建。需配置 `VOLCENGINE_ACCESS_KEY` 和 `VOLCENGINE_SECRET_KEY`。SK 仅显示一次，请及时保存。子账号需授权 `TorchlightApiFullAccess`。
+
+**方式 C（Coding Plan）**[Coding Plan控制台](https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement?LLM=%7B%7D&advancedActiveKey=subscribe&projectName=default)（coding plan企业用户[Coding Plan企业版控制台](https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement?LLM=%7B%7D&advancedActiveKey=enterprise&projectName=default)）→【专属权益】→【联网搜索】→点击【查看API Key】 → 复制 API Key
 
 ## 4. 配置（把 Key 交给 Claw）
 
@@ -49,19 +50,3 @@ python3 scripts/web_search.py "北京今日天气"
 | 额度用完 | 正式开通后按量计费 |
 | 欠费 | 后付费 24h 内充值可恢复 |
 | 403 | 检查开通状态与账户 |
-| invalid_api_key | 请确认 Key 来自 [联网搜索控制台](https://console.volcengine.com/search-infinity/api-key)（非 Ark），已开通、无空格；Claw 中可重新在聊天框发正确的 Key |
-| 429 限流 | 建议单 Key 并发控制在 5 以内，超限降频后重试 |
-| 401 InvalidAccessKey | AK/SK 无效或失效，检查密钥或改用 API Key |
-| 10400 | 参数错误，检查 Query、Count、TimeRange 等是否符合文档 |
-| 10402 | 搜索类型非法，检查 `--type` 是否为 `web` 或 `image` |
-| 10403 | 非法账号或无权限，检查账号、Key 或权限配置 |
-| 10406 | 免费额度已耗尽，检查账户额度或联系支持 |
-| 10407 | 当前无可用免费策略，检查账户状态或联系支持 |
-| 10500 | 服务内部错误，建议稍后重试或联系支持 |
-| 700429 | 免费链路限流，降频后重试 |
-| 100013 | 子账号未授权 TorchlightApiFullAccess |
-| Query 超长 | API 规定 1~100 字符，超长可能被截断，建议精简 |
-
-## 链接
-
-开通 https://console.volcengine.com/search-infinity/web-search | API Key https://console.volcengine.com/search-infinity/api-key | API 文档 https://www.volcengine.com/docs/85508/1650263

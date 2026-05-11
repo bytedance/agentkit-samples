@@ -274,7 +274,7 @@ def _validate_time_range(time_range: Optional[str]) -> Optional[str]:
 def build_body(
         query: str,
         search_type: str = "web",
-        count: int = 5,
+        count: int = 10,
         time_range: Optional[str] = None,
         auth_level: int = 0,
         query_rewrite: bool = False,
@@ -370,11 +370,11 @@ def main():
 
     parser = argparse.ArgumentParser(
         description="火山引擎联网搜索 API\nhttps://www.volcengine.com/docs/85508/1650263\n"
-        "凭证：Claw 中直接在聊天框发 Key 即可；或 WEB_SEARCH_API_KEY / --api-key"
+                    "凭证：Claw 中直接在聊天框发 Key 即可；或 WEB_SEARCH_API_KEY / --api-key"
     )
     parser.add_argument("query", help="搜索关键词")
     parser.add_argument("--type", "-t", default="web", choices=["web", "image"])
-    parser.add_argument("--count", "-c", type=int, default=5)
+    parser.add_argument("--count", "-c", type=int, default=10)
     parser.add_argument(
         "--time-range",
         help="OneDay/OneWeek/OneMonth/OneYear/YYYY-MM-DD..YYYY-MM-DD",
