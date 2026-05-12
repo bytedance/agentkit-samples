@@ -1,0 +1,185 @@
+{
+  "skill_name": "byted-advdefence-hostops",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "帮我看看这个高防域名最近有没有异常，顺便把策略、攻击和流量情况都过一遍。",
+      "expected_output": "Should route to a full host health check workflow, ask for host if missing, default to a recent inspection window, and summarize policy, attack, and traffic findings in a structured way.",
+      "files": [],
+      "assertions": [
+        "If host is missing, ask for the protected host before continuing.",
+        "Default to a recent inspection window when no explicit time range is provided.",
+        "Organize the answer as a structured inspection summary instead of dumping raw payloads.",
+        "Distinguish missing or failed data collection from a clean health conclusion."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "查下这个 host 最近有没有被打，重点看下来源 IP 和来源地区。",
+      "expected_output": "Should route to the attack-investigation workflow, collect host and time window if needed, default to the last 1 hour when missing, and focus on attack events plus top source IP and area.",
+      "files": [],
+      "assertions": [
+        "Route this request to the attack-investigation workflow rather than the full healthcheck when the user is already specific.",
+        "Default to the last 1 hour if the user does not provide a time range.",
+        "Treat attack-source interfaces as single-InstanceIp queries that require per-instance aggregation when multiple instance IPs exist.",
+        "Focus the answer on attack observations, source IPs, and source areas."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "帮我看下这个域名的 CC 规则、WAF 黑白名单和区域封禁配置。",
+      "expected_output": "Should route to the policy-review workflow and summarize protection switches, CC rules, allowlist, blocklist, and region-ban status without attempting any write operation.",
+      "files": [],
+      "assertions": [
+        "Route this request to policy review.",
+        "Summarize CC rules, WAF allowlist, WAF blocklist, and region-ban status.",
+        "Keep the workflow read-only."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "这个高防域名好像有点不对劲，你帮我先整体看看。",
+      "expected_output": "Should treat this as a vague host-inspection request, ask for the protected host if it is missing, and default to the full host health check workflow rather than jumping into a narrow sub-flow.",
+      "files": [],
+      "assertions": [
+        "Treat a vague host-inspection request as a full inspection by default.",
+        "Ask for the protected host when it is missing.",
+        "Do not prematurely narrow into only policy, only attack, or only traffic analysis."
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "帮我排查下 AdvDefence 域名，昨天晚上 8 点到 10 点 QPS 为什么掉了。",
+      "expected_output": "Should identify this as a traffic-analysis request, ask for the protected host if it is missing, respect the explicit time window, and focus on QPS, BPS, response codes, and related anomalies.",
+      "files": [],
+      "assertions": [
+        "Treat this as traffic analysis rather than generic inspection.",
+        "Respect the explicit time window provided by the user.",
+        "Focus on QPS, BPS, response-code, and related traffic anomalies."
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "这个域名对应的高防实例 IP 是多少？",
+      "expected_output": "Should route to the host-to-instance-IP resolution workflow, ask for the host if missing, and return the resolved instance IPs while explaining that four-layer APIs depend on this mapping.",
+      "files": [],
+      "assertions": [
+        "Route to host-to-instance-IP resolution.",
+        "Ask for the host when it is missing.",
+        "Explain that some four-layer observations depend on resolving instance IPs first."
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "帮我给这个域名加一个 WAF 白名单，放行 192.0.2.4。",
+      "expected_output": "Should recognize that this is a configuration-change request outside the skill boundary, clearly refuse to perform the write action, and explain that the skill is read-only rather than pretending to handle it.",
+      "files": [],
+      "assertions": [
+        "Recognize that this is a write request outside the skill boundary.",
+        "Refuse to perform the change.",
+        "Explain that the skill is read-only."
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "把这个域名的区域封禁改成只封海外。",
+      "expected_output": "Should identify this as a policy-modification request that the skill must not execute, and explain that the skill only supports inspection, analysis, and troubleshooting.",
+      "files": [],
+      "assertions": [
+        "Recognize that this is a policy modification request.",
+        "Do not execute the change.",
+        "Explain that the skill only supports inspection, analysis, and troubleshooting."
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "帮我写一个 AdvDefence 接口的 Python SDK，最好把签名和所有接口都封装一下。",
+      "expected_output": "Should not treat this as a host-operations task. It should avoid routing into the inspection workflow and instead recognize this as a development request outside the intended trigger scope of the skill.",
+      "files": [],
+      "assertions": [
+        "Do not route this into host inspection or policy review.",
+        "Recognize that this is a development task outside the intended trigger scope."
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "看下我这台 Linux 机器这两个小时网络流量是不是异常。",
+      "expected_output": "Should not trigger the AdvDefence host-operations workflow because this is a machine-level troubleshooting request rather than a protected-domain inspection task.",
+      "files": [],
+      "assertions": [
+        "Do not trigger the AdvDefence host-operations workflow for machine-level troubleshooting."
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "查下 example.com 最近有没有被打，没特别要求的话就按默认时间看。",
+      "expected_output": "Should route to attack investigation, use the provided host directly, default to the last 1 hour because no explicit window was given, and focus on attack observations rather than the full healthcheck if the request is already specific.",
+      "files": [],
+      "assertions": [
+        "Use the provided host directly without re-asking for it.",
+        "Default to the last 1 hour when no explicit time range is given.",
+        "Focus on attack observations rather than full healthcheck output."
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "帮我看看 example.com 的高防配置和流量有没有异常，如果有问题告诉我下一步查什么。",
+      "expected_output": "Should route to the full host health check workflow using the provided host, organize the answer in the skill's operations-report structure, and include next-step suggestions when anomalies or data gaps exist.",
+      "files": [],
+      "assertions": [
+        "Use the provided host directly.",
+        "Route to the full host health check workflow.",
+        "Include next-step suggestions when anomalies or data gaps exist."
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "帮我核对 example.com 的智能防护是不是开着；如果 `GetHostDefStatus` 里的 `SmartEnable=false`，但 `DescSmartCCConf` 显示开启了，要按哪个结果判断？",
+      "expected_output": "Should treat this as a policy-review task for a protected host, explicitly state that smart protection status must be determined from DescSmartCCConf rather than GetHostDefStatus.SmartEnable, and conclude that the feature is enabled when DescSmartCCConf indicates it is on.",
+      "files": [],
+      "assertions": [
+        "State that smart protection status must be determined from DescSmartCCConf.",
+        "State that GetHostDefStatus.SmartEnable is not the source of truth for this conclusion.",
+        "Conclude that smart protection is enabled when DescSmartCCConf indicates it is enabled.",
+        "Identify DescSmartCCConf as using parameter Domain rather than Host."
+      ]
+    },
+    {
+      "id": 14,
+      "prompt": "帮我看下 example.com 的 AI 防护状态，再查查最近有没有 CCAI 事件和可用的处置建议。",
+      "expected_output": "Should trigger this skill for a protected-domain inspection task, use the smart-protection check plus the CCAI read-only APIs, and summarize AI defense status, recent CCAI events, and available recommendations without attempting any write operation.",
+      "files": [],
+      "assertions": [
+        "Treat this as a protected-domain inspection request that should trigger the skill.",
+        "Use CCAI read-only capabilities for assets, events, and recommendations.",
+        "Keep the workflow read-only.",
+        "Summarize AI defense status, recent events, and available recommendations."
+      ]
+    },
+    {
+      "id": 15,
+      "prompt": "查下 example.com 最近的 DDoS 攻击来源，重点看来源 IP 和来源地区；如果这个域名挂了多个实例 IP，不要把攻击源 GET 接口当成支持 InstanceIps 批量查询。",
+      "expected_output": "Should resolve instance IPs first, use the correct request shape for DescribeAttackEvent on the multi-instance path, and treat DescribeTopAttackSrcIp and DescribeTopAttackSrcArea as single-InstanceIp queries that need per-instance aggregation instead of sending InstanceIps directly.",
+      "files": [],
+      "assertions": [
+        "Resolve instance IPs before querying four-layer attack source details.",
+        "Use the public contract for DescribeAttackEvent rather than inferring it from a similar legacy shape.",
+        "Prefer DescribeAttackEvent version 2023-03-08 with request body InstanceIps[], BeginTime, EndTime, CurrPage, and PageSize when the multi-instance path is needed.",
+        "Treat DescribeTopAttackSrcIp and DescribeTopAttackSrcArea as single-InstanceIp queries.",
+        "Aggregate per-instance attack-source results instead of sending InstanceIps directly to those GET actions."
+      ]
+    },
+    {
+      "id": 16,
+      "prompt": "查下 example.com 最近 1 小时的业务流量和连接数；注意别把相近但错误的接口名当成对外 Action。",
+      "expected_output": "Should treat this as traffic analysis for a protected host, resolve instance IPs if needed, and use the correct contract for the business-flow API.",
+      "files": [],
+      "assertions": [
+        "Route this request to traffic analysis.",
+        "Use the correct interface name for DescribeBizFlowAndConnCount.",
+        "Prefer version 2023-03-08 with request body InstanceIps[], BeginTime, and EndTime for the business-flow and connection-count query.",
+        "Summarize business flow and connection-count findings instead of dumping raw payloads."
+      ]
+    }
+  ]
+}
