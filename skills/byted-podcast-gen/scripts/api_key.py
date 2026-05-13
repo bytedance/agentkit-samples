@@ -37,7 +37,9 @@ def _extract_json(text: str) -> dict | None:
         return None
 
 
-def _post_json(url: str, headers: dict, payload: dict, timeout_s: int = 15) -> dict | None:
+def _post_json(
+    url: str, headers: dict, payload: dict, timeout_s: int = 15
+) -> dict | None:
     if not url:
         return None
     data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -94,7 +96,9 @@ def _persist_env_to_dotenv_if_available(dotenv_path: str, key: str, value: str) 
         return
 
 
-def get_speech_api_key(project_name: str = "default", create_name: str = "arkclaw") -> str:
+def get_speech_api_key(
+    project_name: str = "default", create_name: str = "arkclaw"
+) -> str:
     _load_dotenv_if_available(_dotenv_path())
 
     speech_key = os.getenv("MODEL_SPEECH_API_KEY", "").strip()
@@ -125,7 +129,9 @@ def get_speech_api_key(project_name: str = "default", create_name: str = "arkcla
             first_key = (first.get("APIKey") or "").strip()
             if first_key:
                 os.environ["MODEL_SPEECH_API_KEY"] = first_key
-                _persist_env_to_dotenv_if_available(_dotenv_path(), "MODEL_SPEECH_API_KEY", first_key)
+                _persist_env_to_dotenv_if_available(
+                    _dotenv_path(), "MODEL_SPEECH_API_KEY", first_key
+                )
                 return first_key
 
     create_url = _build_action_url(base, "CreateAPIKey")
@@ -138,7 +144,9 @@ def get_speech_api_key(project_name: str = "default", create_name: str = "arkcla
         created_key = ((create_data.get("Result") or {}).get("APIKey") or "").strip()
         if created_key:
             os.environ["MODEL_SPEECH_API_KEY"] = created_key
-            _persist_env_to_dotenv_if_available(_dotenv_path(), "MODEL_SPEECH_API_KEY", created_key)
+            _persist_env_to_dotenv_if_available(
+                _dotenv_path(), "MODEL_SPEECH_API_KEY", created_key
+            )
             return created_key
 
     return ""

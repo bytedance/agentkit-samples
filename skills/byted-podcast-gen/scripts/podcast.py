@@ -8,15 +8,21 @@ import sys
 import uuid
 
 import websockets
+from api_key import get_speech_api_key
+from protocols import finish_connection  # noqa: E402
+from protocols import (
+    EventType,
+    MsgType,
+    finish_session,
+    receive_message,
+    start_connection,
+    start_session,
+    wait_for_event,
+)
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPT_DIR not in sys.path:
     sys.path.insert(0, _SCRIPT_DIR)
-
-from api_key import get_speech_api_key
-from protocols import (EventType, MsgType, finish_connection,  # noqa: E402
-                       finish_session, receive_message, start_connection,
-                       start_session, wait_for_event)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("PodcastTTS")
@@ -51,7 +57,7 @@ async def _generate(args) -> dict:
     api_key = get_speech_api_key()
     if not api_key:
         raise ValueError("Missing MODEL_SPEECH_API_KEY")
-    resource_id ="volc.service_type.10050"
+    resource_id = "volc.service_type.10050"
     endpoint = ENDPOINT
     return_audio_url = True
     skip_round_audio_save = True
@@ -72,7 +78,6 @@ async def _generate(args) -> dict:
     output_dir = _output_dir_from_output_path(args.output)
     os.makedirs(output_dir, exist_ok=True)
 
-    task_id = str(uuid.uuid4())
     session_id = str(uuid.uuid4())
 
     speaker_info = _load_json_value(args.speaker_info) if args.speaker_info else None
@@ -110,16 +115,27 @@ async def _generate(args) -> dict:
 
     async with websockets.connect(endpoint, additional_headers=headers) as websocket:
         await start_connection(websocket)
-        await wait_for_event(websocket, MsgType.FullServerResponse, EventType.ConnectionStarted)
+        await wait_for_event(
+            websocket, MsgType.FullServerResponse, EventType.ConnectionStarted
+        )
 
-        await start_session(websocket, json.dumps(req_params, ensure_ascii=False).encode("utf-8"), session_id)
-        await wait_for_event(websocket, MsgType.FullServerResponse, EventType.SessionStarted)
+        await start_session(
+            websocket,
+            json.dumps(req_params, ensure_ascii=False).encode("utf-8"),
+            session_id,
+        )
+        await wait_for_event(
+            websocket, MsgType.FullServerResponse, EventType.SessionStarted
+        )
         await finish_session(websocket, session_id)
 
         while True:
             msg = await receive_message(websocket)
 
-            if msg.type == MsgType.AudioOnlyServer and msg.event == EventType.PodcastRoundResponse:
+            if (
+                msg.type == MsgType.AudioOnlyServer
+                and msg.event == EventType.PodcastRoundResponse
+            ):
                 if msg.payload:
                     audio_received = True
                     round_audio.extend(msg.payload)
@@ -132,9 +148,13 @@ async def _generate(args) -> dict:
                 if msg.event == EventType.PodcastRoundStart:
                     data = json.loads(msg.payload.decode("utf-8", errors="replace"))
                     if data.get("text"):
-                        podcast_texts.append({"text": data.get("text"), "speaker": data.get("speaker")})
+                        podcast_texts.append(
+                            {"text": data.get("text"), "speaker": data.get("speaker")}
+                        )
                     current_speaker = data.get("speaker") or "speaker"
-                    current_round = data.get("round_id") if data.get("round_id") is not None else 0
+                    current_round = (
+                        data.get("round_id") if data.get("round_id") is not None else 0
+                    )
                     continue
 
                 if msg.event == EventType.PodcastRoundEnd:
@@ -154,14 +174,18 @@ async def _generate(args) -> dict:
                     continue
 
                 if msg.event == EventType.PodcastEnd:
-                    podcast_end_payload = json.loads(msg.payload.decode("utf-8", errors="replace"))
+                    podcast_end_payload = json.loads(
+                        msg.payload.decode("utf-8", errors="replace")
+                    )
                     continue
 
             if msg.event == EventType.SessionFinished:
                 break
 
         await finish_connection(websocket)
-        await wait_for_event(websocket, MsgType.FullServerResponse, EventType.ConnectionFinished)
+        await wait_for_event(
+            websocket, MsgType.FullServerResponse, EventType.ConnectionFinished
+        )
 
     result = {"status": "success", "task_id": session_id, "encoding": args.encoding}
 
@@ -175,7 +199,9 @@ async def _generate(args) -> dict:
         raise RuntimeError("No audio data received")
 
     if podcast_audio:
-        audio_path = args.output or os.path.join(output_dir, f"podcast_{session_id}.{_final_extension(args.encoding)}")
+        audio_path = args.output or os.path.join(
+            output_dir, f"podcast_{session_id}.{_final_extension(args.encoding)}"
+        )
         with open(audio_path, "wb") as f:
             f.write(podcast_audio)
         result["audio_path"] = audio_path
@@ -190,20 +216,43 @@ async def _generate(args) -> dict:
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--action", default=4, type=int, choices=[0,4], help="Podcast type")
+    parser.add_argument(
+        "--action", default=4, type=int, choices=[0, 3, 4], help="Podcast type"
+    )
     parser.add_argument("--text", default="", help="Input text (action=0)")
     parser.add_argument("--input_url", default="", help="Input text URL (action=0)")
-    parser.add_argument("--nlp_texts", default="", help="NLP texts JSON string or JSON file path (action=3)")
+    parser.add_argument(
+        "--nlp_texts",
+        default="",
+        help="NLP texts JSON string or JSON file path (action=3)",
+    )
     parser.add_argument("--prompt_text", default="", help="Prompt text (action=4)")
 
-    parser.add_argument("--encoding", default="mp3", choices=["mp3", "wav", "ogg_opus"], help="Audio format")
-    parser.add_argument("--input_id", default="podcast_input", help="Unique input identifier")
-    parser.add_argument("--speaker_info", default='{"random_order":false}', help="Speaker info JSON")
+    parser.add_argument(
+        "--encoding",
+        default="mp3",
+        choices=["mp3", "wav", "ogg_opus"],
+        help="Audio format",
+    )
+    parser.add_argument(
+        "--input_id", default="podcast_input", help="Unique input identifier"
+    )
+    parser.add_argument(
+        "--speaker_info", default='{"random_order":false}', help="Speaker info JSON"
+    )
 
-    parser.add_argument("--use_head_music", action="store_true", help="Enable head music")
-    parser.add_argument("--use_tail_music", action="store_true", help="Enable tail music")
-    parser.add_argument("--aigc_watermark", action="store_true", help="Enable aigc watermark")
-    parser.add_argument("--only_nlp_text", action="store_true", help="Only output podcast texts")
+    parser.add_argument(
+        "--use_head_music", action="store_true", help="Enable head music"
+    )
+    parser.add_argument(
+        "--use_tail_music", action="store_true", help="Enable tail music"
+    )
+    parser.add_argument(
+        "--aigc_watermark", action="store_true", help="Enable aigc watermark"
+    )
+    parser.add_argument(
+        "--only_nlp_text", action="store_true", help="Only output podcast texts"
+    )
 
     parser.add_argument("--output", default="", help="Final audio output path")
     parser.add_argument("--texts_output", default="", help="Podcast texts output path")
