@@ -1,0 +1,291 @@
+{
+  "serviceDefaultVersion": "2020-06-01",
+  "apiOverviewUrl": "https://www.volcengine.com/docs/3019/66792?lang=zh",
+  "releaseHistoryUrl": "https://www.volcengine.com/docs/3019/129183?lang=zh",
+  "actions": {
+    "AnalysisUserBehaviorPeople": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/113770?lang=zh",
+      "methodHint": "GET",
+      "riskLevel": "normal"
+    },
+    "AnalysisUserBehaviorPeopleV2": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/167658?lang=zh",
+      "methodHint": "GET",
+      "riskLevel": "normal"
+    },
+    "ActivityLines": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/66792?lang=zh",
+      "notes": "公开文档未检索到独立接口页，请以 API 参考与线上实际 Action 为准",
+      "methodHint": "GET",
+      "riskLevel": "normal"
+    },
+    "ActivityLinesPullInfoConsole": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/66792?lang=zh",
+      "notes": "控制台类接口，文档可能仅内网或控制台侧说明",
+      "methodHint": "GET",
+      "riskLevel": "normal"
+    },
+    "AddActivityAntidirtAPI": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/124327?lang=zh",
+      "methodHint": "POST",
+      "riskLevel": "normal"
+    },
+    "BillInstanceCallbackLivesaas": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/66792?lang=zh",
+      "notes": "计费/实例回调类，多为服务端接收，调用前请核对是否对外 OpenAPI",
+      "methodHint": "POST",
+      "riskLevel": "normal"
+    },
+    "CanUseAbility": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/66792?lang=zh",
+      "notes": "未检索到独立文档页，见 API 参考总览",
+      "methodHint": "GET",
+      "riskLevel": "normal"
+    },
+    "CheckContext": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/66792?lang=zh",
+      "notes": "未检索到独立文档页，见 API 参考总览",
+      "methodHint": "POST",
+      "riskLevel": "normal"
+    },
+    "CheckDocLibStorageCapacity": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/66792?lang=zh",
+      "notes": "未检索到独立文档页，见 API 参考总览",
+      "methodHint": "GET",
+      "riskLevel": "normal"
+    },
+    "CloseLinkWebCast": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/158215?lang=zh",
+      "notes": "网页连麦相关，与 CloseLinkWebCast 对应关系请以文档检索或线上为准",
+      "methodHint": "POST",
+      "riskLevel": "normal"
+    },
+    "CreateActivityAPIV2": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/100053?lang=zh",
+      "methodHint": "POST",
+      "riskLevel": "normal"
+    },
+    "CreateActivityCouponsConsole": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/1357825?lang=zh",
+      "notes": "与 CreateActivityCoupons 可能为控制台/OpenAPI 命名差异，以线上 Action 为准",
+      "methodHint": "POST",
+      "riskLevel": "normal"
+    },
+    "DeleteActivityAPI": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/100054?lang=zh",
+      "methodHint": "POST",
+      "riskLevel": "high"
+    },
+    "DeleteMediaLibraryVideoAPI": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/912870?lang=zh",
+      "methodHint": "POST",
+      "riskLevel": "high"
+    },
+    "DeleteUserMessage": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/100078?lang=zh",
+      "notes": "删除评论类能力亦见 DeleteChatAPI；若线上 Action 为 DeleteUserMessage 请以实际为准",
+      "methodHint": "POST",
+      "riskLevel": "high"
+    },
+    "EnableProduct": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/1149738?lang=zh",
+      "notes": "未检索到独立 EnableProduct 页，见商品卡片说明；可能与 EnableProductAPI 并存",
+      "methodHint": "POST",
+      "riskLevel": "normal"
+    },
+    "EnableProductAPI": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/1149738?lang=zh",
+      "notes": "未检索到独立页，见商品卡片；上架能力亦可能通过更新商品卡片配置完成",
+      "methodHint": "POST",
+      "riskLevel": "normal"
+    },
+    "ExplainProduct": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/107752?lang=zh",
+      "notes": "文档页示例 Action 为 ExplainProductAPI；若控制台仍使用 ExplainProduct 请与 ExplainProductAPI 对照",
+      "methodHint": "POST",
+      "riskLevel": "normal"
+    },
+    "ExplainProductAPI": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/107752?lang=zh",
+      "methodHint": "POST",
+      "riskLevel": "normal"
+    },
+    "ForbidLiveChannel": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/2163685?lang=zh",
+      "methodHint": "POST",
+      "riskLevel": "high"
+    },
+    "GetAccount": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/66792?lang=zh",
+      "notes": "公开文档未检索到独立 GetAccount 页，见 API 参考总览",
+      "methodHint": "GET",
+      "riskLevel": "normal"
+    },
+    "GetAccountAPP": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/66792?lang=zh",
+      "notes": "与 GetAccountApp 可能为同一接口不同命名",
+      "methodHint": "GET",
+      "riskLevel": "normal"
+    },
+    "GetAccountApp": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/66792?lang=zh",
+      "notes": "未检索到独立文档页，见 API 参考总览",
+      "methodHint": "GET",
+      "riskLevel": "normal"
+    },
+    "GetAccountAbilityAmountConsole": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/66792?lang=zh",
+      "notes": "控制台权益余额类，独立页未检索到",
+      "methodHint": "GET",
+      "riskLevel": "normal"
+    },
+    "GetAccountCommentAnalysisLLMConsole": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/66792?lang=zh",
+      "notes": "大模型评论分析控制台类，独立页未检索到",
+      "methodHint": "GET",
+      "riskLevel": "normal"
+    },
+    "GetAccountConfig": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/66792?lang=zh",
+      "notes": "未检索到独立文档页，见 API 参考总览",
+      "methodHint": "GET",
+      "riskLevel": "normal"
+    },
+    "GetAccountProduct": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/66792?lang=zh",
+      "notes": "账号商品列表；亦可能与 GetActivityProductAPI 等区分账号/直播间维度",
+      "methodHint": "GET",
+      "riskLevel": "normal"
+    },
+    "GetAccountProductStatisticsThird": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/66792?lang=zh",
+      "notes": "第三方商品统计，独立页未检索到",
+      "methodHint": "GET",
+      "riskLevel": "normal"
+    },
+    "GetAccountProductStatus": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/66792?lang=zh",
+      "notes": "未检索到独立文档页",
+      "methodHint": "GET",
+      "riskLevel": "normal"
+    },
+    "GetAccountUserTrackData": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/1169974?lang=zh",
+      "methodHint": "GET",
+      "riskLevel": "normal"
+    },
+    "GetActivityBasicConfigAPI": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/100061?lang=zh"
+    },
+    "ListActivityAPI": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/100055?lang=zh"
+    },
+    "ListActivityChatAPI": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/105026?lang=zh",
+      "notes": "直播间评论分类页；单页若与 Action 名不一致请以 API 参考为准"
+    },
+    "PollingChatAPI": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/100075?lang=zh"
+    },
+    "PresenterChatAPIV2": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/1217286?lang=zh"
+    },
+    "SendCustomSystemMessageAPI": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/126052?lang=zh"
+    },
+    "SilenceUserAPI": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/105028?lang=zh"
+    },
+    "UpdateActivityBasicConfigAPI": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/100060?lang=zh"
+    },
+    "UpdateActivityStatusAPI": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/100056?lang=zh"
+    },
+    "UpdateActivityUserBanStatus": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/1412599?lang=zh"
+    },
+    "UpdateCheckInConfig": {
+      "version": "2023-08-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/129183?lang=zh",
+      "methodHint": "POST",
+      "riskLevel": "normal",
+      "notes": "创建或更新签到配置"
+    },
+    "SendCheckIn": {
+      "version": "2023-08-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/129183?lang=zh",
+      "methodHint": "POST",
+      "riskLevel": "normal",
+      "notes": "发送签到"
+    },
+    "StopCheckIn": {
+      "version": "2023-08-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/129183?lang=zh",
+      "methodHint": "POST",
+      "riskLevel": "normal",
+      "notes": "停止签到"
+    },
+    "WithdrawCheckIn": {
+      "version": "2023-08-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/129183?lang=zh",
+      "methodHint": "POST",
+      "riskLevel": "normal",
+      "notes": "撤回签到"
+    },
+    "DeleteCheckIn": {
+      "version": "2023-08-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/129183?lang=zh",
+      "methodHint": "POST",
+      "riskLevel": "high",
+      "notes": "删除签到"
+    },
+    "GetCheckInListAPI": {
+      "version": "2020-06-01",
+      "docUrl": "https://www.volcengine.com/docs/3019/129183?lang=zh",
+      "methodHint": "GET",
+      "riskLevel": "normal",
+      "notes": "获取签到列表"
+    }
+  }
+}
