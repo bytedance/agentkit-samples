@@ -15,8 +15,8 @@
 #!/usr/bin/env python3
 """Example script: get video information from TOS using the Python SDK.
 
-Reads configuration from environment variables and calls the `videoInfo`
-operation by issuing a `get_object` request with `process="video/info"`.
+Reads configuration from environment variables and/or CLI arguments and calls the
+`videoInfo` operation by issuing a `get_object` request with `process="video/info"`.
 
 Environment variables:
   - TOS_ACCESS_KEY        Access key ID (AK) or STS AccessKeyId
@@ -28,6 +28,7 @@ Environment variables:
   - TOS_OBJECT_KEY        Object key of the video file in the bucket
 """
 
+import argparse
 import json
 import os
 import sys
@@ -54,7 +55,6 @@ def create_client() -> tos.TosClientV2:
     region = get_env("TOS_REGION")
     security_token = os.getenv("TOS_SECURITY_TOKEN")
 
-    print(f"[INFO] Initializing TOS client for endpoint={endpoint}, region={region} ...")
     return tos.TosClientV2(
         ak=ak,
         sk=sk,
@@ -65,14 +65,20 @@ def create_client() -> tos.TosClientV2:
 
 
 def main() -> None:
-    client = create_client()
-    bucket = get_env("TOS_BUCKET")
-    key = get_env("TOS_OBJECT_KEY")
+    parser = argparse.ArgumentParser(description="Get video info via TOS process=video/info")
+    parser.add_argument("--bucket", type=str, default=None, help="Override TOS_BUCKET")
+    parser.add_argument("--key", type=str, default=None, help="Override TOS_OBJECT_KEY")
+    parser.add_argument("--json", action="store_true", help="Print machine-readable JSON only")
+    args = parser.parse_args()
 
-    print(f"[INFO] Requesting video info for {bucket}/{key} ...")
+    client = create_client()
+    bucket = args.bucket or get_env("TOS_BUCKET")
+    key = args.key or get_env("TOS_OBJECT_KEY")
+
+    if not args.json:
+        print(f"[INFO] Requesting video info for {bucket}/{key} ...")
 
     try:
-        # Use process="video/info" to get video metadata.
         output = client.get_object(bucket, key, process="video/info")
         raw = output.read()
     except TosServerError as e:
@@ -95,9 +101,24 @@ def main() -> None:
     except Exception as exc:  # noqa: BLE001
         print("[ERROR] Failed to parse response as JSON:", file=sys.stderr)
         print(exc, file=sys.stderr)
-        # Print a small prefix of the raw response for easier debugging.
         print(raw[:200], file=sys.stderr)
         sys.exit(1)
+
+    if args.json:
+        print(
+            json.dumps(
+                {
+                    "ok": True,
+                    "operation": "video_info",
+                    "bucket": bucket,
+                    "key": key,
+                    "process": "video/info",
+                    "result": data,
+                },
+                ensure_ascii=False,
+            )
+        )
+        return
 
     print("[OK] Video info:")
     print(json.dumps(data, indent=2, ensure_ascii=False))

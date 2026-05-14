@@ -43,6 +43,7 @@ affects `x-tos-total-page` when calling doc-preview multiple times.
 """
 
 import argparse
+import json
 import os
 import sys
 from typing import Optional
@@ -71,7 +72,9 @@ def create_client() -> tos.TosClientV2:
     region = get_env("TOS_REGION")
     security_token = os.getenv("TOS_SECURITY_TOKEN")
 
-    print(f"[INFO] Initializing TOS client for endpoint={endpoint}, region={region} ...")
+    print(
+        f"[INFO] Initializing TOS client for endpoint={endpoint}, region={region} ..."
+    )
     return tos.TosClientV2(
         ak=ak,
         sk=sk,
@@ -108,6 +111,8 @@ def main() -> None:
         default=None,
         help="Optional DocPage (1-based) for page-specific preview",
     )
+    parser.add_argument("--json", action="store_true", help="Print machine-readable JSON only")
+    parser.add_argument("--dry-run", action="store_true", help="Print resolved request and exit")
     args = parser.parse_args()
 
     if args.page is not None and args.page <= 0:
@@ -118,16 +123,34 @@ def main() -> None:
     bucket = args.bucket or get_env("TOS_BUCKET")
     key = args.key or get_env("TOS_OBJECT_KEY")
 
-    print(
-        f"[INFO] Requesting doc-preview headers for {bucket}/{key}, "
-        f"DocDestType={args.dest_type}, DocPage={args.page}",
-    )
-
     params = build_doc_preview_query_params(
         dest_type=args.dest_type,
         src_type=args.src_type,
         page=args.page,
     )
+    plan = {
+        "ok": True,
+        "operation": "doc_total_page",
+        "bucket": bucket,
+        "key": key,
+        "dest_type": args.dest_type,
+        "src_type": args.src_type,
+        "page": args.page,
+        "params": params,
+    }
+
+    if args.dry_run:
+        if args.json:
+            print(json.dumps(plan, ensure_ascii=False))
+        else:
+            print(json.dumps(plan, indent=2, ensure_ascii=False))
+        return
+
+    if not args.json:
+        print(
+            f"[INFO] Requesting doc-preview headers for {bucket}/{key}, "
+            f"DocDestType={args.dest_type}, DocPage={args.page}",
+        )
 
     # Generate pre-signed URL and perform a HEAD-equivalent GET (we only care about headers).
     try:
@@ -145,10 +168,16 @@ def main() -> None:
         )
         sys.exit(1)
     except TosClientError as e:
-        print(f"[ERROR] TOS client error when generating pre-signed URL: {e}", file=sys.stderr)
+        print(
+            f"[ERROR] TOS client error when generating pre-signed URL: {e}",
+            file=sys.stderr,
+        )
         sys.exit(1)
     except Exception as exc:  # noqa: BLE001
-        print(f"[ERROR] Unexpected error when generating pre-signed URL: {exc}", file=sys.stderr)
+        print(
+            f"[ERROR] Unexpected error when generating pre-signed URL: {exc}",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     req = Request(presigned.signed_url, headers=presigned.signed_header)
@@ -165,10 +194,16 @@ def main() -> None:
         )
         sys.exit(1)
     except URLError as e:
-        print(f"[ERROR] Failed to call doc-preview for headers: {e.reason}", file=sys.stderr)
+        print(
+            f"[ERROR] Failed to call doc-preview for headers: {e.reason}",
+            file=sys.stderr,
+        )
         sys.exit(1)
     except Exception as exc:  # noqa: BLE001
-        print(f"[ERROR] Unexpected error when calling doc-preview for headers: {exc}", file=sys.stderr)
+        print(
+            f"[ERROR] Unexpected error when calling doc-preview for headers: {exc}",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     total_page = None
@@ -179,7 +214,24 @@ def main() -> None:
         total_page = None
 
     if total_page is None:
-        print("[WARN] x-tos-total-page header not found on response.")
+        payload = {
+            **plan,
+            "ok": False,
+            "warning": "x-tos-total-page header not found on response.",
+            "total_page": None,
+        }
+        if args.json:
+            print(json.dumps(payload, ensure_ascii=False))
+        else:
+            print("[WARN] x-tos-total-page header not found on response.")
+        return
+
+    payload = {
+        **plan,
+        "total_page": total_page,
+    }
+    if args.json:
+        print(json.dumps(payload, ensure_ascii=False))
     else:
         print(f"[OK] x-tos-total-page = {total_page}")
 

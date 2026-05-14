@@ -98,7 +98,9 @@ def create_client() -> tos.TosClientV2:
     region = get_env("TOS_REGION")
     security_token = os.getenv("TOS_SECURITY_TOKEN")
 
-    print(f"[INFO] Initializing TOS client for endpoint={endpoint}, region={region} ...")
+    print(
+        f"[INFO] Initializing TOS client for endpoint={endpoint}, region={region} ..."
+    )
     return tos.TosClientV2(
         ak=ak,
         sk=sk,
@@ -126,7 +128,7 @@ def extract_preview_link(html: str) -> str:
     match = re.search(pattern, html, re.DOTALL)
     if not match:
         raise ValueError(
-            "Could not find preview link via window.open(\"...\",\"_self\") in HTML content",
+            'Could not find preview link via window.open("...","_self") in HTML content',
         )
     return match.group(1)
 
@@ -155,7 +157,9 @@ def extract_token_from_html(html: str) -> str:
     qs = parse_qs(parsed.query)
     token_list = qs.get("token")
     if not token_list:
-        raise ValueError(f"No 'token' parameter found in preview link: {preview_link!r}")
+        raise ValueError(
+            f"No 'token' parameter found in preview link: {preview_link!r}"
+        )
 
     token = token_list[0]
     if not token:
@@ -214,10 +218,16 @@ def fetch_html_via_presigned(
         )
         sys.exit(1)
     except TosClientError as e:
-        print(f"[ERROR] TOS client error when generating pre-signed URL: {e}", file=sys.stderr)
+        print(
+            f"[ERROR] TOS client error when generating pre-signed URL: {e}",
+            file=sys.stderr,
+        )
         sys.exit(1)
     except Exception as exc:  # noqa: BLE001
-        print(f"[ERROR] Unexpected error when generating pre-signed URL: {exc}", file=sys.stderr)
+        print(
+            f"[ERROR] Unexpected error when generating pre-signed URL: {exc}",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     req = Request(presigned.signed_url, headers=presigned.signed_header)
@@ -232,7 +242,10 @@ def fetch_html_via_presigned(
         )
         sys.exit(1)
     except URLError as e:
-        print(f"[ERROR] Failed to fetch HTML via pre-signed URL: {e.reason}", file=sys.stderr)
+        print(
+            f"[ERROR] Failed to fetch HTML via pre-signed URL: {e.reason}",
+            file=sys.stderr,
+        )
         sys.exit(1)
     except Exception as exc:  # noqa: BLE001
         print(f"[ERROR] Unexpected error when fetching HTML: {exc}", file=sys.stderr)
@@ -260,7 +273,10 @@ def fetch_html_from_direct_url(url: str) -> str:
         print(f"[ERROR] Failed to fetch direct HTML URL: {e.reason}", file=sys.stderr)
         sys.exit(1)
     except Exception as exc:  # noqa: BLE001
-        print(f"[ERROR] Unexpected error when fetching direct HTML URL: {exc}", file=sys.stderr)
+        print(
+            f"[ERROR] Unexpected error when fetching direct HTML URL: {exc}",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     return html_bytes.decode("utf-8", errors="replace")
@@ -316,7 +332,9 @@ def main() -> None:
     try:
         preview_link = extract_preview_link(html)
     except ValueError as exc:
-        print(f"[ERROR] Failed to extract preview link from HTML: {exc}", file=sys.stderr)
+        print(
+            f"[ERROR] Failed to extract preview link from HTML: {exc}", file=sys.stderr
+        )
         # Optionally dump a small prefix of HTML to help debugging
         print(html[:400], file=sys.stderr)
         sys.exit(1)
@@ -332,7 +350,9 @@ def main() -> None:
     try:
         preview_url = decode_preview_url(token)
     except ValueError as exc:
-        print(f"[ERROR] Failed to decode preview URL from token: {exc}", file=sys.stderr)
+        print(
+            f"[ERROR] Failed to decode preview URL from token: {exc}", file=sys.stderr
+        )
         sys.exit(1)
 
     print("[OK] Extracted preview information:")

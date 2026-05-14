@@ -13,25 +13,15 @@
 # limitations under the License.
 
 #!/usr/bin/env python3
-"""Example script: resize image using TOS image processing.
+"""Image understanding entrypoint for TOS image processing.
 
-Builds `process="image/resize,..."` and either:
-  - saves the processed image locally via `get_object_to_file` (default), or
-  - saves it back to TOS via `get_object(..., save_bucket=..., save_object=...)`.
-
-Common parameters:
-  - w: target width
-  - h: target height
-  - m: resize mode (string; exact options are subject to official documentation)
-
-For any additional parameters, pass `--kv key=value` and the script will append it
-as `key_value` in the process string.
+Uses the image/understanding sync operation to invoke a VLM (Vision Language Model)
+for intelligent image comprehension.
 
 Environment variables:
   - TOS_ACCESS_KEY, TOS_SECRET_KEY, TOS_SECURITY_TOKEN(optional)
   - TOS_ENDPOINT, TOS_REGION
-  - TOS_BUCKET, TOS_OBJECT_KEY
-Note: Parameter semantics are subject to the official TOS documentation.
+  - TOS_BUCKET
 """
 
 import argparse
@@ -69,83 +59,53 @@ def create_client() -> tos.TosClientV2:
         endpoint=endpoint,
         region=region,
         security_token=security_token,
+        socket_timeout=120,
     )
 
 
-def parse_kv_list(items: list[str]) -> list[tuple[str, str]]:
-    pairs: list[tuple[str, str]] = []
-    for item in items:
-        if "=" not in item:
-            raise ValueError(f"Invalid --kv '{item}', expected key=value")
-        k, v = item.split("=", 1)
-        k = k.strip()
-        v = v.strip()
-        if not k:
-            raise ValueError(f"Invalid --kv '{item}', key is empty")
-        pairs.append((k, v))
-    return pairs
-
-
-def build_process(op: str, pairs: list[tuple[str, str]]) -> str:
-    base = f"image/{op}"
-    if not pairs:
-        return base
-    return base + "," + ",".join([f"{k}_{v}" for k, v in pairs])
-
-
-def default_output_path(key: str) -> str:
-    base = os.path.basename(key)
-    if not base:
-        return "resized_output"
-    return f"resized_{base}"
+def b64url_encode(data: str) -> str:
+    return base64.urlsafe_b64encode(data.encode()).decode().rstrip("=")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Resize image via TOS process=image/resize"
+        description="TOS image understanding (VLM) entrypoint"
     )
-    parser.add_argument("--bucket", type=str, default=None, help="Override TOS_BUCKET")
-    parser.add_argument("--key", type=str, default=None, help="Override TOS_OBJECT_KEY")
+    parser.add_argument("--key", type=str, required=True, help="Image object key")
     parser.add_argument(
-        "--w", dest="width", type=int, default=None, help="Target width"
+        "--bucket", type=str, default=None, help="TOS bucket (default: TOS_BUCKET env)"
+    )
+    parser.add_argument("--prompt", type=str, required=True, help="Prompt for VLM")
+    parser.add_argument(
+        "--model", type=str, default="doubao-seed-1.6-vision", help="VLM model name"
     )
     parser.add_argument(
-        "--h", dest="height", type=int, default=None, help="Target height"
+        "--detail",
+        type=str,
+        default=None,
+        choices=["auto", "low", "high"],
+        help="Detail level",
     )
-    parser.add_argument("--m", dest="mode", type=str, default=None, help="Resize mode")
-    parser.add_argument(
-        "--kv", action="append", default=[], help="Extra process option: key=value"
-    )
-    parser.add_argument("--output", type=str, default=None, help="Local output file")
     parser.add_argument(
         "--saveas-bucket", type=str, default=None, help="Save result to this bucket"
     )
     parser.add_argument(
         "--saveas-object", type=str, default=None, help="Save result as this object key"
     )
+    parser.add_argument("--output", type=str, default=None, help="Local output file")
     parser.add_argument("--json", action="store_true", help="Print machine-readable JSON only")
     parser.add_argument("--dry-run", action="store_true", help="Print resolved request and exit")
     args = parser.parse_args()
 
     client = create_client()
     bucket = args.bucket or get_env("TOS_BUCKET")
-    key = args.key or get_env("TOS_OBJECT_KEY")
+    key = args.key
 
-    pairs: list[tuple[str, str]] = []
-    if args.width is not None:
-        pairs.append(("w", str(args.width)))
-    if args.height is not None:
-        pairs.append(("h", str(args.height)))
-    if args.mode:
-        pairs.append(("m", args.mode))
-
-    try:
-        pairs.extend(parse_kv_list(args.kv))
-    except ValueError as e:
-        print(f"[ERROR] {e}", file=sys.stderr)
-        sys.exit(1)
-
-    process_value = build_process("resize", pairs)
+    encoded_model = b64url_encode(args.model)
+    encoded_prompt = b64url_encode(args.prompt)
+    process = f"image/understanding,m_{encoded_model},p_{encoded_prompt}"
+    if args.detail:
+        process += f",d_{args.detail}"
 
     save_bucket = args.saveas_bucket
     save_object = args.saveas_object
@@ -154,10 +114,10 @@ def main() -> None:
     if persist_to_tos:
         save_bucket = save_bucket or bucket
         if not save_object:
-            save_object = f"resized_{os.path.basename(key)}"
+            save_object = f"understanding_{os.path.basename(key)}"
 
-        print(f"[INFO] Resizing {bucket}/{key} -> {save_bucket}/{save_object}")
-        print(f"[INFO] process = {process_value}")
+        print(f"[INFO] Understanding {bucket}/{key} -> {save_bucket}/{save_object}")
+        print(f"[INFO] process = {process}")
 
         encoded_bucket = base64.urlsafe_b64encode(save_bucket.encode()).decode()
         encoded_object = base64.urlsafe_b64encode(save_object.encode()).decode()
@@ -166,7 +126,7 @@ def main() -> None:
             output = client.get_object(
                 bucket=bucket,
                 key=key,
-                process=process_value,
+                process=process,
                 save_bucket=encoded_bucket,
                 save_object=encoded_object,
             )
@@ -182,26 +142,24 @@ def main() -> None:
             print(f"[ERROR] TOS client error: {e}", file=sys.stderr)
             sys.exit(1)
 
+        print("[OK] Save result:")
         try:
             data = json.loads(raw.decode("utf-8"))
-        except Exception as exc:  # noqa: BLE001
-            print("[ERROR] Failed to parse save result as JSON:", file=sys.stderr)
-            print(exc, file=sys.stderr)
-            print(raw[:200], file=sys.stderr)
-            sys.exit(1)
-
-        print("[OK] Image saved to TOS:")
-        print(json.dumps(data, indent=2, ensure_ascii=False))
+            print(json.dumps(data, indent=2, ensure_ascii=False))
+        except Exception:
+            print(raw.decode("utf-8", errors="replace"))
         return
 
-    output_path = args.output or default_output_path(key)
-    print(f"[INFO] Resizing {bucket}/{key} -> {output_path}")
-    print(f"[INFO] process = {process_value}")
+    print(f"[INFO] Understanding {bucket}/{key}")
+    print(f"[INFO] process = {process}")
 
     try:
-        client.get_object_to_file(
-            bucket=bucket, key=key, file_path=output_path, process=process_value
+        output = client.get_object(
+            bucket=bucket,
+            key=key,
+            process=process,
         )
+        raw = output.read()
     except TosServerError as e:
         print(
             f"[ERROR] TOS server error: code={e.code}, status={e.status_code}, "
@@ -213,8 +171,28 @@ def main() -> None:
         print(f"[ERROR] TOS client error: {e}", file=sys.stderr)
         sys.exit(1)
 
-    size = os.path.getsize(output_path)
-    print(f"[OK] Image saved to {output_path} ({size} bytes)")
+    text = raw.decode("utf-8", errors="replace")
+
+    if args.output:
+        with open(args.output, "w", encoding="utf-8") as f:
+            f.write(text)
+        print(f"[OK] Output saved to {args.output}")
+        try:
+            data = json.loads(text)
+            content = data.get("content", "")
+            if content:
+                print(f"\n[Result]\n{content}")
+        except Exception:
+            pass
+    else:
+        try:
+            data = json.loads(text)
+            print(json.dumps(data, indent=2, ensure_ascii=False))
+            content = data.get("content", "")
+            if content:
+                print(f"\n[Result]\n{content}")
+        except Exception:
+            print(text)
 
 
 if __name__ == "__main__":

@@ -20,24 +20,10 @@ Two modes are supported:
 - Interval-based:        --interval-ms 5000 --duration-ms 60000 [--max-snapshots N]
 
 Snapshots can be saved locally or directly to TOS using save-as parameters.
-
-Environment variables:
-  - TOS_ACCESS_KEY        Access key ID (AK) or STS AccessKeyId
-  - TOS_SECRET_KEY        Secret access key (SK) or STS SecretAccessKey
-  - TOS_SECURITY_TOKEN    (optional) STS session token
-  - TOS_ENDPOINT          TOS endpoint, e.g. https://tos-cn-beijing.volces.com
-  - TOS_REGION            TOS region, e.g. cn-beijing
-  - TOS_BUCKET            Bucket name that stores the video
-  - TOS_OBJECT_KEY        Object key of the video file in the bucket
-
-Optional environment variables:
-  - TOS_SAVEAS_BUCKET         Default bucket for snapshot persistence
-  - TOS_SAVEAS_OBJECT_PREFIX  Prefix for save-as object keys when persisting
-  - MAX_OBJECT_SIZE           Maximum allowed local snapshot size in bytes
-                               (default: 262144). Only used for local saves.
 """
 
 import argparse
+import base64
 import json
 import os
 import sys
@@ -63,7 +49,6 @@ def create_client() -> tos.TosClientV2:
     region = get_env("TOS_REGION")
     security_token = os.getenv("TOS_SECURITY_TOKEN")
 
-    print(f"[INFO] Initializing TOS client for endpoint={endpoint}, region={region} ...")
     return tos.TosClientV2(
         ak=ak,
         sk=sk,
@@ -81,7 +66,9 @@ def build_timestamps(args: argparse.Namespace) -> List[int]:
         interval = int(args.interval_ms)
         duration = int(args.duration_ms)
         if interval <= 0 or duration <= 0:
-            print("[ERROR] interval-ms and duration-ms must be positive.", file=sys.stderr)
+            print(
+                "[ERROR] interval-ms and duration-ms must be positive.", file=sys.stderr
+            )
             sys.exit(1)
         max_snaps = int(args.max_snapshots) if args.max_snapshots else None
         timestamps: List[int] = []
@@ -93,11 +80,16 @@ def build_timestamps(args: argparse.Namespace) -> List[int]:
             current += interval
         return timestamps
 
-    print("[ERROR] Either --timestamps or (--interval-ms and --duration-ms) must be provided.", file=sys.stderr)
+    print(
+        "[ERROR] Either --timestamps or (--interval-ms and --duration-ms) must be provided.",
+        file=sys.stderr,
+    )
     sys.exit(1)
 
 
-def build_process_value(ts: int, width: Optional[int], height: Optional[int], fmt: Optional[str]) -> str:
+def build_process_value(
+    ts: int, width: Optional[int], height: Optional[int], fmt: Optional[str]
+) -> str:
     parts = [f"t_{ts}"]
     if width is not None:
         parts.append(f"w_{width}")
@@ -120,46 +112,44 @@ def do_snapshot(
     saveas_bucket: Optional[str],
     saveas_prefix: Optional[str],
     output_dir: str,
-    max_object_size: int,
-) -> str:
+) -> dict:
     process_value = build_process_value(ts, width, height, fmt)
 
     if save_to_tos:
         save_bucket = saveas_bucket or bucket
         prefix = (saveas_prefix or "snapshots/").rstrip("/")
         save_object = f"{prefix}/frame_{ts}ms.{fmt or 'jpg'}"
+        encoded_bucket = base64.urlsafe_b64encode(save_bucket.encode()).decode()
+        encoded_object = base64.urlsafe_b64encode(save_object.encode()).decode()
 
         try:
             output = client.get_object(
                 bucket=bucket,
                 key=key,
                 process=process_value,
-                save_bucket=save_bucket,
-                save_object=save_object,
+                save_bucket=encoded_bucket,
+                save_object=encoded_object,
             )
             raw = output.read()
-        except TosServerError as e:
-            return (
-                f"[ERROR] ts={ts}ms TOS server error: code={e.code}, "
-                f"status={e.status_code}, request_id={e.request_id}, message={e.message}"
-            )
-        except TosClientError as e:
-            return f"[ERROR] ts={ts}ms TOS client error: {e}"
+            data = json.loads(raw.decode("utf-8"))
+            return {
+                "ok": True,
+                "timestamp_ms": ts,
+                "process": process_value,
+                "mode": "save_to_tos",
+                "saveas_bucket": save_bucket,
+                "saveas_object": save_object,
+                "result": data,
+            }
         except Exception as exc:  # noqa: BLE001
-            return f"[ERROR] ts={ts}ms unexpected error: {exc}"
+            return {
+                "ok": False,
+                "timestamp_ms": ts,
+                "process": process_value,
+                "mode": "save_to_tos",
+                "error": str(exc),
+            }
 
-        try:
-            text = raw.decode("utf-8")
-            data = json.loads(text)
-        except Exception as exc:  # noqa: BLE001
-            return (
-                f"[ERROR] ts={ts}ms: failed to parse save result as JSON: {exc}; "
-                f"raw={raw[:200]!r}"
-            )
-
-        return f"[OK] ts={ts}ms saved to TOS: {save_bucket}/{save_object} -> {json.dumps(data, ensure_ascii=False)}"
-
-    # Save locally using get_object_to_file
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, f"snapshot_{ts}ms.{fmt or 'jpg'}")
 
@@ -170,47 +160,49 @@ def do_snapshot(
             file_path=output_path,
             process=process_value,
         )
-    except TosServerError as e:
-        return (
-            f"[ERROR] ts={ts}ms TOS server error: code={e.code}, "
-            f"status={e.status_code}, request_id={e.request_id}, message={e.message}"
-        )
-    except TosClientError as e:
-        return f"[ERROR] ts={ts}ms TOS client error: {e}"
-    except Exception as exc:  # noqa: BLE001
-        return f"[ERROR] ts={ts}ms unexpected error: {exc}"
-
-    # Apply size limit for local file
-    try:
-        size = os.path.getsize(output_path)
-    except OSError:
-        size = -1
-
-    if size != -1 and size > max_object_size:
         try:
-            os.remove(output_path)
+            size = os.path.getsize(output_path)
         except OSError:
-            pass
-        return (
-            f"[ERROR] ts={ts}ms snapshot size ({size} bytes) exceeds "
-            f"MAX_OBJECT_SIZE={max_object_size}. File removed."
-        )
-
-    return f"[OK] ts={ts}ms saved locally to {output_path} ({size} bytes)"
+            size = -1
+        return {
+            "ok": True,
+            "timestamp_ms": ts,
+            "process": process_value,
+            "mode": "save_local",
+            "output_path": output_path,
+            "size": size,
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "ok": False,
+            "timestamp_ms": ts,
+            "process": process_value,
+            "mode": "save_local",
+            "output_path": output_path,
+            "error": str(exc),
+        }
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Take multiple video snapshots using the TOS Python SDK",
     )
+    parser.add_argument("--bucket", type=str, default=None, help="Override TOS_BUCKET")
+    parser.add_argument("--key", type=str, default=None, help="Override TOS_OBJECT_KEY")
     parser.add_argument(
         "--timestamps",
         nargs="*",
         help="Explicit timestamps in ms, e.g. 1000 5000 10000",
     )
-    parser.add_argument("--interval-ms", type=int, help="Interval in ms between snapshots")
-    parser.add_argument("--duration-ms", type=int, help="Total video duration in ms for interval mode")
-    parser.add_argument("--max-snapshots", type=int, help="Maximum number of snapshots in interval mode")
+    parser.add_argument(
+        "--interval-ms", type=int, help="Interval in ms between snapshots"
+    )
+    parser.add_argument(
+        "--duration-ms", type=int, help="Total video duration in ms for interval mode"
+    )
+    parser.add_argument(
+        "--max-snapshots", type=int, help="Maximum number of snapshots in interval mode"
+    )
     parser.add_argument("--width", type=int, help="Snapshot width in pixels")
     parser.add_argument("--height", type=int, help="Snapshot height in pixels")
     parser.add_argument(
@@ -221,7 +213,14 @@ def main() -> None:
     )
     parser.add_argument(
         "--output-dir",
+        dest="output_dir",
         default="snapshots",
+        help="Deprecated alias of --output",
+    )
+    parser.add_argument(
+        "--output",
+        dest="output",
+        default=None,
         help="Local directory to store snapshots",
     )
     parser.add_argument(
@@ -230,26 +229,49 @@ def main() -> None:
         default=4,
         help="Number of concurrent requests",
     )
-    parser.add_argument(
-        "--save-to-tos",
-        action="store_true",
-        help="Save snapshots directly to TOS instead of local files",
-    )
+    parser.add_argument("--save-to-tos", action="store_true", help="Deprecated flag; use --saveas-bucket/--saveas-object")
+    parser.add_argument("--saveas-bucket", type=str, default=None, help="Save snapshots directly to this TOS bucket")
+    parser.add_argument("--saveas-object", type=str, default=None, help="Save snapshots directly to this TOS key prefix")
+    parser.add_argument("--json", action="store_true", help="Print machine-readable JSON only")
+    parser.add_argument("--dry-run", action="store_true", help="Print resolved request and exit")
     args = parser.parse_args()
 
     timestamps = build_timestamps(args)
+    bucket = args.bucket or get_env("TOS_BUCKET")
+    key = args.key or get_env("TOS_OBJECT_KEY")
+    output_dir = args.output or args.output_dir
+    saveas_bucket = args.saveas_bucket or os.getenv("TOS_SAVEAS_BUCKET")
+    saveas_prefix = args.saveas_object or os.getenv("TOS_SAVEAS_OBJECT_PREFIX")
+    save_to_tos = args.save_to_tos or bool(saveas_bucket or saveas_prefix)
+
+    plan = {
+        "ok": True,
+        "operation": "video_snapshots",
+        "bucket": bucket,
+        "key": key,
+        "timestamps": timestamps,
+        "format": args.format,
+        "concurrency": args.concurrency,
+        "mode": "save_to_tos" if save_to_tos else "save_local",
+        "output": None if save_to_tos else output_dir,
+        "saveas_bucket": saveas_bucket if save_to_tos else None,
+        "saveas_object": saveas_prefix if save_to_tos else None,
+    }
+
+    if args.dry_run:
+        if args.json:
+            print(json.dumps(plan, ensure_ascii=False))
+        else:
+            print(json.dumps(plan, indent=2, ensure_ascii=False))
+        return
 
     client = create_client()
-    bucket = get_env("TOS_BUCKET")
-    key = get_env("TOS_OBJECT_KEY")
-    saveas_bucket = os.getenv("TOS_SAVEAS_BUCKET")
-    saveas_prefix = os.getenv("TOS_SAVEAS_OBJECT_PREFIX")
 
-    max_object_size = int(os.getenv("MAX_OBJECT_SIZE", "262144"))
+    if not args.json:
+        print(f"[INFO] Planning snapshots at timestamps (ms): {timestamps}")
+        print(f"[INFO] Concurrency: {args.concurrency}, save_to_tos={save_to_tos}")
 
-    print(f"[INFO] Planning snapshots at timestamps (ms): {timestamps}")
-    print(f"[INFO] Concurrency: {args.concurrency}, save_to_tos={args.save_to_tos}")
-
+    results = []
     with ThreadPoolExecutor(max_workers=args.concurrency) as executor:
         futures = [
             executor.submit(
@@ -261,17 +283,36 @@ def main() -> None:
                 args.width,
                 args.height,
                 args.format,
-                args.save_to_tos,
+                save_to_tos,
                 saveas_bucket,
                 saveas_prefix,
-                args.output_dir,
-                max_object_size,
+                output_dir,
             )
             for ts in timestamps
         ]
 
         for future in as_completed(futures):
-            print(future.result())
+            result = future.result()
+            results.append(result)
+            if not args.json:
+                if result.get("ok"):
+                    if result["mode"] == "save_to_tos":
+                        print(f"[OK] ts={result['timestamp_ms']}ms saved to TOS: {result['saveas_bucket']}/{result['saveas_object']}")
+                    else:
+                        print(f"[OK] ts={result['timestamp_ms']}ms saved locally to {result['output_path']} ({result['size']} bytes)")
+                else:
+                    print(f"[ERROR] ts={result['timestamp_ms']}ms failed: {result['error']}")
+
+    if args.json:
+        print(
+            json.dumps(
+                {
+                    **plan,
+                    "results": sorted(results, key=lambda item: item["timestamp_ms"]),
+                },
+                ensure_ascii=False,
+            )
+        )
 
 
 if __name__ == "__main__":

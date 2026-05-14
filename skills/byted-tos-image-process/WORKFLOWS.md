@@ -6,9 +6,13 @@ This document illustrates common end-to-end workflows for image processing using
 - [Workflow 1: Getting Image Information](#workflow-1-getting-image-information)
 - [Workflow 2: Resizing an Image and Saving Locally](#workflow-2-resizing-an-image-and-saving-locally)
 - [Workflow 3: Converting Format and Saving back to TOS](#workflow-3-converting-format-and-saving-back-to-tos)
-- [Workflow 4: Applying a Text Watermark](#workflow-4-applying-a-text-watermark)
-- [Workflow 5: Batch Processing Multiple Images](#workflow-5-batch-processing-multiple-images)
-- [Workflow 6: Handling Errors](#workflow-6-handling-errors)
+- [Workflow 4: Drawing Points and Lines](#workflow-4-drawing-points-and-lines)
+- [Workflow 5: Creating a Zoom Crop](#workflow-5-creating-a-zoom-crop)
+- [Workflow 6: Applying a Text Watermark](#workflow-6-applying-a-text-watermark)
+- [Workflow 7: Batch Processing Multiple Images](#workflow-7-batch-processing-multiple-images)
+- [Workflow 8: Handling Errors](#workflow-8-handling-errors)
+- [Workflow 9: AI-Powered Image Understanding](#workflow-9-ai-powered-image-understanding)
+- [Workflow 10: Smart Annotation Pipeline (Orchestration)](#workflow-10-smart-annotation-pipeline-orchestration)
 
 ---
 
@@ -30,25 +34,13 @@ This document illustrates common end-to-end workflows for image processing using
 
 2.  **Execute**:
     ```bash
-    python3 scripts/image_info.py
+    python3 scripts/image_info.py --key images/archive/photo-01.jpg --json
     ```
 
-3.  **SDK Logic (`image_info.py`)**:
-    ```python
-    # Initializes client from env vars
-    client = create_client()
-    
-    # Calls get_object with the specific process string
-    response = client.get_object(
-        bucket=os.getenv("TOS_BUCKET"),
-        key=os.getenv("TOS_OBJECT_KEY"),
-        process="image/info"
-    )
-    
-    # Reads and parses the JSON response
-    info = json.loads(response.read().decode('utf-8'))
-    print(json.dumps(info, indent=2))
-    ```
+3.  **Behavior Notes**:
+    - `--bucket` / `--key` override environment defaults.
+    - `--json` returns a machine-readable payload.
+    - If `image/info` returns raw bytes rather than JSON, the script falls back to local parsing and reports basic metadata.
 
 ---
 
@@ -62,24 +54,13 @@ This document illustrates common end-to-end workflows for image processing using
 
 2.  **Execute**:
     ```bash
-    python3 scripts/image_resize.py --w 500 --output "resized_local.jpg"
+    python3 scripts/image_resize.py --key images/archive/photo-01.jpg --w 500 --output resized_local.jpg --dry-run
+    python3 scripts/image_resize.py --key images/archive/photo-01.jpg --w 500 --output resized_local.jpg
     ```
 
-3.  **SDK Logic (`image_resize.py`)**:
-    ```python
-    # Constructs the process string from CLI arguments
-    process_rule = "image/resize,w_500"
-    
-    # Calls get_object_to_file to stream the result directly to a local file
-    client.get_object_to_file(
-        bucket=os.getenv("TOS_BUCKET"),
-        key=os.getenv("TOS_OBJECT_KEY"),
-        file_path="resized_local.jpg",
-        process=process_rule
-    )
-    
-    print("Image saved to resized_local.jpg")
-    ```
+3.  **Behavior Notes**:
+    - `--dry-run` prints the resolved process and output target before calling TOS.
+    - `--json` returns a machine-readable payload for either local save or TOS persistence mode.
 
 ---
 
@@ -94,34 +75,72 @@ This document illustrates common end-to-end workflows for image processing using
 2.  **Execute**:
     ```bash
     python3 scripts/image_format.py \
+      --key images/archive/photo-01.jpg \
       --f webp \
       --q 80 \
-      --saveas-bucket "my-output-bucket" \
-      --saveas-object "processed/photo-01.webp"
+      --saveas-bucket my-output-bucket \
+      --saveas-object processed/photo-01.webp \
+      --json
     ```
 
-3.  **SDK Logic (`image_format.py`)**:
-    ```python
-    # Constructs the process string
-    process_rule = "image/format,f_webp,q_80"
-    
-    # Calls get_object with save_bucket and save_object to persist in TOS
-    response = client.get_object(
-        bucket=os.getenv("TOS_BUCKET"),
-        key=os.getenv("TOS_OBJECT_KEY"),
-        process=process_rule,
-        save_bucket="my-output-bucket",
-        save_object="processed/photo-01.webp"
-    )
-    
-    # The response contains JSON metadata about the saved object
-    save_result = json.loads(response.read().decode('utf-8'))
-    print("Save result:", save_result)
-    ```
+3.  **Behavior Notes**:
+    - `--saveas-bucket` / `--saveas-object` switch the script into TOS-to-TOS mode.
+    - `--json` returns a structured payload including the resolved process string and TOS save result.
+    - `--dry-run` prints the resolved request without calling TOS.
 
 ---
 
-### Workflow 4: Applying a Text Watermark
+### Workflow 4: Drawing Points and Lines
+
+**Goal**: Mark several points and connect them with lines so an agent can highlight positions of interest.
+
+**Script**: `scripts/image_draw.py`
+
+```bash
+# Draw a polyline (open path)
+python3 scripts/image_draw.py \
+  --key test.jpg \
+  --points 50x50-200x120-320x220 \
+  --line \
+  --color FF0000 \
+  --output draw.jpg
+```
+
+**Note**: `--line` connects points in order but does **not** auto-close. To draw a closed rectangle, repeat the first point at the end:
+
+```bash
+# Draw a closed rectangle: A-B-C-D-A
+python3 scripts/image_draw.py \
+  --key test.jpg \
+  --points 100x100-400x100-400x300-100x300-100x100 \
+  --line \
+  --line-width 3 \
+  --color FF0000 \
+  --saveas-bucket my-bucket \
+  --saveas-object output/boxed.jpg
+```
+
+---
+
+### Workflow 5: Creating a Zoom Crop
+
+**Goal**: First enlarge the source view and then crop a focused center region.
+
+**Script**: `scripts/image_zoom.py`
+
+```bash
+python3 scripts/image_zoom.py \
+  --key test.jpg \
+  --resize-w 1200 \
+  --crop-w 500 \
+  --crop-h 400 \
+  --gravity center \
+  --output zoom.jpg
+```
+
+---
+
+### Workflow 6: Applying a Text Watermark
 
 **Goal**: Add a semi-transparent text watermark to the bottom-right corner of an image.
 
@@ -130,32 +149,26 @@ This document illustrates common end-to-end workflows for image processing using
 1.  **Set Environment**: (Same as Workflow 1)
 
 2.  **Prepare Parameters**: Watermark text and colors must be Base64-encoded.
-    ```bash
-    # Text: "© 2026 MyCorp"
-    TEXT_B64=$(echo -n "© 2026 MyCorp" | base64)
-    
-    # Color: White (#FFFFFF)
-    COLOR_B64=$(echo -n "#FFFFFF" | base64)
-    ```
+    The helper script can encode raw text and font names for you, so you can usually provide readable values directly.
 
 3.  **Execute**:
     ```bash
     python3 scripts/image_watermark.py \
-      --kv type=1 \
-      --kv text=${TEXT_B64} \
-      --kv fill=${COLOR_B64} \
-      --kv size=30 \
-      --kv p=9 \
-      --kv dx=20 \
-      --kv dy=20 \
+      --text "2026 MyCorp" \
+      --font fangzhengshusong \
+      --color FF0000 \
+      --size 72 \
+      --gravity se \
+      --x 20 \
+      --y 20 \
       --output "watermarked.jpg"
     ```
-    *Note: The `kv` keys (`type`, `text`, `fill`, `size`, `p`, `dx`, `dy`) must match the official TOS documentation for text watermarks.*
+    *Note: For pre-encoded official values, you can switch to `--text-b64`, `--font-b64`, and `--image-b64`.*
 
 4.  **SDK Logic (`image_watermark.py`)**:
     ```python
-    # Constructs the process string from all --kv arguments
-    process_rule = "image/watermark,type_1,text_wr...,fill_I0Z...,size_30,p_9,dx_20,dy_20"
+    # Constructs the process string from the official watermark model
+    process_rule = "image/watermark,text_MjAyNiBNeUNvcnA,type_ZmFuZ3poZW5nc2h1c29uZw,color_FF0000,size_72,g_se,x_20,y_20"
     
     client.get_object_to_file(
         bucket=...,
@@ -167,7 +180,31 @@ This document illustrates common end-to-end workflows for image processing using
 
 ---
 
-### Workflow 5: Batch Processing Multiple Images
+### Workflow 6A: Applying a Blind Watermark
+
+**Goal**: Embed a blind watermark when the capability is enabled for the current account or bucket.
+
+**Script**: `scripts/image_blindwatermark.py`
+
+**Prerequisites**:
+- Blind watermark capability must be enabled in the TOS console.
+- The source image must be at least **512×512 pixels**.
+
+1.  **Execute**:
+    ```bash
+    python3 scripts/image_blindwatermark.py \
+      --kv text=HelloBlind \
+      --output "blindwatermarked.jpg"
+    ```
+
+2.  **Behavior Notes**:
+    - If the capability is enabled and the image is large enough, the script saves the output and prints `[OK]`.
+    - If the capability is not enabled, the script prints `[SKIP]` and exits successfully by default. Add `--strict` to fail the command instead.
+    - If the image is smaller than 512×512 pixels, the script prints a clear error message and exits with code 1.
+
+---
+
+### Workflow 7: Batch Processing Multiple Images
 
 **Goal**: Resize a list of images from a source folder in TOS to a destination folder.
 
@@ -206,7 +243,7 @@ This document illustrates common end-to-end workflows for image processing using
 
 ---
 
-### Workflow 6: Handling Errors
+### Workflow 8: Handling Errors
 
 **Goal**: Gracefully handle potential errors from the TOS SDK.
 
@@ -233,3 +270,112 @@ except tos.exceptions.TosClientError as e:
     sys.exit(1)
 ```
 This ensures that failures are caught and reported with meaningful diagnostic information, such as the `request_id`, which is crucial for troubleshooting with support teams.
+
+---
+
+### Workflow 9: AI-Powered Image Understanding
+
+**Goal**: Use a VLM (Vision Language Model) to understand image content — describe, OCR, detect faces, or answer visual questions.
+
+**Script**: `scripts/image_understanding.py`
+
+1. **Set Environment**: (Same as Workflow 1)
+
+2. **Execute (describe image)**:
+   ```bash
+   python3 scripts/image_understanding.py \
+     --key photo.jpg \
+     --prompt "Describe this image in detail"
+   ```
+
+3. **Execute (OCR)**:
+   ```bash
+   python3 scripts/image_understanding.py \
+     --key document.png \
+     --prompt "识别图片中的所有文字内容"
+   ```
+
+4. **Execute (save result to TOS)**:
+   ```bash
+   python3 scripts/image_understanding.py \
+     --key photo.jpg \
+     --prompt "What objects are in this image?" \
+     --saveas-bucket my-output-bucket \
+     --saveas-object results/understanding.json
+   ```
+
+5. **Behavior Notes**:
+   - The `--prompt` parameter is required. It accepts any natural language question or instruction.
+   - Default model is `doubao-seed-1.6-vision`. Override with `--model`.
+   - `--json` returns a machine-readable payload. `--dry-run` prints the resolved process string before execution.
+   - Response time is typically 10-60 seconds due to VLM inference.
+   - Requires account whitelist. If not whitelisted, the script will return an error.
+   - The result is a JSON object with a `content` field containing the model's response.
+
+---
+
+### Workflow 10: Smart Annotation Pipeline (Orchestration)
+
+**Goal**: Automatically understand an image and produce an annotated, watermarked result — a multi-step pipeline an agent can orchestrate.
+
+**Pipeline**: `image_info` → `image_understanding` → `image_draw` → `image_watermark`
+
+#### Step 1: Get image dimensions
+
+```bash
+python3 scripts/image_info.py --key test.jpg --json
+```
+
+Use the returned `ImageWidth` and `ImageHeight` to decide annotation coordinates for the next steps.
+
+#### Step 2: Understand image content with VLM
+
+```bash
+python3 scripts/image_understanding.py \
+  --key test.jpg \
+  --prompt "请描述这张图片的内容，包括场景、主体物体和氛围" \
+  --json
+```
+
+The `content` field contains the model's description. Use this to decide what label to draw and where to place the bounding box.
+
+#### Step 3: Draw a bounding box around the subject
+
+```bash
+python3 scripts/image_draw.py \
+  --key test.jpg \
+  --points 200x80-520x80-520x380-200x380-200x80 \
+  --line \
+  --line-width 3 \
+  --color FF0000 \
+  --saveas-bucket my-bucket \
+  --saveas-object smart-annotate/boxed.jpg
+```
+
+**Important**: Repeat the first point at the end to close the rectangle (the `--line` flag does not auto-close).
+
+#### Step 4: Add a text label as watermark
+
+```bash
+python3 scripts/image_watermark.py \
+  --key smart-annotate/boxed.jpg \
+  --text "Go Gopher" \
+  --font wqy-zenhei \
+  --color FFFFFF \
+  --size 30 \
+  --opacity 80 \
+  --gravity nw \
+  --x 10 \
+  --y 10 \
+  --saveas-bucket my-bucket \
+  --saveas-object smart-annotate/final.jpg \
+  --json
+```
+
+The final result is a single image with a red bounding box around the detected subject and a text label in the corner.
+
+#### Agent orchestration notes
+
+- All steps support `--json` for machine-readable output, making it easy for an agent to parse results and feed them into the next step.
+- Use `--dry-run` on any step to preview the resolved request before execution.
+- Step 3 depends on Step 1 (image dimensions) and Step 2 (content understanding) to determine coordinates and label text. An agent should extract `ImageWidth`/`ImageHeight` from Step 1 and `content` from Step 2, then compute bounding box coordinates accordingly.

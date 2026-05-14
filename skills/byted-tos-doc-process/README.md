@@ -1,77 +1,85 @@
 # Bytedance TOS Document Process Skill
 
-This skill enables an agent to perform document processing tasks on files stored in Bytedance's TOS (TeraObjectStore) by using the Volcengine TOS Python SDK's `doc-preview` feature.
+This skill provides a polished document-processing toolkit for files stored in Bytedance TOS. It covers synchronous `doc-preview` flows for format conversion, page preview, and batch export.
 
-**Key Change**: The official TOS Python SDK's `get_object` method currently only supports a limited set of data processing parameters (e.g., `process`, `save_bucket`). Document-specific parameters like `doc_dest_type` or `doc_page` are **not** supported as direct keyword arguments.
+## When To Use
 
-Therefore, this skill now exclusively uses the SDK's **`pre_signed_url`** method to pass all `doc-preview` parameters as query strings.
+Use this skill when you need to:
+- Convert office documents in TOS to `pdf`, `png`, `jpg`, or `html`
+- Preview a single page as an image
+- Read document page count from `x-tos-total-page`
+- Export a page range back to another TOS location
+- Batch screenshot PDF pages to TOS
+- Debug or construct `doc-preview` requests and `x-tos-doc-*` parameters
 
-## Overview
+Do not use this skill for:
+- Editing document contents
+- Generic object storage tasks unrelated to document preview
+- Local office conversion workflows that do not involve TOS
 
-The skill provides scripts and documentation for common document preview and conversion tasks, allowing an agent to:
+## Why This Skill Exists
 
-1.  **Preview Documents as PDF**: Convert office documents into a single PDF file.
-2.  **Preview Pages as Images**: Convert specific pages into PNG or JPG images, with control over DPI and quality.
-3.  **Preview as HTML**: Fetch an HTML representation and extract the final, usable preview URL.
-4.  **Query Total Page Count**: Read the `x-tos-total-page` response header.
-5.  **Batch Export Pages**: Use advanced parameters to export a range of pages.
+The Volcengine TOS Python SDK supports object processing, but document-specific preview parameters are not exposed as direct `get_object(...)` keyword arguments. For `doc-preview`, the reliable pattern is:
 
-All operations are performed via generating a pre-signed URL and then making an HTTP request.
+1. Build the required `x-tos-process` and `x-tos-doc-*` query parameters.
+2. Generate a pre-signed URL with `pre_signed_url(...)`.
+3. Fetch the processed result over HTTP.
 
-## Skill Structure
+That pattern is the core of this skill.
 
-```
+## Directory Layout
+
+```text
 byted-tos-doc-process/
 ├── SKILL.md
 ├── README.md
 ├── REFERENCE.md
 ├── WORKFLOWS.md
-├── scripts/
-│   ├── doc_preview_params.py   # NEW: Helper for building query parameters
-│   ├── doc_preview_pdf.py
-│   ├── doc_preview_png.py
-│   ├── doc_preview_jpg.py
-│   ├── doc_preview_html_url.py # Supports --direct-url
-│   ├── doc_preview_process.py
-│   └── doc_total_page.py
-└── requirements.txt
+├── LICENSE
+├── requirements.txt
+└── scripts/
+    ├── doc_preview_params.py
+    ├── doc_preview_pdf.py
+    ├── doc_preview_png.py
+    ├── doc_preview_jpg.py
+    ├── doc_preview_html_url.py
+    ├── doc_preview_process.py
+    ├── doc_total_page.py
+    └── doc_batch_screenshot.py
 ```
 
-## Setup and Configuration
+## Requirements
 
-### Requirements
 - Python 3.7+
-- `tos` Python SDK
+- Access to Volcengine TOS
+- Valid AK/SK or STS credentials
+- Network access to the target TOS endpoint
 
-### Installation
+Install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### Environment Variables
+## Environment Variables
 
-| Variable                 | Description                                                  | Example                                    |
-| ------------------------ | ------------------------------------------------------------ | ------------------------------------------ |
-| `TOS_ACCESS_KEY`         | Your Access Key ID for TOS authentication.                   | `AKL...`                                   |
-| `TOS_SECRET_KEY`         | Your Secret Access Key for TOS authentication.               | `your-secret-key`                          |
-| `TOS_SECURITY_TOKEN`     | (Optional) The session token for temporary STS credentials.  | `STS...`                                   |
-| `TOS_ENDPOINT`           | The full URL of the TOS service endpoint.                    | `https://tos-cn-beijing.volces.com`        |
-| `TOS_REGION`             | The region of the TOS service.                               | `cn-beijing`                               |
-| `TOS_BUCKET`             | The name of the bucket where the target document is stored.    | `my-document-assets`                       |
-| `TOS_OBJECT_KEY`         | The full path (key) of the document file within the bucket.  | `reports/quarterly-review.docx`            |
-| `MAX_OBJECT_SIZE`        | (Optional) Safeguard for local file size, in bytes.          | `262144` (default)                         |
+| Variable | Required | Description | Example |
+| --- | --- | --- | --- |
+| `TOS_ACCESS_KEY` | Yes | TOS access key ID. | `AK...` |
+| `TOS_SECRET_KEY` | Yes | TOS secret access key. | `your-secret-key` |
+| `TOS_ENDPOINT` | Yes | TOS endpoint URL. | `https://tos-cn-beijing.volces.com` |
+| `TOS_REGION` | Yes | TOS region. | `cn-beijing` |
+| `TOS_BUCKET` | Yes | Source bucket that stores the document. | `my-doc-bucket` |
+| `TOS_OBJECT_KEY` | Yes | Source object key of the document. | `reports/q1-review.docx` |
+| `TOS_SECURITY_TOKEN` | No | STS session token when using temporary credentials. | `STS...` |
 
-### **Important: Custom Domain Restriction**
-
-For buckets created after **Jan 03, 2024**, you **must** use a custom domain when accessing previewed files. Using the default TOS domain will result in the file being downloaded directly rather than previewed online.
+For production usage, prefer short-lived STS credentials. The SDK automatically uses `TOS_SECURITY_TOKEN` when it is present.
 
 ## Quick Start
 
-### 1. Set Environment Variables
+Export the minimum required configuration:
 
 ```bash
-# --- Required ---
 export TOS_ACCESS_KEY="YOUR_AK"
 export TOS_SECRET_KEY="YOUR_SK"
 export TOS_ENDPOINT="https://tos-cn-beijing.volces.com"
@@ -80,46 +88,40 @@ export TOS_BUCKET="your-doc-bucket"
 export TOS_OBJECT_KEY="path/to/your/document.docx"
 ```
 
-### 2. Run Example Scripts
+Run one of the ready-to-use examples:
 
-**Convert Document to PDF:**
-This script now generates a pre-signed URL with `x-tos-doc-dst-type=pdf` and downloads the result.
+Convert to PDF:
+
 ```bash
-python3 scripts/doc_preview_pdf.py --output "preview.pdf"
+python3 scripts/doc_preview_pdf.py --output preview.pdf
 ```
 
-**Convert Page 2 to a PNG Image:**
+Preview page 2 as PNG:
+
 ```bash
-python3 scripts/doc_preview_png.py --page 2 --output "page_2.png"
+python3 scripts/doc_preview_png.py --page 2 --output page_2.png
 ```
 
-**Get the HTML Preview URL (via Pre-signed URL):**
+Preview page 2 as JPG:
+
+```bash
+python3 scripts/doc_preview_jpg.py --page 2 --output page_2.jpg
+```
+
+Resolve the final HTML preview URL:
+
 ```bash
 python3 scripts/doc_preview_html_url.py
 ```
 
-The HTML preview script will now directly extract the full HTML link from `window.open("<LINK>","_self")` in the returned page, and then parse and decode the `token` parameter. Typical output looks like:
+Read total page count:
 
-```text
-[OK] Extracted preview information:
-  HTML Link   : https://doc-preview.tos-cn-beijing.volces.com/index.html?token=...
-  Token       : aHR0cHM6Ly9kYXRhLXByb2Nlc3MtdGVzdC13Y2MudG9zLWNuLWJlaWppbmcudm9sY2VzLmNvbS9kYXRhLXByb2Nlc3MtdGVzdC13Y2NfMTMwMTcwNTYxOTIwMjc4MjUyNjZfJTIyMTA1MDM0ZGEwZmQ5YTA2YTg0N2MwMjM2MTI1MGM3MjAlMjIucGRmP1gtVG9zLUh0bWwtUHJldmlldz1YbzJ4X0s0alhkaUlCX3Ric0lNZjlsUDNfSDlHSDZGcXg0RHFkdjF6N0paOGtLSFpBUE5QbEZtdHotU3NqQ1E1eU5jaTJqY05QZ25pMXVvenVMampGSkZfX2JQdi02c1A0LUVvMEtwY2Jja1hrNWgtMy1zaE9tdnFyVTRBTmZLSmh1QjVhajdBUmJoWkU3RnQxOVBDYUxXdjZnNFRWVTJzejlXWXRxNG9YejR3dE8wR0JmNjVuRW5pUXBtQXlJYjVQQWpUTWdxZjNUbjlQTzMyLURhMXJnZlZSWHhJd1VITHlrekRxWGZReVZzcW9Bd0hYZkU1dnc0VThZek84Qndjd05DdjZFa2EzeWZ5c1lQZzNHckNQQVZ5Mk5qSlRrTmhBdEFkOTBpUlRCWUV0OWl4bXhVU2dqQnE1TnE2VUdaVnhJN2loVnNZaGxMOUZxOUtNRm5uUHhKbnlXcjNacEZpWS1NOVRLbmx3dV94cVBKZ3lwRDdTNlllcWhncGtoVTJJTmhqWW5UenRVMTl1b0pjVVBiOWFsT2ZEbnlwMDc5aWhOejMtVlNuRmdTN2N1U0REYmkyeUlCTUF4QTdRVnphQ3ZkdTFQLTZULVRVUjZDa3MzRzIwM3VYWHhzekZsbk9EVjFrU0xES3UzZlMwWi14MTRxb0d5MUJWdFZ2eWR6bTN2VlkweE5CUV8yQnZqSVMwRWdrZWclM0QlM0Q=
-  Preview URL : https://data-process-wcc-cq.tos-cn-chongqing-sdv.volces.com/data-process-wcc-cq_13017056192027825266_0d636579368e234ba0137e51d5b4f244.pdf?X-Tos-Html-Preview=...
-```
-
-**Get the HTML Preview URL (from a direct sample link):**
-This new mode allows parsing an existing HTML preview URL without needing credentials.
 ```bash
-python3 scripts/doc_preview_html_url.py --direct-url "https://your-bucket.tos-cn-beijing.volces.com/doc.docx?x-tos-process=doc-preview&x-tos-doc-dst-type=html"
+python3 scripts/doc_total_page.py --dest-type pdf --json
 ```
 
-**Get the Total Page Count:**
-This script now reads the `x-tos-total-page` header from a pre-signed URL response.
-```bash
-python3 scripts/doc_total_page.py --dest-type pdf
-```
+Batch export a page range to TOS:
 
-**Use the Generic Processor to Batch Export Pages 1-3 as JPG:**
 ```bash
 python3 scripts/doc_preview_process.py \
   --dest-type jpg \
@@ -130,6 +132,47 @@ python3 scripts/doc_preview_process.py \
   --saveas-object "export/page_{Page}.jpg"
 ```
 
-## Note on Implementation
+Batch screenshot a PDF page range:
 
-The `doc-preview` feature is invoked by generating a pre-signed URL with all processing parameters in the query string. The `scripts/doc_preview_params.py` helper constructs this query dict. Always refer to the official Volcengine TOS documentation for the most up-to-date list of parameters.
+```bash
+python3 scripts/doc_batch_screenshot.py \
+  --key test.pdf \
+  --format png \
+  --start-page 1 \
+  --end-page 3 \
+  --saveas-object "skill-test/doc/{Page}.png"
+```
+
+Parse a direct HTML preview link without credentials:
+
+```bash
+python3 scripts/doc_preview_html_url.py \
+  --direct-url "https://your-bucket.tos-cn-beijing.volces.com/doc.docx?x-tos-process=doc-preview&x-tos-doc-dst-type=html"
+```
+
+## Document Roles
+
+- `SKILL.md`: trigger-oriented instructions for agents deciding whether to load this skill
+- `README.md`: setup guide and runnable entry points for humans and agents
+- `REFERENCE.md`: parameter mapping and response semantics
+- `WORKFLOWS.md`: end-to-end examples and usage patterns
+- `scripts/`: executable examples for common document-processing tasks
+
+## Usage Notes
+
+- For `doc-preview`, pass all document-processing options in the signed URL query string.
+- `doc_preview_params.py` is the preferred way to build query parameters consistently.
+- The helper now automatically URL-safe-Base64 encodes query-based `x-tos-save-bucket` and `x-tos-save-object`, which is required for the batch screenshot path to succeed.
+- `doc_batch_screenshot.py` currently enforces the backend contract for PDF-only batch image export and requires `{Page}` in the destination object key.
+- HTML preview flows may require extracting and decoding a token from the returned HTML.
+- For buckets created after Jan 03, 2024, online preview may require a custom domain rather than the default TOS domain.
+- Official Volcengine TOS documentation remains the source of truth for the full parameter matrix.
+
+## Related Files
+
+- Parameter reference: [REFERENCE.md](REFERENCE.md)
+- Workflow guide: [WORKFLOWS.md](WORKFLOWS.md)
+
+## License
+
+This skill is licensed under the Apache License 2.0. See [LICENSE](LICENSE).

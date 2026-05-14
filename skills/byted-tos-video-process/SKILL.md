@@ -1,180 +1,117 @@
 ---
 name: byted-tos-video-process
-version: 1.1.0
-description: Uses Volcengine TOS SDK object processing (e.g., `video/info`, `video/snapshot`) to fetch video metadata and extract single or multiple frame snapshots from videos stored in Bytedance TOS. Use when the user needs video info/metadata, thumbnail or frame capture, snapshot extraction, or mentions TOS video processing.
-homepage: https://www.volcengine.com/docs/6349/336154
+description: "Inspects videos, extracts frames, and concatenates video clips stored in Volcengine TOS: read video metadata, capture single snapshots, batch-capture multiple frames by explicit timestamps or interval, concatenate multiple video clips, and save results locally or back to TOS. Use this skill when the user needs to get video duration or codec info, capture a poster image or thumbnail, extract frames at specific timestamps, sample frames at regular intervals, merge or join multiple video clips into one — even if they don't explicitly mention 'video processing' or 'frame extraction'."
+metadata:
+  version: "1.0.0"
+  openclaw:
+    identity:
+      - type: apikey
+        provider: tos_provider
+        env:
+          - TOS_ACCESS_KEY
+          - TOS_SECRET_KEY
+          - TOS_ENDPOINT
+          - TOS_REGION
+          - TOS_BUCKET
+        required: true
+    optional:
+      env:
+        - TOS_OBJECT_KEY
+        - TOS_SECURITY_TOKEN
+        - TOS_SAVEAS_BUCKET
+        - TOS_SAVEAS_OBJECT_PREFIX
+user-invocable: true
+license: Apache-2.0
 ---
 
-# Bytedance TOS Video Process Skill
+# Volcengine TOS Video Process
 
-This skill provides essential video processing functions for video files stored in Bytedance's TOS (TeraObjectStore). It allows you to retrieve video metadata and perform single-frame or multi-frame snapshots directly using the Volcengine TOS SDK.
+Inspect videos, extract frames, and concatenate video clips stored in Volcengine TOS — metadata lookup, single snapshot, multi-frame capture, video concatenation, and TOS-to-TOS persistence.
 
-## Quick Start
+## Setup (once per environment)
 
-### 1. Client Initialization
+Install dependencies on first use:
 
-The following Python snippet demonstrates how to initialize the `TosClientV2` from environment variables.
-
-```python
-import os
-import tos
-from tos.exceptions import TosClientError, TosServerError
-
-def create_client() -> tos.TosClientV2:
-    """Initializes a TosClientV2 using AK/SK (and optional STS token) from environment variables."""
-    try:
-        ak = os.getenv('TOS_ACCESS_KEY')
-        sk = os.getenv('TOS_SECRET_KEY')
-        endpoint = os.getenv('TOS_ENDPOINT')
-        region = os.getenv('TOS_REGION')
-        security_token = os.getenv('TOS_SECURITY_TOKEN') # Optional, for STS
-
-        if not all([ak, sk, endpoint, region]):
-            raise ValueError("Required environment variables are missing (AK, SK, Endpoint, Region).")
-
-        return tos.TosClientV2(
-            ak=ak,
-            sk=sk,
-            endpoint=endpoint,
-            region=region,
-            security_token=security_token,
-        )
-    except (ValueError, ImportError) as e:
-        print(f"Error initializing client: {e}")
-        # Handle initialization failure
-        return None
-
-# Create the client
-client = create_client()
+```bash
+cd {baseDir}
+pip install -r {baseDir}/requirements.txt
 ```
 
-### 2. Basic Workflow
+Then run scripts with Python 3.7+:
 
-```python
-# (Assumes 'client' is initialized and 'bucket_name', 'object_key' are set)
-
-# 1. Get Video Info
-try:
-    response = client.get_object(bucket_name, object_key, process="video/info")
-    info_data = response.read()
-    print("Video Info:", info_data.decode('utf-8'))
-except TosServerError as e:
-    print(f"Error getting video info: {e}")
-
-
-# 2. Take a Single Snapshot and save locally
-try:
-    client.get_object_to_file(
-        bucket_name,
-        object_key,
-        "snapshot_1000ms.jpg",
-        process="video/snapshot,t_1000,f_jpg,w_720"
-    )
-    print("Snapshot saved to snapshot_1000ms.jpg")
-except TosServerError as e:
-    print(f"Error taking snapshot: {e}")
-
-# 3. Take a Snapshot and save back to TOS
-try:
-    response = client.get_object(
-        bucket_name,
-        object_key,
-        process="video/snapshot,t_5000,f_jpg",
-        save_bucket=bucket_name,
-        save_object="processed/snapshot_5000ms.jpg"
-    )
-    save_result = response.read()
-    print("Snapshot saved to TOS:", save_result.decode('utf-8'))
-except TosServerError as e:
-    print(f"Error saving snapshot to TOS: {e}")
+```bash
+python3 {baseDir}/scripts/<script>.py <args>
 ```
 
-## Core Operations
+If you see a `ModuleNotFoundError` for `tos`, reinstall dependencies.
 
-All video processing is achieved via the `process` parameter in the `get_object` or `get_object_to_file` SDK methods.
+## Environment Variables
 
-### 1. Get Video Info (`videoInfo`)
+This skill relies on the TOS identity declared in the `metadata` block. Common runtime variables are:
 
-Retrieves metadata of a video file, such as resolution, duration, and format.
+| Environment Variable | Required | Description |
+| --- | --- | --- |
+| `TOS_ACCESS_KEY` | Yes | TOS access key ID |
+| `TOS_SECRET_KEY` | Yes | TOS secret access key |
+| `TOS_ENDPOINT` | Yes | TOS endpoint URL |
+| `TOS_REGION` | Yes | TOS region |
+| `TOS_BUCKET` | Yes | Source bucket that stores the video |
+| `TOS_OBJECT_KEY` | No | Source object key of the video. Some scripts accept alternatives, while `video_info.py` and `video_snapshot.py` read this value from the environment |
+| `TOS_SECURITY_TOKEN` | No | STS session token when using temporary credentials |
+| `TOS_SAVEAS_BUCKET` | No | Default target bucket for saving snapshots |
+| `TOS_SAVEAS_OBJECT_PREFIX` | No | Default key prefix for saving snapshots |
 
-**SDK Method**: `client.get_object(..., process="video/info")`
+## Quick start (common tasks)
 
-```python
-# 'client', 'bucket_name', and 'object_key' must be defined
-try:
-    response = client.get_object(bucket_name, object_key, process="video/info")
-    # The response body is a JSON string
-    video_metadata = response.read().decode('utf-8')
-    print(video_metadata)
-except TosServerError as e:
-    print(f"Server Error: {e.code} - {e.message}")
+```bash
+# Read video metadata (resolution, duration, codec)
+TOS_OBJECT_KEY=demo.mp4 python3 {baseDir}/scripts/video_info.py
+
+# Capture a single frame at 5 seconds
+TOS_OBJECT_KEY=demo.mp4 python3 {baseDir}/scripts/video_snapshot.py --time 5000 --output frame_5s.jpg
+
+# Capture multiple frames and save locally
+python3 {baseDir}/scripts/video_snapshots.py --key demo.mp4 --timestamps 1000 3000 5000
+
+# Capture multiple frames by interval
+python3 {baseDir}/scripts/video_snapshots.py --key demo.mp4 \
+  --interval-ms 5000 --duration-ms 60000 --output-dir snapshots
+
+# Capture multiple frames and save to TOS
+python3 {baseDir}/scripts/video_snapshots.py --key demo.mp4 --timestamps 1000 3000 5000 --save-to-tos
+
+# Concatenate multiple video clips
+python3 {baseDir}/scripts/video_concat.py --key clip1.mp4 --fragments "clip2.mp4,clip3.mp4" --output-key merged.mp4 --wait
 ```
 
-### 2. Take a Single Snapshot (`videoSnapshot`)
+## Available scripts
 
-Captures a single frame from a video. It supports various parameters for customization and can either return the image data or save the result directly back to TOS.
+| Script | Purpose |
+|--------|---------|
+| `scripts/video_info.py` | Read video metadata (format, duration, resolution, codec, frame rate). |
+| `scripts/video_snapshot.py` | Capture a single frame at a given timestamp. Supports local save or TOS-to-TOS persistence. |
+| `scripts/video_snapshots.py` | Batch-capture multiple frames across a timeline. Supports explicit timestamps, interval mode, concurrent execution, and TOS-to-TOS persistence. |
+| `scripts/video_concat.py` | Concatenate multiple video clips into one. Uses TOS gateway `media_jobs` async API with `job_type=Concat`. Supports `--wait` to poll until completion. |
 
-**SDK Method**: `client.get_object_to_file(..., process="video/snapshot,...")` for local save.
-**SDK Method**: `client.get_object(..., process="video/snapshot,...", save_bucket=..., save_object=...)` for saving to TOS.
+`video_snapshots.py` and `video_concat.py` support `--key`-style object selection. `video_info.py` and `video_snapshot.py` currently read `TOS_OBJECT_KEY` from the environment. `video_snapshots.py` also supports `--bucket` override for multi-bucket testing. Run any script with `-h` for full usage.
 
-```python
-# Example: Take a snapshot at 10 seconds, resize to 720p width, and save locally
-try:
-    client.get_object_to_file(
-        bucket_name,
-        object_key,
-        file_path="local_snapshot.jpg",
-        process="video/snapshot,t_10000,w_720,f_jpg"
-    )
-    print("Snapshot saved successfully to local_snapshot.jpg")
-except (TosClientError, TosServerError) as e:
-    print(f"An error occurred: {e}")
-```
+## Out of scope
 
-### 3. Take Multiple Snapshots (`videoSnapshots`)
+- Full video transcoding pipelines (this skill covers metadata + frame extraction + concatenation only).
+- Image-only or document-only workflows (use `byted-tos-image-process` or `byted-tos-doc-process`).
+- Non-TOS storage providers.
 
-This is a client-side orchestration pattern. You loop through a series of timestamps and make multiple calls to the `videoSnapshot` operation. The `scripts/video_snapshots.py` provides a reference implementation for parallel execution.
+## Rules
 
-```python
-# (Assumes 'client', 'bucket_name', 'object_key' are set)
-timestamps = [1000, 5000, 10000]  # In milliseconds
+- **Authentication**: Authentication is provided by the TOS identity declared in the `metadata` block above. Object selection can be overridden per script with `--key`.
+- **Timestamp unit**: All timestamp parameters are in **milliseconds** (e.g., `5000` = 5 seconds).
+- **Validate timestamps**: Ensure snapshot timestamps do not exceed the video duration. Use `video_info.py` to read duration first when needed.
+- **Save to TOS**: Use `--save-to-tos` with `TOS_SAVEAS_BUCKET` / `TOS_SAVEAS_OBJECT_PREFIX` to persist snapshots back to TOS without local download.
+- **Parameter source of truth**: Official Volcengine TOS documentation is authoritative for the full `video/snapshot` parameter matrix. When uncertain, check [REFERENCE.md](REFERENCE.md).
+- **Language**: Reply in the user's preferred language.
 
-for i, ts in enumerate(timestamps):
-    output_filename = f'snapshot_{i+1}_at_{ts}ms.jpg'
-    process_rule = f"video/snapshot,t_{ts},w_720,f_jpg"
-    try:
-        client.get_object_to_file(
-            bucket_name,
-            object_key,
-            output_filename,
-            process=process_rule
-        )
-        print(f"Saved snapshot to {output_filename}")
-    except (TosClientError, TosServerError) as e:
-        print(f"Failed for timestamp {ts}: {e}")
-```
+## Further reading
 
-## Authorization
-
-Authentication is handled directly by the `tos.TosClientV2` constructor. Provide credentials via environment variables.
-
-### Required Environment Variables
-- `TOS_ACCESS_KEY`: Your Access Key ID.
-- `TOS_SECRET_KEY`: Your Secret Access Key.
-- `TOS_ENDPOINT`: The endpoint for the TOS service (e.g., `https://tos-cn-beijing.volces.com`).
-- `TOS_REGION`: The region for the TOS service (e.g., `cn-beijing`).
-
-### Optional for STS
-- `TOS_SECURITY_TOKEN`: If using a temporary token (STS), provide the session token here. The client will automatically use it if present.
-
-## Best Practices
-- **Error Handling**: Always wrap SDK calls in `try...except` blocks to handle `TosClientError` and `TosServerError`.
-- **Parameter Validation**: Validate parameters like `time`, `width`, and `height` on the client side before making an API call to prevent unnecessary errors.
-- **Batch Operations**: For `videoSnapshots`, use a thread pool (like `ThreadPoolExecutor`) to perform multiple snapshot requests in parallel for better performance. See `scripts/video_snapshots.py` for an example.
-- **Credentials Management**: Use a secure method to manage and refresh credentials, especially when using short-lived STS tokens.
-
-## Additional Resources
-
-- For detailed parameters of each operation, see [REFERENCE.md](REFERENCE.md).
-- For common end-to-end examples, see [WORKFLOWS.md](WORKFLOWS.md).
-- For executable Python examples, see the `scripts/` directory.
+- Setup and environment: [README.md](README.md)
+- Parameter reference: [REFERENCE.md](REFERENCE.md)
+- End-to-end workflows: [WORKFLOWS.md](WORKFLOWS.md)

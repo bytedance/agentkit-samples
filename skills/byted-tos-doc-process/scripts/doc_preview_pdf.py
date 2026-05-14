@@ -39,8 +39,6 @@ Environment variables:
   - TOS_REGION            TOS region, e.g. cn-beijing
   - TOS_BUCKET            Bucket name that stores the source document
   - TOS_OBJECT_KEY        Object key of the document in the bucket
-  - MAX_OBJECT_SIZE       (optional) Max allowed local file size in bytes,
-                          default 262144. Used as a safety guard.
 
 CLI parameters:
   --bucket        Override TOS_BUCKET
@@ -68,9 +66,6 @@ from tos.exceptions import TosClientError, TosServerError
 from doc_preview_params import build_doc_preview_query_params
 
 
-DEFAULT_MAX_OBJECT_SIZE = 262144  # bytes
-
-
 def get_env(name: str, required: bool = True, default: Optional[str] = None) -> str:
     value = os.getenv(name, default)
     if required and not value:
@@ -87,7 +82,9 @@ def create_client() -> tos.TosClientV2:
     region = get_env("TOS_REGION")
     security_token = os.getenv("TOS_SECURITY_TOKEN")
 
-    print(f"[INFO] Initializing TOS client for endpoint={endpoint}, region={region} ...")
+    print(
+        f"[INFO] Initializing TOS client for endpoint={endpoint}, region={region} ..."
+    )
     return tos.TosClientV2(
         ak=ak,
         sk=sk,
@@ -130,10 +127,16 @@ def download_via_presigned_to_file(
         )
         sys.exit(1)
     except TosClientError as e:
-        print(f"[ERROR] TOS client error when generating pre-signed URL: {e}", file=sys.stderr)
+        print(
+            f"[ERROR] TOS client error when generating pre-signed URL: {e}",
+            file=sys.stderr,
+        )
         sys.exit(1)
     except Exception as exc:  # noqa: BLE001
-        print(f"[ERROR] Unexpected error when generating pre-signed URL: {exc}", file=sys.stderr)
+        print(
+            f"[ERROR] Unexpected error when generating pre-signed URL: {exc}",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     req = Request(presigned.signed_url, headers=presigned.signed_header)
@@ -157,7 +160,10 @@ def download_via_presigned_to_file(
             pass
         sys.exit(1)
     except URLError as e:
-        print(f"[ERROR] Failed to download PDF via pre-signed URL: {e.reason}", file=sys.stderr)
+        print(
+            f"[ERROR] Failed to download PDF via pre-signed URL: {e.reason}",
+            file=sys.stderr,
+        )
         try:
             os.remove(output_path)
         except OSError:
@@ -207,24 +213,10 @@ def main() -> None:
 
     download_via_presigned_to_file(client, bucket, key, params, output_path)
 
-    # Basic size guard
-    max_object_size = int(os.getenv("MAX_OBJECT_SIZE", str(DEFAULT_MAX_OBJECT_SIZE)))
     try:
         size = os.path.getsize(output_path)
     except OSError:
         size = -1
-
-    if size != -1 and size > max_object_size:
-        print(
-            f"[ERROR] Output size ({size} bytes) exceeds MAX_OBJECT_SIZE={max_object_size}. "
-            "Deleting local file.",
-            file=sys.stderr,
-        )
-        try:
-            os.remove(output_path)
-        except OSError:
-            pass
-        sys.exit(1)
 
     print(f"[OK] PDF saved to {output_path} ({size} bytes)")
 

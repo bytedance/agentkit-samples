@@ -25,6 +25,7 @@ and easy to maintain.
 
 from __future__ import annotations
 
+import base64
 from typing import Dict, Optional
 
 
@@ -100,9 +101,14 @@ def build_doc_preview_query_params(
         params["image-params"] = image_params
 
     if save_bucket:
-        params["x-tos-save-bucket"] = save_bucket
+        params["x-tos-save-bucket"] = base64.urlsafe_b64encode(
+            save_bucket.encode("utf-8")
+        ).decode("utf-8")
 
     if save_object:
-        params["x-tos-save-object"] = save_object
+        # For query-based save-as, backend expects URL-safe base64 for object key.
+        params["x-tos-save-object"] = base64.urlsafe_b64encode(
+            save_object.encode("utf-8")
+        ).decode("utf-8")
 
     return params

@@ -23,6 +23,9 @@ Common parameters:
   - f: output format (jpg/png/webp)
   - q: output quality (integer, range subject to official documentation)
 
+The current service behavior used by this script expects the target format as a
+plain segment, for example `image/format,webp,q_80`.
+
 For any additional parameters, pass `--kv key=value` and the script will append it
 as `key_value` in the process string.
 
@@ -30,12 +33,11 @@ Environment variables:
   - TOS_ACCESS_KEY, TOS_SECRET_KEY, TOS_SECURITY_TOKEN(optional)
   - TOS_ENDPOINT, TOS_REGION
   - TOS_BUCKET, TOS_OBJECT_KEY
-  - MAX_OBJECT_SIZE (default: 262144)
-
 Note: Parameter semantics are subject to the official TOS documentation.
 """
 
 import argparse
+import base64
 import json
 import os
 import sys
@@ -60,7 +62,9 @@ def create_client() -> tos.TosClientV2:
     region = get_env("TOS_REGION")
     security_token = os.getenv("TOS_SECURITY_TOKEN")
 
-    print(f"[INFO] Initializing TOS client for endpoint={endpoint}, region={region} ...")
+    print(
+        f"[INFO] Initializing TOS client for endpoint={endpoint}, region={region} ..."
+    )
     return tos.TosClientV2(
         ak=ak,
         sk=sk,
@@ -88,6 +92,16 @@ def build_process(op: str, pairs: list[tuple[str, str]]) -> str:
     base = f"image/{op}"
     if not pairs:
         return base
+    if op == "format":
+        rendered: list[str] = []
+        for k, v in pairs:
+            if k == "f":
+                # The current service accepts the target format as a plain segment:
+                # image/format,png
+                rendered.append(v)
+            else:
+                rendered.append(f"{k}_{v}")
+        return base + "," + ",".join(rendered)
     return base + "," + ",".join([f"{k}_{v}" for k, v in pairs])
 
 
@@ -100,15 +114,33 @@ def default_output_path(key: str, fmt: str) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Convert image format via TOS process=image/format")
+    parser = argparse.ArgumentParser(
+        description="Convert image format via TOS process=image/format"
+    )
     parser.add_argument("--bucket", type=str, default=None, help="Override TOS_BUCKET")
     parser.add_argument("--key", type=str, default=None, help="Override TOS_OBJECT_KEY")
-    parser.add_argument("--f", dest="fmt", choices=["jpg", "png", "webp"], required=True, help="Target format")
-    parser.add_argument("--q", dest="quality", type=int, default=None, help="Output quality")
-    parser.add_argument("--kv", action="append", default=[], help="Extra process option: key=value")
+    parser.add_argument(
+        "--f",
+        dest="fmt",
+        choices=["jpg", "png", "webp"],
+        required=True,
+        help="Target format",
+    )
+    parser.add_argument(
+        "--q", dest="quality", type=int, default=None, help="Output quality"
+    )
+    parser.add_argument(
+        "--kv", action="append", default=[], help="Extra process option: key=value"
+    )
     parser.add_argument("--output", type=str, default=None, help="Local output file")
-    parser.add_argument("--saveas-bucket", type=str, default=None, help="Save result to this bucket")
-    parser.add_argument("--saveas-object", type=str, default=None, help="Save result as this object key")
+    parser.add_argument(
+        "--saveas-bucket", type=str, default=None, help="Save result to this bucket"
+    )
+    parser.add_argument(
+        "--saveas-object", type=str, default=None, help="Save result as this object key"
+    )
+    parser.add_argument("--json", action="store_true", help="Print machine-readable JSON only")
+    parser.add_argument("--dry-run", action="store_true", help="Print resolved request and exit")
     args = parser.parse_args()
 
     client = create_client()
@@ -139,13 +171,16 @@ def main() -> None:
         print(f"[INFO] Converting {bucket}/{key} -> {save_bucket}/{save_object}")
         print(f"[INFO] process = {process_value}")
 
+        encoded_bucket = base64.urlsafe_b64encode(save_bucket.encode()).decode()
+        encoded_object = base64.urlsafe_b64encode(save_object.encode()).decode()
+
         try:
             output = client.get_object(
                 bucket=bucket,
                 key=key,
                 process=process_value,
-                save_bucket=save_bucket,
-                save_object=save_object,
+                save_bucket=encoded_bucket,
+                save_object=encoded_object,
             )
             raw = output.read()
         except TosServerError as e:
@@ -176,7 +211,9 @@ def main() -> None:
     print(f"[INFO] process = {process_value}")
 
     try:
-        client.get_object_to_file(bucket=bucket, key=key, file_path=output_path, process=process_value)
+        client.get_object_to_file(
+            bucket=bucket, key=key, file_path=output_path, process=process_value
+        )
     except TosServerError as e:
         print(
             f"[ERROR] TOS server error: code={e.code}, status={e.status_code}, "
@@ -188,19 +225,7 @@ def main() -> None:
         print(f"[ERROR] TOS client error: {e}", file=sys.stderr)
         sys.exit(1)
 
-    max_object_size = int(os.getenv("MAX_OBJECT_SIZE", "262144"))
     size = os.path.getsize(output_path)
-    if size > max_object_size:
-        print(
-            f"[ERROR] Output size ({size} bytes) exceeds MAX_OBJECT_SIZE={max_object_size}. Deleting local file.",
-            file=sys.stderr,
-        )
-        try:
-            os.remove(output_path)
-        except OSError:
-            pass
-        sys.exit(1)
-
     print(f"[OK] Image saved to {output_path} ({size} bytes)")
 
 

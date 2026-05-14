@@ -19,7 +19,7 @@ This document provides a reference for the `doc-preview` feature, as implemented
 
 ## Authentication
 
-Authentication is handled by the `tos.TosClientV2` client when it generates the pre-signed URL. Credentials should be provided via environment variables (`TOS_ACCESS_KEY`, etc.).
+Authentication is handled by the `tos.TosClientV2` client when it generates the pre-signed URL. The required TOS identity is declared in this skill's metadata block.
 
 ---
 
@@ -81,6 +81,10 @@ The `build_doc_preview_query_params` function maps Python-style arguments to HTT
 | `img_mode`                             | `image-mode`         | int    | Activates batch mode. A value of `1` is common for page range export.        |
 | `start_page`                           | `start-page`         | int    | The 1-based starting page of the range to export.                              |
 | `end_page`                             | `end-page`           | int    | The 1-based ending page. A value of `-1` may denote "to the end".            |
+
+**Encoding Note**
+
+For query-based save-as in `doc-preview`, the helper script URL-safe-Base64 encodes both `x-tos-save-bucket` and `x-tos-save-object` before signing the URL. This is required by the backend save-as parser for the batch screenshot path.
 
 ---
 

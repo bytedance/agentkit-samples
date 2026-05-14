@@ -1,184 +1,124 @@
 ---
 name: byted-tos-doc-process
-description: Generates pre-signed URLs for Bytedance TOS `doc-preview` processing to preview and convert documents to PDF, images (PNG/JPG), or HTML, and to export page ranges. Use when the user needs TOS document preview/conversion, page count/export, or mentions doc-preview, x-tos-process, or x-tos-doc-* parameters.
-version: 1.1.0
+description: "Previews and exports documents stored in Volcengine TOS: generate PDF/PNG/JPG previews, read page counts, resolve HTML preview URLs, and batch-export PDF pages as images. Use this skill when the user needs to convert or preview office documents (Word, Excel, PPT, PDF), export specific pages as images, get document page counts, or generate HTML preview links — even if they don't explicitly mention 'doc-preview' or 'document conversion'."
+metadata:
+  version: "1.0.0"
+  openclaw:
+    identity:
+      - type: apikey
+        provider: tos_provider
+        env:
+          - TOS_ACCESS_KEY
+          - TOS_SECRET_KEY
+          - TOS_ENDPOINT
+          - TOS_REGION
+          - TOS_BUCKET
+        required: true
+    optional:
+      env:
+        - TOS_OBJECT_KEY
+        - TOS_SECURITY_TOKEN
+user-invocable: true
+license: Apache-2.0
 ---
 
-# Bytedance TOS Document Process Skill
+# Volcengine TOS Document Process
 
-This skill provides document processing functions for files in Bytedance's TOS via the `doc-preview` feature, implemented by generating **pre-signed URLs** with the Volcengine TOS SDK.
+Preview and convert office documents stored in Volcengine TOS — PDF/PNG/JPG conversion, page count, HTML preview URL, and page-range export.
 
-**Note**: This approach is necessary because the SDK's `get_object` method does not directly support `doc_*` keyword arguments. All document processing parameters must be passed as query parameters in a pre-signed URL.
+## Setup (once per environment)
 
-## Quick Start
+Install dependencies on first use:
 
-### 1. Client Initialization
-
-```python
-import os
-import tos
-from tos.enum import HttpMethodType
-from urllib.request import urlopen
-
-def create_client() -> tos.TosClientV2:
-    """Initializes a TosClientV2 from environment variables."""
-    try:
-        # ... (full implementation in scripts)
-        return tos.TosClientV2(
-            ak=os.getenv('TOS_ACCESS_KEY'),
-            sk=os.getenv('TOS_SECRET_KEY'),
-            endpoint=os.getenv('TOS_ENDPOINT'),
-            region=os.getenv('TOS_REGION'),
-            security_token=os.getenv('TOS_SECURITY_TOKEN'),
-        )
-    except Exception as e:
-        print(f"Error initializing client: {e}")
-        return None
-
-client = create_client()
+```bash
+cd {baseDir}
+pip install -r {baseDir}/requirements.txt
 ```
 
-### 2. Basic Workflow (Pre-signed URL)
+Then run scripts with Python 3.7+:
 
-```python
-# (Assumes 'client' is initialized and 'bucket_name', 'object_key' are set)
-
-# 1. Preview document as a PDF and save locally
-try:
-    # Build query params for doc-preview
-    pdf_params = {
-        "x-tos-process": "doc-preview",
-        "x-tos-doc-dst-type": "pdf"
-    }
-    presigned_pdf = client.pre_signed_url(
-        HttpMethodType.Http_Method_Get,
-        bucket_name,
-        object_key,
-        query=pdf_params
-    )
-    
-    # Download the content from the pre-signed URL
-    with urlopen(presigned_pdf.signed_url) as response, open("local_preview.pdf", "wb") as f_out:
-        f_out.write(response.read())
-    print("PDF preview saved to local_preview.pdf")
-
-except Exception as e:
-    print(f"Error converting to PDF: {e}")
-
-# 2. Preview page 3 as a PNG image
-try:
-    png_params = {
-        "x-tos-process": "doc-preview",
-        "x-tos-doc-dst-type": "png",
-        "x-tos-doc-page": "3",
-        "x-tos-doc-image-dpi": "150"
-    }
-    presigned_png = client.pre_signed_url(
-        HttpMethodType.Http_Method_Get,
-        bucket_name,
-        object_key,
-        query=png_params
-    )
-    with urlopen(presigned_png.signed_url) as response, open("page_3.png", "wb") as f_out:
-        f_out.write(response.read())
-    print("Page 3 saved as page_3.png")
-
-except Exception as e:
-    print(f"Error converting to PNG: {e}")
-
-# 3. Get total page count from response headers
-try:
-    presigned_head = client.pre_signed_url(
-        HttpMethodType.Http_Method_Get,
-        bucket_name,
-        object_key,
-        query={"x-tos-process": "doc-preview", "x-tos-doc-dst-type": "pdf"}
-    )
-    with urlopen(presigned_head.signed_url) as response:
-        total_pages = response.headers.get("x-tos-total-page")
-        print(f"Document has {total_pages} pages.")
-except Exception as e:
-    print(f"Error getting page count: {e}")
+```bash
+python3 {baseDir}/scripts/<script>.py <args>
 ```
 
-## Core Operations
+If you see a `ModuleNotFoundError` for `tos`, reinstall dependencies.
 
-All document processing is achieved by generating a pre-signed URL with `process=\"doc-preview\"` and other `x-tos-doc-*` parameters in the query string.
+## Environment Variables
 
-### 1. Convert to PDF (`x-tos-doc-dst-type='pdf'`)
+This skill relies on the TOS identity declared in the `metadata` block. Common runtime variables are:
 
-Converts an entire document into a single PDF file.
+| Environment Variable | Required | Description |
+| --- | --- | --- |
+| `TOS_ACCESS_KEY` | Yes | TOS access key ID |
+| `TOS_SECRET_KEY` | Yes | TOS secret access key |
+| `TOS_ENDPOINT` | Yes | TOS endpoint URL |
+| `TOS_REGION` | Yes | TOS region |
+| `TOS_BUCKET` | Yes | Source bucket that stores the document |
+| `TOS_OBJECT_KEY` | No | Source object key of the document. Can be overridden with `--key` |
+| `TOS_SECURITY_TOKEN` | No | STS session token when using temporary credentials |
 
-```python
-# See Quick Start example
+## Quick start (common tasks)
+
+```bash
+# Convert document to PDF
+python3 {baseDir}/scripts/doc_preview_pdf.py --key report.docx --output preview.pdf
+
+# Preview page 2 as PNG
+python3 {baseDir}/scripts/doc_preview_png.py --key report.docx --page 2 --output page_2.png
+
+# Preview page 2 as JPG
+python3 {baseDir}/scripts/doc_preview_jpg.py --key report.docx --page 2 --output page_2.jpg
+
+# Get total page count
+python3 {baseDir}/scripts/doc_total_page.py --key report.docx --dest-type pdf
+
+# Resolve HTML preview URL
+python3 {baseDir}/scripts/doc_preview_html_url.py --key report.docx
+
+# Batch export page range to TOS
+python3 {baseDir}/scripts/doc_preview_process.py --key report.docx \
+  --dest-type jpg --img-mode 1 --start-page 1 --end-page 3 \
+  --saveas-bucket "output-bucket" --saveas-object "export/page_{Page}.jpg"
+
+# Batch screenshot a PDF page range
+python3 {baseDir}/scripts/doc_batch_screenshot.py --key test.pdf \
+  --format png --start-page 1 --end-page 3 \
+  --saveas-object "skill-test/doc/{Page}.png"
 ```
 
-### 2. Convert to Image (`x-tos-doc-dst-type='png' or 'jpg'`)
+## Available scripts
 
-Converts a specific page of a document into an image.
+| Script | Purpose |
+|--------|---------|
+| `scripts/doc_preview_pdf.py` | Convert document to PDF and save locally. |
+| `scripts/doc_preview_png.py` | Render a single page as PNG. |
+| `scripts/doc_preview_jpg.py` | Render a single page as JPG. |
+| `scripts/doc_total_page.py` | Read total page count via `x-tos-total-page` header. |
+| `scripts/doc_preview_html_url.py` | Resolve the final HTML preview URL (follows redirects and extracts tokens). |
+| `scripts/doc_preview_process.py` | Generic doc-preview with full parameter control; supports TOS-to-TOS export. |
+| `scripts/doc_preview_params.py` | Helper library to build `x-tos-doc-*` query parameters consistently. |
+| `scripts/doc_batch_screenshot.py` | Batch-export PDF pages as images through doc-preview batch mode. |
 
-```python
-# See Quick Start example
-# Use query params like "x-tos-doc-page", "x-tos-doc-image-dpi", etc.
-```
+All scripts support `--key` to override `TOS_OBJECT_KEY`. Structured scripts also support `--json` for machine-readable output, and `doc_preview_process.py` / `doc_total_page.py` support `--dry-run` to preview the resolved request. Run any script with `-h` for full usage.
 
-### 3. Convert to HTML (`x-tos-doc-dst-type='html'`)
+## Out of scope
 
-Fetches a temporary HTML page containing a token for the final preview URL. This requires a second step to parse the HTML and decode the token.
+- Editing document contents (this skill is read-only preview/conversion).
+- Generic object storage tasks unrelated to document preview.
+- Local office conversion workflows that do not involve TOS.
 
-```python
-# Step 1: Get the HTML content via a pre-signed URL
-html_params = {"x-tos-process": "doc-preview", "x-tos-doc-dst-type": "html"}
-presigned_html = client.pre_signed_url(HttpMethodType.Http_Method_Get, bucket_name, object_key, query=html_params)
+## Rules
 
-with urlopen(presigned_html.signed_url) as response:
-    html_content = response.read().decode('utf-8')
+- **Authentication**: Authentication is provided by the TOS identity declared in the `metadata` block above. Object selection can be overridden per script with `--key`.
+- **Pre-signed URL pattern**: Document preview uses pre-signed URLs with `x-tos-process=doc-preview` and `x-tos-doc-*` query parameters, not the direct `process` keyword of `get_object`. Use `doc_preview_params.py` to build parameters consistently.
+- **Batch screenshot constraint**: `doc_batch_screenshot.py` currently requires a PDF source object and persists results back to TOS with a `{Page}` placeholder.
+- **Save-as encoding**: For `doc-preview` query-based save-as, the helper script automatically URL-safe-Base64 encodes `x-tos-save-bucket` and `x-tos-save-object` to match backend expectations.
+- **Custom domain note**: For buckets created after Jan 03, 2024, online HTML preview may require a custom domain rather than the default TOS domain.
+- **Parameter source of truth**: Official Volcengine TOS documentation is authoritative for the full `doc-preview` parameter matrix. When uncertain, check [REFERENCE.md](REFERENCE.md).
+- **Language**: Reply in the user's preferred language.
 
-# Step 2: Parse and decode (see scripts/doc_preview_html_url.py for full logic)
-# ... logic to extract and base64-decode the token ...
-# final_url = decode_preview_url(token)
-```
+## Further reading
 
-### 4. Batch Export Pages (`image-mode=1`)
-
-Exports a range of pages as images directly to a TOS bucket.
-
-```python
-# Use query params: "image-mode", "start-page", "end-page", "x-tos-save-bucket", "x-tos-save-object"
-batch_params = {
-    "x-tos-process": "doc-preview",
-    "x-tos-doc-dst-type": "jpg",
-    "image-mode": "1",
-    "start-page": "2",
-    "end-page": "5",
-    "x-tos-save-bucket": "output-bucket",
-    "x-tos-save-object": "exported/page_{Page}.jpg" # {Page} is a placeholder
-}
-presigned_batch = client.pre_signed_url(HttpMethodType.Http_Method_Get, bucket_name, object_key, query=batch_params)
-# The response body (from urlopen) contains JSON metadata about the batch job
-```
-
-## Authorization
-
-Authentication is handled by `tos.TosClientV2`. Provide credentials via environment variables.
-
-### Required Environment Variables
-- `TOS_ACCESS_KEY`
-- `TOS_SECRET_KEY`
-- `TOS_ENDPOINT`
-- `TOS_REGION`
-
-### Optional for STS
-- `TOS_SECURITY_TOKEN`
-
-## Best Practices
-- **Error Handling**: Always wrap HTTP requests in `try...except` blocks for `HTTPError` and `URLError`.
-- **Parameter Reference**: Refer to `REFERENCE.md` for a mapping of `doc_preview_params.py` arguments to `x-tos-*` query keys and to the official TOS documentation for authoritative details.
-- **HTML Preview**: Be aware of the two-step process and the custom domain requirement for recent buckets.
-- **Total Pages Header**: The `x-tos-total-page` header is a convenient way to get the page count.
-
-## Additional Resources
-- For detailed parameters, see [REFERENCE.md](REFERENCE.md).
-- For end-to-end examples, see [WORKFLOWS.md](WORKFLOWS.md).
-- For executable Python examples, see the `scripts/` directory.
-- **For the definitive list of all processing parameters, always consult the official Volcengine TOS Document Preview documentation.**
+- Setup and environment: [README.md](README.md)
+- Parameter reference: [REFERENCE.md](REFERENCE.md)
+- End-to-end workflows: [WORKFLOWS.md](WORKFLOWS.md)

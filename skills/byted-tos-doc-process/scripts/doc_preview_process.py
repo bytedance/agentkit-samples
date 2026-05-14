@@ -43,7 +43,6 @@ Environment variables:
   - TOS_ACCESS_KEY, TOS_SECRET_KEY, TOS_SECURITY_TOKEN(optional)
   - TOS_ENDPOINT, TOS_REGION
   - TOS_BUCKET, TOS_OBJECT_KEY
-  - MAX_OBJECT_SIZE (default: 262144) for local save size guard
 
 See REFERENCE.md and WORKFLOWS.md for detailed parameter mapping and examples.
 """
@@ -63,9 +62,6 @@ from tos.exceptions import TosClientError, TosServerError
 from doc_preview_params import build_doc_preview_query_params
 
 
-DEFAULT_MAX_OBJECT_SIZE = 262144  # bytes
-
-
 def get_env(name: str, required: bool = True, default: Optional[str] = None) -> str:
     value = os.getenv(name, default)
     if required and not value:
@@ -81,7 +77,9 @@ def create_client() -> tos.TosClientV2:
     region = get_env("TOS_REGION")
     security_token = os.getenv("TOS_SECURITY_TOKEN")
 
-    print(f"[INFO] Initializing TOS client for endpoint={endpoint}, region={region} ...")
+    print(
+        f"[INFO] Initializing TOS client for endpoint={endpoint}, region={region} ..."
+    )
     return tos.TosClientV2(
         ak=ak,
         sk=sk,
@@ -132,10 +130,16 @@ def pre_signed_request(
         )
         sys.exit(1)
     except TosClientError as e:
-        print(f"[ERROR] TOS client error when generating pre-signed URL: {e}", file=sys.stderr)
+        print(
+            f"[ERROR] TOS client error when generating pre-signed URL: {e}",
+            file=sys.stderr,
+        )
         sys.exit(1)
     except Exception as exc:  # noqa: BLE001
-        print(f"[ERROR] Unexpected error when generating pre-signed URL: {exc}", file=sys.stderr)
+        print(
+            f"[ERROR] Unexpected error when generating pre-signed URL: {exc}",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     return Request(presigned.signed_url, headers=presigned.signed_header)
@@ -219,8 +223,14 @@ def main() -> None:
             "<basename>.<dest-type> if not provided. Required when not saving back to TOS."
         ),
     )
-    parser.add_argument("--saveas-bucket", type=str, default=None, help="Save result to this bucket")
-    parser.add_argument("--saveas-object", type=str, default=None, help="Save result as this object key")
+    parser.add_argument(
+        "--saveas-bucket", type=str, default=None, help="Save result to this bucket"
+    )
+    parser.add_argument(
+        "--saveas-object", type=str, default=None, help="Save result as this object key"
+    )
+    parser.add_argument("--json", action="store_true", help="Print machine-readable JSON only")
+    parser.add_argument("--dry-run", action="store_true", help="Print resolved request and exit")
     args = parser.parse_args()
 
     if args.page is not None and args.page <= 0:
@@ -234,31 +244,12 @@ def main() -> None:
     save_bucket = args.saveas_bucket
     save_object = args.saveas_object
     persist_to_tos = bool(save_bucket or save_object)
-
+    output_path = None if persist_to_tos else args.output or default_output_path(key, args.dest_type)
+    resolved_save_bucket = save_bucket or bucket if persist_to_tos else None
+    resolved_save_object = None
     if persist_to_tos:
-        # Persist result in TOS via x-tos-save-bucket/x-tos-save-object
-        save_bucket = save_bucket or bucket
-        if not save_object:
-            base = os.path.basename(key) or "document"
-            save_object = f"doc-preview-{base}.{args.dest_type}"
+        resolved_save_object = save_object or f"doc-preview-{os.path.basename(key) or 'document'}.{args.dest_type}"
 
-        print(
-            f"[INFO] Running doc-preview for {bucket}/{key} -> {save_bucket}/{save_object}",
-        )
-    else:
-        # Local output
-        output_path = args.output or default_output_path(key, args.dest_type)
-        print(
-            f"[INFO] Running doc-preview for {bucket}/{key} -> {output_path}",
-        )
-
-    print("[INFO] process = doc-preview")
-    print(
-        f"[INFO] DocDestType={args.dest_type}, DocPage={args.page}, "
-        f"DocImgMode={args.img_mode}, DocStartPage={args.start_page}, DocEndPage={args.end_page}",
-    )
-
-    # Build query parameters for pre-signed URL
     params = build_doc_preview_query_params(
         dest_type=args.dest_type,
         src_type=args.src_type,
@@ -269,9 +260,48 @@ def main() -> None:
         start_page=args.start_page,
         end_page=args.end_page,
         image_params=args.image_params,
-        save_bucket=save_bucket if persist_to_tos else None,
-        save_object=save_object if persist_to_tos else None,
+        save_bucket=resolved_save_bucket,
+        save_object=resolved_save_object,
     )
+
+    if args.dry_run:
+        payload = {
+            "ok": True,
+            "operation": "doc_preview",
+            "bucket": bucket,
+            "key": key,
+            "dest_type": args.dest_type,
+            "mode": "save_to_tos" if persist_to_tos else "save_local",
+            "output_path": output_path,
+            "saveas_bucket": resolved_save_bucket,
+            "saveas_object": resolved_save_object,
+            "params": params,
+        }
+        if args.json:
+            print(json.dumps(payload, ensure_ascii=False))
+        else:
+            print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return
+
+    client = create_client()
+
+    if persist_to_tos:
+        if not args.json:
+            print(
+                f"[INFO] Running doc-preview for {bucket}/{key} -> {resolved_save_bucket}/{resolved_save_object}",
+            )
+    else:
+        if not args.json:
+            print(
+                f"[INFO] Running doc-preview for {bucket}/{key} -> {output_path}",
+            )
+
+    if not args.json:
+        print("[INFO] process = doc-preview")
+        print(
+            f"[INFO] DocDestType={args.dest_type}, DocPage={args.page}, "
+            f"DocImgMode={args.img_mode}, DocStartPage={args.start_page}, DocEndPage={args.end_page}",
+        )
 
     req = pre_signed_request(client, bucket, key, params)
 
@@ -288,10 +318,16 @@ def main() -> None:
             )
             sys.exit(1)
         except URLError as e:
-            print(f"[ERROR] Failed to call doc-preview (save-to-TOS): {e.reason}", file=sys.stderr)
+            print(
+                f"[ERROR] Failed to call doc-preview (save-to-TOS): {e.reason}",
+                file=sys.stderr,
+            )
             sys.exit(1)
         except Exception as exc:  # noqa: BLE001
-            print(f"[ERROR] Unexpected error when calling doc-preview (save-to-TOS): {exc}", file=sys.stderr)
+            print(
+                f"[ERROR] Unexpected error when calling doc-preview (save-to-TOS): {exc}",
+                file=sys.stderr,
+            )
             sys.exit(1)
 
         print("[OK] Save result from TOS:")
@@ -320,31 +356,8 @@ def main() -> None:
             pass
         sys.exit(1)
     except URLError as e:
-        print(f"[ERROR] Failed to download preview via pre-signed URL: {e.reason}", file=sys.stderr)
-        try:
-            os.remove(output_path)
-        except OSError:
-            pass
-        sys.exit(1)
-    except Exception as exc:  # noqa: BLE001
-        print(f"[ERROR] Unexpected error when downloading preview: {exc}", file=sys.stderr)
-        try:
-            os.remove(output_path)
-        except OSError:
-            pass
-        sys.exit(1)
-
-    # Local file size guard
-    max_object_size = int(os.getenv("MAX_OBJECT_SIZE", str(DEFAULT_MAX_OBJECT_SIZE)))
-    try:
-        size = os.path.getsize(output_path)
-    except OSError:
-        size = -1
-
-    if size != -1 and size > max_object_size:
         print(
-            f"[ERROR] Output size ({size} bytes) exceeds MAX_OBJECT_SIZE={max_object_size}. "
-            "Deleting local file.",
+            f"[ERROR] Failed to download preview via pre-signed URL: {e.reason}",
             file=sys.stderr,
         )
         try:
@@ -352,6 +365,20 @@ def main() -> None:
         except OSError:
             pass
         sys.exit(1)
+    except Exception as exc:  # noqa: BLE001
+        print(
+            f"[ERROR] Unexpected error when downloading preview: {exc}", file=sys.stderr
+        )
+        try:
+            os.remove(output_path)
+        except OSError:
+            pass
+        sys.exit(1)
+
+    try:
+        size = os.path.getsize(output_path)
+    except OSError:
+        size = -1
 
     print(f"[OK] Output saved to {output_path} ({size} bytes)")
 

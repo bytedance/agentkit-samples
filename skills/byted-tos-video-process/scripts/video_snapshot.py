@@ -20,24 +20,10 @@ constructs a `process="video/snapshot,..."` rule string, and either:
   - saves the returned image locally (default), or
   - if `--saveas-bucket`/`--saveas-object` is provided, lets TOS persist
     the snapshot to the specified object and prints the JSON result.
-
-Environment variables:
-  - TOS_ACCESS_KEY        Access key ID (AK) or STS AccessKeyId
-  - TOS_SECRET_KEY        Secret access key (SK) or STS SecretAccessKey
-  - TOS_SECURITY_TOKEN    (optional) STS session token
-  - TOS_ENDPOINT          TOS endpoint, e.g. https://tos-cn-beijing.volces.com
-  - TOS_REGION            TOS region, e.g. cn-beijing
-  - TOS_BUCKET            Bucket name that stores the video
-  - TOS_OBJECT_KEY        Object key of the video file in the bucket
-
-Optional environment variables for convenience:
-  - TOS_SAVEAS_BUCKET     Default bucket for snapshot persistence
-  - TOS_SAVEAS_OBJECT     Default object key for snapshot persistence
-  - MAX_OBJECT_SIZE       Maximum allowed local snapshot size in bytes
-                           (default: 262144). Only used for local save.
 """
 
 import argparse
+import base64
 import json
 import os
 import sys
@@ -62,7 +48,6 @@ def create_client() -> tos.TosClientV2:
     region = get_env("TOS_REGION")
     security_token = os.getenv("TOS_SECURITY_TOKEN")
 
-    print(f"[INFO] Initializing TOS client for endpoint={endpoint}, region={region} ...")
     return tos.TosClientV2(
         ak=ak,
         sk=sk,
@@ -95,6 +80,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Take a single video snapshot using the TOS Python SDK",
     )
+    parser.add_argument("--bucket", type=str, default=None, help="Override TOS_BUCKET")
+    parser.add_argument("--key", type=str, default=None, help="Override TOS_OBJECT_KEY")
     parser.add_argument("--time", type=int, help="Snapshot time in milliseconds")
     parser.add_argument("--width", type=int, help="Snapshot width in pixels")
     parser.add_argument("--height", type=int, help="Snapshot height in pixels")
@@ -109,12 +96,6 @@ def main() -> None:
         dest="output_format",
         choices=["jpg", "png"],
         help="Output image format",
-    )
-    parser.add_argument(
-        "--auto-rotate",
-        dest="auto_rotate",
-        choices=["auto", "w", "h"],
-        help="Auto rotate mode",
     )
     parser.add_argument(
         "--output",
@@ -132,40 +113,72 @@ def main() -> None:
         type=str,
         help="If set, persist snapshot as this object key instead of saving locally",
     )
+    parser.add_argument(
+        "--auto-rotate",
+        dest="auto_rotate",
+        choices=["auto", "w", "h"],
+        help="Auto rotate mode",
+    )
+    parser.add_argument("--json", action="store_true", help="Print machine-readable JSON only")
+    parser.add_argument("--dry-run", action="store_true", help="Print resolved request and exit")
     args = parser.parse_args()
 
-    client = create_client()
-    bucket = get_env("TOS_BUCKET")
-    key = get_env("TOS_OBJECT_KEY")
-
+    bucket = args.bucket or get_env("TOS_BUCKET")
+    key = args.key or get_env("TOS_OBJECT_KEY")
     process_value = build_process_rule(args)
 
-    # Decide persistence mode
     saveas_bucket = args.saveas_bucket or os.getenv("TOS_SAVEAS_BUCKET")
     saveas_object = args.saveas_object or os.getenv("TOS_SAVEAS_OBJECT")
     persist_to_tos = bool(saveas_bucket or saveas_object)
 
-    if persist_to_tos:
-        # Persist snapshot in TOS and print JSON result
-        save_bucket = saveas_bucket or bucket
-        # If object not specified, build a simple default name
-        if not saveas_object:
-            time_part: Any = args.time if args.time is not None else "0"
-            fmt = args.output_format or "jpg"
-            saveas_object = f"snapshot_{time_part}ms.{fmt}"
+    time_part: Any = args.time if args.time is not None else "0"
+    fmt = args.output_format or "jpg"
 
-        print(
-            f"[INFO] Requesting snapshot for {bucket}/{key} -> {save_bucket}/{saveas_object}",
-        )
-        print(f"[INFO] process = {process_value}")
+    if persist_to_tos:
+        resolved_bucket = saveas_bucket or bucket
+        resolved_object = saveas_object or f"snapshot_{time_part}ms.{fmt}"
+        resolved_output = None
+    else:
+        resolved_bucket = None
+        resolved_object = None
+        resolved_output = args.output or f"snapshot_{time_part}ms.{fmt}"
+
+    if args.dry_run:
+        payload = {
+            "ok": True,
+            "operation": "video_snapshot",
+            "bucket": bucket,
+            "key": key,
+            "process": process_value,
+            "mode": "save_to_tos" if persist_to_tos else "save_local",
+            "output_path": resolved_output,
+            "saveas_bucket": resolved_bucket,
+            "saveas_object": resolved_object,
+        }
+        if args.json:
+            print(json.dumps(payload, ensure_ascii=False))
+        else:
+            print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return
+
+    client = create_client()
+
+    if persist_to_tos:
+        if not args.json:
+            print(
+                f"[INFO] Requesting snapshot for {bucket}/{key} -> {resolved_bucket}/{resolved_object}",
+            )
+            print(f"[INFO] process = {process_value}")
 
         try:
+            encoded_bucket = base64.urlsafe_b64encode(resolved_bucket.encode()).decode()
+            encoded_object = base64.urlsafe_b64encode(resolved_object.encode()).decode()
             output = client.get_object(
                 bucket=bucket,
                 key=key,
                 process=process_value,
-                save_bucket=save_bucket,
-                save_object=saveas_object,
+                save_bucket=encoded_bucket,
+                save_object=encoded_object,
             )
             raw = output.read()
         except TosServerError as e:
@@ -183,31 +196,47 @@ def main() -> None:
             sys.exit(1)
 
         try:
-            text = raw.decode("utf-8")
-            data = json.loads(text)
+            data = json.loads(raw.decode("utf-8"))
         except Exception as exc:  # noqa: BLE001
-            print("[ERROR] Failed to parse snapshot save result as JSON:", file=sys.stderr)
+            print(
+                "[ERROR] Failed to parse snapshot save result as JSON:", file=sys.stderr
+            )
             print(exc, file=sys.stderr)
             print(raw[:200], file=sys.stderr)
             sys.exit(1)
+
+        if args.json:
+            print(
+                json.dumps(
+                    {
+                        "ok": True,
+                        "operation": "video_snapshot",
+                        "bucket": bucket,
+                        "key": key,
+                        "process": process_value,
+                        "mode": "save_to_tos",
+                        "saveas_bucket": resolved_bucket,
+                        "saveas_object": resolved_object,
+                        "result": data,
+                    },
+                    ensure_ascii=False,
+                )
+            )
+            return
 
         print("[OK] Snapshot saved to TOS:")
         print(json.dumps(data, indent=2, ensure_ascii=False))
         return
 
-    # Default: save snapshot locally via get_object_to_file
-    time_part: Any = args.time if args.time is not None else "0"
-    fmt = args.output_format or "jpg"
-    output_path = args.output or f"snapshot_{time_part}ms.{fmt}"
-
-    print(f"[INFO] Requesting snapshot for {bucket}/{key} -> {output_path}")
-    print(f"[INFO] process = {process_value}")
+    if not args.json:
+        print(f"[INFO] Requesting snapshot for {bucket}/{key} -> {resolved_output}")
+        print(f"[INFO] process = {process_value}")
 
     try:
         client.get_object_to_file(
             bucket=bucket,
             key=key,
-            file_path=output_path,
+            file_path=resolved_output,
             process=process_value,
         )
     except TosServerError as e:
@@ -224,26 +253,30 @@ def main() -> None:
         print(f"[ERROR] Unexpected error: {exc}", file=sys.stderr)
         sys.exit(1)
 
-    # Basic protection against unexpectedly large local files
-    max_object_size = int(os.getenv("MAX_OBJECT_SIZE", "262144"))  # bytes
     try:
-        size = os.path.getsize(output_path)
+        size = os.path.getsize(resolved_output)
     except OSError:
         size = -1
 
-    if size != -1 and size > max_object_size:
+    if args.json:
         print(
-            f"[ERROR] Snapshot size ({size} bytes) exceeds MAX_OBJECT_SIZE={max_object_size}. "
-            "Deleting local file.",
-            file=sys.stderr,
+            json.dumps(
+                {
+                    "ok": True,
+                    "operation": "video_snapshot",
+                    "bucket": bucket,
+                    "key": key,
+                    "process": process_value,
+                    "mode": "save_local",
+                    "output_path": resolved_output,
+                    "size": size,
+                },
+                ensure_ascii=False,
+            )
         )
-        try:
-            os.remove(output_path)
-        except OSError:
-            pass
-        sys.exit(1)
+        return
 
-    print(f"[OK] Snapshot saved to {output_path} ({size} bytes)")
+    print(f"[OK] Snapshot saved to {resolved_output} ({size} bytes)")
 
 
 if __name__ == "__main__":

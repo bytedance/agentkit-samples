@@ -13,36 +13,32 @@
 # limitations under the License.
 
 #!/usr/bin/env python3
-"""Example script: resize image using TOS image processing.
 
-Builds `process="image/resize,..."` and either:
-  - saves the processed image locally via `get_object_to_file` (default), or
-  - saves it back to TOS via `get_object(..., save_bucket=..., save_object=...)`.
+"""Draw points and optional lines on an image stored in TOS.
 
-Common parameters:
-  - w: target width
-  - h: target height
-  - m: resize mode (string; exact options are subject to official documentation)
+This script wraps the TOS `image/draw` process:
+  - p: points, e.g. 50x50-100x100-200x200
+  - r: point radius
+  - l: whether to connect points with lines
+  - lw: line width
+  - color: RGB hex without '#'
 
-For any additional parameters, pass `--kv key=value` and the script will append it
-as `key_value` in the process string.
-
-Environment variables:
-  - TOS_ACCESS_KEY, TOS_SECRET_KEY, TOS_SECURITY_TOKEN(optional)
-  - TOS_ENDPOINT, TOS_REGION
-  - TOS_BUCKET, TOS_OBJECT_KEY
-Note: Parameter semantics are subject to the official TOS documentation.
+It can save the result locally or persist the processed image back to TOS.
 """
 
 import argparse
 import base64
 import json
 import os
+import re
 import sys
 from typing import Optional
 
 import tos
 from tos.exceptions import TosClientError, TosServerError
+
+POINT_RE = re.compile(r"^\d+x\d+(?:-\d+x\d+)*$")
+COLOR_RE = re.compile(r"^[0-9A-Fa-f]{6}$")
 
 
 def get_env(name: str, required: bool = True, default: Optional[str] = None) -> str:
@@ -72,51 +68,57 @@ def create_client() -> tos.TosClientV2:
     )
 
 
-def parse_kv_list(items: list[str]) -> list[tuple[str, str]]:
-    pairs: list[tuple[str, str]] = []
-    for item in items:
-        if "=" not in item:
-            raise ValueError(f"Invalid --kv '{item}', expected key=value")
-        k, v = item.split("=", 1)
-        k = k.strip()
-        v = v.strip()
-        if not k:
-            raise ValueError(f"Invalid --kv '{item}', key is empty")
-        pairs.append((k, v))
-    return pairs
+def maybe_print_json(raw: bytes) -> bool:
+    try:
+        text = raw.decode("utf-8")
+        data = json.loads(text)
+        print(json.dumps(data, indent=2, ensure_ascii=False))
+        return True
+    except Exception:
+        return False
 
 
-def build_process(op: str, pairs: list[tuple[str, str]]) -> str:
-    base = f"image/{op}"
-    if not pairs:
-        return base
-    return base + "," + ",".join([f"{k}_{v}" for k, v in pairs])
-
-
-def default_output_path(key: str) -> str:
-    base = os.path.basename(key)
-    if not base:
-        return "resized_output"
-    return f"resized_{base}"
+def build_process_value(
+    points: str, radius: int, draw_line: bool, line_width: int, color: str
+) -> str:
+    parts = [
+        f"p_{points}",
+        f"r_{radius}",
+        f"l_{str(draw_line).lower()}",
+        f"lw_{line_width}",
+        f"color_{color.upper()}",
+    ]
+    return "image/draw," + ",".join(parts)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Resize image via TOS process=image/resize"
-    )
+    parser = argparse.ArgumentParser(description="Draw points/lines on a TOS image")
     parser.add_argument("--bucket", type=str, default=None, help="Override TOS_BUCKET")
     parser.add_argument("--key", type=str, default=None, help="Override TOS_OBJECT_KEY")
     parser.add_argument(
-        "--w", dest="width", type=int, default=None, help="Target width"
+        "--points",
+        type=str,
+        required=True,
+        help="Point list, e.g. 50x50-100x100-200x200",
+    )
+    parser.add_argument("--radius", type=int, default=6, help="Point radius in pixels")
+    parser.add_argument(
+        "--line",
+        action="store_true",
+        help="Connect points with lines",
     )
     parser.add_argument(
-        "--h", dest="height", type=int, default=None, help="Target height"
+        "--line-width", type=int, default=3, help="Line width in pixels"
     )
-    parser.add_argument("--m", dest="mode", type=str, default=None, help="Resize mode")
     parser.add_argument(
-        "--kv", action="append", default=[], help="Extra process option: key=value"
+        "--color",
+        type=str,
+        default="FFFFFF",
+        help="RGB hex color without '#', e.g. FF0000",
     )
-    parser.add_argument("--output", type=str, default=None, help="Local output file")
+    parser.add_argument(
+        "--output", type=str, default=None, help="Local output file path"
+    )
     parser.add_argument(
         "--saveas-bucket", type=str, default=None, help="Save result to this bucket"
     )
@@ -127,41 +129,46 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true", help="Print resolved request and exit")
     args = parser.parse_args()
 
+    if not POINT_RE.match(args.points):
+        print("[ERROR] --points must look like 50x50-100x100-200x200", file=sys.stderr)
+        sys.exit(1)
+    if args.radius < 0:
+        print("[ERROR] --radius must be >= 0", file=sys.stderr)
+        sys.exit(1)
+    if args.line_width < 0:
+        print("[ERROR] --line-width must be >= 0", file=sys.stderr)
+        sys.exit(1)
+    if not COLOR_RE.match(args.color):
+        print(
+            "[ERROR] --color must be a 6-digit RGB hex string, e.g. FF0000",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     client = create_client()
     bucket = args.bucket or get_env("TOS_BUCKET")
     key = args.key or get_env("TOS_OBJECT_KEY")
-
-    pairs: list[tuple[str, str]] = []
-    if args.width is not None:
-        pairs.append(("w", str(args.width)))
-    if args.height is not None:
-        pairs.append(("h", str(args.height)))
-    if args.mode:
-        pairs.append(("m", args.mode))
-
-    try:
-        pairs.extend(parse_kv_list(args.kv))
-    except ValueError as e:
-        print(f"[ERROR] {e}", file=sys.stderr)
-        sys.exit(1)
-
-    process_value = build_process("resize", pairs)
+    process_value = build_process_value(
+        points=args.points,
+        radius=args.radius,
+        draw_line=args.line,
+        line_width=args.line_width,
+        color=args.color,
+    )
 
     save_bucket = args.saveas_bucket
     save_object = args.saveas_object
     persist_to_tos = bool(save_bucket or save_object)
 
+    print(f"[INFO] process = {process_value}")
+
     if persist_to_tos:
         save_bucket = save_bucket or bucket
         if not save_object:
-            save_object = f"resized_{os.path.basename(key)}"
-
-        print(f"[INFO] Resizing {bucket}/{key} -> {save_bucket}/{save_object}")
-        print(f"[INFO] process = {process_value}")
-
+            save_object = f"draw_{os.path.basename(key)}"
         encoded_bucket = base64.urlsafe_b64encode(save_bucket.encode()).decode()
         encoded_object = base64.urlsafe_b64encode(save_object.encode()).decode()
-
+        print(f"[INFO] Processing {bucket}/{key} -> {save_bucket}/{save_object}")
         try:
             output = client.get_object(
                 bucket=bucket,
@@ -182,25 +189,24 @@ def main() -> None:
             print(f"[ERROR] TOS client error: {e}", file=sys.stderr)
             sys.exit(1)
 
-        try:
-            data = json.loads(raw.decode("utf-8"))
-        except Exception as exc:  # noqa: BLE001
-            print("[ERROR] Failed to parse save result as JSON:", file=sys.stderr)
-            print(exc, file=sys.stderr)
-            print(raw[:200], file=sys.stderr)
-            sys.exit(1)
-
-        print("[OK] Image saved to TOS:")
-        print(json.dumps(data, indent=2, ensure_ascii=False))
+        print("[OK] Save result:")
+        if not maybe_print_json(raw):
+            print(raw.decode("utf-8", errors="replace"))
         return
 
-    output_path = args.output or default_output_path(key)
-    print(f"[INFO] Resizing {bucket}/{key} -> {output_path}")
-    print(f"[INFO] process = {process_value}")
+    if not args.output:
+        print(
+            "[ERROR] --output is required when not saving back to TOS.", file=sys.stderr
+        )
+        sys.exit(1)
 
+    print(f"[INFO] Processing {bucket}/{key} -> {args.output}")
     try:
         client.get_object_to_file(
-            bucket=bucket, key=key, file_path=output_path, process=process_value
+            bucket=bucket,
+            key=key,
+            file_path=args.output,
+            process=process_value,
         )
     except TosServerError as e:
         print(
@@ -213,8 +219,8 @@ def main() -> None:
         print(f"[ERROR] TOS client error: {e}", file=sys.stderr)
         sys.exit(1)
 
-    size = os.path.getsize(output_path)
-    print(f"[OK] Image saved to {output_path} ({size} bytes)")
+    size = os.path.getsize(args.output)
+    print(f"[OK] Output saved to {args.output} ({size} bytes)")
 
 
 if __name__ == "__main__":

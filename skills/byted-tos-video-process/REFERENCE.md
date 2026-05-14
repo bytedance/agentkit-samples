@@ -8,6 +8,7 @@ This document provides a detailed reference for the parameters and return values
   - [1. `videoInfo`](#1-videoinfo)
   - [2. `videoSnapshot`](#2-videosnapshot)
   - [3. `videoSnapshots`](#3-videosnapshots)
+  - [4. `videoConcat`](#4-videoconcat)
 - [Data Models](#data-models)
   - [VideoInfo Object](#videoinfo-object)
   - [SnapshotSaveResult Object](#snapshotsaveresult-object)
@@ -152,8 +153,64 @@ This is not a single SDK method but a client-side orchestration pattern. It invo
 - Iterates through a list of user-provided or calculated timestamps.
 - For each timestamp, it makes a `get_object_to_file` or `get_object` (with `save_bucket`/`save_object`) request.
 - It can either save the resulting images locally or save them back to TOS.
+- It supports both explicit timestamps and interval-derived timestamps.
+- The current script also accepts `--bucket` and `--key` overrides instead of relying only on environment variables.
 
 Please refer to the `scripts/video_snapshots.py` for a reference implementation.
+
+---
+
+### 4. `videoConcat`
+
+Concatenates multiple video clips into a single output video. This is an async operation submitted via the TOS gateway's `media_jobs` API.
+
+**API Endpoint:** `POST /{bucket}?media_jobs=&job_type=Concat`
+
+**Job Payload:**
+
+```json
+{
+  "Input": {
+    "Object": "clip1.mp4"
+  },
+  "ConcatConfig": {
+    "ConcatFragments": [
+      {"Object": "clip2.mp4"},
+      {"Object": "clip3.mp4"}
+    ],
+    "Container": {
+      "Format": "mp4"
+    },
+    "Video": {
+      "Codec": "h264"
+    },
+    "Audio": {
+      "Codec": "aac"
+    }
+  },
+  "Output": {
+    "Region": "cn-beijing",
+    "Bucket": "your-bucket",
+    "Object": "output/merged.mp4"
+  }
+}
+```
+
+**CLI Mapping:**
+
+| CLI argument | Meaning | Notes |
+|---|---|---|
+| `--key` | First video clip object key | Required |
+| `--fragments` | Additional clips, comma-separated | Optional |
+| `--format` | Output container format | Default `mp4` |
+| `--video-codec` | Video codec | Default `h264` |
+| `--audio-codec` | Audio codec | Default `aac` |
+| `--output-key` | Output object key | Default `<key>_concat.<format>` |
+| `--output-bucket` | Output bucket | Default same as source |
+| `--wait` | Poll until completion | Optional |
+| `--timeout` | Max wait time in seconds | Default `600` |
+
+**Script:** `scripts/video_concat.py`
 
 ---
 

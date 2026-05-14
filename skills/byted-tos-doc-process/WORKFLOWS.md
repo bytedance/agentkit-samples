@@ -7,8 +7,10 @@ This document illustrates common workflows for document processing using the `do
 - [Workflow 2: Previewing a Specific Page as a PNG Image](#workflow-2-previewing-a-specific-page-as-a-png-image)
 - [Workflow 3: Getting the HTML Preview URL](#workflow-3-getting-the-html-preview-url)
 - [Workflow 4: Batch Exporting a Page Range to TOS](#workflow-4-batch-exporting-a-page-range-to-tos)
-- [Workflow 5: Reading the Total Page Count Header](#workflow-5-reading-the-total-page-count-header)
-- [Workflow 6: Handling Errors](#workflow-6-handling-errors)
+- [Workflow 5: Batch Screenshot a PDF Page Range](#workflow-5-batch-screenshot-a-pdf-page-range)
+- [Workflow 6: Reading the Total Page Count Header](#workflow-6-reading-the-total-page-count-header)
+- [Workflow 7: Handling Errors](#workflow-7-handling-errors)
+- [Workflow 8: Document to Image Set Pipeline (Orchestration)](#workflow-8-document-to-image-set-pipeline-orchestration)
 
 ---
 
@@ -140,70 +142,85 @@ except Exception as e:
 
 **Script**: `scripts/doc_preview_process.py`
 
-**Steps**:
-1.  Build query parameters with `img_mode=1`, `start_page`, `end_page`, `save_bucket`, and `save_object`.
-2.  Generate a pre-signed URL.
-3.  Fetch the URL and parse the JSON response for job status.
-
-**Python Example (`scripts/doc_preview_process.py` logic):**
-```python
-import json
-
-try:
-    params = build_doc_preview_query_params(
-        dest_type="jpg",
-        img_mode=1,
-        start_page=1,
-        end_page=5,
-        save_bucket="my-output-bucket",
-        save_object="processed/{Page}.jpg"
-    )
-    presigned = client.pre_signed_url(HttpMethodType.Http_Method_Get, bucket_name, object_key, query=params)
-    req = Request(presigned.signed_url, headers=presigned.signed_header)
-    
-    with urlopen(req) as response:
-        result = json.loads(response.read().decode('utf-8'))
-        print("Batch export job details:")
-        print(json.dumps(result, indent=2))
-        
-except Exception as e:
-    print(f"Server Error during batch export: {e}")
+```bash
+python3 scripts/doc_preview_process.py \
+  --key report.docx \
+  --dest-type jpg \
+  --img-mode 1 \
+  --start-page 1 \
+  --end-page 5 \
+  --saveas-bucket my-output-bucket \
+  --saveas-object processed/{Page}.jpg \
+  --json
 ```
+
+**Behavior Notes**:
+- `--json` returns a structured payload for downstream agent steps.
+- `--dry-run` prints the resolved `x-tos-doc-*` parameters without making the request.
+- Without save-as parameters, the script writes the converted output locally.
 
 ---
 
-### Workflow 5: Reading the Total Page Count Header
+### Workflow 5: Batch Screenshot a PDF Page Range
+
+**Goal**: Export multiple PDF pages to TOS as image objects with one request.
+
+**Script**: `scripts/doc_batch_screenshot.py`
+
+```bash
+python3 scripts/doc_batch_screenshot.py \
+  --key test.pdf \
+  --format png \
+  --start-page 1 \
+  --end-page 2 \
+  --saveas-object "skill-test/doc/{Page}.png"
+```
+
+**Important constraints**:
+- Source object must be a PDF.
+- Destination object must contain `{Page}`.
+- Results are always persisted back to TOS via `--saveas-bucket` / `--saveas-object`.
+- The helper handles save-as query encoding automatically.
+
+---
+
+### Workflow 6: Reading the Total Page Count Header
 
 **Goal**: Efficiently determine the number of pages in a document.
 
 **Script**: `scripts/doc_total_page.py`
 
-**Steps**:
-1.  Generate a pre-signed URL for any preview type (e.g., PDF).
-2.  Make a request to the URL.
-3.  Access the `headers` of the response object and retrieve `x-tos-total-page`.
-
-**Python Example (`scripts/doc_total_page.py` logic):**
-```python
-try:
-    params = build_doc_preview_query_params(dest_type="pdf")
-    presigned = client.pre_signed_url(HttpMethodType.Http_Method_Get, bucket_name, object_key, query=params)
-    req = Request(presigned.signed_url, headers=presigned.signed_header)
-    
-    with urlopen(req) as response:
-        total_pages = response.headers.get("x-tos-total-page")
-        if total_pages:
-            print(f"The document has {total_pages} pages.")
-        else:
-            print("x-tos-total-page header not found.")
-            
-except Exception as e:
-    print(f"Server Error while querying page count: {e}")
+```bash
+python3 scripts/doc_total_page.py --key report.docx --dest-type pdf --json
+python3 scripts/doc_total_page.py --key report.docx --dest-type pdf --dry-run
 ```
+
+**Behavior Notes**:
+- `--json` returns a structured payload with the resolved query params and `total_page` when available.
+- `--dry-run` prints the resolved request without issuing the HTTP call.
+- If the header is absent, the script returns a warning payload instead of crashing.
 
 ---
 
-### Workflow 6: Handling Errors
+### Workflow 7: Validate a doc-preview Request Before Execution
+
+**Goal**: Let an agent inspect the resolved `doc-preview` parameters before downloading or exporting.
+
+```bash
+python3 scripts/doc_preview_process.py \
+  --key report.docx \
+  --dest-type png \
+  --page 2 \
+  --dry-run
+```
+
+**Behavior Notes**:
+- Useful for agent planning when the next step depends on resolved `x-tos-doc-*` parameters.
+- Combine with `--json` for machine-readable planning output.
+
+---
+
+### Workflow 8: Handling Errors
 
 **Goal**: Gracefully handle common errors during the process.
 
@@ -231,3 +248,74 @@ except Exception as e:
     print(f"An unexpected error occurred: {e}")
 ```
 This ensures that failures from both the SDK and the subsequent HTTP call are caught and reported.
+
+---
+
+### Workflow 8: Document to Image Set Pipeline (Orchestration)
+
+**Goal**: Convert a document (docx/pptx/xlsx) into a set of page images packaged as a zip archive — a multi-step, multi-skill pipeline an agent can orchestrate.
+
+**Pipeline**: `doc_total_page` → `doc_preview_process` (docx→PDF) → `doc_batch_screenshot` (PDF→JPG) → `file_compress` (JPG→zip)
+
+**Skills involved**: `byted-tos-doc-process`, `byted-tos-file-process`
+
+**Important constraints**:
+- `doc_batch_screenshot` only accepts **PDF** as the source file (backend restriction). Non-PDF documents (docx, pptx, etc.) must be converted to PDF first.
+- The sync `doc-preview` + `save-as` mode does not reliably persist PDF output to TOS. Use local download + upload instead.
+
+#### Step 1: Get total page count
+
+```bash
+python3 scripts/doc_total_page.py --key report.docx --dest-type pdf --json
+```
+
+Extract `total_page` from the JSON output to determine the page range.
+
+#### Step 2: Convert document to PDF locally, then upload
+
+```bash
+# Download PDF to local filesystem
+python3 scripts/doc_preview_process.py \
+  --key report.docx \
+  --dest-type pdf \
+  --output /tmp/report.pdf
+
+# Upload PDF to TOS for batch screenshot input
+# (Use TOS SDK put_object or any upload method)
+```
+
+**Note**: The sync `doc-preview` + `save-as-bucket`/`save-as-object` mode returns PDF binary in the response body but may not correctly persist it to TOS. Downloading locally and uploading is the reliable approach.
+
+#### Step 3: Batch screenshot all pages
+
+```bash
+python3 scripts/doc_batch_screenshot.py \
+  --key path/to/report.pdf \
+  --format jpg \
+  --start-page 1 \
+  --end-page 14 \
+  --saveas-bucket my-bucket \
+  --saveas-object "output/pages/{Page}.jpg"
+```
+
+This produces one JPG per page in TOS. The `{Page}` placeholder is required.
+
+#### Step 4: Compress page images into a zip
+
+```bash
+python3 /path/to/byted-tos-file-process/scripts/file_compress.py \
+  --keys output/pages/1.jpg,output/pages/2.jpg,...,output/pages/14.jpg \
+  --format zip \
+  --saveas-bucket my-bucket \
+  --saveas-object output/pages.zip \
+  --wait --json
+```
+
+The final result is a single zip archive containing all page images.
+
+#### Agent orchestration notes
+
+- Step 1 determines the page range; the agent should use the `total_page` value for `--end-page` and to build the `--keys` list in Step 4.
+- Step 2 requires an intermediate upload not covered by this skill alone — the agent should use the TOS SDK or another upload method.
+- Step 3 depends on Step 2 (PDF must exist in TOS before batch screenshot).
+- Step 4 depends on Step 3 (all page images must exist before compression).
