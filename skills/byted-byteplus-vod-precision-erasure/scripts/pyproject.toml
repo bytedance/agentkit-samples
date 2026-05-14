@@ -1,0 +1,9 @@
+[project]
+name = "byted-byteplus-vod-precision-erasure"
+version = "1.0.0"
+description = "BytePlus VOD upload and precision erasure (subtitles / on-screen text)"
+requires-python = ">=3.10"
+dependencies = [
+    "requests>=2.31.0",
+    "python-dotenv>=1.0.0",
+]
