@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Reusable AdvDefence client and helper entrypoints for the byted-advdefence-hostops skill."""
+"""Reusable AntiDDoSPro client and helper entrypoints for the byted-antiddospro-hostops skill."""
 
 import datetime
 import hashlib
@@ -86,7 +86,7 @@ def _canonical_query(params: Dict[str, Any]) -> str:
     return "&".join(f"{key}={value}" for key, value in items)
 
 
-def call_advdefence(
+def call_antiddospro(
     action: str,
     version: str,
     body: Optional[Dict[str, Any]],
@@ -158,14 +158,14 @@ def call_advdefence(
         return response.status_code, {"raw": response.text}
 
 
-class _BaseAdvDefenceClient:
+class _BaseAntiDDoSProClient:
     def __init__(self, access_key: str, secret_key: str):
         self.ak = access_key
         self.sk = secret_key
 
     def _call(self, action: str, body: Optional[Dict[str, Any]] = None):
         version, method = ACTION_META[action]
-        return call_advdefence(action, version, body, self.ak, self.sk, method=method)
+        return call_antiddospro(action, version, body, self.ak, self.sk, method=method)
 
     def desc_host_rules(
         self,
@@ -208,7 +208,7 @@ class _BaseAdvDefenceClient:
         return instance_ips
 
 
-class HostPolicyClient(_BaseAdvDefenceClient):
+class HostPolicyClient(_BaseAntiDDoSProClient):
     def get_host_def_status(self, host: str):
         return self._call("GetHostDefStatus", {"Host": host})
 
@@ -250,7 +250,7 @@ class HostPolicyClient(_BaseAdvDefenceClient):
         return output
 
 
-class AttackEventClient(_BaseAdvDefenceClient):
+class AttackEventClient(_BaseAntiDDoSProClient):
     def describe_attack_event(self, begin_time: int, end_time: int, instance_ips: List[str], curr_page: int = 1, page_size: int = 20):
         return self._call("DescribeAttackEvent", {
             "BeginTime": begin_time,
@@ -331,7 +331,7 @@ class AttackEventClient(_BaseAdvDefenceClient):
         return output
 
 
-class CCAIClient(_BaseAdvDefenceClient):
+class CCAIClient(_BaseAntiDDoSProClient):
     def list_assets(self, domain: str, ai_defense_status: Optional[str] = None):
         body = {"Domain": domain}
         if ai_defense_status is not None:
@@ -388,7 +388,7 @@ class CCAIClient(_BaseAdvDefenceClient):
         return output
 
 
-class FlowTrafficClient(_BaseAdvDefenceClient):
+class FlowTrafficClient(_BaseAntiDDoSProClient):
     def describe_attack_flow(self, instance_ips: List[str], begin_time: int, end_time: int, tab: str = "Peak"):
         return self._call("DescribeAttackFlow", {"InstanceIps": instance_ips, "BeginTime": begin_time, "EndTime": end_time, "Tab": tab})
 
@@ -460,8 +460,8 @@ def _wrap(fn, *args, **kwargs) -> Dict[str, Any]:
         return {"ok": False, "error": str(exc), "type": type(exc).__name__}
 
 
-def query_advdefence_policy_overview(host: str) -> Dict[str, Any]:
-    """Query read-only AdvDefence policy status for a protected host."""
+def query_antiddospro_policy_overview(host: str) -> Dict[str, Any]:
+    """Query read-only AntiDDoSPro policy status for a protected host."""
 
     def run() -> Dict[str, Any]:
         access_key, secret_key = _get_credentials()
@@ -470,13 +470,13 @@ def query_advdefence_policy_overview(host: str) -> Dict[str, Any]:
     return _wrap(run)
 
 
-def query_advdefence_attack_events(
+def query_antiddospro_attack_events(
     host: str,
     begin_time: Optional[int] = None,
     end_time: Optional[int] = None,
     lookback_seconds: int = 3600,
 ) -> Dict[str, Any]:
-    """Query recent AdvDefence attack observations for a protected host."""
+    """Query recent AntiDDoSPro attack observations for a protected host."""
 
     def run() -> Dict[str, Any]:
         access_key, secret_key = _get_credentials()
@@ -487,13 +487,13 @@ def query_advdefence_attack_events(
     return _wrap(run)
 
 
-def query_advdefence_flow_traffic(
+def query_antiddospro_flow_traffic(
     host: str,
     begin_time: Optional[int] = None,
     end_time: Optional[int] = None,
     lookback_seconds: int = 3600,
 ) -> Dict[str, Any]:
-    """Query AdvDefence traffic, response-code, and connection observations."""
+    """Query AntiDDoSPro traffic, response-code, and connection observations."""
 
     def run() -> Dict[str, Any]:
         access_key, secret_key = _get_credentials()
@@ -504,8 +504,8 @@ def query_advdefence_flow_traffic(
     return _wrap(run)
 
 
-def resolve_advdefence_instance_ips(host: str) -> Dict[str, Any]:
-    """Resolve a protected host to its associated AdvDefence instance IPs."""
+def resolve_antiddospro_instance_ips(host: str) -> Dict[str, Any]:
+    """Resolve a protected host to its associated AntiDDoSPro instance IPs."""
 
     def run() -> List[str]:
         access_key, secret_key = _get_credentials()
@@ -514,7 +514,7 @@ def resolve_advdefence_instance_ips(host: str) -> Dict[str, Any]:
     return _wrap(run)
 
 
-def query_advdefence_ccai_overview(host: str) -> Dict[str, Any]:
+def query_antiddospro_ccai_overview(host: str) -> Dict[str, Any]:
     """Query read-only CCAI asset, event, and recommendation status."""
 
     def run() -> Dict[str, Any]:
@@ -524,13 +524,13 @@ def query_advdefence_ccai_overview(host: str) -> Dict[str, Any]:
     return _wrap(run)
 
 
-def query_advdefence_host_healthcheck(
+def query_antiddospro_host_healthcheck(
     host: str,
     begin_time: Optional[int] = None,
     end_time: Optional[int] = None,
     lookback_seconds: int = 3600,
 ) -> Dict[str, Any]:
-    """Run a read-only AdvDefence host health check across policy, events, traffic, and CCAI."""
+    """Run a read-only AntiDDoSPro host health check across policy, events, traffic, and CCAI."""
 
     def run() -> Dict[str, Any]:
         access_key, secret_key = _get_credentials()

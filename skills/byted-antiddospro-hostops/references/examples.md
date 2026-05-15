@@ -9,7 +9,7 @@
 建议处理：
 - 如果缺少 host，先追问
 - 默认做一次完整巡检
-- 使用 `query_advdefence_host_healthcheck`
+- 使用 `query_antiddospro_host_healthcheck`
 - 汇总策略、攻击、流量三部分信息
 
 ## 正向示例 2
@@ -19,7 +19,7 @@
 建议处理：
 - 收集 host 和时间范围
 - 如果没给时间范围，默认最近 1 小时
-- 使用 `query_advdefence_attack_events`
+- 使用 `query_antiddospro_attack_events`
 - 重点说明是否观测到攻击，以及来源 IP、来源地区等信息
 
 ## 正向示例 3
@@ -27,7 +27,7 @@
 - 帮我看下这个域名的 CC 规则、黑白名单和区域封禁情况
 
 建议处理：
-- 使用 `query_advdefence_policy_overview`
+- 使用 `query_antiddospro_policy_overview`
 - 汇总防护开关、智能防护开关、CC 规则、黑白名单、区域封禁状态
 - 智能防护开关必须读取 `DescSmartCCConf` 的响应，不要把 `GetHostDefStatus` 返回的 `SmartEnable` 当成智能防护开关
 
@@ -54,7 +54,7 @@
 
 建议处理：
 - 尽量收集明确时间范围
-- 使用 `query_advdefence_flow_traffic`
+- 使用 `query_antiddospro_flow_traffic`
 - 重点看 QPS、BPS、响应码和相关异常
 
 ## 正向示例 5
@@ -62,7 +62,7 @@
 - 这个域名对应的高防实例 IP 是多少
 
 建议处理：
-- 使用 `resolve_advdefence_instance_ips`
+- 使用 `resolve_antiddospro_instance_ips`
 - 返回解析出的实例 IP，并说明四层接口依赖这一步
 
 ## 正向示例 6
@@ -73,7 +73,7 @@
 - 这是域名级防护巡检场景，应由本 skill 处理
 - 智能防护开关先看 `DescSmartCCConf`
 - 如果用户明确提到 AI 防护、CCAI 事件或建议，可补充查询 CCAI Action：`ListAssets`、`ListEvents`、`ListRecommendations`
-- 汇总时区分“智能防护开关状态”和“CCAI 资产 / 建议状态”，不要混为一个字段
+- 汇总时区分"智能防护开关状态"和"CCAI 资产 / 建议状态"，不要混为一个字段
 
 
 ## 反向示例 2
@@ -85,7 +85,7 @@
 
 ## 反向示例 3
 用户请求：
-- 帮我写一个 AdvDefence 的 Python SDK
+- 帮我写一个 AntiDDoSPro 的 Python SDK
 
 不应由本 skill 处理的原因：
 - 这是开发实现任务，不是围绕具体防护域名做运维分析
@@ -96,4 +96,4 @@
 - 看下我这台 Linux 机器的网络流量是不是异常
 
 不应由本 skill 处理的原因：
-- 这是主机层或系统层排障，不是 AdvDefence 防护域名巡检
+- 这是主机层或系统层排障，不是 AntiDDoSPro 防护域名巡检

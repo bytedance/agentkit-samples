@@ -1,12 +1,12 @@
 ---
-name: byted-advdefence-hostops
-description: 火山引擎 AdvDefence 高防域名只读巡检。用户要查域名健康、攻击、流量、CC/WAF/区域封禁、智能防护或 CCAI 状态时使用。
+name: byted-antiddospro-hostops
+description: 火山引擎 AntiDDoSPro 高防域名只读巡检。用户要查域名健康、攻击、流量、CC/WAF/区域封禁、智能防护或 CCAI 状态时使用。
 version: 1.0.0
 ---
 
-# AdvDefence HostOps
+# AntiDDoSPro HostOps
 
-本 skill 用于对火山引擎 AdvDefence 防护域名做只读巡检、分析和排障。
+本 skill 用于对火山引擎 AntiDDoSPro 防护域名做只读巡检、分析和排障。
 
 最适合的场景：
 - 域名健康巡检
@@ -17,7 +17,7 @@ version: 1.0.0
 - 流量与响应异常分析
 - 域名到高防实例 IP 的解析
 
-当任务明确围绕某个 AdvDefence 防护域名或 Host 展开，并且目标是查看、分析、解释现状，而不是修改配置时，应优先使用本 skill，而不是通用排障或通用报表 skill。
+当任务明确围绕某个 AntiDDoSPro 防护域名或 Host 展开，并且目标是查看、分析、解释现状，而不是修改配置时，应优先使用本 skill，而不是通用排障或通用报表 skill。
 
 ## Compatibility
 
@@ -69,16 +69,16 @@ version: 1.0.0
 如果用户表达比较模糊，默认先做完整巡检。
 
 ### 2. 选择合适入口
-- 防护策略检查 → `query_advdefence_policy_overview`
-- 智能防护 / AI 防护状态核对 → `query_advdefence_policy_overview`，必要时结合 CCAI 资产查询
-- 攻击事件排查 → `query_advdefence_attack_events`；如果用户明确在看 CCAI 事件，则优先走 CCAI 事件查询
-- CCAI 资产、事件、建议查询 → `query_advdefence_ccai_overview`；需要进一步展开时，再分别调用 `ListAssets`、`ListEvents`、`DescribeEvent`、`ListRecommendations`、`DescribeRecommendation`
-- 流量或报表分析 → `query_advdefence_flow_traffic`
-- 域名到实例 IP 解析 → `resolve_advdefence_instance_ips`
-- 需求宽泛或表述不清 → `query_advdefence_host_healthcheck`，并按需补充 CCAI 只读信息
+- 防护策略检查 → `query_antiddospro_policy_overview`
+- 智能防护 / AI 防护状态核对 → `query_antiddospro_policy_overview`，必要时结合 CCAI 资产查询
+- 攻击事件排查 → `query_antiddospro_attack_events`；如果用户明确在看 CCAI 事件，则优先走 CCAI 事件查询
+- CCAI 资产、事件、建议查询 → `query_antiddospro_ccai_overview`；需要进一步展开时，再分别调用 `ListAssets`、`ListEvents`、`DescribeEvent`、`ListRecommendations`、`DescribeRecommendation`
+- 流量或报表分析 → `query_antiddospro_flow_traffic`
+- 域名到实例 IP 解析 → `resolve_antiddospro_instance_ips`
+- 需求宽泛或表述不清 → `query_antiddospro_host_healthcheck`，并按需补充 CCAI 只读信息
 
 ### 3. 解读结果时保持保守
-- 明确区分“未观测到数据”和“确认没有风险”
+- 明确区分"未观测到数据"和"确认没有风险"
 - 上游接口报错时，直接说明真实原因
 - 需要排障时，保留请求 ID
 - 如果域名无法解析出实例 IP，要明确说明四层 DDoS 视图可能不完整
@@ -127,7 +127,7 @@ version: 1.0.0
 - 建议下一步查看什么
 - 哪些结论暂时无法确认，以及原因
 
-保持回答简洁，优先输出提炼后的结论，不要直接倾倒原始 payload。除非观测数据足以支持，否则不要轻易下“域名健康”这种结论。
+保持回答简洁，优先输出提炼后的结论，不要直接倾倒原始 payload。除非观测数据足以支持，否则不要轻易下"域名健康"这种结论。
 
 ## Error handling
 

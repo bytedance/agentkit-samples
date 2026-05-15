@@ -1,5 +1,5 @@
 {
-  "skill_name": "byted-advdefence-hostops",
+  "skill_name": "byted-antiddospro-hostops",
   "evals": [
     {
       "id": 1,
@@ -49,7 +49,7 @@
     },
     {
       "id": 5,
-      "prompt": "帮我排查下 AdvDefence 域名，昨天晚上 8 点到 10 点 QPS 为什么掉了。",
+      "prompt": "帮我排查下 AntiDDoSPro 域名，昨天晚上 8 点到 10 点 QPS 为什么掉了。",
       "expected_output": "Should identify this as a traffic-analysis request, ask for the protected host if it is missing, respect the explicit time window, and focus on QPS, BPS, response codes, and related anomalies.",
       "files": [],
       "assertions": [
@@ -93,7 +93,7 @@
     },
     {
       "id": 9,
-      "prompt": "帮我写一个 AdvDefence 接口的 Python SDK，最好把签名和所有接口都封装一下。",
+      "prompt": "帮我写一个 AntiDDoSPro 接口的 Python SDK，最好把签名和所有接口都封装一下。",
       "expected_output": "Should not treat this as a host-operations task. It should avoid routing into the inspection workflow and instead recognize this as a development request outside the intended trigger scope of the skill.",
       "files": [],
       "assertions": [
@@ -104,10 +104,10 @@
     {
       "id": 10,
       "prompt": "看下我这台 Linux 机器这两个小时网络流量是不是异常。",
-      "expected_output": "Should not trigger the AdvDefence host-operations workflow because this is a machine-level troubleshooting request rather than a protected-domain inspection task.",
+      "expected_output": "Should not trigger the AntiDDoSPro host-operations workflow because this is a machine-level troubleshooting request rather than a protected-domain inspection task.",
       "files": [],
       "assertions": [
-        "Do not trigger the AdvDefence host-operations workflow for machine-level troubleshooting."
+        "Do not trigger the AntiDDoSPro host-operations workflow for machine-level troubleshooting."
       ]
     },
     {
