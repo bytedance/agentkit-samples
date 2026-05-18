@@ -1,0 +1,35 @@
+{
+  "skill_name": "byted-volcengine-topology-analyzer",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "安全组 sg-3vai4r386pnuo1w7k94e5s09v 做了变更，会影响什么应用和入口链路？",
+      "expected_output": "能够命中 security_group，找出受影响 ECS，并回溯出对应的 EIP/CLB/server_group/ECS 链路。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "帮我看下 14.103.24.61 这个入口 IP 后面挂了哪些资源，属于哪个业务。",
+      "expected_output": "能够识别 IP 命中的节点，返回所属业务，并说明其关联到的 CLB、服务器组和 ECS。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "i-yek807xukgk36d6jug0q 这个 ECS 和哪些网络资源有关？如果它所属安全组改规则，会波及哪条访问链路？",
+      "expected_output": "能够返回 ECS 的 VPC、子网、安全组、EBS，并说明其上游入口链路。",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "安全组 sg-3vai4r386pnuo1w7k94e5s09v 要放开 80 端口给办公网访问，帮我输出变更影响摘要、风险等级和回滚建议。",
+      "expected_output": "能够在影响链路之外，补充变更风险等级、风险提示、校验建议和回滚建议。",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "我没指定业务，帮我全局找一下名字像 ECS 的节点，按最可能的候选排序给我看，并说明为什么这么排。",
+      "expected_output": "能够跨业务目录检索并给出候选排序、命中得分或命中原因；如果候选不唯一，要提示用户确认。",
+      "files": []
+    }
+  ]
+}

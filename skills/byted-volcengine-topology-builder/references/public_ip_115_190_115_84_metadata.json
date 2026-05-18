@@ -1,0 +1,7 @@
+{
+  "strategy": "public_ip -> eip first -> clb/natgateway fallback",
+  "public_ip": "115.190.115.84",
+  "region": "cn-beijing",
+  "nodes": [],
+  "candidates": []
+}
