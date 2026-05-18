@@ -1,0 +1,29 @@
+[project]
+name = "byted-viral-replicator"
+version = "1.0.0.17"
+description = "viral replicator工具集"
+requires-python = ">=3.12"
+authors = [{name = "Kickart Team", email = "kickart@bytedance.com"}]
+dependencies = [
+    "requests",
+    "qrcode",
+    "jsonpath",
+    "Pillow",
+    "urllib3",
+    "pydantic",
+    "pandas",
+    "python-dotenv",
+    "click",
+    "opencv-python-headless"
+]
+
+[project.scripts]
+byted-viral-replicator-media = "byted_viral_replicator.media:main"
+byted-viral-replicator-service = "byted_viral_replicator.service:main"
+byted-viral-replicator-task = "byted_viral_replicator.task:main"
+byted-viral-replicator-material = "byted_viral_replicator.material:main"
+byted-viral-replicator-creative = "byted_viral_replicator.creative:main"
+byted-viral-replicator-replication = "byted_viral_replicator.replication:main"
+
+[tool.setuptools]
+packages.find = {where = ["scripts"]}
