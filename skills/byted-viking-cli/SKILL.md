@@ -1,11 +1,11 @@
 ---
 name: byted-viking-cli
-description: 官方Viking CLI 命令行助手：本CLI覆盖火山引擎 VikingDB(向量库)/Knowledge(知识库)/Memory(记忆库)的数据集管理和数据的读写及检索，
+description: 官方Viking CLI 命令行助手：本CLI覆盖火山引擎/BytePlus VikingDB(向量库)/Knowledge(知识库)/Memory(记忆库)的数据集管理和数据的读写及检索，
   可用于扩展Agent的知识检索边界 提升Agent的记忆能力；
   当用户对知识库/向量库提问时，使用本Skill;
   当用要操作向量库/知识库 或 从向量库/知识库检索信息时使用本Skill；
   当用户要记忆检索和记忆存储时，使用本Skill。
-version: 1.2.0
+version: 1.3.0
 license: Apache-2.0
 ---
 
@@ -62,7 +62,9 @@ viking-cli version
   - `list-docs`
   - `update-doc`
   - `delete-doc`
+  - `search-collection`
   - `search-knowledge`
+  - `list-services`
   - `service-chat`
 
 ## 全局配置
@@ -77,11 +79,15 @@ viking-cli auth
 执行后，根据提示依次输入：
 - AccessKey (AK)
 - SecretKey (SK)
+- Cloud (`volcengine`、`byteplus` 或 `bytecloud`，默认 `volcengine`；)
 - Region (如 `cn-beijing`)
 - Project (如 `default`)
 
 ### 全局 Flags（命令行参数）
-当前实际支持的全局 flags 只有：
+当前实际支持的全局 flags：
+- `--cloud`：云环境，`volcengine`、`byteplus` 或 `bytecloud`
+- `--region`：Region（用于推导默认 endpoint）
+- `--project`：默认 project
 - `--format`：输出格式，`json` 或 `text`
 - `--timeout`：请求超时，例如 `120s`
 
@@ -302,9 +308,15 @@ viking-cli --region <region> knowledge list-docs --collection <collection_name> 
 viking-cli --region <region> knowledge update-doc --collection <collection_name> --doc-id <doc_id> --doc-name '<new_name>'
 viking-cli --region <region> knowledge delete-doc --collection <collection_name> --doc-id <doc_id>
 ```
-知识搜索：
+知识内容检索（在一个已创建知识库内做语义检索）：
 ```bash
 viking-cli --region <region> knowledge search-knowledge   --collection <collection_name>   --query '<text_query>'   --limit 10
+viking-cli --region <region> knowledge search-knowledge   --collection <collection_name>   --query '<text_query>'   --doc-filter '{"op":"must","field":"doc_id","conds":["tos_doc_id_123","tos_doc_id_456"]}'
+```
+寻找匹配的知识库（按知识库描述进行关键词模糊匹配，默认返回 3 条）：
+```bash
+viking-cli --region <region> knowledge search-collection   --query '<keyword>'
+viking-cli --region <region> knowledge search-collection   --query '<keyword>'   --limit 5
 ```
 
 ### Knowledge / 知识服务的检索与问答
@@ -317,6 +329,8 @@ viking-cli --region <region> knowledge service-chat --service-rid <service_rid> 
 viking-cli --region <region> --format text knowledge service-chat --service-rid <service_rid> --content '列举 2025 Q1 财报里的三项亮点' --stream true
 
 viking-cli --format text knowledge service-chat --content "列举 2025 Q1 财报里的三项亮点" --stream true
+
+viking-cli --region <region> knowledge service-chat --service-rid <service_rid> --content '列举 2025 Q1 财报里的三项亮点' --doc-filter '{"op":"must","field":"doc_id","conds":["tos_doc_id_123","tos_doc_id_456"]}'
 
 ```
 `messages.json` 示例：
