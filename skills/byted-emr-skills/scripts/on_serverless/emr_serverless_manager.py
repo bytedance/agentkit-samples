@@ -54,9 +54,6 @@ def manage_emr_serverless(
     ]:
         service = "emr"
         endpoint = semi_managed_region_endpoint_map.get(region, None)
-    elif action in ["GetMetricData"]:
-        service = "cloudmonitor"
-        endpoint = cloud_monitor_endpoint_map.get(region, None)
 
     api_host = os.getenv("ARK_SKILL_API_BASE")
     api_key = os.getenv("ARK_SKILL_API_KEY")

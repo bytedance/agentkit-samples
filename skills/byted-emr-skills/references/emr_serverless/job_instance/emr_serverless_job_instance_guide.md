@@ -153,21 +153,6 @@ python ./scripts/on_serverless/emr_serverless_cli.py \
   --query '{"Id":"job_id"}'
 ```
 
-### 2. 获取作业实例的tracking url（QueryGetTrackingURL）
-注意！！不要取Job里的Progress字段
-```bash
-python ./scripts/on_serverless/emr_serverless_cli.py \
-  --action QueryGetTrackingURL \
-  --method GET \
-  --query '{"Id":"job_id"}'
-```
-返回数据结构（示例）
-```
-{
-    "Result": "http://xx:18080/bq-325738704/jobs?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyxxx"
-}
-```
-
 ### 3. 终止作业实例（QueryCancelQueryV2）
 
 ```bash
@@ -176,57 +161,6 @@ python ./scripts/on_serverless/emr_serverless_cli.py \
   --method POST \
   --body '{"Id":"job_id"}'
 ```
-
-### 4. 获取作业实例提交日志（QueryFetchSubmitLog）
-```bash
-python ./scripts/on_serverless/emr_serverless_cli.py \
-  --action QueryFetchSubmitLog \
-  --method GET \
-  --query '{"Id":"job_id","Position":"0","Limit":"100"}'
-```
-
-### 5. 获取作业实例执行/Driver日志（FetchDriverLog）
-**请求参数**
-
-| 参数 | 类型     | 是否必须 | 描述                                                      |
-|------|--------|------|---------------------------------------------------------|
-| FileName | String | N    | 文件类型，支持syslog 和stdout（注意！只有Spark作业实例支持，其他作业实例类型无需传递该参数） |
-| Id | String | Y    | 作业实例id                                                  
-| Keywords | String | N    | 搜索关键字（如果没有关键字需要搜索，务必不传该字段）                              |
-| Offset | String | N    | 偏移量，从0开始                                                |
-| Limit | String | N    | 日志行数                                                    |
-| Order | String | N    | 排序方式，支持asc/desc 默认为asc，正序排序                             |
-
-** 调用示例 **
-```bash
-python ./scripts/on_serverless/emr_serverless_cli.py \
-  --action FetchDriverLog \
-  --method GET \
-  --query '{"FileName":"syslog","Id":"325738704","Keywords":"INFO","Limit":"100","Offset":"0","Order":"asc"}'
-```
-**返回示例**
-```json
-{
-    "Result": {
-        "Rows": [
-            "26/03/13 14:33:54 INFO [spark-xx",
-            "26/03/13 14:33:54 INFO [spark-ui"
-        ],
-        "Position": "0,1773383644106,65312194133446324,9690442",
-        "IsFinished": false,
-        "Limit": 100,
-        "Offset": 1,
-        "Total": 333
-    }
-}
-```
-
-**返回字段含义**
-
-| 字段 | 含义     |
-|----|--------|
-| Rows | 日志内容   |
-
 
 ### 6. 作业实例列表查询（ListJobInstances）
 

@@ -25,8 +25,7 @@ description: byted-emr-skills提供管理火山引擎EMR（火山引擎 E-MapRed
   - 队列权限：查询队列授权主体、为用户授予/修改队列权限
   - 计算组：创建/修改/启动/停止/删除、查询可选规格与镜像、外部元数据连通性测试
   - 作业模板：创建/更新/查询详情/列表查询/运行
-  - 作业实例：提交（SparkSQL/PrestoSQL/SparkJar/PySpark/RayJob）、查询状态与详情、取消、获取 tracking url、获取提交日志与执行日志、列表查询、重跑、结果分批拉取
-  - 监控：队列/计算组/作业监控数据查询，按指标清单逐项拉取并汇总报告
+  - 作业实例：提交（SparkSQL/PrestoSQL/SparkJar/PySpark/RayJob）、查询状态与详情、取消、列表查询、重跑、结果分批拉取
 - EMR Agent
   - 交互式诊断与知识问答
   - 会话与报告管理
@@ -74,7 +73,6 @@ export VOLCENGINE_REGION="cn-beijing"
 - 支持的功能列表
   - 队列列表：查看所有资源队列及其配置（如最大资源、当前使用量）, 必须使用OpenAPI`ListTagQueue`查询队列列表。
   - 队列详情：获取队列的详细信息，包括绑定的网络、存储等, 必须使用OpenAPI`GetQueue`查询队列详情。
-  - 队列监控：通过云监控接口获取队列近一天的资源使用率、作业数、失败作业数量等（需要云监控权限）。
   - 创建队列：一键创建公共队列, 必须使用OpenAPI`CreateQueueSilently`或`CreateOrderInOneStep`创建队列。
   - 队列计算组列表：获取指定队列下的计算组（Queue Component）列表与详情，必须使用OpenAPI`ListQueueComponent`查询队列计算组列表。
 - 所有的队列功能操作详情，请严格按照`references/emr_serverless/queue/emr_serverless_queue_guide.md`中的说明进行操作。
@@ -101,22 +99,15 @@ export VOLCENGINE_REGION="cn-beijing"
   - 提交作业：支持 SparkSQL、PrestoSQL、SparkJar、PySpark、RayJob 等类型；SparkJar/PySpark/RayJob 支持作业执行脚本使用本地路径（由 SDK 自动上传至 TOS，细节见作业实例指南）。
   - 查询作业实例：推荐使用 OpenAPI `QueryGetJobV2` 获取状态与详情。
   - 终止作业实例：OpenAPI `QueryCancelQueryV2`。
-  - 获取作业日志：OpenAPI `FetchDriverLog` / `QueryFetchSubmitLog`（支持关键字过滤）。
   - 分批获取结果数据：对于 SQL 类作业，可通过OpenAPI `QueryFetchResultsByBatch` 分批获取结果
-  - 获取 Tracking url：OpenAPI `QueryGetTrackingURL`。
   - 作业实例列表：OpenAPI `ListJobInstances`。
 - 所有作业实例的详细操作指南，请严格按照`references/emr_serverless/job_instance/emr_serverless_job_instance_guide.md`中的说明进行操作。
 ### 如何管理计算组（Serverless 资源单元）
 - 创建/修改计算组配置。
-- 查询计算组监控数据，支持监控总结和巡检。
 ### 如何查询操作日志
 - 功能列表
   - 全局操作日志页面以及队列、计算组的操作列表查询
 - 所有的操作日志查询，请严格按照`references/emr_serverless/operation_audit/emr_serverless_operation_audit_guide.md`中的说明进行操作。
-### 如何查询队列、计算组、作业监控数据
-- 功能列表
-  - 队列计算组作业监控数据查询：获取队列、计算组、作业的监控数据，包括 CPU 利用率、内存利用率、作业数、失败作业数量等，必须使用OpenAPI`GetMetricData`查询队列、计算组、作业监控数据。
-- 所有的队列计算组作业监控数据查询操作，请严格按照`references/emr_serverless/monitor/emr_serverless_monitor_guide.md`中的说明进行操作。
 
 ## 2. EMR Agent（EMR AI 助手）
 ### 如何进行交互式问题诊断和知识助手
