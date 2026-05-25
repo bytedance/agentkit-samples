@@ -1,7 +1,7 @@
 ---
 name: byted-byteplus-vod-video-enhancement
 description: "Upload video/audio media to BytePlus VOD (Video on Demand) storage, returning the Vid and playback references; supports both local file upload (ApplyUploadInfo + TOS + CommitUploadInfo) and URL pull upload (UploadMediaByUrl); also supports AI-based comprehensive quality restoration on already-uploaded videos (removing compression artifacts, noise, scratches, and improving clarity). Trigger keywords: upload video, upload media, upload to VOD, URL upload, pull upload, local upload, file upload, UploadMediaByUrl, ApplyUploadInfo, media ingestion, quality restoration, quality enhancement, comprehensive restoration, video denoising, denoise, compression artifact removal."
-version: 1.0.0
+version: 1.1.0
 license: Apache-2.0
 env:
   - name: BYTEPLUS_ACCESSKEY
@@ -160,6 +160,9 @@ uv run python scripts/quality_enhance.py '{"type":"Vid","video":"v0310abc","conf
 # Example: a vid:// prefix is also accepted (the script strips it automatically)
 uv run python scripts/quality_enhance.py '{"type":"Vid","video":"vid://v0d225gxxx","config":"common","repair_style":1}' production_space
 
+# Optional target output resolution (omit res for source resolution)
+uv run python scripts/quality_enhance.py '{"type":"Vid","video":"v0310abc","config":"common","repair_style":1,"res":"1080p"}'
+
 # Pass parameters via @file.json (recommended — avoids shell escaping issues)
 uv run python scripts/quality_enhance.py @params.json
 
@@ -175,6 +178,7 @@ uv run python scripts/poll_execution.py '<RunId>' [space_name]
 | `video` | string | ✅ | The video Vid or FileName (a `vid://` prefix is accepted and automatically stripped) |
 | `config` | string | ✅ | VolcMoeEnhanceParam `Config`; one of `common`, `ugc`, `short_series`, `aigc`, `old_film`. If the user explicitly asks for defaults, use `common`. |
 | `repair_style` | integer | ✅ | VolcMoeEnhanceParam `VideoStrategy.RepairStyle`; `1` = Standard, `2` = Pro. If the user explicitly asks for defaults, use `1`. |
+| `res` | string | no | Optional `MoeEnhance.Target.Res` — target output resolution. Omit or leave empty for **source resolution** (no upscaling target). Allowed: `240p`, `360p`, `480p`, `540p`, `720p`, `1080p`, `2k`, `4k`. |
 
 Before quality restoration, you MUST ask the user to choose both required enhancement parameters if either `config` or `repair_style` is missing. Do not silently use defaults. Only use `config=common` and `repair_style=1` when the user explicitly asks for default/recommended settings. When asking the user, use plain product language only; do not show internal parameter names or values such as `config=...`, `repair_style=...`, `common`, or `short_series` in the question text or option labels.
 
@@ -190,11 +194,17 @@ Suggested prompt:
 >   
 > Which video enhancement tier would you like to use?  
 > 1. Standard: balanced visual improvement and processing speed  
-> 2. Pro: cinematic-grade restoration with longer processing time; allowlist access may be required
+> 2. Pro: cinematic-grade restoration with longer processing time; allowlist access may be required  
+>   
+> What output resolution do you want? (optional)  
+> - Keep the **same as the source video** (recommended default — do not pass `res`)  
+> - Or choose a target: 240p, 360p, 480p, 540p, 720p, 1080p, 2K, 4K  
 
-If the user asks for a default recommendation, use `config=common` and `repair_style=1`. Otherwise, wait for the user's selections before running `scripts/quality_enhance.py`.
+If the user wants **source / original resolution**, **omit `res`** from the JSON (or use an empty string). Only set `res` when they explicitly pick a target resolution.
 
-Internal mapping: General video -> `config=common`; Short video / UGC -> `config=ugc`; Short drama / short series -> `config=short_series`; AI-generated content -> `config=aigc`; Old film / classic footage -> `config=old_film`; Standard -> `repair_style=1`; Pro -> `repair_style=2`. Do not expose these parameter names or values in the question unless the user asks for implementation details.
+If the user asks for a default recommendation, use `config=common` and `repair_style=1` with **no `res`**. Otherwise, wait for the user's selections before running `scripts/quality_enhance.py`.
+
+Internal mapping: General video -> `config=common`; Short video / UGC -> `config=ugc`; Short drama / short series -> `config=short_series`; AI-generated content -> `config=aigc`; Old film / classic footage -> `config=old_film`; Standard -> `repair_style=1`; Pro -> `repair_style=2`; source resolution -> omit `res`; 240p–4K -> `res` as listed in the parameter table (`2k` / `4k` in JSON). Do not expose these parameter names or values in the question unless the user asks for implementation details.
 
 Special handling for Pro: if the user chooses `repair_style=2` and the StartExecution/GetExecution response returns HTTP status `403`, or any error message contains `Permission denied`, explain that Pro is only available to users on the allowlist. Ask the user to submit a ticket to apply: https://console.byteplus.com/workorder/create
 

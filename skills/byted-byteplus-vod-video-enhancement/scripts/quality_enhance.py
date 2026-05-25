@@ -48,6 +48,13 @@ _PENDING = {"", "PendingStart", "Running"}
 _TERMINAL_FAIL = {"Failed", "Terminated"}
 _VALID_MOE_CONFIGS = {"common", "ugc", "short_series", "aigc", "old_film"}
 _VALID_REPAIR_STYLES = {1, 2}
+_VALID_TARGET_RES = frozenset(
+    {"240p", "360p", "480p", "540p", "720p", "1080p", "2k", "4k"}
+)
+# User-facing aliases that mean "keep source resolution" (omit MoeEnhance.Target)
+_RES_ORIGINAL_ALIASES = frozenset(
+    {"", "original", "source", "same", "native", "none", "default"}
+)
 
 
 def _start_execution(client, payload: dict) -> str:
@@ -181,6 +188,54 @@ def _parse_repair_style(args: dict) -> int:
     return repair_style
 
 
+def _normalize_target_res(raw: str) -> str:
+    """Normalize VolcMoeTarget.Res (e.g. 1080P -> 1080p, 2K -> 2k)."""
+    s = raw.strip()
+    lower = s.lower()
+    if lower in _VALID_TARGET_RES:
+        return lower
+    if lower.endswith("p") and lower[:-1].isdigit():
+        candidate = lower
+        if candidate in _VALID_TARGET_RES:
+            return candidate
+    return s
+
+
+def _parse_target_res(args: dict) -> str | None:
+    """
+    Optional MoeEnhance.Target.Res. None => omit Target (API keeps source resolution).
+    Accepts json field `res` (maps to Target.Res).
+    """
+    if "res" not in args:
+        return None
+    raw = args.get("res")
+    if raw is None:
+        return None
+    if not isinstance(raw, str):
+        bail("quality_enhance: 'res' must be a string when provided")
+    key = raw.strip().lower()
+    if key in _RES_ORIGINAL_ALIASES:
+        return None
+    normalized = _normalize_target_res(raw)
+    if normalized not in _VALID_TARGET_RES:
+        bail(
+            "quality_enhance: 'res' must be one of "
+            + ", ".join(sorted(_VALID_TARGET_RES))
+            + " (or omit / use empty string for source resolution)"
+        )
+    return normalized
+
+
+def _build_moe_enhance(config: str, repair_style: int, target_res: str | None) -> dict:
+    moe: dict = {
+        "Config": config,
+        "VideoStrategy": {"RepairStyle": repair_style, "RepairStrength": 0},
+    }
+    if target_res is not None:
+        moe["Target"] = {"Res": target_res}
+    return moe
+
+
 def main():
     if len(sys.argv) < 2:
         bail("Usage: uv run python scripts/quality_enhance.py '<json_args>'")
@@ -209,6 +264,8 @@ def main():
     media_input = build_media_input(asset_type, video, space_name)
     config = _parse_moe_config(args)
     repair_style = _parse_repair_style(args)
+    target_res = _parse_target_res(args)
+    moe_enhance = _build_moe_enhance(config, repair_style, target_res)
 
     payload = {
         "Input": media_input,
@@ -218,16 +275,17 @@ def main():
                 "Type": "Enhance",
                 "Enhance": {
                     "Type": "Moe",
-                    "MoeEnhance": {
-                        "Config": config,
-                        "VideoStrategy": {"RepairStyle": repair_style, "RepairStrength": 0},
-                    },
+                    "MoeEnhance": moe_enhance,
                 },
             },
         },
     }
 
-    log(f"Submitting quality restoration job, video={video} type={asset_type}")
+    res_note = target_res or "source"
+    log(
+        f"Submitting quality restoration job, video={video} type={asset_type} "
+        f"config={config} repair_style={repair_style} res={res_note}"
+    )
     try:
         run_id = _start_execution(client, payload)
     except SystemExit:

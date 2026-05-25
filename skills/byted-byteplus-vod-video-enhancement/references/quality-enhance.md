@@ -10,8 +10,11 @@ AI-based comprehensive video quality restoration: removes compression artifacts,
 | `video` | string | ✅ | The video Vid or FileName (a `vid://` prefix is accepted and automatically stripped) |
 | `config` | string | ✅ | VolcMoeEnhanceParam `Config`; one of `common`, `ugc`, `short_series`, `aigc`, `old_film`. If the user explicitly asks for defaults, use `common`. |
 | `repair_style` | integer | ✅ | VolcMoeEnhanceParam `VideoStrategy.RepairStyle`; `1` = Standard, `2` = Pro. If the user explicitly asks for defaults, use `1`. |
+| `res` | string | no | Optional `MoeEnhance.Target.Res`. **Omit** (or empty / `original`) to keep **source video resolution**. Allowed: `240p`, `360p`, `480p`, `540p`, `720p`, `1080p`, `2k`, `4k`. |
 
 `config` and `repair_style` are required. If either value is missing from the user's request, ask the user to choose before submitting the job. Do not silently use defaults unless the user explicitly asks for default/recommended settings.
+
+For **`res`**, ask whether they want **source resolution** (default — do not set `res`) or a specific target from the list above.
 
 ## Pro Allowlist Error Handling
 
@@ -50,8 +53,11 @@ uv run python scripts/poll_execution.py '<RunId>' [space_name]
 ## Examples
 
 ```bash
-# Submit after the user has explicitly selected both config and repair_style
+# Source resolution (no Target.Res)
 uv run python scripts/quality_enhance.py '{"type":"Vid","video":"v0310abc","config":"common","repair_style":1}'
+
+# Target 1080p output
+uv run python scripts/quality_enhance.py '{"type":"Vid","video":"v0310abc","config":"common","repair_style":1,"res":"1080p"}'
 
 # Use Pro tier with a different Moe config
 uv run python scripts/quality_enhance.py '{"type":"Vid","video":"v0310abc","config":"ugc","repair_style":2}'
