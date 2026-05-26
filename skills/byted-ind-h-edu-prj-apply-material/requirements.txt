@@ -1,0 +1,16 @@
+# byted-ind-h-edu-prj-apply-material — 课题申报材料生成技能依赖
+
+# 核心依赖
+pandas==2.2.1
+numpy==1.26.4
+matplotlib==3.8.4
+seaborn==0.13.2
+
+# 可选依赖
+python-docx==0.8.11  # 用于生成Word文档
+fpdf==1.7.2  # 用于生成PDF文档
+
+# 开发依赖
+pytest==8.1.1
+black==24.3.0
+flake8==7.0.0
