@@ -19,7 +19,7 @@ ByteHouse 混合检索客户端
 import os
 import clickhouse_connect
 from typing import List, Dict, Optional, Any
-from .embedding import TextEmbedding
+from embedding import MultimodalEmbedding
 
 class ByteHouseHybridSearch:
     def __init__(self,
@@ -42,7 +42,7 @@ class ByteHouseHybridSearch:
         """
         self.host = host or os.getenv("BYTEHOUSE_HOST")
         self.port = port or int(os.getenv("BYTEHOUSE_PORT", "8123"))
-        self.user = user or os.getenv("BYTEHOUSE_USER", "default")
+        self.user = user or os.getenv("BYTEHOUSE_USER", "bytehouse")
         self.password = password or os.getenv("BYTEHOUSE_PASSWORD")
         self.database = database or os.getenv("BYTEHOUSE_DATABASE", "default")
         self.secure = secure if secure is not None else (os.getenv("BYTEHOUSE_SECURE", "true").lower() == "true")
@@ -58,12 +58,14 @@ class ByteHouseHybridSearch:
             password=self.password,
             database=self.database,
             secure=self.secure,
+            verify=False,
             connect_timeout=30,
             send_receive_timeout=60
         )
         
         # 初始化向量化客户端
-        self.embedding_client = TextEmbedding()
+        self.dimensions = int(os.environ.get("EMBEDDING_DIMENSIONS", 2048))
+        self.embedding_client = MultimodalEmbedding()
     
     def create_hybrid_table(self, table_name: str, if_not_exists: bool = True) -> None:
         """
@@ -72,7 +74,7 @@ class ByteHouseHybridSearch:
         :param if_not_exists: 是否存在就跳过，默认True
         """
         exists_clause = "IF NOT EXISTS" if if_not_exists else ""
-        vec_dimensions = self.embedding_client.dimensions
+        vec_dimensions = self.dimensions
         # 兼容旧版本ByteHouse，先创建基础表，索引可后续手动添加
         create_sql = f"""
         CREATE TABLE {exists_clause} {table_name} (
@@ -81,13 +83,14 @@ class ByteHouseHybridSearch:
             `content` String,
             `embedding` Array(Float32),
             `create_time` DateTime DEFAULT now(),
-            INDEX content_idx content TYPE inverted('standard', '{{\"version\":\"v2\"}}') GRANULARITY 1,
+            INDEX content_idx content TYPE inverted('standard', '{{\"version\":\"v4\"}}') GRANULARITY 1,
             INDEX embedding_idx embedding TYPE HNSW_SQ('DIM={vec_dimensions}', 'metric=COSINE', 'M=32', 'EF_CONSTRUCTION=256') GRANULARITY 1
         )
-        ENGINE = MergeTree()
+        ENGINE = CnchMergeTree()
         ORDER BY doc_id
         SETTINGS
-            index_granularity = 1024
+            index_granularity = 1024,
+            enable_vector_index_preload = 1
         """
         self.client.command(create_sql)
         print(f"混合检索表 {table_name} 创建成功，向量维度：{vec_dimensions}")
@@ -102,7 +105,7 @@ class ByteHouseHybridSearch:
         """
         # 拼接标题和内容生成向量
         full_text = f"标题：{title} 内容：{content}"
-        embedding = self.embedding_client.embed_text(full_text)
+        embedding = self.embedding_client.encode_text(full_text)
         
         insert_sql = f"""
         INSERT INTO {table_name} (doc_id, title, content, embedding)
@@ -116,29 +119,26 @@ class ByteHouseHybridSearch:
         :param table_name: 表名
         :param documents: 文档列表，每个元素包含doc_id, title, content字段
         """
-        # 批量生成向量
-        full_texts = [f"标题：{doc['title']} 内容：{doc['content']}" for doc in documents]
-        embeddings = self.embedding_client.batch_embed_texts(full_texts)
-        # 验证向量维度正确性
-        for emb in embeddings:
-            if len(emb) != self.embedding_client.dimensions:
-                raise ValueError(f"向量维度错误：期望{self.embedding_client.dimensions}维，实际{len(emb)}维")
-        
         # 构建插入数据
         data = []
-        for i, doc in enumerate(documents):
+        for doc in documents:
+            # 逐个生成向量
+            full_text = f"标题：{doc['title']} 内容：{doc['content']}"
+            emb = self.embedding_client.encode_text(full_text)
+            
+            # 验证向量维度正确性
+            if len(emb) != self.dimensions:
+                raise ValueError(f"向量维度错误：期望{self.dimensions}维，实际{len(emb)}维")
+            
             data.append([
                 doc['doc_id'],
                 doc['title'],
                 doc['content'],
-                embeddings[i]
+                emb
             ])
         
-        self.client.insert(
-            table=table_name,
-            data=data,
-            column_names=['doc_id', 'title', 'content', 'embedding']
-        )
+        for row in data:
+            self.client.command(f"INSERT INTO {table_name} (doc_id, title, content, embedding) VALUES (%s, %s, %s, %s)", parameters=row)
         print(f"成功插入 {len(documents)} 条文档，向量已自动生成并写入")
     
     def fulltext_search(self, table_name: str, query: str, top_k: int = 20) -> List[Dict[str, Any]]:
@@ -149,6 +149,7 @@ class ByteHouseHybridSearch:
         :param top_k: 返回结果数量，默认20
         :return: 检索结果，包含doc_id, title, content, bm25_score字段
         """
+        query_escaped = self.transform_string(query)
         search_sql = f"""
         SELECT 
             doc_id, 
@@ -156,11 +157,12 @@ class ByteHouseHybridSearch:
             content,
             _text_search_score as bm25_score
         FROM {table_name}
-        WHERE textSearch(content, %s)
+        WHERE textSearch(content, '{query_escaped}')
         ORDER BY bm25_score DESC
         LIMIT {top_k}
         """
-        results = self.client.query(search_sql, parameters=[query]).result_rows
+        print(f"执行全文检索查询：{search_sql}")
+        results = self.client.query(search_sql).result_rows
         return [
             {
                 "doc_id": row[0],
@@ -180,7 +182,7 @@ class ByteHouseHybridSearch:
         :return: 检索结果，包含doc_id, title, content, vector_score字段
         """
         # 生成查询向量
-        query_embedding = self.embedding_client.embed_text(query)
+        query_embedding = self.embedding_client.encode_text(query)
         
         search_sql = f"""
         SELECT 
@@ -192,6 +194,7 @@ class ByteHouseHybridSearch:
         ORDER BY vector_score ASC
         LIMIT {top_k}
         """
+        print(f"执行向量检索查询：{search_sql}")
         results = self.client.query(search_sql, parameters=[query_embedding]).result_rows
         return [
             {
@@ -270,3 +273,11 @@ class ByteHouseHybridSearch:
     def close(self) -> None:
         """关闭连接"""
         self.client.close()
+
+    def transform_string(self, s: str) -> str:
+        # Remove all single quotes
+        s = s.replace("'", "")
+        s = s.replace(" ", "")
+        
+        # Split each character with |
+        return "|".join(s)

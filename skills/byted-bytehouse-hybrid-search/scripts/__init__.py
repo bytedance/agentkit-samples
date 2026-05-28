@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .embedding import TextEmbedding
-from .hybrid_search_client import ByteHouseHybridSearch
+from embedding import MultimodalEmbedding
+from hybrid_search_client import ByteHouseHybridSearch
 
-__all__ = ["TextEmbedding", "ByteHouseHybridSearch"]
+__all__ = ["MultimodalEmbedding", "ByteHouseHybridSearch"]

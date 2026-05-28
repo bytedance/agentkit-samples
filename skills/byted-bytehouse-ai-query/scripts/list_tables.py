@@ -22,8 +22,8 @@ ByteHouse List Tables 脚本
 
 环境变量:
   BYTEHOUSE_HOST      - ByteHouse 主机地址
-  BYTEHOUSE_PORT     - 端口 (默认自动判断)
-  BYTEHOUSE_USER     - 用户名
+  BYTEHOUSE_PORT     - 端口（默认自动判断）
+  BYTEHOUSE_USER     - 用户名（默认为bytehouse）
   BYTEHOUSE_PASSWORD - 密码
   BYTEHOUSE_DATABASE - 默认数据库 (可选)
 """

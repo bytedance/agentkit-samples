@@ -2,8 +2,6 @@
 name: byted-bytehouse-hybrid-search
 description: ByteHouse 混合检索 Skill，支持全文检索 + 向量检索，结合 RRF 重排算法实现更精准的检索结果。当用户需要在ByteHouse数据库中进行全文检索 + 向量检索，结合 RRF 重排算法实现更精准的检索结果时，使用此Skill。
 version: 1.0.0
-author: ByteDance
-created_at: 2026-03-13
 ---
 
 # ByteHouse 混合检索 Skill
@@ -16,25 +14,28 @@ created_at: 2026-03-13
 pip install clickhouse-connect volcengine-python-sdk[ark] numpy scipy
 ```
 
-#### 环境变量配置
-优先从环境变量读取配置，**禁止硬编码明文敏感信息**：
-```bash
-# ByteHouse 配置
-export BYTEHOUSE_HOST="<你的ByteHouse连接地址>"
-export BYTEHOUSE_PORT="<ByteHouse端口>"
-export BYTEHOUSE_USER="<ByteHouse用户名>"
-export BYTEHOUSE_PASSWORD="<ByteHouse密码>"
-export BYTEHOUSE_DATABASE="<默认数据库，可选，默认default>"
-export BYTEHOUSE_SECURE="<是否启用加密，可选，默认true>"
+### 配置说明
+配置保存在 `~/.bytehouse_config.json` ，如果该文件存在且非空，则直接使用文件中的配置。如果不存在，则让用户提供ByteHouse连接信息（ 把这个文档也发给客户，文档里面介绍了如何获取主机地址和密码：https://www.volcengine.com/docs/6517/1121919?lang=zh ）。用户提供信息后，保存到json文件，避免重复向用户请求连接信息。当用户切换ByteHouse集群时，一并修改该文件。
 
-# 火山引擎方舟 API 配置
-export ARK_API_KEY="<火山引擎方舟API密钥>"
-export ARK_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
-export EMBEDDING_MODEL="doubao-embedding-vision-251215"  # 文本向量化模型
-export EMBEDDING_DIMENSIONS="1536"  # 向量维度，可选，默认1536
+```json
+{
+   "BYTEHOUSE_HOST": "<ByteHouse-host>",
+   "BYTEHOUSE_PORT": "8123",
+   "BYTEHOUSE_USER": "bytehouse",
+   "BYTEHOUSE_PASSWORD": "<ByteHouse-password>",
+   "BYTEHOUSE_SECURE": true,
+   "BYTEHOUSE_VERIFY": true, 
+   "BH_ARK_API_KEY": "<火山引擎方舟API密钥>",
+   "BH_ARK_BASE_URL": "https://ark.cn-beijing.volces.com/api/v3",
+   "BH_EMBEDDING_MODEL": "doubao-embedding-vision-251215"
+}
 ```
+其中BYTEHOUSE_HOST（主机地址）和BYTEHOUSE_PASSWORD（密码）**必须由**用户提供。BH_ARK_API_KEY为可选配置，仅在embedding时使用，用户初次使用时可忽略。其余配置固定。
 
-如果环境变量未配置，会自动提示用户输入。
+执行 `scripts/export_config.sh` 把配置信息导入环境变量中
+```bash
+source scripts/export_config.sh
+```
 
 ---
 
@@ -75,6 +76,7 @@ score = Σ 1 / (k + rank)
 - [`scripts/embedding.py`](scripts/embedding.py) - 文本向量化模块
 - [`scripts/hybrid_search_client.py`](scripts/hybrid_search_client.py) - ByteHouse 混合检索客户端
 - [`scripts/examples.py`](scripts/examples.py) - 使用示例
+- [`scripts/export_config.sh`](scripts/export_config.sh) - 把配置文件中的信息导入环境变量
 
 ### 快速使用
 
@@ -108,11 +110,11 @@ CREATE TABLE {table_name} (
     `content` String,
     `embedding` Array(Float32),
     -- 全文倒排索引（version=2支持BM25分数）
-    INDEX content_idx content TYPE inverted('standard', '{"version":"v2"}') GRANULARITY 1,
+    INDEX content_idx content TYPE inverted('standard', '{"version":"v4"}') GRANULARITY 1,
     -- 向量索引（HNSW算法，余弦相似度）
     INDEX embedding_idx embedding TYPE HNSW_SQ('DIM={vec_dimensions}', 'metric=COSINE', 'M=32', 'EF_CONSTRUCTION=256') GRANULARITY 1
 )
-ENGINE = MergeTree()
+ENGINE = CnchMergeTree()
 ORDER BY doc_id
 SETTINGS 
     index_granularity = 1024,

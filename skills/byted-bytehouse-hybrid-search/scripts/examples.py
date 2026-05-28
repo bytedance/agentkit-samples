@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 """
 ByteHouse 混合检索使用示例
 """
@@ -20,9 +19,16 @@ from hybrid_search_client import ByteHouseHybridSearch
 
 def main():
     # 初始化客户端
-    search = ByteHouseHybridSearch(connection_type="http")
+    search = ByteHouseHybridSearch(host="",
+                                   user="",
+                                   password="",
+                                   database="",
+                                   connection_type="")
     
     table_name = "demo_hybrid_index"
+    
+    print("=== 清理旧表 ===")
+    search.client.command(f"DROP TABLE IF EXISTS {table_name}")
     
     # 1. 创建混合检索表
     print("=== 创建混合检索表 ===")

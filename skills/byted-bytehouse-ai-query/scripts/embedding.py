@@ -58,7 +58,6 @@ class MultimodalEmbedding:
             base_url=base_url
         )
         self.model = os.environ.get("BH_EMBEDDING_MODEL", "doubao-embedding-vision-251215")
-        self.dimensions = int(os.environ.get("EMBEDDING_DIMENSIONS", 2048))
     
     def encode(self, 
                input_data: Union[str, List[Dict]], 
@@ -91,8 +90,7 @@ class MultimodalEmbedding:
             request_params = {
                 "model": self.model,
                 "encoding_format": "float",
-                "input": [input_item],
-                "dimensions": self.dimensions
+                "input": [input_item]
             }
             
             # 添加自定义指令（251215及以上版本支持）
@@ -105,6 +103,8 @@ class MultimodalEmbedding:
             if hasattr(resp, 'data'):
                 embedding = resp.data.embedding
                 vec = np.array(embedding).flatten().tolist()
+                
+                
                 return vec
             else:
                 raise ValueError("API响应格式错误，未找到embedding字段")

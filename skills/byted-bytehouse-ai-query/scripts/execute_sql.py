@@ -54,6 +54,7 @@ def main():
     
     parser.add_argument('query', nargs='?', help='SQL 查询语句')
     parser.add_argument('--file', '-i', help='从文件读取 SQL 查询')
+    parser.add_argument('--force', action='store_true', help='强制执行非DQL查询（跳过确认）')
     
     args = parser.parse_args()
     
@@ -66,6 +67,20 @@ def main():
     if not sql:
         print("Error: Please provide a query or use --file", file=sys.stderr)
         sys.exit(1)
+        
+    # 程序化控制：检查是否为非DQL查询（create无需用户确认，也算作DQL）
+    sql_upper = sql.strip().upper()
+    is_dql = any(sql_upper.startswith(prefix) for prefix in ("SELECT", "SHOW", "DESC", "DESCRIBE", "EXPLAIN", "WITH", "CREATE"))
+    
+    if not is_dql and not args.force:
+        if sys.stdin.isatty():
+            confirm = input(f"警告: 检测到非DQL查询:\n{sql}\n是否确认执行？(y/N): ")
+            if confirm.lower() not in ['y', 'yes']:
+                print("已取消执行。", file=sys.stderr)
+                sys.exit(0)
+        else:
+            print("Error: 这是一个非DQL查询（如INSERT/UPDATE/DROP等）。作为AI助手，请立即中断执行，并向用户明确询问是否确认执行此操作（展示出具体的SQL）。如果用户明确同意，请在命令中添加 --force 参数再次执行。", file=sys.stderr)
+            sys.exit(1)
     
     try:
         client = create_client()

@@ -18,7 +18,7 @@ ByteHouse 多模态检索参考实现
 提供多模态向量化与向量检索的核心功能实现
 """
 
-from .embedding import MultimodalEmbedding
-from .search_client import ByteHouseMultimodalSearch
+from embedding import MultimodalEmbedding
+from search_client import ByteHouseMultimodalSearch
 
 __all__ = ['MultimodalEmbedding', 'ByteHouseMultimodalSearch']

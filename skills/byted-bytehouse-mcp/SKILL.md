@@ -1,6 +1,7 @@
 ---
 name: byted-bytehouse-mcp
 description: 在本地拉起ByteHouse MCP Server并调用其tools的技能，用于连接ByteHouse数据库查询数据、使用MCP协议与ByteHouse交互、生成数据资产目录和血缘分析。当用户需要连接ByteHouse数据库查询数据、使用MCP协议与ByteHouse交互、生成数据资产目录和血缘分析时，使用此Skill。
+version: 1.0.0
 ---
 
 # ByteHouse MCP Server Skill
@@ -22,6 +23,16 @@ description: 在本地拉起ByteHouse MCP Server并调用其tools的技能，用
 (3) 用户提到"ByteHouse"、"MCP"、"查询数据库"、"看表"
 (4) 需要生成数据资产目录和血缘分析
 
+## 🎯 ByteHouse MCP Server Tools
+
+| 序号 | Tool名称 | 功能描述 |
+|------|----------|----------|
+| 1 | **list_databases** | 列出所有数据库 |
+| 2 | **list_tables** | 列出指定数据库中的所有表 |
+| 3 | **run_select_query** | 运行SELECT查询 |
+| 4 | **run_dml_ddl_query** | 运行DML/DDL查询 |
+| 5 | **get_bytehouse_table_engine_doc** | 获取ByteHouse表引擎文档 |
+
 ## 📁 文件说明
 
 - **SKILL.md** - 本文件，技能主文档
@@ -36,60 +47,39 @@ description: 在本地拉起ByteHouse MCP Server并调用其tools的技能，用
 - **status_mcp_service.sh** - 查看MCP Server状态
 - **restart_mcp_service.sh** - 重启MCP Server服务
 
+## 配置说明
+配置保存在 `~/.bytehouse_config.json` ，如果该文件存在且非空，则直接使用文件中的配置。如果不存在，则让用户提供ByteHouse连接信息（ 把这个文档也发给客户，文档里面介绍了如何获取主机地址和密码：https://www.volcengine.com/docs/6517/1121919?lang=zh ）。用户提供信息后，保存到json文件，避免重复向用户请求连接信息。当用户切换ByteHouse集群时，一并修改该文件。
+
+```json
+{
+   "BYTEHOUSE_HOST": "<ByteHouse-host>",
+   "BYTEHOUSE_PORT": "8123",
+   "BYTEHOUSE_USER": "bytehouse",
+   "BYTEHOUSE_PASSWORD": "<ByteHouse-password>",
+   "BYTEHOUSE_SECURE": true,
+   "BYTEHOUSE_VERIFY": true, 
+   "BH_ARK_API_KEY": "<火山引擎方舟API密钥>",
+   "BH_ARK_BASE_URL": "https://ark.cn-beijing.volces.com/api/v3",
+   "BH_EMBEDDING_MODEL": "doubao-embedding-vision-251215"
+}
+```
+其中BYTEHOUSE_HOST（主机地址）和BYTEHOUSE_PASSWORD（密码）**必须由**用户提供。BH_ARK_API_KEY为可选配置，仅在embedding时使用，用户初次使用时可忽略。其余配置固定。
+
 ## 前置条件
 
 - Python 3.8+
 - uv (已安装在 `/root/.local/bin/uv`)
 - ByteHouse连接信息（需自行配置）
 
-## 配置信息
-
-### ByteHouse连接配置
-
-```json
-{
-  "host": "<ByteHouse-host>",
-  "port": "<ByteHouse-port>",
-  "user": "<ByteHouse-user>",
-  "password": "<ByteHouse-password>",
-  "secure": true,
-  "verify": true
-}
-```
-
-### 环境变量
-
-在使用前请设置以下环境变量：
-
-```bash
-export BYTEHOUSE_HOST="<ByteHouse-host>"
-export BYTEHOUSE_PORT="<ByteHouse-port>"
-export BYTEHOUSE_USER="<ByteHouse-user>"
-export BYTEHOUSE_PASSWORD="<ByteHouse-password>"
-export BYTEHOUSE_SECURE="true"
-export BYTEHOUSE_VERIFY="true"
-export BYTEHOUSE_CONNECT_TIMEOUT="30"
-export BYTEHOUSE_SEND_RECEIVE_TIMEOUT="30"
-```
-
-## 🎯 ByteHouse MCP Server Tools
-
-| 序号 | Tool名称 | 功能描述 |
-|------|----------|----------|
-| 1 | **list_databases** | 列出所有数据库 |
-| 2 | **list_tables** | 列出指定数据库中的所有表 |
-| 3 | **run_select_query** | 运行SELECT查询 |
-| 4 | **run_dml_ddl_query** | 运行DML/DDL查询 |
-| 5 | **get_bytehouse_table_engine_doc** | 获取ByteHouse表引擎文档 |
-
 ## 🚀 快速开始
 
 ### 方法1: 测试MCP Server（推荐先测试）
 
 ```bash
-cd /root/.openclaw/workspace/skills/bytehouse-mcp
-# 先设置环境变量，然后运行
-uv run test_mcp_server.py
+# 从配置文件读取配置，导出到环境变量
+source scripts/export_config.sh
+# 测试mcp server
+uv run scripts/test_mcp_server.py
 ```
 
 这会：

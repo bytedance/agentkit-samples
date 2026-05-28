@@ -15,7 +15,7 @@
 
 """
 ByteHouse Text2SQL API 客户端
-用于调用 ByteHouse 的 text2sql 接口，将自然语言转换为 SQL 查询
+用于调用 ByteHouse 的 text2sql 接口，将自然语言转换为 SQL 查询，并判断 SQL 是否为 DQL
 
 配置方式：设置以下环境变量
 - BYTEHOUSE_HOST: ByteHouse 主机地址，同时也作为 API URL 的主机部分
@@ -34,38 +34,9 @@ import re
 import sys
 import argparse
 
-# 导入知识库相关功能
-from create_knowledge_base import create_knowledge_base, load_kb_config, save_kb_config
-
 # 从环境变量读取默认配置
 BYTEHOUSE_HOST = os.environ.get('BYTEHOUSE_HOST', '')
 BYTEHOUSE_PASSWORD = os.environ.get('BYTEHOUSE_PASSWORD', '')
-KB_ID = os.environ.get('KB_ID', '')
-
-
-def get_kb_id(config: dict = None) -> str:
-    """
-    获取知识库ID
-    优先级：环境变量KB_ID > 配置文件 > 自动创建新知识库
-    """
-    # 先检查环境变量
-    if KB_ID:
-        return KB_ID
-    
-    # 检查配置文件
-    kb_config = load_kb_config()
-    if 'kb_id' in kb_config:
-        return str(kb_config['kb_id'])
-    
-    # 没有找到，自动创建知识库
-    print("未检测到知识库ID，正在自动创建新的知识库...", file=sys.stderr)
-    try:
-        kb_id = create_knowledge_base("", config)
-        print(f"自动创建知识库成功，知识库ID: {kb_id}", file=sys.stderr)
-        return str(kb_id)
-    except Exception as e:
-        print(f"自动创建知识库失败: {e}, 将使用默认知识库(*)", file=sys.stderr)
-        return "*"
 
 
 def build_text2sql_url(host: str) -> str:
@@ -139,14 +110,11 @@ def call_text2sql(
     if auth_token:
         headers["Authorization"] = f"Bearer {auth_token}"
     
-    # 获取知识库ID
-    kb_id = get_kb_id(config)
-    
     # 构建请求 payload
     payload = {
         "systemHints": system_hints,
         "input": natural_language,
-        "knowledgeBaseIDsString": [kb_id] if kb_id != "*" else ["*"],
+        "knowledgeBaseIDsString": ["*"],
         "tables": tables
     }
     
@@ -207,7 +175,6 @@ def extract_sql(content: str) -> str:
     sql = sql.strip()
     
     return sql
-
 
 def main():
     """命令行入口"""

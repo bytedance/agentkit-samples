@@ -44,8 +44,8 @@ def create_client(
     
     Args:
         host: ByteHouse 主机
-        port: 端口 (默认自动判断)
-        user: 用户名
+        port: 端口（默认自动判断）
+        user: 用户名（默认为bytehouse）
         password: 密码
         database: 数据库名 (可选)
     
@@ -87,7 +87,8 @@ def create_client(
         username=user,
         password=password,
         database=database if database else None,
-        secure=secure
+        secure=secure,
+        verify=False
     )
 
 
