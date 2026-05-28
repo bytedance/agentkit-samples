@@ -1,0 +1,46 @@
+{
+  "skill_name": "byted-ind-ecom-product-video-prompt",
+  "description": "Generate high-quality video generation prompts for e-commerce products using Seedance 2.0 methodology",
+  "evals": [
+    {
+      "id": 1,
+      "name": "single_image_footwear",
+      "prompt": "Generate a video prompt for these white running shoes. I have one product image. The shoes are for athletic use, should show a sporty male model wearing them in a modern urban setting. Target platform is TikTok so needs 9:16 aspect ratio.",
+      "expected_output": "Complete Three-Layer Skeleton prompt with Global Setup (product, character, scene, composition, lighting, style), 5-shot timeline (0-3s, 3-6s, 6-9s, 9-12s, 12-15s), and Constraints section with 9:16 aspect ratio specification",
+      "files": [],
+      "assertions": []
+    },
+    {
+      "id": 2,
+      "name": "multiple_images_handbag",
+      "prompt": "I have 3 images of a leather handbag showing front, side, and detail views. I want a video prompt for Instagram Reels (9:16) showing the bag in a warm, lifestyle setting without any models. The bag should be the hero of the video.",
+      "expected_output": "Multi-image template prompt with references to [Image1], [Image2], [Image3], no character specification, warm lifestyle scene description, and 9:16 format for Instagram Reels",
+      "files": [],
+      "assertions": []
+    },
+    {
+      "id": 3,
+      "name": "beauty_cosmetics_lipstick",
+      "prompt": "Generate a prompt for a luxury velvet lipstick product video. The video should focus on the product texture and color application. Use a hand model only, no full face. We need 1:1 aspect ratio for Instagram feed posts. The style should be high-end beauty advertisement.",
+      "expected_output": "Beauty category template with hand-only character specification, focus on texture and color, clean studio scene, soft lighting, 1:1 aspect ratio, and high-end beauty ad quality specifications",
+      "files": [],
+      "assertions": []
+    },
+    {
+      "id": 4,
+      "name": "tech_accessories_phone_case",
+      "prompt": "I need a video prompt for a futuristic tech phone case. The style should be cyberpunk with dramatic lighting. Show the precise fit and installation process. Target is YouTube Shorts so 9:16 format. Include neon lights and tech atmosphere.",
+      "expected_output": "3C accessories template with cyberpunk scene, dramatic high-contrast lighting, hands-only character, installation process demonstration, 9:16 for YouTube Shorts, and tech atmosphere specifications",
+      "files": [],
+      "assertions": []
+    },
+    {
+      "id": 5,
+      "name": "apparel_fashion_dress",
+      "prompt": "Generate a video prompt for an elegant evening dress. I have one hero image of the dress on a model. The video should showcase the dress movement and fabric flow. Use a female model in an elegant setting. 16:9 format for website hero video. The style should be luxury fashion editorial.",
+      "expected_output": "Apparel template with elegant female model, focus on dress movement and fabric flow, elegant scene setting, 16:9 for website, luxury fashion editorial style, and premium quality specifications",
+      "files": [],
+      "assertions": []
+    }
+  ]
+}
