@@ -1,26 +1,20 @@
 ---
 name: byted-redis
 description: A skill to launch and interact with the Volcengine Redis MCP Server. This skill enables agents to manage Redis instances, databases, accounts, backups, and configurations using the MCP protocol. It connects to Volcengine via the provided credentials. Use this skill when the user needs to manage Volcengine Redis resources via MCP (e.g., list instances, query logs/keys, manage accounts/allowlists/backups/parameters).
-version: 1.0.0
+version: 1.1.0
 license: Apache-2.0
 ---
 
 # Volcengine Redis MCP Server Skill
 
 ## 🔵 Overview
-
-This skill provides a complete set of tools to interact with
-Volcengine Redis using the Model Context Protocol (MCP).
-It allows users to query instances, manage parameters,
-and perform operational tasks on Volcengine Redis through
-natural language or programmatic invocation.
-
+This skill provides a complete set of tools to interact with Volcengine Redis using the Model Context Protocol (MCP). 
+It allows users to query instances, manage parameters, and perform operational tasks on Volcengine Redis through natural language or programmatic invocation.
 ---
 
 ## Supported Tools
 
 The MCP Server exposes the following capabilities:
-
 1. `describe_regions` - Query available regional resources.
 2. `describe_zones` - Query available zone resources.
 3. `describe_vpcs` - Query VPCs.
@@ -63,32 +57,59 @@ The MCP Server exposes the following capabilities:
 40. `describe_eip_addresses` - Query EIP addresses.
 
 ## 🔧 Prerequisites
-
 - Python 3.10+
 - `uv` package manager (installed)
 - Volcengine account with proper permissions for Redis and VPC services.
 
 ## 🔐 Environment Variables
+Before running the skill, prepare one of the following credential modes.
 
-Before running the skill, configure `VOLCENGINE_ACCESS_KEY`
-and `VOLCENGINE_SECRET_KEY` in your environment.
-If needed, also set `VOLCENGINE_REGION`,
-for example to `cn-beijing`.
+### Option A: Static AK/SK or temporary credentials in environment variables
+
+Prepare these environment variables before running the skill:
+
+- `VOLCENGINE_ACCESS_KEY`
+- `VOLCENGINE_SECRET_KEY`
+- `VOLCENGINE_REGION` (for example `cn-beijing`)
+
+If you are using temporary credentials, also prepare:
+
+- `VOLCENGINE_SESSION_TOKEN`
+
+### Option B: STS credentials via `Authorization` / `authorization`
+
+Redis MCP also supports a Bearer token whose body is a Base64-encoded JSON payload in the `Authorization` header.
+
+```http
+Authorization: Bearer BASE64_JSON_PAYLOAD
+```
+
+The decoded JSON payload should contain these fields:
+
+- `AccessKeyId`
+- `SecretAccessKey`
+- `SessionToken`
+- `CurrentTime`
+- `ExpiredTime`
+- `Region`
+
+Notes:
+
+- `SessionToken` is required when using STS credentials.
+- If `CurrentTime` and `ExpiredTime` are present, the server validates whether the STS token is expired.
+- For stdio-based skill scripts, you may expose this value through `AUTHORIZATION` or `authorization`.
+- Authorization credentials take precedence over environment AK/SK when both are provided.
 
 ## 🚀 Usage
 
 ### 1. Test & Client Example
-
-Use the provided script to verify the server and view usage examples:
-
+Use the provided script to verify the server and view usage examples for the stdio flow:
 ```bash
 uv run scripts/call_redis_mcp_example.py
 ```
 
 ### 2. Service Management (Optional)
-
 To run the server as a daemon:
-
 ```bash
 ./scripts/start_volcengine_redis_mcp.sh
 ./scripts/status_volcengine_redis_mcp.sh
@@ -97,8 +118,13 @@ To run the server as a daemon:
 
 ## 💻 Programmatic Usage via MCP Client
 
-You can use the provided Python scripts to programmatically call
-the MCP Server:
+You can use the provided Python scripts to programmatically call the MCP Server. The bundled client supports:
+
+- `VOLCENGINE_ACCESS_KEY` + `VOLCENGINE_SECRET_KEY`
+- optional `VOLCENGINE_SESSION_TOKEN`
+- `AUTHORIZATION` / `authorization` for STS Bearer payloads
+
+Example:
 
 ```python
 import asyncio
@@ -109,8 +135,6 @@ from mcp_client import RedisMCPClient
 
 async def main():
     async with RedisMCPClient() as client:
-        await client.connect()
-        
         # List tools
         tools = await client.list_tools()
         print("Available tools:", [t['name'] for t in tools])
