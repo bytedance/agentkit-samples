@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "byted-sol-stablity-grafana-dashboard-design"
+version = "0.1.0"
+description = "Generate Dashboard IA, panel specs, and Grafana JSON from SLI + architecture + code inputs"
+readme = "SKILL.md"
+requires-python = ">=3.10"
+dependencies = ["pyyaml>=6.0"]
+
+[project.scripts]
+byted-sol-stablity-grafana-dashboard-design = "grafana_dashboard_design_skill.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

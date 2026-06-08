@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "byted-sol-stablity-grafana-dashboard-assembly"
+version = "0.1.0"
+description = "Assemble and integration-validate Grafana dashboards from SLI and metric mapping inputs"
+readme = "SKILL.md"
+requires-python = ">=3.10"
+dependencies = ["pyyaml>=6.0"]
+
+[project.scripts]
+byted-sol-stablity-grafana-dashboard-assembly = "grafana_dashboard_assembly_skill.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

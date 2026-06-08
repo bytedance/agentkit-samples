@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "byted-sol-stablity-observability-asset-governance"
+version = "0.1.0"
+description = "Govern observability assets with drift detection, usage analysis, and incremental update planning"
+readme = "SKILL.md"
+requires-python = ">=3.10"
+dependencies = ["pyyaml>=6.0"]
+
+[project.scripts]
+byted-sol-stablity-observability-asset-governance = "observability_asset_governance_skill.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

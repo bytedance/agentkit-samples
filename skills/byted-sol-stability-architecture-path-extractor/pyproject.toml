@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "byted-sol-stablity-architecture-path-extractor"
+version = "0.1.0"
+description = "Extract architecture topology, paths, dependency risks, and observability gaps"
+readme = "SKILL.md"
+requires-python = ">=3.10"
+dependencies = ["pyyaml>=6.0"]
+
+[project.scripts]
+byted-sol-stablity-architecture-path-extractor = "architecture_path_extractor.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

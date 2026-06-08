@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "byted-sol-stablity-sli-modeling"
+version = "0.1.0"
+description = "Generate structured SLI specs for SLO and error budget management"
+readme = "SKILL.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+byted-sol-stablity-sli-modeling = "sli_modeling_skill.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
