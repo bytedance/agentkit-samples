@@ -1,5 +1,20 @@
+# Copyright 2026 ByteDance
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import sys
 import os
+
 # 添加当前目录到Python路径，支持直接运行脚本
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -13,17 +28,20 @@ from core.api.meida.media import SimpleMediaService
 from core.api.iccp.service import IccpService
 
 media_service = SimpleMediaService()
+
+
 def concat(input, ids) -> dict:
     material = defaultdict()
     if input:
         with open(input, "r") as f:
             material = json.load(f)
-    
+
     if ids:
         materials = [media_service.get_media(id.strip()) for id in ids.split(",")]
-        material["user_images"] = [m for m in materials if m["type"] == "image"] # type: ignore
-        material["user_videos"] = [m for m in materials if m["type"] == "video"] # type: ignore
+        material["user_images"] = [m for m in materials if m["type"] == "image"]  # type: ignore
+        material["user_videos"] = [m for m in materials if m["type"] == "video"]  # type: ignore
     return material
+
 
 @click.command()
 @click.option("--input", type=str, help="素材分析结果JSON文件路径")
@@ -37,13 +55,14 @@ def main(input, ids, output):
     iccp_service = IccpService()
     submit_res = iccp_service.submit(13891330, material)
     click.echo(submit_res.model_dump_json())
-    if submit_res.code != "0": exit(1)
+    if submit_res.code != "0":
+        exit(1)
     click.echo(f"提交任务成功，任务ID: {submit_res.data}")
 
     for _ in range(2 * 3):
         time.sleep(30)
-        poll_res = iccp_service.query(submit_res.data) # type: ignore
-        
+        poll_res = iccp_service.query(submit_res.data)  # type: ignore
+
         if poll_res.code == "1000":
             continue
 
@@ -52,7 +71,7 @@ def main(input, ids, output):
             exit(1)
 
         with open(output, "w") as f:
-            result = json.loads(poll_res.data) # type: ignore
+            result = json.loads(poll_res.data)  # type: ignore
             result.pop("duration", None)
             result.pop("aspect_ratio", None)
             json.dump(result, f, ensure_ascii=False, indent=2)
@@ -61,6 +80,7 @@ def main(input, ids, output):
         return
 
     click.echo(f"任务正在执行中，请通过任务ID:{submit_res.data}查询任务状态")
+
 
 if __name__ == "__main__":
     main()

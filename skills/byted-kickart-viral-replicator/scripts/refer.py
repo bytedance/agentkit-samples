@@ -1,24 +1,16 @@
-# MIT License
-# 
-# Copyright (c) 2026 ByteDance
-# 
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-# 
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-# 
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# Copyright 2026 ByteDance
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import click
 import logging
@@ -30,6 +22,7 @@ from core.api.meida.media import SimpleMediaService
 from core.utils.extractor import VideoMetadataExtractor
 from core.utils.validator import VideoValidator
 
+
 @click.command()
 @click.option("--file", required=True, type=str, help="参考视频绝对路径")
 def main(file):
@@ -38,17 +31,19 @@ def main(file):
 
     # 检查文件是否存在
     if not os.path.isfile(file):
-        click.echo(Result(code="-1", message=f"文件不存在: {file}").model_dump_json(), err=True)
+        click.echo(
+            Result(code="-1", message=f"文件不存在: {file}").model_dump_json(), err=True
+        )
         exit(1)
 
     try:
         # 创建媒体服务实例
         media_service = SimpleMediaService()
-        
+
         # 创建元数据提取器和校验器
         extractor = VideoMetadataExtractor()
         validator = VideoValidator()
-        
+
         # 上传视频文件
         click.echo(f"正在上传视频文件: {file}")
         matriel = media_service.add_media(file, extractor, validator)

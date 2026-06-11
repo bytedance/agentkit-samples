@@ -1,24 +1,17 @@
-# MIT License
+# Copyright 2026 ByteDance
 #
-# Copyright (c) 2026 ByteDance
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 import sys
 import json
@@ -33,6 +26,7 @@ from core.api.iccp.service import IccpService
 from core.utils.downloader import ParallelDownloader
 import jsonpath
 from core.utils.downloader import MagicFilenameGenerator
+
 
 def simplify(url: str, keys: list) -> Result:
     try:
@@ -129,7 +123,9 @@ def main(url, output):
         # 创建下载目录（在openclaw/media/outbound目录下创建任务文件夹）
         download_dir = f"media/outbound/{submit_res.data}"
         dir = os.path.expanduser(os.path.join("~/.openclaw", download_dir))
-        downloader = ParallelDownloader(output=dir, filename_generator=MagicFilenameGenerator())
+        downloader = ParallelDownloader(
+            output=dir, filename_generator=MagicFilenameGenerator()
+        )
         success_count = downloader.download(urls)
         click.echo(f"素材下载完成，成功 {success_count}/{len(urls)} 个文件")
         click.echo(f"素材已保存到: {download_dir}")
