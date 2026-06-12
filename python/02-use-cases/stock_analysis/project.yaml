@@ -23,5 +23,5 @@ components:
   - type: sandbox
     product: AIO_Sandbox
 models:
-  - deepseek-v3-2-251201
+  - deepseek-v4-pro-260425
 image: agentkit-platform-2113735418-cn-beijing.cr.volces.com/agentkit/stock_analysis:v1.0.0

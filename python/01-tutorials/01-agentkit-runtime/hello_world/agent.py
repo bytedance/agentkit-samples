@@ -20,9 +20,12 @@ provider = os.getenv("CLOUD_PROVIDER")
 if provider and provider.lower() == "byteplus":
     ROOT_AGENT_INSTRUCTION = ROOT_AGENT_INSTRUCTION_EN
 
+
+model_name = os.getenv("MODEL_AGENT_NAME", "deepseek-v4-pro-260425")
+
 agent = Agent(
     name="hello_world",
-    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
+    model_name=model_name,
     description="hello world agent",
     instruction=ROOT_AGENT_INSTRUCTION,
 )

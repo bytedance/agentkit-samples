@@ -63,6 +63,7 @@ a2a_simple/
 ```python
 root_agent = Agent(
     name="hello_world_agent",
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v4-pro-260425"),
     description=(
         "hello world agent that can roll a dice of 8 sides and check prime numbers."
     ),

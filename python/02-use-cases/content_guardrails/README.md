@@ -104,8 +104,8 @@ source .venv/bin/activate
 ### 环境准备
 
 ```bash
-# 火山方舟模型名称
-export MODEL_AGENT_NAME=deepseek-v3-2-251201
+# 火山方舟模型名称，可按需通过环境变量覆盖 agent.py 中的默认模型
+export MODEL_AGENT_NAME=deepseek-v4-pro-260425
 
 # 火山引擎访问凭证（必需）
 export VOLCENGINE_ACCESS_KEY=<Your Access Key>

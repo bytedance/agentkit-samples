@@ -59,7 +59,7 @@ kb.add_from_files(files=["/tmp/product_info.txt", "/tmp/service_policy.txt"])
 ```python
 root_agent = Agent(
     name="test_agent",
-    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v4-pro-260425"),
     knowledgebase=kb,
     instruction="You are a helpful assistant. Be concise and friendly.",
 )
@@ -134,7 +134,8 @@ source .venv/bin/activate
 
 ```bash
 # BytePlus Model Ark model name
-export MODEL_AGENT_NAME=deepseek-v3-2-251201
+# kch edit: Update the documented default model for this sample.
+export MODEL_AGENT_NAME=deepseek-v4-pro-260425
 
 # BytePlus access credentials (required)
 export BYTEPLUS_ACCESS_KEY=<Your Access Key>

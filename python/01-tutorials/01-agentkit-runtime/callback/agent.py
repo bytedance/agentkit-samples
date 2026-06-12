@@ -27,7 +27,7 @@ if provider and provider.lower() == "byteplus":
 
 root_agent = Agent(
     name="callback_agent",
-    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v4-pro-260425"),
     description="A callback agent that demonstrates full-link callback and guardrails features.",
     instruction=ROOT_AGENT_INSTRUCTION,
     tools=[write_article],

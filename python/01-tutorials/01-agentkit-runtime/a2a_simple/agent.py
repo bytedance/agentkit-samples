@@ -1,3 +1,9 @@
+import os
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parent))
+
 from a2a.types import AgentCapabilities, AgentCard, AgentProvider, AgentSkill
 from agentkit.apps import AgentkitA2aApp
 from google.adk.a2a.executor.a2a_agent_executor import A2aAgentExecutor
@@ -8,6 +14,7 @@ from veadk import Agent, Runner
 a2a_app = AgentkitA2aApp()
 root_agent = Agent(
     name="hello_world_agent",
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v4-pro-260425"),
     description=(
         "hello world agent that can roll a dice of 8 sides and check prime numbers."
     ),

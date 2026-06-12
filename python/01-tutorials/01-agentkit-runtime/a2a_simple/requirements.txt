@@ -1,3 +1,4 @@
-veadk-python
-veadk-python[extensions]
-google-adk
+veadk-python[extensions]==0.5.37
+google-adk==1.32.0
+agentkit-sdk-python==0.5.10
+litellm

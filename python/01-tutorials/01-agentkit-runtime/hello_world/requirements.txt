@@ -1,5 +1,6 @@
-veadk-python==0.5.20
-agentkit-sdk-python==0.4.3
-google-adk==1.21.0
+veadk-python==0.5.37
+agentkit-sdk-python==0.5.10
+google-adk==1.32.0
 urllib3<2.0.0
 volcengine-python-sdk>=4.0.33
+litellm

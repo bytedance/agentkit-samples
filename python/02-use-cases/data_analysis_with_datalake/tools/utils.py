@@ -10,10 +10,10 @@ console = Console()
 MODEL_AGENT_API_KEY = os.getenv("MODEL_AGENT_API_KEY")
 ARK_BASE_URL = os.getenv("ARK_BASE_URL", "https://ark.cn-beijing.volces.com/api/v3")
 ARK_TEXT_EMBEDDING_MODEL = os.getenv(
-    "ARK_TEXT_EMBEDDING_MODEL", "doubao-embedding-text-240715"
+    "ARK_TEXT_EMBEDDING_MODEL", "doubao-embedding-vision-251215"
 )
 ARK_MULTIMODAL_EMBEDDING_MODEL = os.getenv(
-    "ARK_MODEL_ID", "doubao-embedding-vision-250615"
+    "ARK_MODEL_ID", "doubao-embedding-vision-251215"
 )
 
 # Cached clients

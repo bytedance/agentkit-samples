@@ -44,7 +44,7 @@ if provider and provider.lower() == "byteplus":
 
 root_agent = Agent(
     name="vikingmem_agent",
-    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v4-pro-260425"),
     instruction=ROOT_AGENT_INSTRUCTION,
     long_term_memory=long_term_memory,
     after_agent_callback=after_agent_execution,

@@ -58,7 +58,7 @@ tools = [
 ]
 
 # 创建带记忆的 Agent
-model_name = os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201")
+model_name = os.getenv("MODEL_AGENT_NAME", "deepseek-v4-pro-260425")
 root_agent = Agent(
     description="基于LanceDB的数据检索Agent，支持结构化和向量查询。典型问题包括：1.你有哪些数据？2.给我一些样例数据？3.Ang Lee 评分超过7分的有哪些电影？4.Ang Lee 评分超过7分的电影中，有哪个电影海报中含有动物？5.Life of Pi 的电影海报，变成视频。 返回显示电影海报为![老虎](https://example.com/image1.png), 返回视频并显示成<video src='https://example.com/video1.mp4' width='640' controls>分镜视频1</video>",
     instruction=SYSTEM_PROMPT,

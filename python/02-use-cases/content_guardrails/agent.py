@@ -23,11 +23,12 @@ from veadk.memory.short_term_memory import ShortTermMemory
 
 
 short_term_memory = ShortTermMemory(backend="local")
+DEFAULT_MODEL_AGENT_NAME = "deepseek-v4-pro-260425"
 # define your agent here
 agent: Agent = Agent(
     name="content_safety_agent",
     description="A data analysis with guardrails",
-    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
+    model_name=os.getenv("MODEL_AGENT_NAME", DEFAULT_MODEL_AGENT_NAME),
     instruction="你是一个资深软件工程师，在沙箱里执行生产的代码， 避免每次安装检查, 可以使用python lib akshare 下载相关的股票数据。使用uv 来安装依赖。运行代码超时可以考虑调整超时时间。可以通过web_search工具搜索相关公司的经营数据。如果缺失了依赖库, 通过python代码为沙箱安装缺失的依赖库。",
     tools=[run_code, web_search],
     # planner=PlanReActPlanner(),

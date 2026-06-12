@@ -47,7 +47,7 @@ Agent + Runner
 # 短期记忆：仅同session有效
 agent1 = Agent(
     name="test_agent",
-    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v4-pro-260425"),
     instruction="You are a helpful assistant.",
 )
 

@@ -2,6 +2,7 @@ from agentkit.apps import AgentkitAgentServerApp
 from veadk import Agent, Runner
 from veadk.memory.short_term_memory import ShortTermMemory
 import asyncio
+import os
 
 app_name = "agent_skills_app"
 user_id = "agent_skills_user"
@@ -12,6 +13,7 @@ skills_file_path = (
 )
 agent = Agent(
     name="skill_agent",
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v4-pro-260425"),
     instruction="根据用户的需求，执行 skills，完成任务",
     skills=[skills_file_path],
     skills_mode="local",

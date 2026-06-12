@@ -22,7 +22,9 @@ from veadk.tools.builtin_tools.web_search import web_search
 from agentkit.apps import AgentkitAgentServerApp
 
 short_term_memory = ShortTermMemory(backend="local")
-model_name = os.getenv("MODEL_AGENT_NAME", "doubao-seed-1-6-251015")
+MODEL_AGENT_NAME = "MODEL_AGENT_NAME"
+DEFAULT_MODEL_AGENT_NAME = "deepseek-v4-pro-260425"
+model_name = os.getenv(MODEL_AGENT_NAME, DEFAULT_MODEL_AGENT_NAME)
 
 
 def get_current_time() -> str:
@@ -35,7 +37,6 @@ def get_current_time() -> str:
 agent = Agent(
     name="data_analysis_agent",
     description="A data analysis for stock marketing",
-    # model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
     instruction="""
     You are a data analysis agent for stock marketing.
     Talk with user friendly. You can invoke your tools to finish user's task or question.

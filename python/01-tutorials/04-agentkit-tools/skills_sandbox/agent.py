@@ -24,6 +24,7 @@ if provider and provider.lower() == "byteplus":
 skill_space_id = os.getenv("SKILL_SPACE_ID")
 agent = Agent(
     name="skill_agent",
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v4-pro-260425"),
     instruction=ROOT_AGENT_INSTRUCTION,
     skills=[skill_space_id] if skill_space_id else [],
     tools=[execute_skills],

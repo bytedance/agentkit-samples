@@ -11,6 +11,7 @@ session_id = "agent_skills_skillspaceid_localrun_session"
 skill_space_id = os.getenv("SKILL_SPACE_ID")
 agent = Agent(
     name="skill_agent",
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v4-pro-260425"),
     instruction="根据用户的需求，执行 skills，完成任务",
     skills=[skill_space_id],
     skills_mode="local",

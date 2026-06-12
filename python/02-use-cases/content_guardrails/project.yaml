@@ -33,5 +33,5 @@ components:
   - type: sandbox
     product: AIO_Sandbox
 models:
-    - deepseek-v3-2-251201
+    - deepseek-v4-pro-260425
 image: agentkit-template-public-cn-beijing.cr.volces.com/template/guardrails_agent:latest

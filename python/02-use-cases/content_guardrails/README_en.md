@@ -104,8 +104,8 @@ source .venv/bin/activate
 ### Environment Setup
 
 ```bash
-# Volcano Ark model name
-export MODEL_AGENT_NAME=deepseek-v3-2-251201
+# Volcano Ark model name. Override the default model in agent.py when needed.
+export MODEL_AGENT_NAME=deepseek-v4-pro-260425
 
 # Volcano Engine access credentials (required)
 export VOLCENGINE_ACCESS_KEY=<Your Access Key>

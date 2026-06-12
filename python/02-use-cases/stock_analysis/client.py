@@ -8,7 +8,7 @@ import asyncio
 
 if __name__ == "__main__":
     # Step 0: setup running configs
-    app_name = "content_safety_app"
+    app_name = "data_analysis_agent"
     user_id = "agentkit_user"
     session_id = "agentkit_sample_session"
     base_url = "http://127.0.0.1:8000"

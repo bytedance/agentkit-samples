@@ -7,7 +7,7 @@ from google.genai.types import Content, Part
 
 if __name__ == "__main__":
     # Step 0: setup running configs
-    app_name = "pre_process_agent"
+    app_name = "customer_service_agent"
     user_id = "agentkit_user"
     session_id = "agentkit_session"
     base_url = "http://127.0.0.1:8000"
