@@ -32,7 +32,7 @@ Travel Assistant Agent
 The main Volcano Engine products or Agent components are:
 
 - Ark Large Model:
-  - deepseek-v3-2-251201
+  - deepseek-v4-pro-260425
 - VikingDB Knowledge Base
 - VikingDB Memory Base
 - TOS Storage Service
@@ -141,7 +141,7 @@ source .venv/bin/activate
 Set the following environment variables:
 
 ```bash
-# Volcano Ark Model Name (optional, deepseek-v3-2-251201 is used by default)
+# Volcano Ark Model Name (optional, deepseek-v4-pro-260425 is used by default)
 export MODEL_AGENT_NAME=<Your Ark Model Name>
 
 # Volcano Engine Access Credentials (required)

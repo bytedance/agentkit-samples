@@ -54,7 +54,7 @@ def wearing_detection_tool(image_url: str) -> str:
     logger.debug(f"Running wearing_detection_tool with image_url: {image_url}")
     prompt = attire_inspection_wearing_detection_tool_prompt
     response = client.chat.completions.create(
-        model="seed-1-6-250915",
+        model=os.getenv("MODEL_AGENT_NAME", "doubao-seed-2-0-pro-260215"),
         messages=[
             {
                 "role": "user",

@@ -32,7 +32,7 @@ AgentKit 运行时
 主要的火山引擎产品或 Agent 组件：
 
 - 方舟大模型：
-  - deepseek-v3-2-251201
+  - deepseek-v4-pro-260425
 - VikingDB 知识库
 - VikingDB 记忆库
 - TOS 存储服务
@@ -133,7 +133,7 @@ source .venv/bin/activate
 设置以下环境变量:
 
 ```bash
-# 火山方舟模型名称 (可选，默认使用 deepseek-v3-2-251201)
+# 火山方舟模型名称 (可选，默认使用 deepseek-v4-pro-260425)
 export MODEL_AGENT_NAME=<Your Ark Model Name>
 
 # 火山引擎访问凭证（必需）

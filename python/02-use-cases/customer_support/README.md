@@ -87,7 +87,7 @@ customer_support/
    - 进入"开通管理" -> "语言模型" -> 找到相应模型 -> 点击"开通服务"
    - 确认开通，等待服务生效（通常1-2分钟）
    - 开通本案例中使用到的以下模型（您也可以根据实际需求开通其他模型的预置推理接入点，并在 `agent.py`代码中指定使用的模型）
-     - `deepseek-v3-2-251201`
+     - `deepseek-v4-pro-260425`
    - 如下图所示
      ![Ark Model Service Management](../../assets/images/ark_model_service_management.jpg)
 
@@ -147,7 +147,7 @@ export DATABASE_MEM0_API_KEY=<mem0_api_key>
   - 格式: `DATABASE_TOS_BUCKET={your_tos_bucket}`
   - 示例: `DATABASE_TOS_BUCKET=agentkit-platform-12345678901234567890`
 - `DATABASE_VIKING_COLLECTION`: 预创建的知识库集合名称 (生产环境推荐 在AgentKit 控制台手动创建知识库并设置集合名称)
-- 模型默认为 `deepseek-v3-2-251201` ，如需更改可在代码中调整。
+- 模型默认为 `deepseek-v4-pro-260425` ，如需更改可在代码中调整。
 
 > 如何创建 TOS桶 [参考](https://www.volcengine.com/docs/6349/75024?lang=zh)
 

@@ -66,7 +66,7 @@ root_agent = Agent(
             thinking_budget=1024,
         )
     ),
-    model_name="deepseek-v3-2-251201",
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v4-pro-260425"),
 )
 
 app_name = "ai_coding_agent"

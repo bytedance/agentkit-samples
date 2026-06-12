@@ -87,7 +87,7 @@ ai_coding/
    - Go to "Activation Management" -> "Language Models" -> Find the desired model -> Click "Activate Service".
    - Confirm activation and wait for the service to become effective (usually 1-2 minutes).
    - Activate the following models used in this case:
-        - `deepseek-v3-1-terminus`
+        - `deepseek-v4-pro-260425`
         - `doubao-seed-code-preview-251028`
    - As shown below:
    ![Model Ark Model Service Management](../../assets/images/ark_model_service_management.jpg)

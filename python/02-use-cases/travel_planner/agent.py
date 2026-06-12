@@ -171,7 +171,7 @@ travel_planner_prompt = """
     5. **沟通要求**： 禁止直接将 工具的结果直接输出给用户，你需要结合用户的问题，进行必要的润色，使回复内容更加的清晰、准确、简洁。
 """
 # 支持用户在runtime修改模型
-model_name = os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201")
+model_name = os.getenv("MODEL_AGENT_NAME", "deepseek-v4-pro-260425")
 agent = Agent(
     name="travel_planner_advanced",
     model_name=model_name,

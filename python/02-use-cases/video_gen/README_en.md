@@ -83,9 +83,9 @@ Key features include:
     - Search for the "Volcano Ark" product and click to enter the console
     - Go to "Activation Management" -> "Language Models" -> Find the corresponding model -> Click "Activate Service"
     - Activate the following models used in this case
-        - root_agent model: `deepseek-v3-1-terminus`
-        - Image generation model: `doubao-seedream-4-0-250828`
-        - Video generation model: `doubao-seedance-1-0-pro-250528`
+        - root_agent model: `deepseek-v4-pro-260425`
+        - Image generation model: `doubao-seedream-5-0-260128`
+        - Video generation model: `doubao-seedance-2-0-260128`
     - As shown in the figure below
         ![Ark Model Service Management](../img/ark_model_service_management.jpg)
 

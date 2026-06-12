@@ -19,13 +19,13 @@ logger = logging.getLogger(__name__)
 DEFAULT_BUCKET = "video_generation_output"
 DEFAULT_REGION = "cn-beijing"
 
-DEFAULT_MODEL_AGENT_NAME = "deepseek-v3-2-251201"
+DEFAULT_MODEL_AGENT_NAME = "deepseek-v4-pro-260425"
 DEFAULT_MODEL_AGENT_API_BASE = "https://ark.cn-beijing.volces.com/api/v3/"
 
-DEFAULT_VIDEO_MODEL_NAME = "doubao-seedance-1-0-pro-250528"
+DEFAULT_VIDEO_MODEL_NAME = "doubao-seedance-2-0-260128"
 DEFAULT_VIDEO_MODEL_API_BASE = "https://ark.cn-beijing.volces.com/api/v3/"
 
-DEFAULT_IMAGE_GENERATE_MODEL_NAME = "doubao-seedream-4-5-251128"
+DEFAULT_IMAGE_GENERATE_MODEL_NAME = "doubao-seedream-5-0-260128"
 DEFAULT_IMAGE_GENERATE_MODEL_API_BASE = "https://ark.cn-beijing.volces.com/api/v3/"
 
 

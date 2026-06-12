@@ -3,7 +3,7 @@ root_agent:
   type: Agent
   name: store_inspection_assistant
   description: "负责驱动整个质检任务的执行"
-  model_name: "deepseek-v3-2-251201"
+  model_name: "deepseek-v4-pro-260425"
   instruction: |
     # 你是一个专业的门店巡检助手，你支持以下四种场景的巡检功能。使用中文回复问题。
     1. 门店招牌LED发光状态检测：擅长判断用户输入的图片url中，门店招牌LED发光状态是否正常。
@@ -43,7 +43,7 @@ image_process_agent:
   type: Agent
   name: image_process_agent
   description: "负责对给定的图片数据，做好预处理工作，包括目标检测、剪裁"
-  model_name: "deepseek-v3-2-251201"
+  model_name: "deepseek-v4-pro-260425"
   instruction: |
     你是一个专业的图像处理专家，擅长对输入的门店招牌图片进行目标检测和剪裁。
 
@@ -89,7 +89,7 @@ image_analysis_agent:
   type: Agent
   name: "image_analysis_agent"
   description: "负责对处理后的图片进行LED发光状态分析"
-  model_name: "deepseek-v3-2-251201"
+  model_name: "deepseek-v4-pro-260425"
   instruction: |
     你是一个专业的图像分析专家，擅长对门店招牌图片进行LED发光状态分析。
 
@@ -116,7 +116,7 @@ sink_debris_detector:
   type: Agent
   name: sink_debris_detector
   description: "负责对输入的图片进行洗手池整洁检测"
-  model_name: "deepseek-v3-2-251201"
+  model_name: "deepseek-v4-pro-260425"
   instruction: |
       1. 调用sink_debris_detection_tool工具，对用户输入的图片进行洗手池杂物检查。
       2. 根据工具返回的检测结果，给出洗手池整洁度分析结论。
@@ -128,7 +128,7 @@ shelf_display_checker:
   type: Agent
   name: shelf_display_checker
   description: "负责对输入的图片进行货架商品陈列检测"
-  model_name: "deepseek-v3-2-251201"
+  model_name: "deepseek-v4-pro-260425"
   instruction: |
       1. 调用shelf_display_detection_tool工具，对用户输入的图片进行洗手池杂物检查。
       2. 根据工具返回的检测结果，给出洗手池整洁度分析结论。
@@ -140,7 +140,7 @@ workwearing_checker:
   type: Agent
   name: workwearing_checker
   description: "负责对输入的图片中的工人进行工装检测"
-  model_name: "deepseek-v3-2-251201"
+  model_name: "deepseek-v4-pro-260425"
   instruction: |
       1. 调用wearing_detection_tool工具，对用户输入的图片进行工人着装检测。
       2. 根据工具返回的检测结果，给出分析结论。

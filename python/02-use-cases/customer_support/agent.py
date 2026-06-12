@@ -60,7 +60,7 @@ app_name = "customer_support_agent"
 default_user_id = "CUST001"
 
 # 默认模型设置
-default_model_name = "deepseek-v3-2-251201"
+default_model_name = "deepseek-v4-pro-260425"
 
 model_name = os.getenv("MODEL_AGENT_NAME", default_model_name)
 

@@ -83,9 +83,9 @@ AgentKit 运行时
    - 搜索"火山方舟"产品，点击进入控制台
    - 进入"开通管理" -> "语言模型" -> 找到相应模型 -> 点击"开通服务"
    - 开通本案例中使用到的以下模型
-     - root_agent模型：`deepseek-v3-2-251201`
-     - 生图模型：`doubao-seedream-4-5-251128`
-     - 生视频模型：`doubao-seedance-1-0-pro-250528`
+     - root_agent模型：`deepseek-v4-pro-260425`
+     - 生图模型：`doubao-seedream-5-0-260128`
+     - 生视频模型：`doubao-seedance-2-0-260128`
    - 如下图所示
      ![Ark Model Service Management](../img/ark_model_service_management.jpg)
 

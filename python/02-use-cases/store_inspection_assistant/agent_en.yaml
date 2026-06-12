@@ -3,7 +3,7 @@ root_agent:
   type: Agent
   name: store_inspection_assistant
   description: "responsible for driving the execution of the entire inspection task"
-  model_name: "deepseek-v3-2-251201"
+  model_name: "deepseek-v4-pro-260425"
   instruction: |
     # you are a professional store inspection assistant, you support the following four scenarios of inspection functions. Response in English.
     # 1. Store sign LED light status detection: proficient in judging whether the store sign LED light status is normal based on the user input image URL.
@@ -39,7 +39,7 @@ image_process_agent:
   type: Agent
   name: image_process_agent
   description: "responsible for preprocessing the given image data, including object detection and cropping"
-  model_name: "deepseek-v3-2-251201"
+  model_name: "deepseek-v4-pro-260425"
   instruction: |
     You are a professional image processing expert, specializing in detecting and cropping store signboards from input images.
 
@@ -86,7 +86,7 @@ image_analysis_agent:
   type: Agent
   name: "image_analysis_agent"
   description: "responsible for analyzing the processed image to determine the LED light status"
-  model_name: "deepseek-v3-2-251201"
+  model_name: "deepseek-v4-pro-260425"
   instruction: |
     You are a professional image analysis expert, specializing in analyzing store signboard images to determine the LED light status.
 
@@ -113,7 +113,7 @@ sink_debris_detector:
   type: Agent
   name: sink_debris_detector
   description: "responsible for detecting debris in the sink area of the store"
-  model_name: "deepseek-v3-2-251201"
+  model_name: "deepseek-v4-pro-260425"
   instruction: |
       1. Call the sink_debris_detection_tool to detect debris in the sink area of the store.
       2. Based on the detection results, provide a conclusion on the cleanliness of the sink area.
@@ -125,7 +125,7 @@ shelf_display_checker:
   type: Agent
   name: shelf_display_checker
   description: "responsible for detecting the display of products on the shelf in the store"
-  model_name: "deepseek-v3-2-251201"
+  model_name: "deepseek-v4-pro-260425"
   instruction: |
       1. Call the shelf_display_detection_tool to detect the display of products on the shelf in the store.
       2. Based on the detection results, provide a conclusion on the shelf product display status.
@@ -137,7 +137,7 @@ workwearing_checker:
   type: Agent
   name: workwearing_checker
   description: "responsible for detecting the wearing status of workers in the store"
-  model_name: "deepseek-v3-2-251201"
+  model_name: "deepseek-v4-pro-260425"
   instruction: |
       1. Call the wearing_detection_tool to detect the wearing status of workers in the store.
       2. Based on the detection results, provide a conclusion on the worker wearing status.

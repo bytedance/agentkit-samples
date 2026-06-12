@@ -84,8 +84,8 @@ Main BytePlus products or Agent components:
    - Go to "Activation Management" -> "Language Models" -> Find the respective model -> Click "Activate Service".
    - Confirm activation and wait for the service to become effective (usually 1-2 minutes).
    - Activate the following models used in this case (you can also activate other models' pre-built inference endpoints as needed and specify them in the `agent.py` code):
-     - `deepseek-v3-2-251201`
-     - `seed-1-6-250915`
+     - `deepseek-v4-pro-260425`
+     - `doubao-seed-2-0-pro-260215`
    - As shown below:
      ![Model Ark Model Service Management](../../assets/images/ark_model_service_management.jpg)
 

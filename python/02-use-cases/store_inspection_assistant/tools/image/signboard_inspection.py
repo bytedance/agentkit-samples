@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import os
 
 from tools.model_auth import get_ark_api_key, get_base_url
 from tools.image.image_editor import draw_bboxes_on_image
@@ -39,7 +40,7 @@ def signboard_detection_tool(picture_url: str) -> str:
     logger.debug(f"Running signboard_detection_tool with picture_url: {picture_url}")
 
     response = client.chat.completions.create(
-        model="seed-1-6-250915",
+        model=os.getenv("MODEL_AGENT_NAME", "doubao-seed-2-0-pro-260215"),
         messages=[
             {
                 "role": "user",
@@ -70,7 +71,7 @@ def signboard_char_detection_tool(cropped_image_path: str) -> str:
         base64_image = base64.b64encode(image_file.read()).decode("utf-8")
 
     response = client.chat.completions.create(
-        model="seed-1-6-250915",
+        model=os.getenv("MODEL_AGENT_NAME", "doubao-seed-2-0-pro-260215"),
         temperature=0.1,
         top_p=0.1,
         messages=[
@@ -124,7 +125,7 @@ def led_status_analysis_tool(cropped_image_path: str) -> str:
         base64_image = base64.b64encode(image_file.read()).decode("utf-8")
 
     response = client.chat.completions.create(
-        model="seed-1-6-250915",
+        model=os.getenv("MODEL_AGENT_NAME", "doubao-seed-2-0-pro-260215"),
         messages=[
             {
                 "role": "user",
