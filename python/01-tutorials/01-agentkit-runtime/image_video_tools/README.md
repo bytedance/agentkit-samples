@@ -4,7 +4,7 @@
 
 ## 概述
 
-本示例演示如何使用 VeADK 构建多智能体系统，根据文本描述生成图片或视频。
+本示例演示如何使用 VeADK 构建单 Agent 工具编排流程，根据文本描述生成图片或视频。
 
 ## 核心功能
 
@@ -28,19 +28,20 @@
 
 | 组件 | 描述 |
 | - | - |
-| **主 Agent** | [agent.py](https://github.com/bytedance/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/image_video_tools/agent.py#L38-L69) - image_video_tools_agent，负责理解用户意图并调用工具 |
+| **主 Agent** | [agent.py](agent.py) - image_video_tools_agent，负责理解用户意图并调用工具 |
 | **内置工具** | `image_generate`, `video_generate`, `web_search` |
-| **服务框架** | [agent.py](https://github.com/bytedance/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/image_video_tools/agent.py#L81-L89) - AgentkitAgentServerApp，提供 HTTP 服务接口 |
-| **客户端测试** | [client.py](https://github.com/bytedance/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/image_video_tools/client.py) - 测试客户端，用于调用部署的云端服务 |
-| **项目配置** | [pyproject.toml](https://github.com/bytedance/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/image_video_tools/pyproject.toml) - 依赖管理 |
+| **服务框架** | [agent.py](agent.py) - AgentkitAgentServerApp，提供 HTTP 服务接口 |
+| **客户端测试** | [client.py](client.py) - 测试客户端，用于调用部署的云端服务 |
+| **项目配置** | [pyproject.toml](pyproject.toml) - 依赖管理，包含升级后的 AgentKit、VeADK、Google ADK 版本以及 `litellm` 依赖 |
 
 ### 代码特点
 
-**主 Agent 配置**（[agent.py](https://github.com/bytedance/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/image_video_tools/agent.py#L38-L69)）：
+**主 Agent 配置**（[agent.py](agent.py)）：
 
 ```python
 root_agent = Agent(
     name="image_video_tools_agent",
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v4-pro-260425"),
     description="调用 tools 生成图片或者视频",
     instruction="""
     你是一个生图生视频助手，具备图像生成和视频生成能力。有三个可用的工具：
@@ -69,7 +70,7 @@ root_agent = Agent(
 )
 ```
 
-**服务启动**（[agent.py](https://github.com/bytedance/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/image_video_tools/agent.py#L81-L89)）：
+**服务启动**（[agent.py](agent.py)）：
 
 ```python
 short_term_memory = ShortTermMemory(backend="local")
@@ -83,7 +84,7 @@ if __name__ == "__main__":
     agent_server_app.run(host="0.0.0.0", port=8000)
 ```
 
-**使用示例**（[agent.py](https://github.com/bytedance/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/image_video_tools/agent.py#L71-L79)）：
+**使用示例**（[agent.py](agent.py)）：
 
 
 ```python
@@ -108,9 +109,11 @@ asyncio.run(main([
 ```bash
 image_video_tools/
 ├── agent.py                    # Agent 应用入口
+├── client.py                   # 云端服务调用示例
 ├── requirements.txt            # Python 依赖列表
 ├── pyproject.toml              # 项目配置（uv 依赖管理）
-└── README.md                   # 项目说明文档
+├── README.md                   # 中文说明文档
+└── README_en.md                # 英文说明文档
 ```
 
 ## 本地运行
@@ -149,7 +152,7 @@ brew install uv
 
 ```bash
 # 进入项目目录
-cd 01-tutorials/01-agentkit-runtime/image_video_tools
+cd python/01-tutorials/01-agentkit-runtime/image_video_tools
 
 # 使用 uv 安装依赖
 uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
@@ -158,11 +161,20 @@ uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
 source .venv/bin/activate
 ```
 
+当前示例依赖版本：
+
+| 依赖 | 版本 |
+| - | - |
+| `agentkit-sdk-python` | `0.5.10` |
+| `google-adk` | `1.32.0` |
+| `veadk-python` | `0.5.37` |
+| `litellm` | `requirements.txt` 中固定为 `1.88.1`，`pyproject.toml` 中声明为直接依赖 |
+
 ### 环境准备
 
 ```bash
-# 火山方舟模型名称
-export MODEL_AGENT_NAME=deepseek-v3-2-251201
+# 火山方舟模型名称；不设置时默认使用 deepseek-v4-pro-260425
+export MODEL_AGENT_NAME=deepseek-v4-pro-260425
 
 # 火山引擎访问凭证（必需）
 export VOLCENGINE_ACCESS_KEY=<Your Access Key>

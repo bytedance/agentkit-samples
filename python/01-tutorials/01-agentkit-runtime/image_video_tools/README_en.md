@@ -4,7 +4,7 @@ A creative content generation example based on Volcano Engine VeADK and multimed
 
 ## Overview
 
-This example demonstrates how to use VeADK to build a multi-agent system to generate images or videos based on text descriptions.
+This example demonstrates how to use VeADK to build a single Agent tool orchestration flow to generate images or videos based on text descriptions.
 
 ## Core Functions
 
@@ -28,19 +28,20 @@ Main Agent (image_video_tools_agent)
 
 | Component | Description |
 | - | - |
-| **Main Agent** | [agent.py](https://github.com/bytedance/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/image_video_tools/agent.py#L38-L69) - image_video_tools_agent, responsible for understanding user intent and calling tools |
+| **Main Agent** | [agent.py](agent.py) - image_video_tools_agent, responsible for understanding user intent and calling tools |
 | **Built-in Tools** | `image_generate`, `video_generate`, `web_search` |
-| **Service Framework** | [agent.py](https://github.com/bytedance/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/image_video_tools/agent.py#L81-L89) - AgentkitAgentServerApp, provides HTTP service interface |
-| **Client Test** | [client.py](https://github.com/bytedance/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/image_video_tools/client.py) - Test client, used to call deployed cloud service |
-| **Project Configuration** | [pyproject.toml](https://github.com/bytedance/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/image_video_tools/pyproject.toml) - dependency management |
+| **Service Framework** | [agent.py](agent.py) - AgentkitAgentServerApp, provides HTTP service interface |
+| **Client Test** | [client.py](client.py) - Test client, used to call deployed cloud service |
+| **Project Configuration** | [pyproject.toml](pyproject.toml) - dependency management, including upgraded AgentKit, VeADK, Google ADK versions and the `litellm` dependency |
 
 ### Code Features
 
-**Main Agent Configuration** ([agent.py](https://github.com/bytedance/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/image_video_tools/agent.py#L38-L69)):
+**Main Agent Configuration** ([agent.py](agent.py)):
 
 ```python
 root_agent = Agent(
     name="image_video_tools_agent",
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v4-pro-260425"),
     description="Call tools to generate images or videos",
     instruction="""
     You are an image and video generation assistant with image generation and video generation capabilities. There are three available tools:
@@ -69,7 +70,7 @@ root_agent = Agent(
 )
 ```
 
-**Service Startup** ([agent.py](https://github.com/bytedance/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/image_video_tools/agent.py#L81-L89)):
+**Service Startup** ([agent.py](agent.py)):
 
 ```python
 short_term_memory = ShortTermMemory(backend="local")
@@ -83,7 +84,7 @@ if __name__ == "__main__":
     agent_server_app.run(host="0.0.0.0", port=8000)
 ```
 
-**Usage Example** ([agent.py](https://github.com/bytedance/agentkit-samples/blob/3bc92248d02a71c3a75d737931ed96b796aafc10/python/01-tutorials/01-agentkit-runtime/image_video_tools/agent.py#L71-L79)):
+**Usage Example** ([agent.py](agent.py)):
 
 
 ```python
@@ -108,9 +109,11 @@ asyncio.run(main([
 ```bash
 image_video_tools/
 ├── agent.py                    # Agent application entry point
+├── client.py                   # Cloud service invocation example
 ├── requirements.txt            # Python dependency list
 ├── pyproject.toml              # Project configuration (uv dependency management)
-└── README.md                   # Project description document
+├── README.md                   # Chinese documentation
+└── README_en.md                # English documentation
 ```
 
 ## Local Running
@@ -149,7 +152,7 @@ brew install uv
 
 ```bash
 # Enter the project directory
-cd 01-tutorials/01-agentkit-runtime/image_video_tools
+cd python/01-tutorials/01-agentkit-runtime/image_video_tools
 
 # Use uv to install dependencies
 uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
@@ -158,11 +161,20 @@ uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
 source .venv/bin/activate
 ```
 
+Current dependency versions:
+
+| Dependency | Version |
+| - | - |
+| `agentkit-sdk-python` | `0.5.10` |
+| `google-adk` | `1.32.0` |
+| `veadk-python` | `0.5.37` |
+| `litellm` | pinned to `1.88.1` in `requirements.txt`, declared as a direct dependency in `pyproject.toml` |
+
 ### Environment Preparation
 
 ```bash
-# Volcano Ark model name
-export MODEL_AGENT_NAME=deepseek-v3-2-251201
+# Volcano Ark model name; defaults to deepseek-v4-pro-260425 when unset
+export MODEL_AGENT_NAME=deepseek-v4-pro-260425
 
 # Volcano Engine access credentials (required)
 export VOLCENGINE_ACCESS_KEY=<Your Access Key>

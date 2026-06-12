@@ -60,11 +60,14 @@ export VOLCENGINE_SECRET_KEY="xxxxxx"
 
 1.  Ensure that the environment variables are configured correctly.
 
-2.  Start the test locally with `veadk web` (Note: Please remain in the `agentkit-samples/02-use-cases` directory).
+2.  Start the test locally with `veadk web` (Note: Please remain in the `agentkit-samples/python/02-use-cases` directory and use the virtual environment under `mini_aiops`).
 
 ```bash
-veadk web
+cd ..
+mini_aiops/.venv/bin/veadk web
 ```
+
+If you use a `.env` file instead of `export`, note that VeADK only loads `.env` from the startup directory. When starting from `python/02-use-cases`, export the environment variables first or put `.env` at `python/02-use-cases/.env`.
 
 1. Go to the service URL `http://127.0.0.1:8000`.
 2. Select `mini_aiops`.
@@ -89,19 +92,40 @@ mini_aiops/
 
 ## AgentKit Deployment
 
-```bash
-# 1. Enter the `mini_aiops` directory
-cd mini_aiops
-# 2. Initialize configuration
-agentkit config
-# 3. Configure according to the instructions
-# Note: Step 7 does not require setting environment variables, and in step 8 you can choose cloud mode.
+### Prerequisites
 
-# 4. Deploy
+- AgentKit CLI is installed.
+- A Volcano Engine account is configured, and AK/SK with the required resource permissions are available.
+- The current directory is `python/02-use-cases/mini_aiops`.
+- The CCAPI MCP Server in this sample is provided as local source code. For online deployment, use the preconfigured `Dockerfile.example`.
+
+### Quick Deployment
+
+```bash
+# 1. Enter the mini_aiops project directory
+cd python/02-use-cases/mini_aiops
+
+# 2. Prepare and activate the environment
+uv sync --python 3.12
+source .venv/bin/activate
+
+# 3. Configure Volcano Engine AK/SK
+export VOLCENGINE_ACCESS_KEY="xxxxxx"
+export VOLCENGINE_SECRET_KEY="xxxxxx"
+
+# 4. Run AgentKit configuration
+agentkit config
+
+# 5. Use the preconfigured Dockerfile
+cp Dockerfile.example Dockerfile
+
+# 6. Launch the deployment
 agentkit launch
 ```
 
-After the deployment process is complete, since the operations MCP tool requires ECS-related permissions, please go to the console to grant the relevant permissions.
+When running `agentkit config`, follow the console prompts to complete the configuration. In the environment variable step, provide real AK/SK values with the required permissions. `agentkit launch` may fail because of timeout; retry if that happens.
+
+After deployment is complete, the operations MCP tool requires ECS-related permissions. Go to the console to grant the relevant permissions.
 
 Enter the console
 

@@ -1,0 +1,144 @@
+{
+    "Password": "Huoshan@2025",
+    "InstanceChargeType": "PostPaid",
+    "Period": 48,
+    "AutoRenew": true,
+    "AutoRenewPeriod": 3,
+    "PeriodUnit": "Month",
+    "InstanceName": "instance-test-2",
+    "Hostname": "instance-host-name",
+    "SpotStrategy": "SpotWithPriceLimit",
+    "SpotPriceLimit": 20,
+    "UserData": "",
+    "InstallRunCommandAgent": true,
+    "Description": "xT36z8kAcwoIFDYWs7zwuCujEjb9G2uXr9lBi",
+    "ProjectName": "default",
+    "InstanceType": "ecs.g3il.large",
+    "DeploymentSetId": "dps-ydzccfzqjoaa98ku422j",
+    "CreditSpecification": "Standard",
+    "DeletionProtection": true,
+    "DeploymentSetGroupNumber": 6,
+    "ZoneId": "cn-beijing-a",
+    "HpcClusterId": "",
+    "Image": {
+        "ImageId": "image-yc0ef6v8ahc8mklivea3",
+        "SecurityEnhancementStrategy": "InActive",
+        "ImageReleaseVersion": "3.21.0"
+    },
+    "VpcId": "vpc-rrco37ovjq4gv0x58zft8ul",
+    "EipAddress": {
+        "ChargeType": "PayByTraffic",
+        "BandwidthMbps": 5,
+        "ISP": "BGP",
+        "ReleaseWithInstance": false,
+        "BandwidthPackageId": "bwp-mio9v6k9kdfk5smt1abxu326"
+    },
+    "NetworkInterfaces": [
+        {
+            "SecurityGroupIds": [
+                "sg-rrco3fkzzy0wv0x589w1gq1"
+            ],
+            "SubnetId": "subnet-13fsibls3pl343n6nu5q8atje"
+        }
+    ],
+    "Placement": {
+        "Affinity": "Default",
+        "DedicatedHostClusterId": "",
+        "Tenancy": "Default",
+        "DedicatedHostId": ""
+    },
+    "Tags": [
+        {
+            "Key": "key1",
+            "Value": "value1"
+        },
+        {
+            "Key": "key2",
+            "Value": "value2"
+        },
+        {
+            "Key": "key3",
+            "Value": "value3"
+        },
+        {
+            "Key": "key4",
+            "Value": "value4"
+        },
+        {
+            "Key": "key5",
+            "Value": "value5"
+        },
+        {
+            "Key": "key6",
+            "Value": "value6"
+        },
+        {
+            "Key": "key7",
+            "Value": "value7"
+        },
+        {
+            "Key": "key8",
+            "Value": "value8"
+        },
+        {
+            "Key": "key9",
+            "Value": "value9"
+        },
+        {
+            "Key": "key10",
+            "Value": "value10"
+        },
+        {
+            "Key": "key11",
+            "Value": "value11"
+        },
+        {
+            "Key": "key12",
+            "Value": "value12"
+        },
+        {
+            "Key": "key13",
+            "Value": "value13"
+        },
+        {
+            "Key": "key14",
+            "Value": "value14"
+        },
+        {
+            "Key": "key15",
+            "Value": "value15"
+        },
+        {
+            "Key": "key16",
+            "Value": "value16"
+        },
+        {
+            "Key": "key17",
+            "Value": "value17"
+        },
+        {
+            "Key": "key18",
+            "Value": "value18"
+        },
+        {
+            "Key": "key19",
+            "Value": "value19"
+        },
+        {
+            "Key": "key20",
+            "Value": ""
+        }
+    ],
+    "Volumes": [
+        {
+            "Size": 50,
+            "DeleteWithInstance": true,
+            "VolumeType": "ESSD_FlexPL"
+        },
+        {
+            "DeleteWithInstance": true,
+            "Size": 50,
+            "VolumeType": "ESSD_PL0"
+        }
+    ]
+}

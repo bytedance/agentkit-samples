@@ -60,11 +60,14 @@ export VOLCENGINE_SECRET_KEY="xxxxxx"
 
 1. 请先保证环境变量配置正确
 
-2. 本地`veadk web`启动测试（注意：请保持在`agentkit-samples/02-use-cases`目录）
+2. 本地`veadk web`启动测试（注意：请保持在`agentkit-samples/python/02-use-cases`目录，并使用 `mini_aiops` 下的虚拟环境）
 
 ```bash
-veadk web
+cd ..
+mini_aiops/.venv/bin/veadk web
 ```
+
+如果使用 `.env` 文件而不是 `export`，请注意 VeADK 只会读取启动目录下的 `.env`。从 `python/02-use-cases` 启动时，建议提前 `export` 环境变量，或将 `.env` 放到 `python/02-use-cases/.env`。
 
 1. 进入服务url `http://127.0.0.1:8000`
 2. 选择`mini_aiops`
@@ -89,19 +92,40 @@ mini_aiops/
 
 ## AgentKit 部署
 
-```bash
-# 1. 进入`mini_aiops`
-cd mini_aiops
-# 2. 初始化配置
-agentkit config
-# 3. 根据说明进行配置
-# 注意：第7步无需设置环境变量，第8步可以选择cloud模式
+### 前置条件
 
-# 4. 部署
+- 已安装 AgentKit CLI
+- 已配置火山引擎账号，并准备好具有相关资源权限的 AK/SK
+- 当前目录为 `python/02-use-cases/mini_aiops`
+- 本示例中的 CCAPI MCP Server 以本地源码方式随项目提供，线上部署时需要使用预先配置好的 `Dockerfile.example`
+
+### 快速部署
+
+```bash
+# 1. 进入 mini_aiops 项目目录
+cd python/02-use-cases/mini_aiops
+
+# 2. 激活基础环境
+uv sync --python 3.12
+source .venv/bin/activate
+
+# 3. 配置火山引擎 AK/SK
+export VOLCENGINE_ACCESS_KEY="xxxxxx"
+export VOLCENGINE_SECRET_KEY="xxxxxx"
+
+# 4. 执行 AgentKit 配置
+agentkit config
+
+# 5. 使用预先配置好的 Dockerfile
+cp Dockerfile.example Dockerfile
+
+# 6. 发起部署
 agentkit launch
 ```
 
-部署过程完成后，由于运维MCP工具需要ECS相关权限，请前往控制台开通相关权限
+`agentkit config` 时请按控制台提示完成配置；其中环境变量配置步骤请填写真实且具有相关权限的 AK/SK。`agentkit launch` 可能因超时失败，可以重试。
+
+部署过程完成后，由于运维 MCP 工具需要 ECS 相关权限，请前往控制台开通相关权限。
 
 进入控制台
 

@@ -12,9 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import uuid
 import os
-
+import uuid
 
 from agentkit.apps import AgentkitAgentServerApp
 from veadk import Agent
@@ -24,23 +23,12 @@ from veadk.tools.builtin_tools.image_generate import image_generate
 from veadk.tools.builtin_tools.video_generate import video_generate
 from veadk.tools.builtin_tools.web_search import web_search
 
-# video_generator = Agent(
-#     name="video_generator",
-#     description="视频生成 Agent",
-#     instruction="你是一个原子化的 Agent，具备视频生成能力，每次执行完毕后，考虑回到主 Agent。",
-#     tools=[video_generate],
-# )
 
-# image_generator = Agent(
-#     name="image_generator",
-#     description="图像生成 Agent",
-#     instruction="你是一个原子化的 Agent，具备图像生成能力，每次执行完毕后，考虑回到主 Agent。",
-#     tools=[image_generate],
-# )
+model = os.getenv("MODEL_AGENT_NAME", "deepseek-v4-pro-260425")
 
 root_agent = Agent(
     name="image_video_tools_agent",
-    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
+    model_name=model,
     description="调用 tools 生成图片或者视频",
     instruction="""
     你是一个生图生视频助手，具备图像生成和视频生成能力。有三个可用的工具：
@@ -65,7 +53,6 @@ root_agent = Agent(
     ### 注意事项：
     - 输入输出中，任何涉及图片或视频的链接url，**绝对禁止任何形式的修改、截断、拼接或替换**，必须100%保持原始内容的完整性与准确性。        
     """,
-    # sub_agents=[image_generator, video_generator],
     tools=[web_search, image_generate, video_generate],
 )
 runner = Runner(agent=root_agent)
