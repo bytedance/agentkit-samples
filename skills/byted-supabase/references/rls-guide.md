@@ -1,6 +1,32 @@
 # Row Level Security (RLS) 策略配置指南
 
-> 🔴 **所有表必须启用 RLS**。即使是公开数据表，也必须启用 RLS 并配置允许公开访问的策略。不启用 RLS 的表任何人都可以通过 anon key 直接读写所有数据，这是严重的安全隐患。
+> 🔴 **所有暴露 schema（默认含 `public`）里的表必须启用 RLS**。即使是公开数据表，也必须启用 RLS 并配置允许公开访问的策略。不启用 RLS 的表，任何人都可以通过 anon key 直接读写所有数据，这是严重的安全隐患。
+
+> 📌 本文 SQL 写法对齐 Supabase 官方最新安全建议（MIT，Copyright © Supabase）。更完整的安全陷阱见 [`security-guide.md`](security-guide.md)。
+
+---
+
+## 目录
+
+- 写法要点（务必遵守）
+- 策略选择（决策表）
+- 操作方式
+- 策略 SQL 模板
+- user_id 字段定义
+- RLS 性能
+- 检查当前 RLS 状态
+- 常见错误
+
+## 写法要点（务必遵守）
+
+这几条是 Supabase RLS 的硬规则，违反会静默制造漏洞或性能问题：
+
+1. **用 `TO authenticated` / `TO anon` 指定角色，不要用 `auth.role()`。** `auth.role()` 已弃用；且开启匿名登录后，匿名用户也带 `authenticated` 角色，`auth.role() = 'authenticated'` 会**静默失效**。
+2. **`TO authenticated` 必须配所有权谓词。** 只写 `TO authenticated` 是"认证而非授权"（BOLA/IDOR），任何登录用户都能看所有行。
+3. **把 `auth.uid()` 包进子查询：`(select auth.uid())`。** 否则每行都会调用一次，百万行就调用百万次；包一层后只算一次，大表上快 100×+。
+4. **UPDATE 策略同时写 `USING` 和 `WITH CHECK`。** 缺 `WITH CHECK`，用户能把行的 `user_id` 改成别人的。
+5. **UPDATE 需要 SELECT 策略。** RLS 下 UPDATE 要先 SELECT 到行；缺 SELECT 策略会静默返回 0 行。
+6. **RLS 策略里用到的列要建索引**（如 `user_id`）。
 
 ---
 
@@ -21,22 +47,20 @@
 
 ## 操作方式
 
-所有 RLS SQL 均可通过本 Skill 的 `execute-sql` 直接执行：
+所有 RLS SQL 均可通过 `byted-supabase-cli db query` 直接执行：
 
 ```bash
-uv run ./scripts/call_volcengine_supabase.py execute-sql \
-  --workspace-id ws-xxxx \
-  --query "ALTER TABLE my_table ENABLE ROW LEVEL SECURITY;"
+byted-supabase-cli db query "ALTER TABLE my_table ENABLE ROW LEVEL SECURITY;" --workspace-id ws-xxxx
 ```
 
-对于需要版本管理的 RLS 变更，建议通过 `apply-migration` 执行：
+对于成组、需要复用的 RLS 变更，建议写入 `.sql` 文件后整体应用：
 
 ```bash
-uv run ./scripts/call_volcengine_supabase.py apply-migration \
-  --workspace-id ws-xxxx \
-  --name enable_rls_for_posts \
-  --query-file ./rls_migration.sql
+# rls_migration.sql 内含 ENABLE RLS + 一组 CREATE POLICY
+byted-supabase-cli db query -f ./rls_migration.sql --workspace-id ws-xxxx
 ```
+
+> 改完跑巡检：`byted-supabase-cli db advisors --workspace-id ws-xxxx`。需要版本化 / 可追溯的策略演进时，改用声明式管理：`byted-supabase-cli db schema declarative --help`。
 
 ---
 
@@ -53,20 +77,22 @@ uv run ./scripts/call_volcengine_supabase.py apply-migration \
 
 ### 场景 A：公开读写
 
+公开数据也要启用 RLS，并显式开放给 `anon` 和 `authenticated`：
+
 ```sql
 ALTER TABLE <table_name> ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "<table_name>_allow_public_select" ON <table_name>
-  FOR SELECT USING (true);
+CREATE POLICY "<table_name>_public_select" ON <table_name>
+  FOR SELECT TO anon, authenticated USING (true);
 
-CREATE POLICY "<table_name>_allow_public_insert" ON <table_name>
-  FOR INSERT WITH CHECK (true);
+CREATE POLICY "<table_name>_public_insert" ON <table_name>
+  FOR INSERT TO anon, authenticated WITH CHECK (true);
 
-CREATE POLICY "<table_name>_allow_public_update" ON <table_name>
-  FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "<table_name>_public_update" ON <table_name>
+  FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
 
-CREATE POLICY "<table_name>_allow_public_delete" ON <table_name>
-  FOR DELETE USING (true);
+CREATE POLICY "<table_name>_public_delete" ON <table_name>
+  FOR DELETE TO anon, authenticated USING (true);
 ```
 
 ### 场景 B：公开读 + 登录写
@@ -74,18 +100,17 @@ CREATE POLICY "<table_name>_allow_public_delete" ON <table_name>
 ```sql
 ALTER TABLE <table_name> ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "<table_name>_allow_public_select" ON <table_name>
-  FOR SELECT USING (true);
+CREATE POLICY "<table_name>_public_select" ON <table_name>
+  FOR SELECT TO anon, authenticated USING (true);
 
 CREATE POLICY "<table_name>_auth_insert" ON <table_name>
-  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+  FOR INSERT TO authenticated WITH CHECK (true);
 
 CREATE POLICY "<table_name>_auth_update" ON <table_name>
-  FOR UPDATE USING (auth.role() = 'authenticated')
-  WITH CHECK (auth.role() = 'authenticated');
+  FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
 
 CREATE POLICY "<table_name>_auth_delete" ON <table_name>
-  FOR DELETE USING (auth.role() = 'authenticated');
+  FOR DELETE TO authenticated USING (true);
 ```
 
 ### 场景 C：仅登录用户
@@ -94,38 +119,43 @@ CREATE POLICY "<table_name>_auth_delete" ON <table_name>
 ALTER TABLE <table_name> ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "<table_name>_auth_select" ON <table_name>
-  FOR SELECT USING (auth.role() = 'authenticated');
+  FOR SELECT TO authenticated USING (true);
 
 CREATE POLICY "<table_name>_auth_insert" ON <table_name>
-  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+  FOR INSERT TO authenticated WITH CHECK (true);
 
 CREATE POLICY "<table_name>_auth_update" ON <table_name>
-  FOR UPDATE USING (auth.role() = 'authenticated')
-  WITH CHECK (auth.role() = 'authenticated');
+  FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
 
 CREATE POLICY "<table_name>_auth_delete" ON <table_name>
-  FOR DELETE USING (auth.role() = 'authenticated');
+  FOR DELETE TO authenticated USING (true);
 ```
+
+> ⚠️ 场景 C 只校验"是否登录"。若还要限制"只能操作自己的数据"，用场景 D 的所有权谓词。
 
 ### 场景 D：用户私有数据
 
-> ⚠️ 表中必须包含 `user_id` 字段（见下方 [user_id 字段定义](#user_id-字段定义)）。
+> ⚠️ 表中必须包含 `user_id` 字段（见下方 [user_id 字段定义](#user_id-字段定义)）。注意 `auth.uid()` 包进 `(select ...)`，并对 UPDATE 写全 `USING` + `WITH CHECK`。
 
 ```sql
 ALTER TABLE <table_name> ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "<table_name>_owner_select" ON <table_name>
-  FOR SELECT USING (auth.uid() = user_id);
+  FOR SELECT TO authenticated
+  USING ( (select auth.uid()) = user_id );
 
 CREATE POLICY "<table_name>_owner_insert" ON <table_name>
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
+  FOR INSERT TO authenticated
+  WITH CHECK ( (select auth.uid()) = user_id );
 
 CREATE POLICY "<table_name>_owner_update" ON <table_name>
-  FOR UPDATE USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+  FOR UPDATE TO authenticated
+  USING ( (select auth.uid()) = user_id )
+  WITH CHECK ( (select auth.uid()) = user_id );
 
 CREATE POLICY "<table_name>_owner_delete" ON <table_name>
-  FOR DELETE USING (auth.uid() = user_id);
+  FOR DELETE TO authenticated
+  USING ( (select auth.uid()) = user_id );
 ```
 
 ---
@@ -143,6 +173,9 @@ CREATE TABLE <table_name> (
   -- 其他字段 ...
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- 务必给 RLS 谓词用到的列建索引
+CREATE INDEX IF NOT EXISTS ix_<table_name>_user_id ON <table_name>(user_id);
 ```
 
 ### 为已有表添加
@@ -150,9 +183,21 @@ CREATE TABLE <table_name> (
 ```sql
 ALTER TABLE <table_name>
   ADD COLUMN user_id uuid NOT NULL DEFAULT auth.uid();
+
+CREATE INDEX IF NOT EXISTS ix_<table_name>_user_id ON <table_name>(user_id);
 ```
 
 > 💡 使用 `auth.uid()` 作为默认值，Supabase 会在插入时自动填充当前用户 ID，防止客户端伪造。
+
+---
+
+## RLS 性能
+
+RLS 谓词每行都会求值，写不好会严重拖慢查询：
+
+- **把函数包进子查询**：`(select auth.uid()) = user_id` 而非 `auth.uid() = user_id`（只算一次，大表快 100×+）。
+- **给谓词列建索引**：`CREATE INDEX ... ON <table>(user_id);`。
+- **复杂多表判断用 `SECURITY DEFINER` 辅助函数**（放进未暴露 schema、函数体内做 `auth.uid()` 检查、收回多余 `EXECUTE`），避免在策略里跨表关联导致的逐行开销。详见 [`security-guide.md`](security-guide.md) 与 [`pg-best-practices/security.md`](pg-best-practices/security.md)。
 
 ---
 
@@ -161,17 +206,13 @@ ALTER TABLE <table_name>
 查看哪些表已启用 RLS：
 
 ```bash
-uv run ./scripts/call_volcengine_supabase.py execute-sql \
-  --workspace-id ws-xxxx \
-  --query "SELECT schemaname, tablename, rowsecurity FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename;"
+byted-supabase-cli db query "SELECT schemaname, tablename, rowsecurity FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename;" --workspace-id ws-xxxx
 ```
 
 查看已有的 Policy：
 
 ```bash
-uv run ./scripts/call_volcengine_supabase.py execute-sql \
-  --workspace-id ws-xxxx \
-  --query "SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual, with_check FROM pg_policies WHERE schemaname = 'public' ORDER BY tablename, policyname;"
+byted-supabase-cli db query "SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual, with_check FROM pg_policies WHERE schemaname = 'public' ORDER BY tablename, policyname;" --workspace-id ws-xxxx
 ```
 
 ---
@@ -187,12 +228,25 @@ CREATE TABLE posts (id serial PRIMARY KEY, title text);
 ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
 -- 缺少 CREATE POLICY ...
 
--- ❌ 错误：公开表也要求 user_id（增加了不必要的复杂度）
-CREATE POLICY "公开读" ON announcements
-  FOR SELECT USING (auth.uid() = user_id);
--- 公开表应该用 USING (true)
+-- ❌ 错误：用已弃用的 auth.role()（开启匿名登录后静默失效）
+CREATE POLICY "auth_write" ON posts FOR INSERT
+  WITH CHECK (auth.role() = 'authenticated');
+-- ✅ 正确：用 TO 子句
+CREATE POLICY "auth_write" ON posts FOR INSERT
+  TO authenticated WITH CHECK (true);
 
--- ✅ 正确：公开表使用 USING (true)
-CREATE POLICY "allow_public_read" ON announcements
-  FOR SELECT USING (true);
+-- ❌ 错误：只写 TO authenticated，任何登录用户都能改所有行（IDOR）
+CREATE POLICY "bad_update" ON notes FOR UPDATE TO authenticated USING (true);
+-- ✅ 正确：配所有权谓词 + WITH CHECK
+CREATE POLICY "owner_update" ON notes FOR UPDATE TO authenticated
+  USING ((select auth.uid()) = user_id)
+  WITH CHECK ((select auth.uid()) = user_id);
+
+-- ❌ 错误：公开表也要求 user_id（增加了不必要的复杂度）
+CREATE POLICY "public_read" ON announcements FOR SELECT
+  USING (auth.uid() = user_id);
+-- ✅ 正确：公开表用 USING (true) + 指定角色
+CREATE POLICY "public_read" ON announcements FOR SELECT
+  TO anon, authenticated USING (true);
 ```
+</content>

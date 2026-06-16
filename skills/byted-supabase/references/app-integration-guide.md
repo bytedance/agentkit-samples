@@ -1,23 +1,36 @@
 # 应用集成指南
 
-本指南介绍如何将 Supabase 集成到 TypeScript 或 Python 应用中，包括获取连接信息、初始化 SDK 客户端、和执行 CRUD 操作。
+本指南介绍如何将 Supabase 集成到 TypeScript 或 Python 应用中，包括获取连接信息、初始化 SDK 客户端、执行 CRUD 操作，以及 Auth（认证）与 Realtime（实时）的 SDK 用法。
 
 ---
+
+## 目录
+
+- 获取连接信息
+- 环境变量配置
+- TypeScript 应用接入
+- Python 应用接入
+- RPC 调用（存储过程）
+- Storage 文件操作
+- Auth（认证）
+- Realtime（实时）
 
 ## 1. 获取连接信息
 
 使用本 Skill 获取 Supabase 实例的连接 URL 和密钥：
 
 ```bash
-# 获取 Supabase API URL
-uv run ./scripts/call_volcengine_supabase.py get-workspace-url --workspace-id ws-xxxx
+# 获取 Supabase API 访问地址
+byted-supabase-cli endpoints list --workspace-id ws-xxxx -o json
 
-# 获取 API Keys（默认脱敏）
-uv run ./scripts/call_volcengine_supabase.py get-keys --workspace-id ws-xxxx
+# 获取 Postgres 连接串
+byted-supabase-cli db connection-string --workspace-id ws-xxxx
 
-# 获取完整密钥（需要时）
-uv run ./scripts/call_volcengine_supabase.py get-keys --workspace-id ws-xxxx --reveal
+# 获取 API Keys（anon / service_role 等）
+byted-supabase-cli projects api-keys --workspace-id ws-xxxx -o json
 ```
+
+> ⚠️ `service_role` key 拥有完整权限，仅后端使用；非必要不要回显完整密钥。
 
 你将获得以下信息，用于应用配置：
 
@@ -338,22 +351,24 @@ except Exception as e:
 
 ## 5. RPC 调用（存储过程）
 
-如果需要复杂的数据库操作，可以先通过 `execute-sql` 创建存储过程，然后通过 SDK 调用。
+如果需要复杂的数据库操作，可以先通过 `db query` 创建存储过程，然后通过 SDK 调用。
 
 ### 创建存储过程
 
-```bash
-uv run ./scripts/call_volcengine_supabase.py execute-sql \
-  --workspace-id ws-xxxx \
-  --query "
+把下面的 SQL 存为 `search_posts.sql` 后应用（含 `$$` 的函数体用文件方式比行内更稳妥）：
+
+```sql
 CREATE OR REPLACE FUNCTION search_posts(keyword text)
-RETURNS SETOF posts AS \$\$
+RETURNS SETOF posts AS $$
   SELECT * FROM posts
   WHERE title ILIKE '%' || keyword || '%'
      OR content ILIKE '%' || keyword || '%'
   ORDER BY created_at DESC;
-\$\$ LANGUAGE sql STABLE;
-"
+$$ LANGUAGE sql STABLE;
+```
+
+```bash
+byted-supabase-cli db query -f ./search_posts.sql --workspace-id ws-xxxx
 ```
 
 ### SDK 调用
@@ -378,12 +393,10 @@ response = client.rpc('search_posts', {'keyword': 'supabase'}).execute()
 
 ```bash
 # 创建公开 bucket
-uv run ./scripts/call_volcengine_supabase.py create-storage-bucket \
-  --workspace-id ws-xxxx --bucket-name avatars --public
+byted-supabase-cli storage buckets create avatars --public --workspace-id ws-xxxx
 
 # 创建私有 bucket
-uv run ./scripts/call_volcengine_supabase.py create-storage-bucket \
-  --workspace-id ws-xxxx --bucket-name documents
+byted-supabase-cli storage buckets create documents --workspace-id ws-xxxx
 ```
 
 ### SDK 文件操作（TypeScript）
@@ -449,3 +462,110 @@ response = client.storage.from_('avatars').remove(['user1/old-avatar.png'])
 # 列出文件
 files = client.storage.from_('avatars').list('user1/')
 ```
+
+---
+
+## 7. Auth（认证）
+
+> 平台支持 Supabase Authentication。配置（邮箱/OAuth/匿名登录等）见火山 [Authentication 文档](https://www.volcengine.com/docs/87275/2277072?lang=zh)。下面是 SDK 侧常用流程。
+
+> 🔐 **安全要点**（详见 [`security-guide.md`](security-guide.md)）：
+> - 鉴权/角色数据存 `app_metadata`，**绝不**用 `user_metadata` 做授权判断（用户可改）。
+> - 服务端验证用户身份用 `getUser()`（会校验 token），**不要**只信 `getSession()` 返回的本地会话。
+> - 删除用户不会让已签发的 token 失效；敏感场景把 JWT 过期设短并主动 `signOut`。
+
+### TypeScript
+
+```typescript
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
+
+// 凭据应来自用户输入或安全来源（环境变量 / 密钥管理），切勿硬编码
+const email = userInput.email;
+const password = userInput.password;
+
+// 注册
+const { data, error } = await supabase.auth.signUp({ email, password });
+
+// 邮箱密码登录
+const { data: session, error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
+
+// 获取当前用户（服务端：会向 Auth 服务校验 token，可信）
+const { data: { user } } = await supabase.auth.getUser();
+
+// 获取本地会话（客户端用；不要在服务端用它做鉴权判断）
+const { data: { session: local } } = await supabase.auth.getSession();
+
+// 登出
+await supabase.auth.signOut();
+```
+
+### Python
+
+```python
+client = get_supabase_client()
+
+# 凭据应来自用户输入或安全来源（环境变量 / 密钥管理），切勿硬编码
+email = user_input["email"]
+password = user_input["password"]
+
+# 注册
+res = client.auth.sign_up({"email": email, "password": password})
+
+# 登录
+res = client.auth.sign_in_with_password({"email": email, "password": password})
+
+# 校验并获取当前用户（可信）
+user = client.auth.get_user()
+
+# 登出
+client.auth.sign_out()
+```
+
+---
+
+## 8. Realtime（实时）
+
+> 平台支持 Supabase Realtime：监听数据库变更（Postgres Changes）、广播（Broadcast）、在线状态（Presence）。配置见火山 [Realtime 文档](https://www.volcengine.com/docs/87275/2277058?lang=zh)。
+
+> ⚠️ Postgres Changes 同样受 **RLS** 约束——客户端只能收到 RLS 允许它看到的行的变更。要让某表的变更可被订阅，需在平台开启该表的 Realtime 并配好 RLS。
+
+### TypeScript
+
+```typescript
+// 1. 监听数据库变更（INSERT / UPDATE / DELETE）
+const channel = supabase
+  .channel('room-1')
+  .on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'messages' },
+    (payload) => {
+      console.log('变更:', payload.eventType, payload.new);
+    }
+  )
+  .subscribe();
+
+// 2. 广播（客户端之间直接收发消息，不落库）
+const bc = supabase.channel('cursor');
+bc.on('broadcast', { event: 'pos' }, ({ payload }) => console.log(payload))
+  .subscribe();
+await bc.send({ type: 'broadcast', event: 'pos', payload: { x: 1, y: 2 } });
+
+// 3. Presence（在线状态）
+const presence = supabase.channel('online');
+presence
+  .on('presence', { event: 'sync' }, () => {
+    console.log('在线用户:', presence.presenceState());
+  })
+  .subscribe(async (status) => {
+    if (status === 'SUBSCRIBED') {
+      await presence.track({ user_id: 'user-001', online_at: new Date().toISOString() });
+    }
+  });
+
+// 取消订阅
+await supabase.removeChannel(channel);
+```
+
+> Python SDK 的 Realtime 用法以火山 [SDK 文档](https://www.volcengine.com/docs/87275/2248648?lang=zh) 为准（接口随版本演进，先查文档再用）。

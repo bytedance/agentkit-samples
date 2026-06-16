@@ -1,8 +1,18 @@
 # Edge Function 开发指南
 
-本指南介绍 Edge Function 的编写规范和常见模式，函数编写后通过 `deploy-edge-function` 部署。
+本指南介绍 Edge Function 的编写规范和常见模式。本 fork 的部署从**本地函数目录**进行：`byted-supabase-cli functions new <name>` 生成 `supabase/functions/<name>/index.ts` 脚手架 → 编辑 → `byted-supabase-cli functions deploy <name>`。
 
 ---
+
+## 目录
+
+- 基础结构
+- CORS 配置
+- 请求处理
+- 带数据库访问
+- 常见模式
+- 部署与管理
+- 注意事项
 
 ## 基础结构
 
@@ -19,10 +29,9 @@ Deno.serve(async (req: Request) => {
 部署：
 
 ```bash
-uv run ./scripts/call_volcengine_supabase.py deploy-edge-function \
-  --workspace-id ws-xxxx \
-  --function-name hello \
-  --source-file ./functions/hello/index.ts
+byted-supabase-cli functions new hello                     # 生成 supabase/functions/hello/index.ts
+# 把上面的代码写入该文件后部署
+byted-supabase-cli functions deploy hello --workspace-id ws-xxxx
 ```
 
 ---
@@ -314,35 +323,25 @@ Deno.serve(async (req: Request) => {
 ## 部署与管理
 
 ```bash
-# 部署函数（从文件）
-uv run ./scripts/call_volcengine_supabase.py deploy-edge-function \
-  --workspace-id ws-xxxx \
-  --function-name my-api \
-  --source-file ./functions/my-api/index.ts
+# 1. 新建函数脚手架（本地 supabase/functions/my-api/index.ts）
+byted-supabase-cli functions new my-api
+# 2. 编辑该文件写入逻辑，然后部署
+byted-supabase-cli functions deploy my-api --workspace-id ws-xxxx
 
-# 部署函数（内联代码）
-uv run ./scripts/call_volcengine_supabase.py deploy-edge-function \
-  --workspace-id ws-xxxx \
-  --function-name hello \
-  --source-code 'Deno.serve(() => new Response("Hello World"))'
+# 部署时禁用 JWT 验证（公开 API，如 Webhook）
+byted-supabase-cli functions deploy public-api --workspace-id ws-xxxx --no-verify-jwt
 
-# 部署时禁用 JWT 验证（公开 API）
-uv run ./scripts/call_volcengine_supabase.py deploy-edge-function \
-  --workspace-id ws-xxxx \
-  --function-name public-api \
-  --source-file ./functions/public-api/index.ts \
-  --no-verify-jwt
+# 指定运行时（默认 auto；可选 deno / native-node20/v1 / python3.9|3.10|3.12）
+byted-supabase-cli functions deploy my-api --workspace-id ws-xxxx --runtime deno
 
 # 查看已部署函数
-uv run ./scripts/call_volcengine_supabase.py list-edge-functions --workspace-id ws-xxxx
+byted-supabase-cli functions list --workspace-id ws-xxxx -o json
 
-# 查看函数详情
-uv run ./scripts/call_volcengine_supabase.py get-edge-function \
-  --workspace-id ws-xxxx --function-name my-api
+# 拉取线上函数源码到本地
+byted-supabase-cli functions download my-api --workspace-id ws-xxxx
 
 # 删除函数
-uv run ./scripts/call_volcengine_supabase.py delete-edge-function \
-  --workspace-id ws-xxxx --function-name my-api
+byted-supabase-cli functions delete my-api --workspace-id ws-xxxx
 ```
 
 ---

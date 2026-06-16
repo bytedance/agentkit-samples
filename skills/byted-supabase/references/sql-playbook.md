@@ -1,5 +1,7 @@
 # SQL Playbook
 
+> 本文所有 SQL 通过 `byted-supabase-cli db query` 执行：行内 `byted-supabase-cli db query "<sql>" --workspace-id ws-xxxx`，或写入文件后 `byted-supabase-cli db query -f file.sql --workspace-id ws-xxxx`（含 `$$` 函数体、多语句时优先用文件）。
+
 ## 目录
 
 - 查看表结构
@@ -197,18 +199,18 @@ WHERE schemaname = 'public'
 ORDER BY tablename, policyname;
 ```
 
-快速启用 RLS + 公开读写策略：
+快速启用 RLS + 公开读写策略（显式指定 `TO anon, authenticated`，对齐安全规范）：
 
 ```sql
 ALTER TABLE public.your_table ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "allow_public_select" ON public.your_table FOR SELECT USING (true);
-CREATE POLICY "allow_public_insert" ON public.your_table FOR INSERT WITH CHECK (true);
-CREATE POLICY "allow_public_update" ON public.your_table FOR UPDATE USING (true) WITH CHECK (true);
-CREATE POLICY "allow_public_delete" ON public.your_table FOR DELETE USING (true);
+CREATE POLICY "your_table_public_select" ON public.your_table FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "your_table_public_insert" ON public.your_table FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY "your_table_public_update" ON public.your_table FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "your_table_public_delete" ON public.your_table FOR DELETE TO anon, authenticated USING (true);
 ```
 
-> 更多 RLS 场景模板请参考 [rls-guide.md](rls-guide.md)
+> ⚠️ 私有数据请勿用 `USING (true)`。用户私有/登录限定等场景的正确写法（`TO authenticated` + `(select auth.uid()) = user_id` + `WITH CHECK`）见 [rls-guide.md](rls-guide.md)；Supabase 特有安全陷阱见 [security-guide.md](security-guide.md)。
 
 ## 8. 存储过程（RPC）
 
