@@ -76,6 +76,11 @@ pip install volcengine
 | `VOLCENGINE_INSTANCE_TYPE` | 否 | 默认实例类型，如未提供可在调用时传入 |
 | `VOLCENGINE_DATABASE` | 否 | 默认数据库名，如未提供可在调用时传入 |
 
+补充说明：
+
+- 运行时优先读取 `~/.openclaw/.env` 中的同名配置项；如果文件或配置项缺失，会回退读取进程环境变量。
+- `~/.openclaw/.env` 支持常见 `KEY=value` 格式，空行和 `#` 注释会被忽略，带引号的值会自动去除首尾引号。
+
 ---
 
 ## 📋 InstanceType 枚举值

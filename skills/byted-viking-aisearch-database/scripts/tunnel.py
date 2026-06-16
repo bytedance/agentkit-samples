@@ -22,6 +22,49 @@ from typing import Any, Optional, List, Tuple
 from scripts.dbw_client import DBWClient
 
 
+def _load_dotenv_file(dotenv_path: str = "~/.openclaw/.env") -> dict[str, str]:
+    """Load ~/.openclaw/.env as a fallback config source."""
+    dotenv_map: dict[str, str] = {}
+    resolved_path = os.path.expanduser(dotenv_path)
+    if not os.path.isfile(resolved_path):
+        return dotenv_map
+
+    try:
+        with open(resolved_path, "r", encoding="utf-8") as f:
+            for raw_line in f:
+                line = raw_line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+
+                key, _, value = line.partition("=")
+                key = key.strip()
+                value = value.strip()
+                if (value.startswith('"') and value.endswith('"')) or (
+                    value.startswith("'") and value.endswith("'")
+                ):
+                    value = value[1:-1]
+                if key and value:
+                    dotenv_map[key] = value
+    except Exception:
+        return {}
+
+    return dotenv_map
+
+
+def _load_config_value(key: str, dotenv_map: Optional[dict[str, str]] = None) -> Optional[str]:
+    """Prefer ~/.openclaw/.env, then fall back to the process environment."""
+    if dotenv_map is None:
+        dotenv_map = _load_dotenv_file()
+
+    value = dotenv_map.get(key)
+    if value is None or not str(value).strip():
+        value = os.getenv(key)
+    if value is None:
+        return None
+    value = str(value).strip()
+    return value or None
+
+
 class SecurityCache:
     """安全管控状态缓存（文件缓存）"""
 
@@ -90,16 +133,25 @@ class DatabaseTunnel:
         api_key: Optional[str] = None,
         ve_tip_token: Optional[str] = None,
     ) -> None:
-        self.client = DBWClient(
-            region=region or os.getenv("VOLCENGINE_REGION"),
-            instance_id=instance_id or os.getenv("VOLCENGINE_INSTANCE_ID"),
-            instance_type=instance_type or os.getenv("VOLCENGINE_INSTANCE_TYPE"),
-            database=database or os.getenv("VOLCENGINE_DATABASE"),
-            api_url=api_url or os.getenv("DATABASE_VIKING_APIG_URL"),
-            api_key=api_key or os.getenv("DATABASE_VIKING_APIG_KEY"),
-            ve_tip_token=ve_tip_token or os.getenv("VE_TIP_TOKEN"),
-        )
+        dotenv_map = _load_dotenv_file()
+        self._client: Optional[DBWClient] = None
+        self._client_kwargs = {
+            "region": region or _load_config_value("VOLCENGINE_REGION", dotenv_map),
+            "instance_id": instance_id or _load_config_value("VOLCENGINE_INSTANCE_ID", dotenv_map),
+            "instance_type": instance_type or _load_config_value("VOLCENGINE_INSTANCE_TYPE", dotenv_map),
+            "database": database or _load_config_value("VOLCENGINE_DATABASE", dotenv_map),
+            "api_url": api_url or _load_config_value("DATABASE_VIKING_APIG_URL", dotenv_map),
+            "api_key": api_key or _load_config_value("DATABASE_VIKING_APIG_KEY", dotenv_map),
+            "ve_tip_token": ve_tip_token or _load_config_value("VE_TIP_TOKEN", dotenv_map),
+        }
+        self._dotenv_map = dotenv_map
         self._security_cache = SecurityCache(ttl_seconds=30)
+
+    @property
+    def client(self) -> DBWClient:
+        if self._client is None:
+            self._client = DBWClient(**self._client_kwargs)
+        return self._client
 
     def _required(self, value: Optional[str], fallback: Optional[str], param_name: str, user_friendly_name: str) -> str:
         resolved = value if value not in (None, "") else fallback
@@ -108,7 +160,7 @@ class DatabaseTunnel:
         return resolved
 
     def _parse_instance_info_list_env(self) -> list[dict[str, Any]]:
-        raw = os.getenv("AISEARCH_DBW_INSTANCE_INFO_LIST")
+        raw = _load_config_value("AISEARCH_DBW_INSTANCE_INFO_LIST", self._dotenv_map)
         if not raw:
             return []
         raw = raw.strip()
