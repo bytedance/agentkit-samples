@@ -1,0 +1,12 @@
+[project]
+name = "ad-video-gen"
+version = "0.1.0"
+description = "Single-agent ecommerce ad video generation sample."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "agentkit-sdk-python==0.5.10",
+  "google-adk==1.32.0",
+  "veadk-python==0.5.37",
+  "litellm"
+]
