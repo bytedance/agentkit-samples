@@ -25,9 +25,9 @@
 
 主要的火山引擎产品或 Agent 组件：
 
-- 豆包大模型：
-  - doubao-seed-1.6-vision
-  - doubao-seed-1-6-251015
+- 大模型：
+  - deepseek-v4-pro-260425
+  - doubao-seed-2-0-pro-260215
 - 自定义工具
 - Identity
 - APMPlus

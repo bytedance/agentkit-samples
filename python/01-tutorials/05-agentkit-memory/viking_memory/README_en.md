@@ -139,7 +139,7 @@ source .venv/bin/activate
 
 ```bash
 # BytePlus  Ark model name
-export MODEL_AGENT_NAME=deepseek-v3-2-251201
+export MODEL_AGENT_NAME=deepseek-v4-pro-260425
 
 # BytePlus access credentials (required)
 export BYTEPLUS_ACCESS_KEY=<Your Access Key>

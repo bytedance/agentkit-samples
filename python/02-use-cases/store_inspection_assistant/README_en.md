@@ -25,9 +25,9 @@ This project builds an AI-driven solution for store quality inspection, using co
 
 Main BytePlus products or Agent components:
 
-- Doubao Large Language Model:
-  - doubao-seed-1.6-vision
-  - doubao-seed-1-6-251015
+- Large Language Models:
+  - deepseek-v4-pro-260425
+  - doubao-seed-2-0-pro-260215
 - Custom Tools
 - Identity
 - APMPlus
