@@ -249,4 +249,3 @@ CREATE POLICY "public_read" ON announcements FOR SELECT
 CREATE POLICY "public_read" ON announcements FOR SELECT
   TO anon, authenticated USING (true);
 ```
-</content>

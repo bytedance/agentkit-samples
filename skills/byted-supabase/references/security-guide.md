@@ -166,4 +166,3 @@ revoke execute on function private.is_team_member(bigint) from PUBLIC, anon, aut
 ---
 
 > **Attribution**：本文改编自 Supabase 官方 agent skills（`supabase/agent-skills`，MIT License，Copyright © Supabase），翻译为中文并适配火山引擎 Supabase 版。
-</content>

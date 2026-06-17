@@ -33,4 +33,3 @@
 - https://supabase.com/docs/guides/database/overview
 - https://supabase.com/docs/guides/auth/row-level-security
 - 火山引擎 Database 文档：https://www.volcengine.com/docs/87275/2385100?lang=zh
-</content>
