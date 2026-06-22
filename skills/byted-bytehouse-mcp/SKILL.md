@@ -412,4 +412,3 @@ result = await session.call_tool("run_select_query", {"query": sql})
 ```
 
 ---
-*最后更新: 2026-03-12*
