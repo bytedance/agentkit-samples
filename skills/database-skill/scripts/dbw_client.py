@@ -1,4 +1,3 @@
-
 import json
 import hashlib
 import hmac
@@ -7,7 +6,6 @@ import urllib.request
 import urllib.error
 import urllib.parse
 import re
-import base64
 import os
 from typing import Any, Dict, Optional
 
@@ -35,18 +33,24 @@ class DBWClient:
         self.database = database or os.environ.get("VOLCENGINE_DATABASE")
         self.api_base = os.environ.get("ARK_SKILL_API_BASE")
         self.api_key = os.environ.get("ARK_SKILL_API_KEY")
+        self.tip_token = os.environ.get("VE_TIP_TOKEN")
 
         # .env 补全缺失值
         try:
-            env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), ".env")
+            env_path = os.path.join(
+                os.path.dirname(
+                    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                ),
+                ".env",
+            )
             if os.path.exists(env_path):
                 env_vars = self._parse_env_file(env_path)
                 self.ak = self.ak or env_vars.get("VOLCENGINE_ACCESS_KEY")
                 self.sk = self.sk or env_vars.get("VOLCENGINE_SECRET_KEY")
-                self.api_base = self.api_base or env_vars.get("ARK_SKILL_API_BASE")
-                self.api_key = self.api_key or env_vars.get("ARK_SKILL_API_KEY")
                 self.region = self.region or env_vars.get("VOLCENGINE_REGION")
-                self.instance_id = self.instance_id or env_vars.get("VOLCENGINE_INSTANCE_ID")
+                self.instance_id = self.instance_id or env_vars.get(
+                    "VOLCENGINE_INSTANCE_ID"
+                )
                 self.database = self.database or env_vars.get("VOLCENGINE_DATABASE")
         except Exception:
             pass
@@ -78,13 +82,13 @@ class DBWClient:
                 # 去掉行内注释：先处理引号内的值，再去掉注释
                 value = value.strip()
                 if value.startswith('"') and '"' in value[1:]:
-                    value = value[1:value.index('"', 1)]
+                    value = value[1 : value.index('"', 1)]
                 elif value.startswith("'") and "'" in value[1:]:
-                    value = value[1:value.index("'", 1)]
+                    value = value[1 : value.index("'", 1)]
                 else:
                     # 无引号时，# 之前的部分是值
                     if "#" in value:
-                        value = value[:value.index("#")]
+                        value = value[: value.index("#")]
                     value = value.strip()
                 if value:
                     result[key] = value
@@ -93,9 +97,13 @@ class DBWClient:
     def _detect_region(self) -> Optional[str]:
         """APIG 模式下通过 DescribeInstances 探测实际 region。"""
         try:
-            result = self._call_api("DescribeInstances", {
-                "PageSize": 1, "InstancesVersion": "v2",
-            })
+            result = self._call_api(
+                "DescribeInstances",
+                {
+                    "PageSize": 1,
+                    "InstancesVersion": "v2",
+                },
+            )
             for inst in result.get("instances", []):
                 r = inst.get("region_id")
                 if r:
@@ -116,7 +124,9 @@ class DBWClient:
         headers: Dict[str, str],
         body: str,
     ) -> str:
-        canonical_headers = "\n".join([f"{k.lower()}:{v}" for k, v in sorted(headers.items())]) + "\n"
+        canonical_headers = (
+            "\n".join([f"{k.lower()}:{v}" for k, v in sorted(headers.items())]) + "\n"
+        )
         signed_headers = ";".join([k.lower() for k in sorted(headers.keys())])
         hashed_payload = hashlib.sha256(body.encode("utf-8")).hexdigest()
 
@@ -124,18 +134,28 @@ class DBWClient:
 
         date = headers["X-Date"]
         credential_scope = f"{date[:8]}/{region}/{service}/request"
-        hashed_canonical_request = hashlib.sha256(canonical_request.encode("utf-8")).hexdigest()
-        string_to_sign = f"HMAC-SHA256\n{date}\n{credential_scope}\n{hashed_canonical_request}"
+        hashed_canonical_request = hashlib.sha256(
+            canonical_request.encode("utf-8")
+        ).hexdigest()
+        string_to_sign = (
+            f"HMAC-SHA256\n{date}\n{credential_scope}\n{hashed_canonical_request}"
+        )
         # print(f"DEBUG: StringToSign:\n{string_to_sign}")
 
         if not sk:
             raise ValueError("Secret Key (SK) is missing. Please check your .env file.")
 
-        k_date = hmac.new(sk.encode("utf-8"), date[:8].encode("utf-8"), hashlib.sha256).digest()
+        k_date = hmac.new(
+            sk.encode("utf-8"), date[:8].encode("utf-8"), hashlib.sha256
+        ).digest()
         k_region = hmac.new(k_date, region.encode("utf-8"), hashlib.sha256).digest()
         k_service = hmac.new(k_region, service.encode("utf-8"), hashlib.sha256).digest()
-        k_signing = hmac.new(k_service, "request".encode("utf-8"), hashlib.sha256).digest()
-        signature = hmac.new(k_signing, string_to_sign.encode("utf-8"), hashlib.sha256).hexdigest()
+        k_signing = hmac.new(
+            k_service, "request".encode("utf-8"), hashlib.sha256
+        ).digest()
+        signature = hmac.new(
+            k_signing, string_to_sign.encode("utf-8"), hashlib.sha256
+        ).hexdigest()
 
         authorization = f"HMAC-SHA256 Credential={ak}/{credential_scope}, SignedHeaders={signed_headers}, Signature={signature}"
         return authorization
@@ -198,9 +218,13 @@ class DBWClient:
             "ServiceName": service,
             **_SKILL_HEADERS,
         }
+        if self.tip_token:
+            headers["x-ve-tip-token"] = self.tip_token
         return url, headers
 
-    def _build_aksk_request(self, action: str, service: str, method: str, body: str) -> tuple:
+    def _build_aksk_request(
+        self, action: str, service: str, method: str, body: str
+    ) -> tuple:
         uri = "/"
         query_params = f"Action={action}&Version=2018-01-01"
         host = f"{service}.{self.region}.volcengineapi.com"
@@ -216,13 +240,25 @@ class DBWClient:
             **_SKILL_HEADERS,
         }
         authorization = self._sign_request(
-            self.ak, self.sk, self.region, service, method, uri, query_params, headers, body
+            self.ak,
+            self.sk,
+            self.region,
+            service,
+            method,
+            uri,
+            query_params,
+            headers,
+            body,
         )
         headers["Authorization"] = authorization
         return url, headers
 
-    def _do_request(self, url: str, headers: Dict[str, str], body: str, method: str) -> Dict[str, Any]:
-        req = urllib.request.Request(url, data=body.encode("utf-8"), headers=headers, method=method)
+    def _do_request(
+        self, url: str, headers: Dict[str, str], body: str, method: str
+    ) -> Dict[str, Any]:
+        req = urllib.request.Request(
+            url, data=body.encode("utf-8"), headers=headers, method=method
+        )
         try:
             with urllib.request.urlopen(req, timeout=60) as resp:
                 result = json.loads(resp.read().decode("utf-8"))
@@ -230,13 +266,17 @@ class DBWClient:
             error_body = e.read().decode("utf-8")
             try:
                 parsed = json.loads(error_body)
-                meta = parsed.get("ResponseMetadata") if isinstance(parsed, dict) else None
+                meta = (
+                    parsed.get("ResponseMetadata") if isinstance(parsed, dict) else None
+                )
                 meta = meta if isinstance(meta, dict) else {}
                 err_field = meta.get("Error")
                 # 兼容老版本 dbw-mgr：Error 可能是 dict / 字符串 / None
                 err = err_field if isinstance(err_field, dict) else {}
                 code = err.get("Code") or ""
-                message = err.get("Message") or (err_field if isinstance(err_field, str) else error_body)
+                message = err.get("Message") or (
+                    err_field if isinstance(err_field, str) else error_body
+                )
                 request_id = meta.get("RequestId") or ""
                 code_n = err.get("CodeN")
                 if code or request_id:
@@ -248,11 +288,17 @@ class DBWClient:
             # Fallback: 非结构化响应（HTML/纯文本等），统一抛出 DbwApiError 并尽量携带 RequestId
             rid = ""
             if hasattr(e, "headers") and e.headers:
-                rid = e.headers.get("X-Request-Id") or e.headers.get("x-request-id") or ""
+                rid = (
+                    e.headers.get("X-Request-Id") or e.headers.get("x-request-id") or ""
+                )
             raise DbwApiError("SystemError", f"HTTP {e.code}: {error_body}", rid, None)
 
         if isinstance(result, dict) and "ResponseMetadata" in result:
-            meta = result["ResponseMetadata"] if isinstance(result["ResponseMetadata"], dict) else {}
+            meta = (
+                result["ResponseMetadata"]
+                if isinstance(result["ResponseMetadata"], dict)
+                else {}
+            )
             err_field = meta.get("Error")
             err = err_field if isinstance(err_field, dict) else {}
             if err:
@@ -317,7 +363,9 @@ class DBWClient:
     def describe_aggregate_slow_logs(self, args: Dict[str, Any]) -> Dict[str, Any]:
         return self._call_api("DescribeAggregateSlowLogs", args)
 
-    def describe_slow_log_time_series_stats(self, args: Dict[str, Any]) -> Dict[str, Any]:
+    def describe_slow_log_time_series_stats(
+        self, args: Dict[str, Any]
+    ) -> Dict[str, Any]:
         return self._call_api("DescribeSlowLogTimeSeriesStats", args)
 
     def describe_full_sql_detail(self, args: Dict[str, Any]) -> Dict[str, Any]:
@@ -338,7 +386,9 @@ class DBWClient:
     def describe_dialog_infos(self, args: Dict[str, Any]) -> Dict[str, Any]:
         return self._call_api("DescribeDialogInfos", args)
 
-    def describe_snapshot_collection_status(self, args: Dict[str, Any]) -> Dict[str, Any]:
+    def describe_snapshot_collection_status(
+        self, args: Dict[str, Any]
+    ) -> Dict[str, Any]:
         return self._call_api("DescribeInstanceDasSnapShotCollectionStatus", args)
 
     def describe_dialog_snapshots(self, args: Dict[str, Any]) -> Dict[str, Any]:
@@ -356,7 +406,9 @@ class DBWClient:
     def analyze_trx_and_lock(self, args: Dict[str, Any]) -> Dict[str, Any]:
         return self._call_api("AnalyzeTrxAndLock", args)
 
-    def describe_trx_and_lock_analysis_task_results(self, args: Dict[str, Any]) -> Dict[str, Any]:
+    def describe_trx_and_lock_analysis_task_results(
+        self, args: Dict[str, Any]
+    ) -> Dict[str, Any]:
         return self._call_api("DescribeTrxAndLockAnalysisTaskResults", args)
 
     def create_trx_export_task(self, args: Dict[str, Any]) -> Dict[str, Any]:
