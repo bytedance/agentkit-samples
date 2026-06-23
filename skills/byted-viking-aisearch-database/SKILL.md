@@ -70,7 +70,7 @@ pip install volcengine
 | :--- | :--- | :--- |
 | `DATABASE_VIKING_APIG_URL` | 是 | API Gateway 服务地址 |
 | `DATABASE_VIKING_APIG_KEY` | 是 | API Gateway 鉴权密钥 (API Key) |
-| `AISEARCH_DBW_INSTANCE_INFO_LIST` | 是 | 用户可访问实例列表(JSON 数组字符串)，例如：`[{"instance_id":"mysql-xxx","instance_type":"MySQL","region":"cn-beijing"}]` |
+| `AISEARCH_DBW_INSTANCE_INFO_LIST` | 是 | 用户可访问实例列表，格式为 base64 编码后的 JSON 数组，例如原始 JSON 为 `[{"instance_id":"mysql-xxx","instance_type":"MySQL","region":"cn-beijing"}]` |
 | `VOLCENGINE_REGION` | 否 | 默认区域，如未提供可在调用时传入 |
 | `VOLCENGINE_INSTANCE_ID` | 否 | 默认实例 ID，如未提供可在调用时传入 |
 | `VOLCENGINE_INSTANCE_TYPE` | 否 | 默认实例类型，如未提供可在调用时传入 |
