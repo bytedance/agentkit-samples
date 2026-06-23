@@ -1,0 +1,15 @@
+[app]
+name = "AgentKit-小懂车"
+name_en = "Smart Car Selector"
+id = "smart-car-selector"
+version = "0.1.0"
+description = "一个基于 AgentKit 的单体购车咨询助手示例（选车 + 算账 + 交付）。"
+entry = "agentkit-agent.py"
+readme = "README.md"
+readme_en = "README_en.md"
+license = "Apache-2.0"
+tags = ["car", "assistant", "agentkit", "unified"]
+
+[runtime]
+language = "python"
+python = ">=3.12"
