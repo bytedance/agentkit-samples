@@ -25,9 +25,16 @@ from typing import Any, Optional
 
 from .vephone_client import VePhoneClient
 
+_config_path_override: Optional[str] = None
+
+
+def set_config_path(config_path: Optional[str]) -> None:
+    global _config_path_override
+    _config_path_override = config_path
+
 
 def _config_candidates(config_path: str) -> list[Path]:
-    candidate = Path(config_path)
+    candidate = Path(config_path).expanduser()
     if candidate.is_absolute():
         return [candidate]
 
@@ -38,46 +45,51 @@ def _config_candidates(config_path: str) -> list[Path]:
     return candidates
 
 
-def load_config(config_path: str = "config.json") -> dict:
+def load_config(config_path: Optional[str] = None) -> dict:
+    config_path = config_path or _config_path_override or "config.json"
     for candidate in _config_candidates(config_path):
         if candidate.exists():
-            with candidate.open('r', encoding='utf-8') as f:
+            with candidate.open("r", encoding="utf-8") as f:
                 return json.load(f)
     return {}
 
 
-def config_value(config: dict, key: str, env_key: str, default: Optional[str] = None) -> Optional[str]:
+def config_value(
+    config: dict, key: str, env_key: str, default: Optional[str] = None
+) -> Optional[str]:
     return config.get(key) or config.get(env_key) or default
 
 
 def request_kwargs(args) -> dict:
     kwargs = {}
-    product_id = getattr(args, 'product_id', None)
+    product_id = getattr(args, "product_id", None)
     if product_id is not None:
-        kwargs['ProductId'] = product_id
+        kwargs["ProductId"] = product_id
     return kwargs
 
 
 def get_client() -> VePhoneClient:
-    access_key = os.getenv('VOLC_ACCESS_KEY')
-    secret_key = os.getenv('VOLC_SECRET_KEY')
-    region = 'cn-north-1'
-    tos_bucket = os.getenv('VOLC_TOS_BUCKET')
-    tos_region = os.getenv('VOLC_TOS_REGION')
-    tos_endpoint = os.getenv('VOLC_TOS_ENDPOINT')
-    tos_prefix = os.getenv('VOLC_TOS_PREFIX')
+    access_key = os.getenv("VOLC_ACCESS_KEY")
+    secret_key = os.getenv("VOLC_SECRET_KEY")
+    region = "cn-north-1"
+    tos_bucket = os.getenv("VOLC_TOS_BUCKET")
+    tos_region = os.getenv("VOLC_TOS_REGION")
+    tos_endpoint = os.getenv("VOLC_TOS_ENDPOINT")
+    tos_prefix = os.getenv("VOLC_TOS_PREFIX")
 
     if not access_key or not secret_key:
         config = load_config()
-        access_key = config_value(config, 'access_key', 'VOLC_ACCESS_KEY')
-        secret_key = config_value(config, 'secret_key', 'VOLC_SECRET_KEY')
-        tos_bucket = config_value(config, 'tos_bucket', 'VOLC_TOS_BUCKET')
-        tos_region = config_value(config, 'tos_region', 'VOLC_TOS_REGION')
-        tos_endpoint = config_value(config, 'tos_endpoint', 'VOLC_TOS_ENDPOINT')
-        tos_prefix = config_value(config, 'tos_prefix', 'VOLC_TOS_PREFIX')
+        access_key = config_value(config, "access_key", "VOLC_ACCESS_KEY")
+        secret_key = config_value(config, "secret_key", "VOLC_SECRET_KEY")
+        tos_bucket = config_value(config, "tos_bucket", "VOLC_TOS_BUCKET")
+        tos_region = config_value(config, "tos_region", "VOLC_TOS_REGION")
+        tos_endpoint = config_value(config, "tos_endpoint", "VOLC_TOS_ENDPOINT")
+        tos_prefix = config_value(config, "tos_prefix", "VOLC_TOS_PREFIX")
 
     if not access_key or not secret_key:
-        print("错误: 请设置环境变量 VOLC_ACCESS_KEY 和 VOLC_SECRET_KEY，或配置 config.json 文件")
+        print(
+            "错误: 请设置环境变量 VOLC_ACCESS_KEY 和 VOLC_SECRET_KEY，或配置 config.json 文件"
+        )
         sys.exit(1)
 
     return VePhoneClient(
@@ -95,14 +107,14 @@ def print_result(result: dict, indent: int = 2):
     print(json.dumps(result, indent=indent, ensure_ascii=False))
 
 
-def parse_string_params(items: Optional[list], option_name: str = '--payload') -> dict:
+def parse_string_params(items: Optional[list], option_name: str = "--payload") -> dict:
     params = {}
     for item in items or []:
-        if '=' not in item:
-            raise SystemExit(f'{option_name} 必须是 Key=value 格式')
-        key, value = item.split('=', 1)
+        if "=" not in item:
+            raise SystemExit(f"{option_name} 必须是 Key=value 格式")
+        key, value = item.split("=", 1)
         if not key:
-            raise SystemExit(f'{option_name} key 不能为空')
+            raise SystemExit(f"{option_name} key 不能为空")
         params[key] = value
     return params
 
@@ -110,55 +122,89 @@ def parse_string_params(items: Optional[list], option_name: str = '--payload') -
 def parse_csv_values(value: Optional[str], value_type=str):
     if not value:
         return None
-    return [value_type(item) for item in value.split(',') if item != '']
+    return [value_type(item) for item in value.split(",") if item != ""]
 
 
 def parse_csv(value: str) -> list:
-    return [item for item in value.split(',') if item]
+    return [item for item in value.split(",") if item]
 
 
 def parse_bool_flag(value: str) -> bool:
     if isinstance(value, bool):
         return value
     lowered = value.lower()
-    if lowered in {'true', '1', 'yes', 'y'}:
+    if lowered in {"true", "1", "yes", "y"}:
         return True
-    if lowered in {'false', '0', 'no', 'n'}:
+    if lowered in {"false", "0", "no", "n"}:
         return False
-    raise argparse.ArgumentTypeError('布尔值必须是 true/false')
+    raise argparse.ArgumentTypeError("布尔值必须是 true/false")
 
 
-def parse_json_option(value: Optional[str], option_name: str, expected_type: Optional[type] = None) -> Any:
+def parse_json_option(
+    value: Optional[str], option_name: str, expected_type: Optional[type] = None
+) -> Any:
     if value is None:
         return None
     try:
         parsed = json.loads(value)
     except json.JSONDecodeError as exc:
-        raise SystemExit(f'{option_name} 必须是合法 JSON: {exc.msg}') from exc
+        raise SystemExit(f"{option_name} 必须是合法 JSON: {exc.msg}") from exc
     if expected_type is not None and not isinstance(parsed, expected_type):
-        raise SystemExit(f'{option_name} 必须是 {expected_type.__name__} JSON')
+        raise SystemExit(f"{option_name} 必须是 {expected_type.__name__} JSON")
     return parsed
+
+
+def parse_json_like_value(value: str) -> Any:
+    stripped = value.strip()
+    if stripped == "":
+        return ""
+    try:
+        return json.loads(stripped)
+    except json.JSONDecodeError:
+        return value
+
+
+def parse_key_value_params(
+    items: Optional[list[str]], option_name: str = "--param"
+) -> dict[str, Any]:
+    params = {}
+    for item in items or []:
+        if "=" not in item:
+            raise SystemExit(f"{option_name} 必须是 Key=Value 格式")
+        key, value = item.split("=", 1)
+        if not key:
+            raise SystemExit(f"{option_name} key 不能为空")
+        params[key] = parse_json_like_value(value)
+    return params
 
 
 def parse_app_list(value: str) -> list[dict]:
     stripped = value.strip()
-    if stripped.startswith('['):
-        parsed = parse_json_option(value, '--app-list', list)
+    if stripped.startswith("["):
+        parsed = parse_json_option(value, "--app-list", list)
         for item in parsed:
-            if not isinstance(item, dict) or 'AppId' not in item or 'VersionId' not in item:
-                raise SystemExit('--app-list JSON 数组中的每项都必须包含 AppId 和 VersionId')
+            if (
+                not isinstance(item, dict)
+                or "AppId" not in item
+                or "VersionId" not in item
+            ):
+                raise SystemExit(
+                    "--app-list JSON 数组中的每项都必须包含 AppId 和 VersionId"
+                )
         return parsed
 
     app_list = []
-    for item in value.split(','):
+    for item in value.split(","):
         if not item:
             continue
-        if ':' not in item:
-            raise SystemExit('--app-list 必须是 AppId:VersionId,AppId2:VersionId2 或 JSON 数组')
-        app_id, version_id = item.split(':', 1)
+        if ":" not in item:
+            raise SystemExit(
+                "--app-list 必须是 AppId:VersionId,AppId2:VersionId2 或 JSON 数组"
+            )
+        app_id, version_id = item.split(":", 1)
         if not app_id or not version_id:
-            raise SystemExit('--app-list 中的 AppId 和 VersionId 不能为空')
-        app_list.append({'AppId': app_id, 'VersionId': version_id})
+            raise SystemExit("--app-list 中的 AppId 和 VersionId 不能为空")
+        app_list.append({"AppId": app_id, "VersionId": version_id})
     if not app_list:
-        raise SystemExit('--app-list 不能为空')
+        raise SystemExit("--app-list 不能为空")
     return app_list
