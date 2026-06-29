@@ -149,7 +149,7 @@ class DatabaseTunnel:
         dotenv_map = _load_dotenv_file()
         self.instance_info_list_raw = _load_config_value(
             "AISEARCH_DBW_INSTANCE_INFO_LIST", dotenv_map
-        )
+        ) or _load_config_value("KNOWLEDGE_CENTER_DBW_INSTANCE_LIST", dotenv_map)
         self._explicit_config = (
             region,
             instance_id,

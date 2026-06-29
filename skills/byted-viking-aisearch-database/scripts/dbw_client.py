@@ -46,7 +46,11 @@ class DBWClient:
         return converted
 
     def _call_api(self, action: str, body_args: Dict[str, Any]) -> Dict[str, Any]:
-        base_url = self.api_url if self.api_url.startswith("http://") else f"http://{self.api_url}"
+        api_url = self.api_url.rstrip("/")
+        if api_url.startswith(("http://", "https://")):
+            base_url = api_url
+        else:
+            base_url = f"https://{api_url}"
         url = f"{base_url}?Action={action}&Version=2018-01-01"
 
         body_dict = {}
