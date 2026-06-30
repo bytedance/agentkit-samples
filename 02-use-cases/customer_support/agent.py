@@ -34,11 +34,16 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 from tools.crm_mock import (
     create_service_record,
     delete_service_record,
+    get_available_service_slots,
     get_customer_info,
     get_customer_purchases,
+    get_service_case_brief,
     get_service_records,
     query_warranty,
+    reschedule_service_record,
+    schedule_service_record,
     update_service_record,
+    verify_customer_identity,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -109,6 +114,11 @@ else:
 
 # 4. 导入crm 系统的函数工具
 crm_tool = [
+    verify_customer_identity,
+    get_service_case_brief,
+    get_available_service_slots,
+    schedule_service_record,
+    reschedule_service_record,
     create_service_record,
     update_service_record,
     delete_service_record,
@@ -146,11 +156,13 @@ after_sale_prompt = (
     <关于维修>
     1. 知识库中包含 手机、电视等商品的保修策略、售后政策、操作不当等常见问题的解决方案，客户问题必须要先查询知识库，是否有相关解决方案，参考已有案例引导客户排查 
     2. 涉及到具体商品的维修或售后咨询时，优先索取产品序列号，便于查询产品信息。
-    3. 若客户忘记序列号，可先核验身份再查询购买记录确认商品信息， 可以通过客户姓名、邮箱 等信息进行核验。
+    3. 若客户忘记序列号，可先核验身份再查询购买记录确认商品信息， 可以通过客户姓名、邮箱、生日等信息进行核验；敏感操作至少匹配两项身份信息。
     4. 详细询问故障情况，目前需要查询知识库内容的排查手册，来引导客户完成基础排查，重点排除操作不当等简单问题。若故障可以通过简易步骤解决，应优先鼓励客户自行操作修复。
     5. 产品不在保修范围时，确认客户是否接受自费维修。
-    6. 创建维修单前，请确保完整收集必要信息（包括商品编号、故障描述、客户联系信息、维修时间等）。在正式提交前，需将全部信息发送给客户进行最终确认。
-    7. 缺少必要信息时，礼貌询问客户补充。
+    6. 创建维修单前，先查询客户售后概览，确认是否已有进行中的维修单；再查询可预约时段，并向客户提供可选时间。
+    7. 创建或改期维修单时，必须使用带校验的预约工具，不能绕过排班冲突、商品归属和客户确认校验。
+    8. 创建维修单前，请确保完整收集必要信息（包括商品编号、故障描述、客户联系信息、维修时间等）。在正式提交前，需将全部信息发送给客户进行最终确认。
+    9. 缺少必要信息时，礼貌询问客户补充。
     
     <沟通要求>
     1. 保持耐心和礼貌，避免使用不专业用语和行为。
