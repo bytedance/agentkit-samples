@@ -45,6 +45,47 @@ from tools.crm_mock import (
     update_service_record,
     verify_customer_identity,
 )
+from tools.customer_recovery import (
+    build_escalation_plan,
+    build_manager_handoff,
+    detect_customer_sentiment,
+    draft_recovery_response,
+    recommend_compensation,
+    summarize_recovery_case,
+)
+from tools.product_advisor import (
+    build_purchase_bundle,
+    compare_products,
+    estimate_room_fit,
+    handle_purchase_objection,
+    list_available_products,
+    recommend_products,
+    summarize_customer_purchase_profile,
+)
+from tools.purchase_workflow import (
+    build_quote,
+    create_order_handoff,
+    recommend_checkout_path,
+    summarize_post_purchase_opportunities,
+    suggest_payment_plans,
+    validate_purchase_readiness,
+)
+from tools.service_intelligence import (
+    analyze_service_backlog,
+    assess_service_risks,
+    build_service_completion_summary,
+    estimate_service_cost,
+    prepare_customer_follow_up,
+    recommend_service_plan,
+    score_service_record_health,
+    triage_service_issue,
+)
+from tools.service_operations import (
+    build_priority_work_queue,
+    build_service_dashboard,
+    create_follow_up_tasks,
+    summarize_service_metrics,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -115,6 +156,24 @@ else:
 # 4. 导入crm 系统的函数工具
 crm_tool = [
     verify_customer_identity,
+    detect_customer_sentiment,
+    build_escalation_plan,
+    recommend_compensation,
+    build_manager_handoff,
+    draft_recovery_response,
+    summarize_recovery_case,
+    build_service_dashboard,
+    build_priority_work_queue,
+    create_follow_up_tasks,
+    summarize_service_metrics,
+    triage_service_issue,
+    estimate_service_cost,
+    assess_service_risks,
+    recommend_service_plan,
+    build_service_completion_summary,
+    analyze_service_backlog,
+    score_service_record_health,
+    prepare_customer_follow_up,
     get_service_case_brief,
     get_available_service_slots,
     schedule_service_record,
@@ -159,14 +218,17 @@ after_sale_prompt = (
     3. 若客户忘记序列号，可先核验身份再查询购买记录确认商品信息， 可以通过客户姓名、邮箱、生日等信息进行核验；敏感操作至少匹配两项身份信息。
     4. 详细询问故障情况，目前需要查询知识库内容的排查手册，来引导客户完成基础排查，重点排除操作不当等简单问题。若故障可以通过简易步骤解决，应优先鼓励客户自行操作修复。
     5. 产品不在保修范围时，确认客户是否接受自费维修。
-    6. 创建维修单前，先查询客户售后概览，确认是否已有进行中的维修单；再查询可预约时段，并向客户提供可选时间。
-    7. 创建或改期维修单时，必须使用带校验的预约工具，不能绕过排班冲突、商品归属和客户确认校验。
-    8. 创建维修单前，请确保完整收集必要信息（包括商品编号、故障描述、客户联系信息、维修时间等）。在正式提交前，需将全部信息发送给客户进行最终确认。
-    9. 缺少必要信息时，礼貌询问客户补充。
+    6. 创建维修单前，先进行故障分诊、费用预估和风险识别，再查询客户售后概览，确认是否已有进行中的维修单。
+    7. 需要维修时，优先生成服务方案，向客户说明基础排查步骤、费用风险和可预约时段。
+    8. 创建或改期维修单时，必须使用带校验的预约工具，不能绕过排班冲突、商品归属和客户确认校验。
+    9. 创建维修单前，请确保完整收集必要信息（包括商品编号、故障描述、客户联系信息、维修时间等）。在正式提交前，需将全部信息发送给客户进行最终确认。
+    10. 缺少必要信息时，礼貌询问客户补充。
     
     <沟通要求>
     1. 保持耐心和礼貌，避免使用不专业用语和行为。
     2. 工具结果不能直接反馈给客户，需结合客户问题筛选、格式化并润色回复内容，确保清晰、准确、简洁。
+    3. 当客户表达投诉、强烈不满、催单、赔偿诉求或威胁曝光时，先识别客户情绪并生成升级处理方案；必要时准备主管交接包和安抚回复草稿。
+    4. 补偿建议只能作为内部参考，回复客户时不得承诺超出政策或未经确认的赔付。
     
     请根据上述要求，准确、简明且专业地回答客户问题，并积极协助解决售后问题。 同时，全程你被禁止使用知识库以外未经过认证的解决方案， 所有解决方案必须要先从知识库查询解决方案。
     
@@ -214,6 +276,9 @@ shopping_guide_prompt = (
     3. 如果客户表现出对某个商品很感兴趣，你需要详细介绍下该商品，并且结合客户的要求，说明推荐该商品的理由
     4. 当前你能售卖的商品都存在知识库中，你只能根据知识库中有的商品信息来回答客户的问题，不能编造不存在的商品信息。
     5. 当前你只能给客户推荐 在售的商品，不能推荐不存在或者已下架商品。
+    6. 推荐商品前，先结合客户预算、使用场景、观看距离和历史购买记录生成推荐；涉及多款商品时先做结构化对比，再给出明确取舍。
+    7. 客户提出价格、品牌、选择困难等异议时，先识别异议类型，再给出替代方案和边界说明。
+    8. 客户准备购买时，必须先生成报价并校验配送、优惠、支付方式和客户确认状态；未确认前不得宣称已经下单成功。
     
     <沟通要求>
     1. 请注意你需要耐心有礼貌的和客户进行沟通，避免回复客户时使用不专业的语言或行为。
@@ -237,7 +302,23 @@ shopping_guide_agent = Agent(
     ),
     knowledgebase=knowledge,
     long_term_memory=long_term_memory,
-    tools=[get_customer_info, get_customer_purchases],
+    tools=[
+        get_customer_info,
+        get_customer_purchases,
+        summarize_customer_purchase_profile,
+        list_available_products,
+        recommend_products,
+        compare_products,
+        estimate_room_fit,
+        build_purchase_bundle,
+        handle_purchase_objection,
+        build_quote,
+        suggest_payment_plans,
+        validate_purchase_readiness,
+        create_order_handoff,
+        recommend_checkout_path,
+        summarize_post_purchase_opportunities,
+    ],
     before_agent_callback=before_agent_execution,
     after_agent_callback=after_agent_execution,
     instruction=shopping_guide_prompt,
