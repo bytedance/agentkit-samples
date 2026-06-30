@@ -55,8 +55,8 @@ def filter_pii(
     # --- 个人信息(PII)过滤规则 ---
     # 用于在 after_model_callback 中过滤模型响应中的个人信息。
     PII_PATTERNS_CHINESE = {
-        "电话号码": r"1[3-9]\d{9}",
         "身份证号": r"\d{17}[\dXx]",  # 17位数字 + 1位数字或X
+        "电话号码": r"1[3-9]\d{9}",
         "邮箱": r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}",
     }
     if patterns is None:
