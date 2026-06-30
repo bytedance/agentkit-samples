@@ -15,6 +15,7 @@
 import re
 import socket
 import warnings
+import ipaddress
 from urllib.parse import urljoin
 
 import requests
@@ -62,10 +63,8 @@ def _is_public_ip(url: str) -> bool:
     try:
         hostname = url.split("://")[1].split("/")[0].split(":")[0]
         ip_address = socket.gethostbyname(hostname)
-        # 检查IP地址是否为私有、保留或回环地址
-        if ip_address.startswith(("10.", "172.", "192.168.", "127.", "169.254.")):
-            return False
-        return True
+        # 仅允许公网可路由地址，拒绝私有、保留、回环、链路本地等地址。
+        return ipaddress.ip_address(ip_address).is_global
     except Exception:
         return False
 

@@ -19,6 +19,8 @@ import logging
 import time
 import os
 
+logger = logging.getLogger(__name__)
+
 test_dict = {
     "local": "http://localhost:8004/{}",  # 0: do not use
 }
@@ -88,6 +90,18 @@ def pick_best_video(evaluate_video_result):
     return best_video_list
 
 
+def parse_last_sse_text(response_text):
+    data_lines = [
+        line for line in response_text.splitlines() if line.startswith("data: ")
+    ]
+    if not data_lines:
+        return None
+
+    last_data = data_lines[-1][6:]
+    event = json.loads(last_data)
+    return event["content"]["parts"][0]["text"]
+
+
 def run_sse(app_name, user_id, session_id, text):
     url = url_template.format("run_sse")
     # logger.info(f"main output: run_sse url: {url}")
@@ -108,21 +122,13 @@ def run_sse(app_name, user_id, session_id, text):
         logger.info(f"原始响应: {response.text[:500]}...")  # 打印前500字符防止太长
 
         # ❷ 按行解析最后一个 data: 块（因为服务器仍返回 SSE 格式）
-        data_lines = [
-            line for line in response.text.splitlines() if line.startswith("data: ")
-        ]
-        if not data_lines:
+        parsed_text = parse_last_sse_text(response.text)
+        if parsed_text is None:
             logger.warning("未找到任何 data: 块")
             return None
 
-        last_data = data_lines[-1][6:]  # 去掉 'data: ' 前缀
-        event = json.loads(last_data)
-        logger.info(
-            f"最后一个 event: {json.dumps(event, ensure_ascii=False, indent=2)}"
-        )
-
         # ❸ 提取最终内容（如果结构固定）
-        return event["content"]["parts"][0]["text"]
+        return parsed_text
 
     except requests.exceptions.Timeout:
         logger.error("请求超时（超过6000秒）")

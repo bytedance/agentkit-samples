@@ -31,12 +31,12 @@ def parse_bbox(bbox_string):
         tuple: (x1, y1, x2, y2) 坐标
     """
     # 使用正则表达式提取bbox中的数字
-    pattern = r"<bbox>(\d+)\s+(\d+)\s+(\d+)\s+(\d+)</bbox>"
+    pattern = r"^<bbox>(\d+)\s+(\d+)\s+(\d+)\s+(\d+)</bbox>$"
     match = re.match(pattern, bbox_string.strip())
 
     if not match:
         # 尝试匹配没有空格的格式
-        pattern = r"<bbox>(\d+),?\s*(\d+),?\s*(\d+),?\s*(\d+)</bbox>"
+        pattern = r"^<bbox>(\d+),\s*(\d+),\s*(\d+),\s*(\d+)</bbox>$"
         match = re.match(pattern, bbox_string.strip())
 
     if not match:
@@ -51,6 +51,21 @@ def parse_bbox(bbox_string):
         y1, y2 = y2, y1
 
     return x1, y1, x2, y2
+
+
+def scale_bbox_to_image(bbox, image_size):
+    """Convert normalized 0-1000 bbox coordinates to image pixel coordinates."""
+    x1, y1, x2, y2 = bbox
+    w, h = image_size
+    scaled = (
+        int(x1 * w / 1000),
+        int(y1 * h / 1000),
+        int(x2 * w / 1000),
+        int(y2 * h / 1000),
+    )
+    if scaled[0] >= scaled[2] or scaled[1] >= scaled[3]:
+        raise ValueError(f"无效的裁剪区域: {scaled}")
+    return scaled
 
 
 def crop_image_by_bbox(image_url: str, bbox_coords: str) -> tuple[str, str]:
@@ -83,13 +98,7 @@ def crop_image_by_bbox(image_url: str, bbox_coords: str) -> tuple[str, str]:
         w, h = img.size
 
         # 确保坐标在图片范围内
-        x1 = int(x1 * w / 1000)
-        y1 = int(y1 * h / 1000)
-        x2 = int(x2 * w / 1000)
-        y2 = int(y2 * h / 1000)
-
-        if x1 >= x2 or y1 >= y2:
-            raise ValueError(f"无效的裁剪区域: ({x1}, {y1}, {x2}, {y2})")
+        x1, y1, x2, y2 = scale_bbox_to_image((x1, y1, x2, y2), (w, h))
 
         # 裁剪图片
         cropped_img = img.crop((x1, y1, x2, y2))
