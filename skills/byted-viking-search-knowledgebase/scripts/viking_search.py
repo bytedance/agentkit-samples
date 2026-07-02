@@ -44,6 +44,40 @@ COLLECTION_INFO_PATH = "/api/knowledge/collection/info"
 
 ALLOWED_COLLECTION_IDS_ENV = "DATABASE_VIKING_COLLECTION"
 PERMISSION_DENIED_MSG = "没有权限访问当前知识库数据源"
+OPENCLAW_ENV_KEYS = {
+    "DATABASE_VIKING_APIG_URL",
+    "DATABASE_VIKING_APIG_KEY",
+    "DATABASE_VIKING_PROJECT",
+    "DATABASE_VIKING_COLLECTION",
+}
+
+
+def _load_openclaw_env_file(path: str = "/root/.openclaw/.env"):
+    """Load only this skill's OpenClaw env values from the local dotenv file."""
+    if not os.path.isfile(path):
+        return
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            for raw_line in f:
+                line = raw_line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, _, value = line.partition("=")
+                key = key.strip()
+                if key not in OPENCLAW_ENV_KEYS:
+                    continue
+                value = value.strip()
+                if (value.startswith('"') and value.endswith('"')) or (
+                    value.startswith("'") and value.endswith("'")
+                ):
+                    value = value[1:-1]
+                if value:
+                    os.environ[key] = value
+    except OSError:
+        return
+
+
+_load_openclaw_env_file()
 
 
 def _parse_csv_list(raw: str):
@@ -144,9 +178,7 @@ class ApigKnowledgeClient:
 
 
 def _extract_top_chunks(search_resp: dict, top_k: int):
-    result_list = (
-        (search_resp or {}).get("data", {}) or {}
-    ).get("result_list") or []
+    result_list = ((search_resp or {}).get("data", {}) or {}).get("result_list") or []
 
     chunks = []
     for item in result_list[:top_k]:
@@ -249,7 +281,9 @@ def _resolve_authorized_target(
     raise SystemExit(PERMISSION_DENIED_MSG)
 
 
-def _fetch_collections_info(client: ApigKnowledgeClient, resource_ids: list, *, max_workers: int = 8):
+def _fetch_collections_info(
+    client: ApigKnowledgeClient, resource_ids: list, *, max_workers: int = 8
+):
     results = []
 
     def fetch(rid: str):
@@ -286,14 +320,24 @@ def _fetch_collections_info(client: ApigKnowledgeClient, resource_ids: list, *, 
     return results
 
 
-def _search_one_collection(client: ApigKnowledgeClient, *, resource_id: str, query: str, limit: int):
+def _search_one_collection(
+    client: ApigKnowledgeClient, *, resource_id: str, query: str, limit: int
+):
     resp = client.search_knowledge(query=query, resource_id=resource_id, limit=limit)
     if (resp or {}).get("code") != 0:
         raise RuntimeError(f"search_knowledge failed: {resp}")
     return resp
 
 
-def _run_multi_search(client: ApigKnowledgeClient, *, collections: list, query: str, limit: int, top_k: int, max_workers: int):
+def _run_multi_search(
+    client: ApigKnowledgeClient,
+    *,
+    collections: list,
+    query: str,
+    limit: int,
+    top_k: int,
+    max_workers: int,
+):
     results = []
 
     def search(item: dict):
@@ -306,7 +350,11 @@ def _run_multi_search(client: ApigKnowledgeClient, *, collections: list, query: 
         }
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_map = {executor.submit(search, item): item for item in collections if item.get("resource_id")}
+        future_map = {
+            executor.submit(search, item): item
+            for item in collections
+            if item.get("resource_id")
+        }
         for future in as_completed(future_map):
             item = future_map[future]
             try:
@@ -330,11 +378,23 @@ def main():
 
     parser.add_argument("--query", default="", help="搜索查询文本（search/auto 必填）")
     parser.add_argument("--name", default="", help="知识库名称（可选）")
-    parser.add_argument("--project", default=os.getenv("DATABASE_VIKING_PROJECT"), help="项目名称（默认读取 DATABASE_VIKING_PROJECT，使用 --name 检索时必填）")
-    parser.add_argument("--resource-id", default="", help="知识库 resource_id（推荐使用，auto模式下作为明确路由的标志）")
+    parser.add_argument(
+        "--project",
+        default=os.getenv("DATABASE_VIKING_PROJECT"),
+        help="项目名称（默认读取 DATABASE_VIKING_PROJECT，使用 --name 检索时必填）",
+    )
+    parser.add_argument(
+        "--resource-id",
+        default="",
+        help="知识库 resource_id（推荐使用，auto模式下作为明确路由的标志）",
+    )
 
-    parser.add_argument("--limit", type=int, default=10, help="search_knowledge 返回结果数量")
-    parser.add_argument("--top-k", type=int, default=3, help="summary 提取的 top chunk 数")
+    parser.add_argument(
+        "--limit", type=int, default=10, help="search_knowledge 返回结果数量"
+    )
+    parser.add_argument(
+        "--top-k", type=int, default=3, help="summary 提取的 top chunk 数"
+    )
 
     parser.add_argument(
         "--allowed-collection-ids",
@@ -376,7 +436,9 @@ def main():
         if not args.resource_id and not args.name:
             raise SystemExit("info action requires --resource-id or --name")
         if not args.resource_id and args.name and not args.project:
-            raise SystemExit("when using --name, --project (or env DATABASE_VIKING_PROJECT) is required")
+            raise SystemExit(
+                "when using --name, --project (or env DATABASE_VIKING_PROJECT) is required"
+            )
 
         target_rid, cached_resp = _resolve_authorized_target(
             client=client,
@@ -398,7 +460,9 @@ def main():
         if not args.resource_id and not args.name:
             raise SystemExit("search action requires --resource-id or --name")
         if not args.resource_id and args.name and not args.project:
-            raise SystemExit("when using --name, --project (or env DATABASE_VIKING_PROJECT) is required")
+            raise SystemExit(
+                "when using --name, --project (or env DATABASE_VIKING_PROJECT) is required"
+            )
 
         target_rid, _ = _resolve_authorized_target(
             client=client,

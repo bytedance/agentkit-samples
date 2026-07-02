@@ -36,7 +36,7 @@ Mitigation: Restrict searches to `DATABASE_VIKING_COLLECTION`; if access is deni
 **Other Properties Related to Output:** [Requires APIG credentials and an authorized collection allowlist before execution.] <br>
 
 ## Skill Version(s): <br>
-1.0.0 (source: server release metadata) <br>
+1.0.2 (source: server release metadata) <br>
 
 ## Ethical Considerations: <br>
 Users should evaluate whether this skill is appropriate for their environment, review retrieved content before relying on it, and apply their organization's safety, security, and compliance requirements before deployment. <br>
