@@ -69,9 +69,10 @@ def request_kwargs(args) -> dict:
 
 
 def get_client() -> VePhoneClient:
+    default_region = "cn-north-1"
     access_key = os.getenv("VOLC_ACCESS_KEY")
     secret_key = os.getenv("VOLC_SECRET_KEY")
-    region = "cn-north-1"
+    region = os.getenv("VOLC_REGION") or default_region
     tos_bucket = os.getenv("VOLC_TOS_BUCKET")
     tos_region = os.getenv("VOLC_TOS_REGION")
     tos_endpoint = os.getenv("VOLC_TOS_ENDPOINT")
@@ -81,6 +82,7 @@ def get_client() -> VePhoneClient:
         config = load_config()
         access_key = config_value(config, "access_key", "VOLC_ACCESS_KEY")
         secret_key = config_value(config, "secret_key", "VOLC_SECRET_KEY")
+        region = os.getenv("VOLC_REGION") or config_value(config, "region", "VOLC_REGION", default_region)
         tos_bucket = config_value(config, "tos_bucket", "VOLC_TOS_BUCKET")
         tos_region = config_value(config, "tos_region", "VOLC_TOS_REGION")
         tos_endpoint = config_value(config, "tos_endpoint", "VOLC_TOS_ENDPOINT")

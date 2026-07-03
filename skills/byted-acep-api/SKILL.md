@@ -2,7 +2,7 @@
 name: byted-acep-api
 description: 通过本地 Python CLI 和 OpenAPI 客户端管理、排查火山云手机资源。适用于查询实例和资源、截图、执行命令、查看任务、检查应用、主机和机房容量、标签、DNS、路由，以及操作已授权的测试云手机实例。
 license: Apache-2.0
-version: 1.1.0
+version: 1.2.0
 ---
 
 # 火山云手机 Skill
@@ -304,12 +304,3 @@ python3 scripts/vephone_cli.py list-dns-rules <product_id>
 python3 scripts/vephone_cli.py detail-dns-rule <product_id> <dns_id>
 python3 scripts/vephone_cli.py list-custom-routes <product_id>
 ```
-
-## 测试
-
-```bash
-python3 -m pytest
-VEPHONE_TEST_PRODUCT_ID=<product_id> python3 -m pytest
-```
-
-变更类 live 测试需要显式开启，并提供资源 ID；不要对生产资源运行这类测试。
