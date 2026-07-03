@@ -51,8 +51,7 @@ def main():
         headers["Authorization"] = f"Bearer {token}"
         
     payload = {
-        "input": question,
-        "system_hints": "SRE_AGENT_FOLD"
+        "input": question
     }
     
     print(f"正在向 {url} 发送问题: {question}...\n")

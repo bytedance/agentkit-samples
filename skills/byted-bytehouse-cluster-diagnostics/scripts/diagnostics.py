@@ -52,7 +52,7 @@ def main():
         
     payload = {
         "input": question,
-        "system_hints": "SRE_AGENT_FOLD"
+        "systemHints": "SRE_AGENT_FOLD"
     }
     
     print(f"正在向 {url} 发送诊断问题: {question}...\n")

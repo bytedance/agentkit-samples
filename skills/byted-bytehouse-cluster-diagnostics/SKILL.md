@@ -1,7 +1,7 @@
 ---
 name: byted-bytehouse-cluster-diagnostics
 description: ByteHouse 集群诊断，健康检查，慢查询分析和负载分析的工具
-version: 1.0.2
+version: 1.0.3
 ---
 
 # ByteHouse 诊断集群 Skill

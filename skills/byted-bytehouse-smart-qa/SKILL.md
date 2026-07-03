@@ -1,7 +1,7 @@
 ---
 name: byted-bytehouse-smart-qa
 description: ByteHouse 智能问答技能
-version: 1.0.0
+version: 1.0.1
 ---
 
 # ByteHouse 智能问答 Skill
