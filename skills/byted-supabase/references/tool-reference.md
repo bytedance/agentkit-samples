@@ -154,7 +154,7 @@ byted-supabase-cli db query "SELECT version, name FROM supabase_migrations.schem
 
 > **`--framework-prefix` vs `--custom-prefix`**：`--framework-prefix` 是注入到**浏览器端**的 env 前缀（前端框架约定，如 Next.js 的 `NEXT_PUBLIC_`、Vite 的 `VITE_`），决定哪些 Supabase 变量会以该前缀暴露给客户端；`--custom-prefix` 用于把**一个已被另一条 Supabase 分支占用的** Pages 项目再绑到当前分支时做区分。
 
-> 🔎 **部署后怎么拿访问地址 → `pages binding`**：`deploy` 命令本身**不返回**访问 URL；部署成功后跑 `pages binding --workspace-id ws-... -o json`，取 `PagesProject.PreviewDomain` 就是站点的预览地址。⚠️ **这个预览域名是短效、一次性的**（URL 自带 `iga_token` + `iga_time`，基本只能打开一次、很快失效）：拿到后**立刻**交给用户打开，**不要缓存或复用**该链接；需要再次访问就**重新跑一次 `pages binding`** 取一个新的。（`pages list` 返回的 `PreviewDomain` 同理。）
+> 🔎 **部署后怎么拿访问地址 → `pages binding`**：`deploy` 命令本身**不返回**访问 URL；部署成功后跑 `pages binding --workspace-id ws-... -o json`，取 `PagesProject.PreviewDomain` 就是站点的预览地址。⚠️ **这个预览域名是短效、一次性的**（URL 自带 `iga_token` + `iga_time`，基本只能打开一次、很快失效）：拿到后**立刻**交给用户打开，**不要缓存或复用**该链接；需要再次访问就**重新跑一次 `pages binding`** 取一个新的。⚠️ **别把 `pages list` / `pages deploy list` 表格里的 `PreviewDomain` 当访问地址**——那只是**不带 token 的基础域名，直接打开打不开**（形如 `xxx.preview.iga-pages.com`，URL 上没有 `iga_token` / `iga_time`）；唯一可打开的预览链接是 `pages binding` 返回的、带一次性 token 的那个。
 
 ### 🚀 一键创建：`pages fast create`
 
