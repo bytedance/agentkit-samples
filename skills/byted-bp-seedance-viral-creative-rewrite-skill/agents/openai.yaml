@@ -1,0 +1,7 @@
+interface:
+  display_name: "Viral Creative Rewrite"
+  short_description: "Rewrite a template ad into a product-image video"
+  default_prompt: "Use $byted-bp-seedance-viral-creative-rewrite-skill to turn a template ad video and my product image into a confirmed, reviewable short ad video."
+
+policy:
+  allow_implicit_invocation: true

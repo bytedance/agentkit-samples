@@ -1,0 +1,697 @@
+{
+  "request": {
+    "viral_video": "/absolute/path/to/template_video.mp4",
+    "viral_media_type": "video",
+    "source_media_type": "image",
+    "source_image": "./assets/examples/source_product.jpg",
+    "target_audience": "female_20_30",
+    "objective": "improve_ctr",
+    "product_context": "西瓜果饮广告，核心卖点是新鲜清爽、夏日解暑、真实果肉感。最终输出必须保持与商品图相同的西瓜饮品产品身份。",
+    "extra_constraints": [
+      "保留原产品身份",
+      "不要夸大功效",
+      "时长控制在15秒内",
+      "最终生成视频不能出现任何字幕或屏幕文字",
+      "最终输出的视频产品必须与商品图完全一致，不能继承viral_video的产品身份"
+    ],
+    "output_ratio": "9:16",
+    "output_resolution": "720p",
+    "generate_audio": true
+  },
+  "viral_analysis": {
+    "video_label": "viral_video",
+    "duration_sec": 12.1,
+    "fps": 24.0,
+    "total_frames": 290,
+    "basic_info": "横屏16:9商业广告视频，完整时长12.1秒，无字幕，全程视觉叙事无台词",
+    "audio_facts": "配轻快治愈系纯音乐BGM，包含液体倾倒声、葡萄落水轻响、海边环境风噪声，无口播/旁白",
+    "camera_and_editing": "全片硬切转场无特效，采用固定机位、轻微推近镜头，单镜头时长1-1.8秒，节奏明快，无手持抖动，所有静物镜头为专业棚拍打光",
+    "material_type": "商业产品美感广告视频",
+    "scene_and_people": [
+      "葡萄园叶隙逆光场景",
+      "棚拍玻璃杯液体场景",
+      "黑背景瓶身静物场景",
+      "鲜葡萄落水特写场景",
+      "白背景瓶身静物场景",
+      "室内白衬衫年轻女性",
+      "海边吊带女性",
+      "户外山野黄外套女性"
+    ],
+    "scene_details": [
+      "葡萄藤深绿掌状叶片、黑色牵引铁丝、蓝天背景阳光星芒",
+      "透明直壁玻璃杯、深紫饱和液体、白色摄影台面",
+      "纯黑渐变背景、黑色反光台面、玻璃瓶身紫色透光",
+      "带白霜新鲜紫葡萄、湿黑台面溅起透明水珠",
+      "纯白墙面窗格阴影、米白水泥台面",
+      "浅灰纯色背景、干净白衬衫",
+      "晴天蓝色海面、明亮自然光",
+      "缓坡山野灌丛、蓝天晴日"
+    ],
+    "subject_framing": "产品始终处于画面视觉中心，人物镜头以瓶身为视觉锚点，所有特写均突出材质质感",
+    "summary": {
+      "creative_type": "自然原料溯源美感广告",
+      "product_category": "葡萄风味瓶装碳酸饮料",
+      "main_value_prop": "天然鲜果原料、纯净通透酒体、适配全休闲场景的清爽愉悦体验",
+      "target_persona_guess": "18-30岁追求品质感、热爱户外休闲的都市年轻女性"
+    },
+    "style": {
+      "visual_style": "高级电影感自然光美学，色彩饱和度高，明暗对比强烈",
+      "pacing": "快节奏剪辑，每1-2秒切换镜头，无冗余画面",
+      "emotion_tone": "明亮治愈、放松愉悦、高级干净",
+      "subtitle_style": "全程无任何字幕、文字叠加层"
+    },
+    "structure": {
+      "hook_type": "自然美景逆光星芒视觉钩子",
+      "product_exposure_timing": "第1.7秒首次出现液体，第2.5秒首次展示完整产品瓶身",
+      "cta_type": "真人饮用后微笑的情绪感染式视觉CTA",
+      "trust_signals": [
+        "原料产地实拍",
+        "液体质感微距特写",
+        "真实饮用动作",
+        "多生活场景适配展示"
+      ]
+    },
+    "segments": [
+      {
+        "start_sec": 0.0,
+        "end_sec": 1.6,
+        "role": "hook",
+        "summary": "逆光拍摄葡萄藤叶隙阳光星芒，用自然美景建立天然原料联想",
+        "product_visible": false,
+        "emotion": "治愈放松"
+      },
+      {
+        "start_sec": 1.6,
+        "end_sec": 3.2,
+        "role": "solution_demo",
+        "summary": "展示深紫液体倾倒、完整产品瓶身静物，完成产品首次曝光",
+        "product_visible": true,
+        "emotion": "高级质感"
+      },
+      {
+        "start_sec": 3.2,
+        "end_sec": 5.0,
+        "role": "proof",
+        "summary": "鲜葡萄落水特写、瓶身推近，验证葡萄原料属性与产品质感",
+        "product_visible": true,
+        "emotion": "新鲜可信"
+      },
+      {
+        "start_sec": 5.0,
+        "end_sec": 12.1,
+        "role": "cta",
+        "summary": "多场景真人举瓶、饮用、微笑，传递饮用愉悦感与场景适配性",
+        "product_visible": true,
+        "emotion": "愉悦认同"
+      }
+    ],
+    "five_second_windows": [
+      {
+        "window_index": 1,
+        "start_sec": 0.0,
+        "end_sec": 5.0,
+        "material_type": "视频",
+        "shot_type": "逆光特写、微距特写、静物中景",
+        "composition": "中心对称构图、逆光框架构图",
+        "scene": "葡萄园、棚拍摄影台",
+        "scene_details": [
+          "葡萄藤绿叶、黑色牵引铁丝、阳光星芒光斑",
+          "透明玻璃杯、深紫流动液体",
+          "纯黑渐变背景、反光台面",
+          "带白霜紫葡萄、溅起的水珠"
+        ],
+        "camera": "专业电影机、微距镜头",
+        "camera_position": "仰视拍阳光、俯视拍倒液、平视拍瓶身",
+        "camera_movement": "固定机位、镜头轻微匀速推近",
+        "materials_to_capture": [
+          "叶隙阳光星芒",
+          "紫液体倾倒水波纹",
+          "经典弧形玻璃瓶身",
+          "鲜葡萄落水动态"
+        ],
+        "action_sequence": [
+          "阳光穿过葡萄叶片形成星芒",
+          "深紫液体垂直注入玻璃杯形成同心圆水波纹",
+          "紫色玻璃瓶静置在黑背景台面",
+          "紫葡萄滚落湿台面溅起细小水珠"
+        ],
+        "product_presence": "第1.7秒出现液体，第2.5秒完整瓶身入镜",
+        "product_selling_points": [
+          "天然葡萄原料",
+          "酒体通透纯净",
+          "经典弧形玻璃瓶型"
+        ],
+        "product_satisfaction_points": [
+          "阳光星芒治愈感",
+          "液体流动视觉美感",
+          "葡萄新鲜水润质感"
+        ],
+        "subtitle_text": "",
+        "voiceover_text": "",
+        "audio_state": "环境白噪音、液体倾倒水声、葡萄落水轻响",
+        "borrowable_function": [
+          "自然场景硬切产品静物的转场逻辑",
+          "逆光星芒开场钩子设计",
+          "原料-液体-产品的递进展示逻辑"
+        ],
+        "forbidden_carryover": [
+          "不得保留原品牌瓶身浮雕标识",
+          "不得复用同款葡萄品种外观"
+        ],
+        "replication_notes": [
+          "阳光必须拍摄出星芒光斑效果",
+          "液体倾倒速度控制为每秒15ml以捕捉完整水波纹",
+          "黑背景采用中心渐变打光突出瓶身紫色透光"
+        ]
+      },
+      {
+        "window_index": 2,
+        "start_sec": 5.0,
+        "end_sec": 10.0,
+        "material_type": "视频",
+        "shot_type": "静物中景、人物近景、饮用侧拍",
+        "composition": "中心构图、人物三分法构图",
+        "scene": "白背景棚拍、室内、海边",
+        "scene_details": [
+          "白墙面窗格阴影、米白台面",
+          "浅灰纯色背景、白衬衫",
+          "晴天蓝色海面、自然侧光"
+        ],
+        "camera": "固定机位、平视角度",
+        "camera_position": "平视与人物视线齐平",
+        "camera_movement": "固定机位无运动",
+        "materials_to_capture": [
+          "白背景下的瓶身阴影",
+          "女性手持瓶身动作",
+          "仰头饮用动态"
+        ],
+        "action_sequence": [
+          "玻璃瓶在白背景台面投下紫色阴影",
+          "白衬衫女性手持瓶身看向镜头",
+          "海边女性仰头将瓶口贴唇饮用",
+          "饮用后女性正对镜头微笑"
+        ],
+        "product_presence": "全程瓶身处于画面视觉重心",
+        "product_selling_points": [
+          "握持手感舒适",
+          "户外饮用便携",
+          "饮用体验清爽"
+        ],
+        "product_satisfaction_points": [
+          "饮用时闭眼放松的神态",
+          "饮用后自然舒展的微笑",
+          "阳光海边的松弛氛围"
+        ],
+        "subtitle_text": "",
+        "voiceover_text": "",
+        "audio_state": "轻快BGM、海边风声",
+        "borrowable_function": [
+          "不同光线环境下瓶身质感对比展示",
+          "真人饮用神态的情绪传递"
+        ],
+        "forbidden_carryover": [
+          "不得复用演员肖像",
+          "不得保留原服装款式"
+        ],
+        "replication_notes": [
+          "手持瓶身时手指自然放松不要刻意摆拍",
+          "饮用动作要真实仰头、喉咙有吞咽动态"
+        ]
+      },
+      {
+        "window_index": 3,
+        "start_sec": 10.0,
+        "end_sec": 12.1,
+        "material_type": "视频",
+        "shot_type": "人物中景",
+        "composition": "人物三分法构图，瓶身位于画面左下视觉锚点",
+        "scene": "户外山野缓坡",
+        "scene_details": [
+          "黄绿灌丛缓坡、蓝天晴日、自然顶光"
+        ],
+        "camera": "固定机位平视",
+        "camera_position": "与人物胸部齐平",
+        "camera_movement": "固定机位无运动",
+        "materials_to_capture": [
+          "户外自然光下的瓶身透光",
+          "女性举瓶微笑神态"
+        ],
+        "action_sequence": [
+          "黄外套女性单手举瓶正对镜头",
+          "女性露出舒展露齿微笑"
+        ],
+        "product_presence": "瓶身完整展示在人物手部",
+        "product_selling_points": [
+          "户外场景适配",
+          "外观高级上镜"
+        ],
+        "product_satisfaction_points": [
+          "阳光下发自内心的愉悦微笑",
+          "户外休闲的放松氛围感"
+        ],
+        "subtitle_text": "",
+        "voiceover_text": "",
+        "audio_state": "轻快BGM、户外风声",
+        "borrowable_function": [
+          "多场景交叉验证产品适配性",
+          "微笑收尾的情绪闭环设计"
+        ],
+        "forbidden_carryover": [
+          "不得复用演员肖像、配饰"
+        ],
+        "replication_notes": [
+          "微笑要自然真实，避免刻意假笑",
+          "户外拍摄选择上午10点左右柔和顶光"
+        ]
+      }
+    ],
+    "shot_sequence": [
+      "1. 葡萄藤叶隙逆光阳光星芒",
+      "2. 深紫液体倾倒注入玻璃杯",
+      "3. 黑背景下紫色玻璃瓶静物",
+      "4. 鲜紫葡萄滚落湿台面溅水",
+      "5. 瓶身上半部分推近特写",
+      "6. 白背景窗格阴影下瓶身静物",
+      "7. 室内白衬衫女性举瓶看向镜头",
+      "8. 海边女性侧仰饮用产品",
+      "9. 海边女性正对镜头微笑",
+      "10. 户外山野女性举瓶露齿微笑"
+    ],
+    "product_selling_points": [
+      "天然葡萄鲜果原料",
+      "酒体通透纯净无杂质",
+      "经典弧形玻璃瓶型",
+      "握持舒适便携",
+      "适配室内/海边/户外全休闲场景",
+      "饮用清爽愉悦"
+    ],
+    "product_satisfaction_points": [
+      "阳光星芒视觉治愈感",
+      "液体流动丝滑美感",
+      "葡萄新鲜水润质感",
+      "饮用后放松微笑的情绪传递",
+      "多场景适配的认同感"
+    ],
+    "subtitle_messages": [],
+    "core_satisfaction_mechanism": "通过「自然原料视觉联想→产品质感微距呈现→真人饮用情绪验证」的递进逻辑，用高饱和色彩对比、干净光影、真实神态传递产品价值，全程无台词仅靠视觉感官建立好感",
+    "replication_script": "导演复刻脚本：1. 开场0-1.5s：拍摄对应产品原料产地的逆光自然场景，必须捕捉阳光星芒光斑，硬切转场；2. 1.5-3s：微距拍摄产品液体缓慢倾倒，捕捉完整水波纹，随后切黑背景渐变打光的完整产品静物，停留1秒；3. 3-5s：拍摄新鲜原料落水/落地动态，验证原料属性，推近产品瓶身特写；4. 5-12s：依次拍摄3个不同休闲场景的真人，依次完成举瓶展示、真实饮用、微笑看向镜头的动作，每个场景停留1.5-2秒；5. 全程不添加任何文字、字幕、UI，仅靠光影、动作、音乐传递情绪",
+    "replication_framework": "「自然原料溯源钩子→产品质感微距证明→多场景真人情绪验证」的三段式纯视觉美感广告框架，核心是用视觉感官替代台词说服",
+    "extend_to_15s_plan": "前5秒1:1复刻原素材hook与核心动作逻辑（阳光穿叶→液体倾倒→瓶身静物→原料落水）；5-12秒新增2秒瓶内液体气泡微距特写、1秒手指轻划过瓶身玻璃质感镜头；12-15秒保留原3个真人场景节奏，最终以户外场景中女性将瓶举向阳光、阳光穿透液体的定格画面作为视觉CTA收尾，全程不添加任何文字、按钮、UI元素",
+    "editable_points": [
+      {
+        "segment_role": "hook",
+        "editable": true,
+        "reason": "原料自然场景可替换为对应产品的原产地、种植环境，仅需保留逆光星芒的视觉钩子形式"
+      },
+      {
+        "segment_role": "solution_demo",
+        "editable": false,
+        "reason": "液体流动、黑背景渐变打光的质感呈现是核心视觉爽点，为不可修改的核心框架"
+      },
+      {
+        "segment_role": "proof",
+        "editable": true,
+        "reason": "饮用场景可根据目标人群替换为通勤、健身、聚会、居家等适配场景"
+      },
+      {
+        "segment_role": "cta",
+        "editable": true,
+        "reason": "人物形象、穿搭、神态可适配不同地域、不同年龄层的目标受众"
+      }
+    ]
+  },
+  "source_analysis": {
+    "video_label": "source_image",
+    "duration_sec": 5.0,
+    "fps": null,
+    "total_frames": null,
+    "basic_info": "静态产品展示图片，为夏日西瓜冰饮静物广告素材，无动态内容，采用竖屏近景构图",
+    "audio_facts": "静态图片无音轨，不存在口播、旁白、BGM、环境声",
+    "camera_and_editing": "固定静止镜头，无剪辑、无转场、无镜头运动，采用大光圈静物拍摄手法",
+    "material_type": "静态广告图片",
+    "scene_and_people": [
+      "无人物、无手部动作，仅为静物饮品展示场景"
+    ],
+    "scene_details": [
+      "浅灰色哑光平整桌面",
+      "背景为浅景深虚化的室内绿植与模糊室内环境",
+      "左下角露出新鲜绿色薄荷叶边角",
+      "右下角露出新鲜西瓜切块边角",
+      "整体为明亮柔和的自然光环境"
+    ],
+    "subject_framing": "直身玻璃杯居中满画幅特写，杯身占据画面75%以上区域，焦点精准落在杯身中部液体与冰块区域",
+    "summary": {
+      "creative_type": "静物美感展示类饮品广告",
+      "product_category": "鲜榨冰爽西瓜果饮",
+      "main_value_prop": "冰爽、新鲜、真材实料的夏日解渴饮品",
+      "target_persona_guess": "追求清凉感、偏好天然鲜饮的年轻消费群体，夏日户外/居家解渴人群"
+    },
+    "style": {
+      "visual_style": "清新通透自然光美食摄影风格，浅景深虚化背景，高通透液体质感表现",
+      "pacing": "静态无节奏变化",
+      "emotion_tone": "清凉、舒爽、治愈、有食欲",
+      "subtitle_style": "无任何字幕"
+    },
+    "structure": {
+      "hook_type": "视觉感官冲击hook，通过冰爽质感直接吸引注意力",
+      "product_exposure_timing": "全程完整展示产品主体",
+      "cta_type": "纯感官暗示型CTA，通过视觉爽点触发饮用欲望",
+      "trust_signals": [
+        "杯壁真实冷凝水珠",
+        "液体中可见西瓜果肉颗粒",
+        "真实带霜冰块质感",
+        "边角露出的新鲜原料"
+      ]
+    },
+    "segments": [
+      {
+        "start_sec": 0.0,
+        "end_sec": 5.0,
+        "role": "solution_demo",
+        "summary": "完整展示冰爽西瓜冰饮成品状态，通过细节传递产品价值",
+        "product_visible": true,
+        "emotion": "清凉舒适"
+      }
+    ],
+    "five_second_windows": [
+      {
+        "window_index": 1,
+        "start_sec": 0.0,
+        "end_sec": 5.0,
+        "material_type": "静态图片",
+        "shot_type": "产品特写",
+        "composition": "垂直中心对称构图，主体玻璃杯居中，原料仅在画面边角露出做点缀，背景完全虚化突出主体",
+        "scene": "室内明亮桌面饮品展示场景",
+        "scene_details": [
+          "浅灰色哑光平整桌面",
+          "背景浅景深虚化，可见模糊绿色植物与柔和室内环境光",
+          "玻璃杯外壁布满细密冷凝水珠",
+          "红色果饮中悬浮多块透明带孔冰块",
+          "果饮液体中可见细小西瓜果肉颗粒",
+          "左下角露出1片新鲜绿色薄荷叶",
+          "右下角露出2块新鲜西瓜切块"
+        ],
+        "camera": "大光圈定焦相机",
+        "camera_position": "平视略偏低角度，与玻璃杯中部高度齐平",
+        "camera_movement": "完全静止无任何移动",
+        "materials_to_capture": [
+          "高透直身玻璃杯",
+          "鲜榨西瓜红色果饮",
+          "新鲜带霜食用冰块",
+          "新鲜薄荷叶",
+          "新鲜西瓜切块"
+        ],
+        "action_sequence": [
+          "无动态动作，为静态静物摆放定格"
+        ],
+        "product_presence": "完整居中展示，占据画面核心视觉区域",
+        "product_selling_points": [
+          "含真实西瓜果肉原料",
+          "搭配足量冰块保证冰感",
+          "饮品通透无浑浊感",
+          "新鲜天然无添加观感"
+        ],
+        "product_satisfaction_points": [
+          "视觉直接传递冰爽降温感",
+          "通透干净的饮品舒适观感",
+          "真实食材带来的信任感",
+          "夏日解渴的心理暗示"
+        ],
+        "subtitle_text": "无",
+        "voiceover_text": "无",
+        "audio_state": "无音频",
+        "borrowable_function": [
+          "中心构图饮品特写手法",
+          "浅景深虚化背景突出主体",
+          "杯壁冷凝水珠强化冰爽感",
+          "原料边角点缀暗示食材"
+        ],
+        "forbidden_carryover": [
+          "禁止添加杂乱桌面杂物",
+          "禁止添加人物肢体遮挡主体",
+          "禁止添加杂乱桌面物品"
+        ],
+        "replication_notes": [
+          "使用侧方柔和自然光打光，在液体内部形成通透高光",
+          "冰块使用刚从冷冻取出的带霜真实冰块，禁止使用仿真冰",
+          "杯壁冷凝水可提前喷细水雾模拟真实冰透效果",
+          "背景虚化使用大光圈镜头原生实现，禁止后期过度模糊"
+        ]
+      }
+    ],
+    "shot_sequence": [
+      "单帧静态产品特写镜头"
+    ],
+    "product_selling_points": [
+      "含真实西瓜果肉",
+      "足量冰块冰感充足",
+      "饮品通透无杂质",
+      "新鲜天然原料"
+    ],
+    "product_satisfaction_points": [
+      "视觉冰爽降温感",
+      "真实食材信任感",
+      "干净通透的舒适观感",
+      "夏日解渴心理满足"
+    ],
+    "subtitle_messages": [],
+    "core_satisfaction_mechanism": "通过视觉细节（冷凝水珠、冰块、果肉颗粒）无需文字即可直接传递冰爽新鲜的感官体验，触发用户饮用欲望",
+    "replication_script": "导演复刻脚本：1. 镜头准备：使用F1.8以上大光圈定焦镜头，设置平视略低拍摄角度，与玻璃杯中部齐平；2. 场景布置：将玻璃杯放置在浅灰色哑光桌面正中央，背景布置绿植并保证完全虚化；3. 产品准备：杯内装入8分满鲜榨西瓜果饮，放入4-5块透明带孔冰块，杯壁均匀喷洒细水雾模拟冷凝水珠；4. 点缀布置：画面左下角放置1片薄荷叶、右下角放置2块西瓜切块，仅露出边角不遮挡玻璃杯主体；5. 对焦曝光：焦点锁定杯身中部冰块与液体交界处，曝光加1/3档保证红色液体通透明亮；6. 定格拍摄：保持镜头完全静止完成拍摄。",
+    "replication_framework": "静态冰饮特写通用框架：中心主体饮品 + 浅景深虚化背景 + 对应原料边角点缀 + 冰爽物理细节强化",
+    "extend_to_15s_plan": "扩展为15秒视频方案：0-5秒：复刻本图静态特写，镜头以极慢速度推近至杯壁冷凝水珠，展示水珠细微反光质感；5-10秒：镜头缓慢下移展示杯底西瓜果肉沉淀，随后轻晃玻璃杯，拍摄液体中冰块碰撞、微小气泡浮动的动态效果；10-15秒：镜头缓慢匀速拉远，完整展示桌面整体摆放，最终停在玻璃杯与西瓜、薄荷叶的完整构图，以玻璃杯表面水珠的自然光泽作为收尾，全程不添加任何文字、按钮或UI元素。",
+    "editable_points": [
+      {
+        "segment_role": "场景背景",
+        "editable": true,
+        "reason": "背景仅用于虚化衬托主体，可替换为阳台、咖啡店桌面、户外木桌等不同夏日场景，不影响核心产品表达"
+      },
+      {
+        "segment_role": "饮品种类",
+        "editable": true,
+        "reason": "核心框架为冰饮特写，可替换为杨梅汁、草莓饮、西柚饮等其他冰饮，仅需同步替换对应原料点缀即可"
+      },
+      {
+        "segment_role": "点缀配料",
+        "editable": true,
+        "reason": "边角点缀仅用于暗示饮品原料，可根据饮品种类替换为柠檬片、蓝莓、青柠等对应配料"
+      },
+      {
+        "segment_role": "冰爽细节",
+        "editable": false,
+        "reason": "杯壁冷凝水珠、真实冰块是核心爽点来源，为必须保留的核心元素，不可删除或修改"
+      }
+    ]
+  },
+  "rewrite_plan": {
+    "rewrite_strategy": {
+      "strategy_summary": "复刻viral视频「自然原料逆光hook→产品质感微距→真人场景情绪验证」三段式纯视觉广告逻辑，替换为西瓜果饮产品，完整保留原商品图产品外观、冰爽细节与新鲜卖点，制作14秒竖屏无文字广告，提升20-30岁女性用户点击率",
+      "keep_from_source": [
+        "直身玻璃杯西瓜果饮外观形态",
+        "杯壁细密冷凝水珠细节",
+        "含真实西瓜果肉颗粒与带霜冰块的液体状态",
+        "浅灰色哑光桌面场景元素",
+        "新鲜薄荷叶、西瓜切块原料点缀",
+        "冰爽清爽核心产品卖点"
+      ],
+      "borrow_from_viral": [
+        "前5秒逆光自然场景hook节奏",
+        "原料-液体-产品递进展示逻辑",
+        "1-3秒硬切转场节奏",
+        "真人饮用情绪感染CTA设计",
+        "自然光高级质感打光方式",
+        "全程无文字纯视觉叙事规则"
+      ],
+      "replace_in_source": [
+        "静态单帧展示替换为动态分镜叙事",
+        "单一静物场景替换为自然原料+棚拍+多真人场景",
+        "静止镜头替换为微距推近、真人动作动态镜头"
+      ],
+      "risk_controls": [
+        "全程禁止出现任何文字、字幕、贴片、UI元素",
+        "所有镜头产品外观必须与source商品图完全一致",
+        "不得继承viral视频中葡萄饮料相关任何产品元素",
+        "不得夸大解暑功效，仅通过视觉传递冰爽感",
+        "总时长严格控制在14秒以内",
+        "模板产品品类：葡萄风味瓶装碳酸饮料",
+        "模板主卖点：天然鲜果原料、纯净通透酒体、适配全休闲场景的清爽愉悦体验",
+        "模板里的品牌、包装、颜色命名、食材、价格、字幕和购物提示",
+        "未在源素材中直接出现的功能、功效、参数和品牌承诺不能作为强卖点。",
+        "模板产品语义混入目标商品",
+        "模型脑补素材中无法证明的卖点",
+        "生成字幕、贴纸、价格标签或购物提示",
+        "source 商品外观在多镜头中不一致"
+      ]
+    },
+    "rewritten_storyboard": {
+      "base_video_label": "watermelon_juice_14s_ad",
+      "shots": [
+        {
+          "shot_index": 1,
+          "role": "hook",
+          "duration_sec": 2.0,
+          "visual_instruction": "逆光拍摄西瓜藤叶隙阳光星芒光斑，柔和自然光穿透绿色瓜叶，硬切转场",
+          "text_overlay": "",
+          "voiceover": "",
+          "keep_from_source": false
+        },
+        {
+          "shot_index": 2,
+          "role": "solution_demo",
+          "duration_sec": 3.0,
+          "visual_instruction": "微距拍摄鲜红色西瓜果饮缓慢注入source同款直身玻璃杯，捕捉液体水波纹，随后切黑渐变背景下完整玻璃杯果饮静物，杯壁带冷凝水珠、内含冰块与果肉",
+          "text_overlay": "",
+          "voiceover": "",
+          "keep_from_source": true
+        },
+        {
+          "shot_index": 3,
+          "role": "proof",
+          "duration_sec": 3.0,
+          "visual_instruction": "新鲜带皮西瓜块滚落湿台面溅起细小水珠，随后镜头轻微推近玻璃杯果饮，特写液体中悬浮的西瓜果肉颗粒与带霜冰块",
+          "text_overlay": "",
+          "voiceover": "",
+          "keep_from_source": true
+        },
+        {
+          "shot_index": 4,
+          "role": "proof",
+          "duration_sec": 3.0,
+          "visual_instruction": "夏日阳台场景，20-30岁女性自然手持同款玻璃杯，仰头真实饮用，喉咙呈现自然吞咽动态",
+          "text_overlay": "",
+          "voiceover": "",
+          "keep_from_source": false
+        },
+        {
+          "shot_index": 5,
+          "role": "cta",
+          "duration_sec": 3.0,
+          "visual_instruction": "户外草坪晴天场景，女性举着玻璃杯朝向阳光，阳光穿透红色果饮透出通透光泽，女性露出自然放松微笑，定格收尾",
+          "text_overlay": "",
+          "voiceover": "",
+          "keep_from_source": false
+        }
+      ]
+    },
+    "prompt_package": {
+      "base_reference_summary": "基于source西瓜果饮静物图，复刻viral自然美感广告节奏，制作14秒9:16竖屏无文字冰饮广告，面向20-30岁女性用户，传递新鲜冰爽解暑感官感受",
+      "style_constraints": {
+        "visual_style": "清新通透自然光美学，高饱和度红色果饮，明暗柔和对比，干净无杂物画面",
+        "pacing": "每2-3秒硬切转场，节奏明快舒缓",
+        "emotion_tone": "清凉治愈、放松愉悦",
+        "subtitle_rule": "全程无任何文字、字幕、贴片、UI元素",
+        "subtitle_style": "No subtitles, no on-screen text, no stickers, no labels."
+      },
+      "structure_constraints": {
+        "hook_duration": "前2秒完成逆光自然场景hook",
+        "product_first_exposure_sec": 2,
+        "total_duration": "14秒以内",
+        "core_logic": "自然原料hook→产品质感展示→原料真实性证明→真人饮用→情绪CTA收尾"
+      },
+      "scene_instructions": [
+        "逆光西瓜藤叶隙阳光星芒场景",
+        "黑渐变背景棚拍果饮静物场景",
+        "新鲜西瓜块落水微距场景",
+        "夏日阳台真人饮用场景",
+        "户外草坪晴天举饮场景"
+      ],
+      "must_keep": [
+        "直身玻璃杯外观",
+        "杯壁冷凝水珠",
+        "果饮内含真实西瓜果肉颗粒",
+        "带霜透明冰块",
+        "新鲜薄荷叶、西瓜切块原料元素",
+        "冰爽清爽核心视觉感受",
+        "鲜榨冰爽西瓜果饮",
+        "冰爽、新鲜、真材实料的夏日解渴饮品",
+        "含真实西瓜果肉",
+        "足量冰块冰感充足",
+        "饮品通透无杂质",
+        "新鲜天然原料",
+        "无人物、无手部动作，仅为静物饮品展示场景"
+      ],
+      "editable_goals": [
+        "替换viral所有葡萄相关元素为西瓜对应元素",
+        "适配20-30岁女性审美调整人物穿搭与场景",
+        "统一调整为9:16竖屏构图"
+      ],
+      "target_audience": "female_20_30"
+    },
+    "generation_prompt": {
+      "prompt": "Rewrite the product image into a stronger viral-style ad video while preserving product identity, core benefit, and visible product anchors from the source image.\nTarget audience: female_20_30\nObjective: improve_ctr\nProduct context: 西瓜果饮广告，核心卖点是新鲜清爽、夏日解暑、真实果肉感。最终输出必须保持与商品图相同的西瓜饮品产品身份。\nExtra constraints: [\"保留原产品身份\", \"不要夸大功效\", \"时长控制在15秒内\", \"最终生成视频不能出现任何字幕或屏幕文字\", \"最终输出的视频产品必须与商品图完全一致，不能继承viral_video的产品身份\"]\nRewrite strategy: 复刻viral视频「自然原料逆光hook→产品质感微距→真人场景情绪验证」三段式纯视觉广告逻辑，替换为西瓜果饮产品，完整保留原商品图产品外观、冰爽细节与新鲜卖点，制作14秒竖屏无文字广告，提升20-30岁女性用户点击率\nConfirmed analysis brief: {\"template_structure\": [\"1. 葡萄藤叶隙逆光阳光星芒\", \"2. 深紫液体倾倒注入玻璃杯\", \"3. 黑背景下紫色玻璃瓶静物\", \"4. 鲜紫葡萄滚落湿台面溅水\", \"5. 瓶身上半部分推近特写\", \"6. 白背景窗格阴影下瓶身静物\", \"7. 室内白衬衫女性举瓶看向镜头\", \"8. 海边女性侧仰饮用产品\", \"9. 海边女性正对镜头微笑\", \"10. 户外山野女性举瓶露齿微笑\"], \"template_five_second_summary\": [\"0.0-5.0s / 视频 / 逆光特写、微距特写、静物中景 / 中心对称构图、逆光框架构图 / 葡萄园、棚拍摄影台 / 阳光穿过葡萄叶片形成星芒；深紫液体垂直注入玻璃杯形成同心圆水波纹；紫色玻璃瓶静置在黑背景台面；紫葡萄滚落湿台面溅起细小水珠 / 阳光星芒治愈感；液体流动视觉美感；葡萄新鲜水润质感\", \"5.0-10.0s / 视频 / 静物中景、人物近景、饮用侧拍 / 中心构图、人物三分法构图 / 白背景棚拍、室内、海边 / 玻璃瓶在白背景台面投下紫色阴影；白衬衫女性手持瓶身看向镜头；海边女性仰头将瓶口贴唇饮用；饮用后女性正对镜头微笑 / 饮用时闭眼放松的神态；饮用后自然舒展的微笑；阳光海边的松弛氛围\", \"10.0-12.1s / 视频 / 人物中景 / 人物三分法构图，瓶身位于画面左下视觉锚点 / 户外山野缓坡 / 黄外套女性单手举瓶正对镜头；女性露出舒展露齿微笑 / 阳光下发自内心的愉悦微笑；户外休闲的放松氛围感\"], \"template_director_analysis\": [\"横屏16:9商业广告视频，完整时长12.1秒，无字幕，全程视觉叙事无台词\", \"配轻快治愈系纯音乐BGM，包含液体倾倒声、葡萄落水轻响、海边环境风噪声，无口播/旁白\", \"全片硬切转场无特效，采用固定机位、轻微推近镜头，单镜头时长1-1.8秒，节奏明快，无手持抖动，所有静物镜头为专业棚拍打光\", \"商业产品美感广告视频\", \"产品始终处于画面视觉中心，人物镜头以瓶身为视觉锚点，所有特写均突出材质质感\", \"「自然原料溯源钩子→产品质感微距证明→多场景真人情绪验证」的三段式纯视觉美感广告框架，核心是用视觉感官替代台词说服\"], \"template_core_satisfaction_mechanism\": \"通过「自然原料视觉联想→产品质感微距呈现→真人饮用情绪验证」的递进逻辑，用高饱和色彩对比、干净光影、真实神态传递产品价值，全程无台词仅靠视觉感官建立好感\", \"template_extend_to_15s_plan\": \"前5秒1:1复刻原素材hook与核心动作逻辑（阳光穿叶→液体倾倒→瓶身静物→原料落水）；5-12秒新增2秒瓶内液体气泡微距特写、1秒手指轻划过瓶身玻璃质感镜头；12-15秒保留原3个真人场景节奏，最终以户外场景中女性将瓶举向阳光、阳光穿透液体的定格画面作为视觉CTA收尾，全程不添加任何文字、按钮、UI元素\", \"borrowable_elements\": [\"前5秒逆光自然场景hook节奏\", \"原料-液体-产品递进展示逻辑\", \"1-3秒硬切转场节奏\", \"真人饮用情绪感染CTA设计\", \"自然光高级质感打光方式\", \"全程无文字纯视觉叙事规则\"], \"forbidden_template_elements\": [\"模板产品品类：葡萄风味瓶装碳酸饮料\", \"模板主卖点：天然鲜果原料、纯净通透酒体、适配全休闲场景的清爽愉悦体验\", \"模板里的品牌、包装、颜色命名、食材、价格、字幕和购物提示\"], \"source_product_identity\": \"鲜榨冰爽西瓜果饮\", \"source_product_anchors\": [\"鲜榨冰爽西瓜果饮\", \"冰爽、新鲜、真材实料的夏日解渴饮品\", \"含真实西瓜果肉\", \"足量冰块冰感充足\", \"饮品通透无杂质\", \"新鲜天然原料\", \"无人物、无手部动作，仅为静物饮品展示场景\"], \"confirmed_selling_points\": [\"含真实西瓜果肉\", \"足量冰块冰感充足\", \"饮品通透无杂质\", \"新鲜天然原料\"], \"uncertain_or_unproven_points\": [\"未在源素材中直接出现的功能、功效、参数和品牌承诺不能作为强卖点。\"], \"rewrite_strategy\": \"复刻viral视频「自然原料逆光hook→产品质感微距→真人场景情绪验证」三段式纯视觉广告逻辑，替换为西瓜果饮产品，完整保留原商品图产品外观、冰爽细节与新鲜卖点，制作14秒竖屏无文字广告，提升20-30岁女性用户点击率\", \"risks\": [\"模板产品语义混入目标商品\", \"模型脑补素材中无法证明的卖点\", \"生成字幕、贴纸、价格标签或购物提示\", \"source 商品外观在多镜头中不一致\"]}\nDetailed storyboard for analysis reference only, not a strict timeline: {\"base_video_label\": \"watermelon_juice_14s_ad\", \"shots\": [{\"shot_index\": 1, \"role\": \"hook\", \"duration_sec\": 2.0, \"visual_instruction\": \"逆光拍摄西瓜藤叶隙阳光星芒光斑，柔和自然光穿透绿色瓜叶，硬切转场\", \"text_overlay\": \"\", \"voiceover\": \"\", \"keep_from_source\": false}, {\"shot_index\": 2, \"role\": \"solution_demo\", \"duration_sec\": 3.0, \"visual_instruction\": \"微距拍摄鲜红色西瓜果饮缓慢注入source同款直身玻璃杯，捕捉液体水波纹，随后切黑渐变背景下完整玻璃杯果饮静物，杯壁带冷凝水珠、内含冰块与果肉\", \"text_overlay\": \"\", \"voiceover\": \"\", \"keep_from_source\": true}, {\"shot_index\": 3, \"role\": \"proof\", \"duration_sec\": 3.0, \"visual_instruction\": \"新鲜带皮西瓜块滚落湿台面溅起细小水珠，随后镜头轻微推近玻璃杯果饮，特写液体中悬浮的西瓜果肉颗粒与带霜冰块\", \"text_overlay\": \"\", \"voiceover\": \"\", \"keep_from_source\": true}, {\"shot_index\": 4, \"role\": \"proof\", \"duration_sec\": 3.0, \"visual_instruction\": \"夏日阳台场景，20-30岁女性自然手持同款玻璃杯，仰头真实饮用，喉咙呈现自然吞咽动态\", \"text_overlay\": \"\", \"voiceover\": \"\", \"keep_from_source\": false}, {\"shot_index\": 5, \"role\": \"cta\", \"duration_sec\": 3.0, \"visual_instruction\": \"户外草坪晴天场景，女性举着玻璃杯朝向阳光，阳光穿透红色果饮透出通透光泽，女性露出自然放松微笑，定格收尾\", \"text_overlay\": \"\", \"voiceover\": \"\", \"keep_from_source\": false}]}\nSoft generation beats to follow in the final video: [{\"beat\": \"1\", \"role\": \"hook\", \"visual_goal\": \"逆光拍摄西瓜藤叶隙阳光星芒光斑，柔和自然光穿透绿色瓜叶，硬切转场\", \"timing\": \"approximate beat, not an exact second-by-second cut\"}, {\"beat\": \"2\", \"role\": \"solution_demo\", \"visual_goal\": \"微距拍摄鲜红色西瓜果饮缓慢注入source同款直身玻璃杯，捕捉液体水波纹，随后切黑渐变背景下完整玻璃杯果饮静物，杯壁带冷凝水珠、内含冰块与果肉\", \"timing\": \"approximate beat, not an exact second-by-second cut\"}, {\"beat\": \"3\", \"role\": \"proof\", \"visual_goal\": \"新鲜带皮西瓜块滚落湿台面溅起细小水珠，随后镜头轻微推近玻璃杯果饮，特写液体中悬浮的西瓜果肉颗粒与带霜冰块\", \"timing\": \"approximate beat, not an exact second-by-second cut\"}, {\"beat\": \"4\", \"role\": \"proof\", \"visual_goal\": \"夏日阳台场景，20-30岁女性自然手持同款玻璃杯，仰头真实饮用，喉咙呈现自然吞咽动态\", \"timing\": \"approximate beat, not an exact second-by-second cut\"}, {\"beat\": \"5\", \"role\": \"cta\", \"visual_goal\": \"户外草坪晴天场景，女性举着玻璃杯朝向阳光，阳光穿透红色果饮透出通透光泽，女性露出自然放松微笑，定格收尾\", \"timing\": \"approximate beat, not an exact second-by-second cut\"}]\nPrompt package: {\"base_reference_summary\": \"基于source西瓜果饮静物图，复刻viral自然美感广告节奏，制作14秒9:16竖屏无文字冰饮广告，面向20-30岁女性用户，传递新鲜冰爽解暑感官感受\", \"style_constraints\": {\"visual_style\": \"清新通透自然光美学，高饱和度红色果饮，明暗柔和对比，干净无杂物画面\", \"pacing\": \"每2-3秒硬切转场，节奏明快舒缓\", \"emotion_tone\": \"清凉治愈、放松愉悦\", \"subtitle_rule\": \"全程无任何文字、字幕、贴片、UI元素\", \"subtitle_style\": \"No subtitles, no on-screen text, no stickers, no labels.\"}, \"structure_constraints\": {\"hook_duration\": \"前2秒完成逆光自然场景hook\", \"product_first_exposure_sec\": 2, \"total_duration\": \"14秒以内\", \"core_logic\": \"自然原料hook→产品质感展示→原料真实性证明→真人饮用→情绪CTA收尾\"}, \"scene_instructions\": [\"逆光西瓜藤叶隙阳光星芒场景\", \"黑渐变背景棚拍果饮静物场景\", \"新鲜西瓜块落水微距场景\", \"夏日阳台真人饮用场景\", \"户外草坪晴天举饮场景\"], \"must_keep\": [\"直身玻璃杯外观\", \"杯壁冷凝水珠\", \"果饮内含真实西瓜果肉颗粒\", \"带霜透明冰块\", \"新鲜薄荷叶、西瓜切块原料元素\", \"冰爽清爽核心视觉感受\", \"鲜榨冰爽西瓜果饮\", \"冰爽、新鲜、真材实料的夏日解渴饮品\", \"含真实西瓜果肉\", \"足量冰块冰感充足\", \"饮品通透无杂质\", \"新鲜天然原料\", \"无人物、无手部动作，仅为静物饮品展示场景\"], \"editable_goals\": [\"替换viral所有葡萄相关元素为西瓜对应元素\", \"适配20-30岁女性审美调整人物穿搭与场景\", \"统一调整为9:16竖屏构图\"], \"target_audience\": \"female_20_30\"}\nGeneration guidance: 制作9:16竖屏720P 14秒无文字西瓜果饮广告，全程仅配轻快治愈纯音乐与环境声，无口播无字幕。镜头顺序：1. 2秒逆光西瓜藤叶阳光星芒；2. 3秒西瓜果饮注入参考图同款直身玻璃杯，切黑背景完整果饮静物（带冷凝水珠、冰块、果肉）；3. 3秒新鲜西瓜块落水溅水，推近特写果饮内部果肉冰块；4. 3秒夏日阳台年轻女性自然饮用该果饮；5. 3秒户外晴天女性举果饮朝向阳光微笑定格。所有镜头采用自然光高级打光，硬切转场，产品外观严格与参考商品图完全一致。\nOutput one cohesive rewritten ad video with a strong first-5-second hook, tighter pacing, clearer product proof, visible satisfaction moments, and a more explicit action-based visual CTA.\nTreat all shot durations and storyboard entries as approximate creative beats, not frame-accurate editing instructions. Do not attempt to reproduce every micro-shot literally. Consolidate small adjacent actions into 4-5 natural visual beats so the product remains stable and recognizable. Avoid excessive scene changes, prop changes, or complex motion that could destabilize the source product identity.\nThe final video product must stay exactly the same as the product shown in the source image. Use the source image as the product identity truth: preserve the same object type, shape, packaging, color, label placement, material, and visible design details across every shot. Do not switch to the viral video's product, ingredients, packaging, flavor, or product story. Use the viral video only as a creative reference for shot order, pacing, actions, scene function, and satisfaction structure.\nForbidden viral carryover: product category, brand, package shape, product color naming, ingredients, flavor, price, claims, captions, shopping UI, and any product-specific semantics from the viral template.\nBorrow only: structure, pacing, camera rhythm, action sequence, scene function, satisfaction pattern, and non-product-specific proof logic.\nPrefer a 12-15 second result when the model supports it: use the confirmed director-level template analysis, replicate the template framework in the opening, then extend 7-8 seconds with source-product proof, texture/detail shots, before-after change, use-case context, and visual CTA. If the template is shorter than 5 seconds, preserve its action logic and satisfaction mechanism in the first 5 seconds, then add new source-product proof shots without changing product identity.\nDo not render any subtitles, captions, on-screen text, labels, price tags, stickers, logos, shopping cart prompts, or any other text overlays.\n音乐: 原创配乐、不可识别，不出现清晰可哼唱的主旋律、不出现重复钩子段、不使用任何现有作品的旋律/和弦/节奏动机；禁止模仿任何具体艺人、禁止复刻任何年代经典曲风细节到可识别程度；无采样、无人声。",
+      "reference_video_url": null,
+      "reference_image_url": "./assets/examples/source_product.jpg"
+    }
+  },
+  "rewrite_brief": {
+    "template_structure": [
+      "1. 葡萄藤叶隙逆光阳光星芒",
+      "2. 深紫液体倾倒注入玻璃杯",
+      "3. 黑背景下紫色玻璃瓶静物",
+      "4. 鲜紫葡萄滚落湿台面溅水",
+      "5. 瓶身上半部分推近特写",
+      "6. 白背景窗格阴影下瓶身静物",
+      "7. 室内白衬衫女性举瓶看向镜头",
+      "8. 海边女性侧仰饮用产品",
+      "9. 海边女性正对镜头微笑",
+      "10. 户外山野女性举瓶露齿微笑"
+    ],
+    "template_five_second_summary": [
+      "0.0-5.0s / 视频 / 逆光特写、微距特写、静物中景 / 中心对称构图、逆光框架构图 / 葡萄园、棚拍摄影台 / 阳光穿过葡萄叶片形成星芒；深紫液体垂直注入玻璃杯形成同心圆水波纹；紫色玻璃瓶静置在黑背景台面；紫葡萄滚落湿台面溅起细小水珠 / 阳光星芒治愈感；液体流动视觉美感；葡萄新鲜水润质感",
+      "5.0-10.0s / 视频 / 静物中景、人物近景、饮用侧拍 / 中心构图、人物三分法构图 / 白背景棚拍、室内、海边 / 玻璃瓶在白背景台面投下紫色阴影；白衬衫女性手持瓶身看向镜头；海边女性仰头将瓶口贴唇饮用；饮用后女性正对镜头微笑 / 饮用时闭眼放松的神态；饮用后自然舒展的微笑；阳光海边的松弛氛围",
+      "10.0-12.1s / 视频 / 人物中景 / 人物三分法构图，瓶身位于画面左下视觉锚点 / 户外山野缓坡 / 黄外套女性单手举瓶正对镜头；女性露出舒展露齿微笑 / 阳光下发自内心的愉悦微笑；户外休闲的放松氛围感"
+    ],
+    "template_director_analysis": [
+      "横屏16:9商业广告视频，完整时长12.1秒，无字幕，全程视觉叙事无台词",
+      "配轻快治愈系纯音乐BGM，包含液体倾倒声、葡萄落水轻响、海边环境风噪声，无口播/旁白",
+      "全片硬切转场无特效，采用固定机位、轻微推近镜头，单镜头时长1-1.8秒，节奏明快，无手持抖动，所有静物镜头为专业棚拍打光",
+      "商业产品美感广告视频",
+      "产品始终处于画面视觉中心，人物镜头以瓶身为视觉锚点，所有特写均突出材质质感",
+      "「自然原料溯源钩子→产品质感微距证明→多场景真人情绪验证」的三段式纯视觉美感广告框架，核心是用视觉感官替代台词说服"
+    ],
+    "template_core_satisfaction_mechanism": "通过「自然原料视觉联想→产品质感微距呈现→真人饮用情绪验证」的递进逻辑，用高饱和色彩对比、干净光影、真实神态传递产品价值，全程无台词仅靠视觉感官建立好感",
+    "template_extend_to_15s_plan": "前5秒1:1复刻原素材hook与核心动作逻辑（阳光穿叶→液体倾倒→瓶身静物→原料落水）；5-12秒新增2秒瓶内液体气泡微距特写、1秒手指轻划过瓶身玻璃质感镜头；12-15秒保留原3个真人场景节奏，最终以户外场景中女性将瓶举向阳光、阳光穿透液体的定格画面作为视觉CTA收尾，全程不添加任何文字、按钮、UI元素",
+    "borrowable_elements": [
+      "前5秒逆光自然场景hook节奏",
+      "原料-液体-产品递进展示逻辑",
+      "1-3秒硬切转场节奏",
+      "真人饮用情绪感染CTA设计",
+      "自然光高级质感打光方式",
+      "全程无文字纯视觉叙事规则"
+    ],
+    "forbidden_template_elements": [
+      "模板产品品类：葡萄风味瓶装碳酸饮料",
+      "模板主卖点：天然鲜果原料、纯净通透酒体、适配全休闲场景的清爽愉悦体验",
+      "模板里的品牌、包装、颜色命名、食材、价格、字幕和购物提示"
+    ],
+    "source_product_identity": "鲜榨冰爽西瓜果饮",
+    "source_product_anchors": [
+      "鲜榨冰爽西瓜果饮",
+      "冰爽、新鲜、真材实料的夏日解渴饮品",
+      "含真实西瓜果肉",
+      "足量冰块冰感充足",
+      "饮品通透无杂质",
+      "新鲜天然原料",
+      "无人物、无手部动作，仅为静物饮品展示场景"
+    ],
+    "confirmed_selling_points": [
+      "含真实西瓜果肉",
+      "足量冰块冰感充足",
+      "饮品通透无杂质",
+      "新鲜天然原料"
+    ],
+    "uncertain_or_unproven_points": [
+      "未在源素材中直接出现的功能、功效、参数和品牌承诺不能作为强卖点。"
+    ],
+    "rewrite_strategy": "复刻viral视频「自然原料逆光hook→产品质感微距→真人场景情绪验证」三段式纯视觉广告逻辑，替换为西瓜果饮产品，完整保留原商品图产品外观、冰爽细节与新鲜卖点，制作14秒竖屏无文字广告，提升20-30岁女性用户点击率",
+    "risks": [
+      "模板产品语义混入目标商品",
+      "模型脑补素材中无法证明的卖点",
+      "生成字幕、贴纸、价格标签或购物提示",
+      "source 商品外观在多镜头中不一致"
+    ]
+  },
+  "prompt_preview": {
+    "user_summary": "生成提示词预览（用户可读版）\n- 目标人群：female_20_30\n- 优化目标：improve_ctr\n- 产品身份/必须保留：西瓜果饮广告，核心卖点是新鲜清爽、夏日解暑、真实果肉感。最终输出必须保持与商品图相同的西瓜饮品产品身份。\n- 输出规格：9:16，720p\n- 是否生成音频：是\n- 改写策略：复刻viral视频「自然原料逆光hook→产品质感微距→真人场景情绪验证」三段式纯视觉广告逻辑，替换为西瓜果饮产品，完整保留原商品图产品外观、冰爽细节与新鲜卖点，制作14秒竖屏无文字广告，提升20-30岁女性用户点击率\n- 保留源素材：直身玻璃杯西瓜果饮外观形态；杯壁细密冷凝水珠细节；含真实西瓜果肉颗粒与带霜冰块的液体状态；浅灰色哑光桌面场景元素；新鲜薄荷叶、西瓜切块原料点缀\n- 借模板：前5秒逆光自然场景hook节奏；原料-液体-产品递进展示逻辑；1-3秒硬切转场节奏；真人饮用情绪感染CTA设计；自然光高级质感打光方式\n- 风险控制：全程禁止出现任何文字、字幕、贴片、UI元素；所有镜头产品外观必须与source商品图完全一致；不得继承viral视频中葡萄饮料相关任何产品元素；不得夸大解暑功效，仅通过视觉传递冰爽感；总时长严格控制在14秒以内\n- 镜头脚本：\n- 已确认产品身份：鲜榨冰爽西瓜果饮\n- 商品图外观锚点：鲜榨冰爽西瓜果饮；冰爽、新鲜、真材实料的夏日解渴饮品；含真实西瓜果肉；足量冰块冰感充足；饮品通透无杂质；新鲜天然原料；无人物、无手部动作，仅为静物饮品展示场景\n- 禁止继承模板元素：模板产品品类：葡萄风味瓶装碳酸饮料；模板主卖点：天然鲜果原料、纯净通透酒体、适配全休闲场景的清爽愉悦体验；模板里的品牌、包装、颜色命名、食材、价格、字幕和购物提示\n  1. hook / 2.0s：逆光拍摄西瓜藤叶隙阳光星芒光斑，柔和自然光穿透绿色瓜叶，硬切转场\n  2. solution_demo / 3.0s：微距拍摄鲜红色西瓜果饮缓慢注入source同款直身玻璃杯，捕捉液体水波纹，随后切黑渐变背景下完整玻璃杯果饮静物，杯壁带冷凝水珠、内含冰块与果肉\n  3. proof / 3.0s：新鲜带皮西瓜块滚落湿台面溅起细小水珠，随后镜头轻微推近玻璃杯果饮，特写液体中悬浮的西瓜果肉颗粒与带霜冰块\n  4. proof / 3.0s：夏日阳台场景，20-30岁女性自然手持同款玻璃杯，仰头真实饮用，喉咙呈现自然吞咽动态\n  5. cta / 3.0s：户外草坪晴天场景，女性举着玻璃杯朝向阳光，阳光穿透红色果饮透出通透光泽，女性露出自然放松微笑，定格收尾\n- 禁止：字幕、屏幕文字、贴纸、价格标签、购物提示、模板产品身份混入。\n- 音乐: 原创配乐、不可识别，不出现清晰可哼唱的主旋律、不出现重复钩子段、不使用任何现有作品的旋律/和弦/节奏动机；禁止模仿任何具体艺人、禁止复刻任何年代经典曲风细节到可识别程度；无采样、无人声。",
+    "full_prompt": "Rewrite the product image into a stronger viral-style ad video while preserving product identity, core benefit, and visible product anchors from the source image.\nTarget audience: female_20_30\nObjective: improve_ctr\nProduct context: 西瓜果饮广告，核心卖点是新鲜清爽、夏日解暑、真实果肉感。最终输出必须保持与商品图相同的西瓜饮品产品身份。\nExtra constraints: [\"保留原产品身份\", \"不要夸大功效\", \"时长控制在15秒内\", \"最终生成视频不能出现任何字幕或屏幕文字\", \"最终输出的视频产品必须与商品图完全一致，不能继承viral_video的产品身份\"]\nRewrite strategy: 复刻viral视频「自然原料逆光hook→产品质感微距→真人场景情绪验证」三段式纯视觉广告逻辑，替换为西瓜果饮产品，完整保留原商品图产品外观、冰爽细节与新鲜卖点，制作14秒竖屏无文字广告，提升20-30岁女性用户点击率\nConfirmed analysis brief: {\"template_structure\": [\"1. 葡萄藤叶隙逆光阳光星芒\", \"2. 深紫液体倾倒注入玻璃杯\", \"3. 黑背景下紫色玻璃瓶静物\", \"4. 鲜紫葡萄滚落湿台面溅水\", \"5. 瓶身上半部分推近特写\", \"6. 白背景窗格阴影下瓶身静物\", \"7. 室内白衬衫女性举瓶看向镜头\", \"8. 海边女性侧仰饮用产品\", \"9. 海边女性正对镜头微笑\", \"10. 户外山野女性举瓶露齿微笑\"], \"template_five_second_summary\": [\"0.0-5.0s / 视频 / 逆光特写、微距特写、静物中景 / 中心对称构图、逆光框架构图 / 葡萄园、棚拍摄影台 / 阳光穿过葡萄叶片形成星芒；深紫液体垂直注入玻璃杯形成同心圆水波纹；紫色玻璃瓶静置在黑背景台面；紫葡萄滚落湿台面溅起细小水珠 / 阳光星芒治愈感；液体流动视觉美感；葡萄新鲜水润质感\", \"5.0-10.0s / 视频 / 静物中景、人物近景、饮用侧拍 / 中心构图、人物三分法构图 / 白背景棚拍、室内、海边 / 玻璃瓶在白背景台面投下紫色阴影；白衬衫女性手持瓶身看向镜头；海边女性仰头将瓶口贴唇饮用；饮用后女性正对镜头微笑 / 饮用时闭眼放松的神态；饮用后自然舒展的微笑；阳光海边的松弛氛围\", \"10.0-12.1s / 视频 / 人物中景 / 人物三分法构图，瓶身位于画面左下视觉锚点 / 户外山野缓坡 / 黄外套女性单手举瓶正对镜头；女性露出舒展露齿微笑 / 阳光下发自内心的愉悦微笑；户外休闲的放松氛围感\"], \"template_director_analysis\": [\"横屏16:9商业广告视频，完整时长12.1秒，无字幕，全程视觉叙事无台词\", \"配轻快治愈系纯音乐BGM，包含液体倾倒声、葡萄落水轻响、海边环境风噪声，无口播/旁白\", \"全片硬切转场无特效，采用固定机位、轻微推近镜头，单镜头时长1-1.8秒，节奏明快，无手持抖动，所有静物镜头为专业棚拍打光\", \"商业产品美感广告视频\", \"产品始终处于画面视觉中心，人物镜头以瓶身为视觉锚点，所有特写均突出材质质感\", \"「自然原料溯源钩子→产品质感微距证明→多场景真人情绪验证」的三段式纯视觉美感广告框架，核心是用视觉感官替代台词说服\"], \"template_core_satisfaction_mechanism\": \"通过「自然原料视觉联想→产品质感微距呈现→真人饮用情绪验证」的递进逻辑，用高饱和色彩对比、干净光影、真实神态传递产品价值，全程无台词仅靠视觉感官建立好感\", \"template_extend_to_15s_plan\": \"前5秒1:1复刻原素材hook与核心动作逻辑（阳光穿叶→液体倾倒→瓶身静物→原料落水）；5-12秒新增2秒瓶内液体气泡微距特写、1秒手指轻划过瓶身玻璃质感镜头；12-15秒保留原3个真人场景节奏，最终以户外场景中女性将瓶举向阳光、阳光穿透液体的定格画面作为视觉CTA收尾，全程不添加任何文字、按钮、UI元素\", \"borrowable_elements\": [\"前5秒逆光自然场景hook节奏\", \"原料-液体-产品递进展示逻辑\", \"1-3秒硬切转场节奏\", \"真人饮用情绪感染CTA设计\", \"自然光高级质感打光方式\", \"全程无文字纯视觉叙事规则\"], \"forbidden_template_elements\": [\"模板产品品类：葡萄风味瓶装碳酸饮料\", \"模板主卖点：天然鲜果原料、纯净通透酒体、适配全休闲场景的清爽愉悦体验\", \"模板里的品牌、包装、颜色命名、食材、价格、字幕和购物提示\"], \"source_product_identity\": \"鲜榨冰爽西瓜果饮\", \"source_product_anchors\": [\"鲜榨冰爽西瓜果饮\", \"冰爽、新鲜、真材实料的夏日解渴饮品\", \"含真实西瓜果肉\", \"足量冰块冰感充足\", \"饮品通透无杂质\", \"新鲜天然原料\", \"无人物、无手部动作，仅为静物饮品展示场景\"], \"confirmed_selling_points\": [\"含真实西瓜果肉\", \"足量冰块冰感充足\", \"饮品通透无杂质\", \"新鲜天然原料\"], \"uncertain_or_unproven_points\": [\"未在源素材中直接出现的功能、功效、参数和品牌承诺不能作为强卖点。\"], \"rewrite_strategy\": \"复刻viral视频「自然原料逆光hook→产品质感微距→真人场景情绪验证」三段式纯视觉广告逻辑，替换为西瓜果饮产品，完整保留原商品图产品外观、冰爽细节与新鲜卖点，制作14秒竖屏无文字广告，提升20-30岁女性用户点击率\", \"risks\": [\"模板产品语义混入目标商品\", \"模型脑补素材中无法证明的卖点\", \"生成字幕、贴纸、价格标签或购物提示\", \"source 商品外观在多镜头中不一致\"]}\nDetailed storyboard for analysis reference only, not a strict timeline: {\"base_video_label\": \"watermelon_juice_14s_ad\", \"shots\": [{\"shot_index\": 1, \"role\": \"hook\", \"duration_sec\": 2.0, \"visual_instruction\": \"逆光拍摄西瓜藤叶隙阳光星芒光斑，柔和自然光穿透绿色瓜叶，硬切转场\", \"text_overlay\": \"\", \"voiceover\": \"\", \"keep_from_source\": false}, {\"shot_index\": 2, \"role\": \"solution_demo\", \"duration_sec\": 3.0, \"visual_instruction\": \"微距拍摄鲜红色西瓜果饮缓慢注入source同款直身玻璃杯，捕捉液体水波纹，随后切黑渐变背景下完整玻璃杯果饮静物，杯壁带冷凝水珠、内含冰块与果肉\", \"text_overlay\": \"\", \"voiceover\": \"\", \"keep_from_source\": true}, {\"shot_index\": 3, \"role\": \"proof\", \"duration_sec\": 3.0, \"visual_instruction\": \"新鲜带皮西瓜块滚落湿台面溅起细小水珠，随后镜头轻微推近玻璃杯果饮，特写液体中悬浮的西瓜果肉颗粒与带霜冰块\", \"text_overlay\": \"\", \"voiceover\": \"\", \"keep_from_source\": true}, {\"shot_index\": 4, \"role\": \"proof\", \"duration_sec\": 3.0, \"visual_instruction\": \"夏日阳台场景，20-30岁女性自然手持同款玻璃杯，仰头真实饮用，喉咙呈现自然吞咽动态\", \"text_overlay\": \"\", \"voiceover\": \"\", \"keep_from_source\": false}, {\"shot_index\": 5, \"role\": \"cta\", \"duration_sec\": 3.0, \"visual_instruction\": \"户外草坪晴天场景，女性举着玻璃杯朝向阳光，阳光穿透红色果饮透出通透光泽，女性露出自然放松微笑，定格收尾\", \"text_overlay\": \"\", \"voiceover\": \"\", \"keep_from_source\": false}]}\nSoft generation beats to follow in the final video: [{\"beat\": \"1\", \"role\": \"hook\", \"visual_goal\": \"逆光拍摄西瓜藤叶隙阳光星芒光斑，柔和自然光穿透绿色瓜叶，硬切转场\", \"timing\": \"approximate beat, not an exact second-by-second cut\"}, {\"beat\": \"2\", \"role\": \"solution_demo\", \"visual_goal\": \"微距拍摄鲜红色西瓜果饮缓慢注入source同款直身玻璃杯，捕捉液体水波纹，随后切黑渐变背景下完整玻璃杯果饮静物，杯壁带冷凝水珠、内含冰块与果肉\", \"timing\": \"approximate beat, not an exact second-by-second cut\"}, {\"beat\": \"3\", \"role\": \"proof\", \"visual_goal\": \"新鲜带皮西瓜块滚落湿台面溅起细小水珠，随后镜头轻微推近玻璃杯果饮，特写液体中悬浮的西瓜果肉颗粒与带霜冰块\", \"timing\": \"approximate beat, not an exact second-by-second cut\"}, {\"beat\": \"4\", \"role\": \"proof\", \"visual_goal\": \"夏日阳台场景，20-30岁女性自然手持同款玻璃杯，仰头真实饮用，喉咙呈现自然吞咽动态\", \"timing\": \"approximate beat, not an exact second-by-second cut\"}, {\"beat\": \"5\", \"role\": \"cta\", \"visual_goal\": \"户外草坪晴天场景，女性举着玻璃杯朝向阳光，阳光穿透红色果饮透出通透光泽，女性露出自然放松微笑，定格收尾\", \"timing\": \"approximate beat, not an exact second-by-second cut\"}]\nPrompt package: {\"base_reference_summary\": \"基于source西瓜果饮静物图，复刻viral自然美感广告节奏，制作14秒9:16竖屏无文字冰饮广告，面向20-30岁女性用户，传递新鲜冰爽解暑感官感受\", \"style_constraints\": {\"visual_style\": \"清新通透自然光美学，高饱和度红色果饮，明暗柔和对比，干净无杂物画面\", \"pacing\": \"每2-3秒硬切转场，节奏明快舒缓\", \"emotion_tone\": \"清凉治愈、放松愉悦\", \"subtitle_rule\": \"全程无任何文字、字幕、贴片、UI元素\", \"subtitle_style\": \"No subtitles, no on-screen text, no stickers, no labels.\"}, \"structure_constraints\": {\"hook_duration\": \"前2秒完成逆光自然场景hook\", \"product_first_exposure_sec\": 2, \"total_duration\": \"14秒以内\", \"core_logic\": \"自然原料hook→产品质感展示→原料真实性证明→真人饮用→情绪CTA收尾\"}, \"scene_instructions\": [\"逆光西瓜藤叶隙阳光星芒场景\", \"黑渐变背景棚拍果饮静物场景\", \"新鲜西瓜块落水微距场景\", \"夏日阳台真人饮用场景\", \"户外草坪晴天举饮场景\"], \"must_keep\": [\"直身玻璃杯外观\", \"杯壁冷凝水珠\", \"果饮内含真实西瓜果肉颗粒\", \"带霜透明冰块\", \"新鲜薄荷叶、西瓜切块原料元素\", \"冰爽清爽核心视觉感受\", \"鲜榨冰爽西瓜果饮\", \"冰爽、新鲜、真材实料的夏日解渴饮品\", \"含真实西瓜果肉\", \"足量冰块冰感充足\", \"饮品通透无杂质\", \"新鲜天然原料\", \"无人物、无手部动作，仅为静物饮品展示场景\"], \"editable_goals\": [\"替换viral所有葡萄相关元素为西瓜对应元素\", \"适配20-30岁女性审美调整人物穿搭与场景\", \"统一调整为9:16竖屏构图\"], \"target_audience\": \"female_20_30\"}\nGeneration guidance: 制作9:16竖屏720P 14秒无文字西瓜果饮广告，全程仅配轻快治愈纯音乐与环境声，无口播无字幕。镜头顺序：1. 2秒逆光西瓜藤叶阳光星芒；2. 3秒西瓜果饮注入参考图同款直身玻璃杯，切黑背景完整果饮静物（带冷凝水珠、冰块、果肉）；3. 3秒新鲜西瓜块落水溅水，推近特写果饮内部果肉冰块；4. 3秒夏日阳台年轻女性自然饮用该果饮；5. 3秒户外晴天女性举果饮朝向阳光微笑定格。所有镜头采用自然光高级打光，硬切转场，产品外观严格与参考商品图完全一致。\nOutput one cohesive rewritten ad video with a strong first-5-second hook, tighter pacing, clearer product proof, visible satisfaction moments, and a more explicit action-based visual CTA.\nTreat all shot durations and storyboard entries as approximate creative beats, not frame-accurate editing instructions. Do not attempt to reproduce every micro-shot literally. Consolidate small adjacent actions into 4-5 natural visual beats so the product remains stable and recognizable. Avoid excessive scene changes, prop changes, or complex motion that could destabilize the source product identity.\nThe final video product must stay exactly the same as the product shown in the source image. Use the source image as the product identity truth: preserve the same object type, shape, packaging, color, label placement, material, and visible design details across every shot. Do not switch to the viral video's product, ingredients, packaging, flavor, or product story. Use the viral video only as a creative reference for shot order, pacing, actions, scene function, and satisfaction structure.\nForbidden viral carryover: product category, brand, package shape, product color naming, ingredients, flavor, price, claims, captions, shopping UI, and any product-specific semantics from the viral template.\nBorrow only: structure, pacing, camera rhythm, action sequence, scene function, satisfaction pattern, and non-product-specific proof logic.\nPrefer a 12-15 second result when the model supports it: use the confirmed director-level template analysis, replicate the template framework in the opening, then extend 7-8 seconds with source-product proof, texture/detail shots, before-after change, use-case context, and visual CTA. If the template is shorter than 5 seconds, preserve its action logic and satisfaction mechanism in the first 5 seconds, then add new source-product proof shots without changing product identity.\nDo not render any subtitles, captions, on-screen text, labels, price tags, stickers, logos, shopping cart prompts, or any other text overlays.\n音乐: 原创配乐、不可识别，不出现清晰可哼唱的主旋律、不出现重复钩子段、不使用任何现有作品的旋律/和弦/节奏动机；禁止模仿任何具体艺人、禁止复刻任何年代经典曲风细节到可识别程度；无采样、无人声。"
+  }
+}

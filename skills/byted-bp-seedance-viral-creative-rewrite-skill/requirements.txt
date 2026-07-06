@@ -1,0 +1,5 @@
+httpx>=0.28,<1
+pydantic>=2.5,<3
+imageio>=2.34,<3
+imageio-ffmpeg>=0.5,<1
+pillow>=10,<12

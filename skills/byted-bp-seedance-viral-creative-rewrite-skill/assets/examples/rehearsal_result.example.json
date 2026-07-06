@@ -1,0 +1,15 @@
+{
+  "rehearsal": true,
+  "summary": "示例彩排结果：这里展示的是一次已预生成好的真实西瓜果饮样例视频，用于无成本回放用户确认 brief 后的结果体验。本次彩排不会再次调用 Seedance。",
+  "seedance_task_id": "cgt-20260617212906-bghlc",
+  "rewritten_video_url": "",
+  "rewritten_video_local_path": "./assets/examples/rehearsal_result_video.mp4",
+  "preview_image_path": "./assets/examples/rehearsal_result_video.mp4",
+  "manual_review_checklist": [
+    "先看内置真实西瓜果饮样例视频，再看任务信息。",
+    "确认产品身份来自商品图里的西瓜果饮，而不是模板视频里的葡萄饮料。",
+    "确认没有字幕、价格标签、购物按钮、贴纸或模板品牌残留。",
+    "确认前 5 秒有明确 hook，后续镜头延展了产品质感、使用场景和视觉收尾。",
+    "确认背景音乐方向为原创、不可识别、无人声。"
+  ]
+}
