@@ -1,5 +1,5 @@
 ---
-name: byted-volcengine-contextsearch
+name: byted-contextsearch-operator
 description: "Manages Volcano Engine ContextSearch control-plane operations, and searches/chats with configured Context Search data-plane endpoints. Use when the user mentions ContextSearch on Volcano Engine, console operations, AgenticSearch setup, or context-aware search/chat."
 version: "1.0.0"
 metadata:

@@ -27,7 +27,7 @@ Agent 可以根据用户意图选择以下命令：
 API Key 管理能力由以下文件提供：
 
 ```text
-skills/byted-volcengine-contextsearch/
+skills/byted-contextsearch-operator/
 ├── SKILL.md
 ├── scripts/
 │   ├── contextsearch_cli.py
@@ -66,7 +66,7 @@ python scripts/contextsearch_cli.py apikey delete --id 2042224690871406593 --pro
 
 ## AgentKit 部署
 
-该能力是 ContextSearch skill 的本地工具说明，不需要单独部署到 AgentKit Runtime。将 `skills/byted-volcengine-contextsearch/` 安装到 AgentKit 或 Codex 可发现的 skills 目录后，Agent 可按 `SKILL.md` 中的路由说明调用对应脚本。
+该能力是 ContextSearch skill 的本地工具说明，不需要单独部署到 AgentKit Runtime。将 `skills/byted-contextsearch-operator/` 安装到 AgentKit 或 Codex 可发现的 skills 目录后，Agent 可按 `SKILL.md` 中的路由说明调用对应脚本。
 
 ## 示例提示词
 
