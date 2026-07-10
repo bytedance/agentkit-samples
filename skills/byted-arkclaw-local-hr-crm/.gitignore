@@ -1,0 +1,4 @@
+__pycache__/
+crm_data.json
+backups/
+*.pyc
