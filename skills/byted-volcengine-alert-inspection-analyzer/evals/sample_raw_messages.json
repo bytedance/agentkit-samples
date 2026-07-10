@@ -1,0 +1,19 @@
+{
+  "messages": [
+    {
+      "message_id": "om_sample_1",
+      "msg_type": "interactive",
+      "content": "<card title=\"【警告】火山引擎云监控告警通知\">\n**账号**\nDemo(123)\n\n**告警策略**\n[mysite clb 监听器告警](https://example.com/strategy)\n\n**地域**\n华北2（北京）\n**告警级别**\n「警告」\n\n**项目**\nmysite\n**告警时间**\n2026-06-05 12:07:18(UTC+08:00)\n**影响资源详情（1个）**\n\n- 第**1**个资源 | [查看告警详情](https://example.com/detail)\n云产品：传统型负载均衡\n资源Id：CLB-mysite|实例ID:clb-demo|监听器ID:lsn-demo|[查看监控详情](https://example.com/monitor)\n项目：mysite\n当前值：AVG(监听器/平均响应时间)[1m]:2500ms---[创建屏蔽策略](https://example.com/silence)\n</card>",
+      "sender": {"id": "cli_demo", "sender_type": "app"},
+      "create_time": "2026-06-05T12:07:18+08:00"
+    },
+    {
+      "message_id": "om_sample_2",
+      "msg_type": "interactive",
+      "content": "<card title=\"【已恢复】火山引擎云监控告警恢复通知\">\n**账号**\nDemo(123)\n\n**告警策略**\n[mysite clb 监听器告警](https://example.com/strategy)\n\n**地域**\n华北2（北京）\n**告警级别**\n「已恢复」\n\n**项目**\nmysite\n**告警时间**\n2026-06-05 12:07:18(UTC+08:00)\n**恢复资源详情（1个）**\n\n- 第**1**个资源 | 「警告」 ↓ 「已恢复」 | [查看告警详情](https://example.com/detail)\n云产品：传统型负载均衡\n资源Id：CLB-mysite|实例ID:clb-demo|监听器ID:lsn-demo|[查看监控详情](https://example.com/monitor)\n项目：mysite\n当前值：AVG(监听器/收到的 5xx 状态码)[1m]:0Count/s\n  - AVG(监听器/平均响应时间)[1m]:0ms---\n</card>",
+      "sender": {"id": "cli_demo", "sender_type": "app"},
+      "create_time": "2026-06-05T12:12:18+08:00"
+    }
+  ],
+  "has_more": false
+}
