@@ -15,7 +15,7 @@ This use case demonstrates how to build a production-level AI programming assist
 
 ## Core Functionality
 
-![AI Coding Agent with AgentKit Runtime](img/archtecture_ai_coding.jpg)
+![AI Coding Agent with AgentKit Runtime](img/archtecture_ai_coding_en.png)
 
 ```text
 User Request
@@ -72,7 +72,7 @@ ai_coding/
 1. Log in to the [BytePlus Console](https://console.byteplus.com)
 2. Go to "Access Control" → "Users" -> Create a new user or search for an existing one -> Click the username to go to "User Details" -> Go to "Keys" -> Create a new key or copy an existing AK/SK.
    - As shown below:
-   ![BytePlus AK/SK Management](../../assets/images/volcengine_aksk.jpg)
+     ![BytePlus AK/SK Management](../../assets/images/volcengine_aksk_en.png)
 3. Configure access permissions for services required by AgentKit:
    - On the "User Details" page -> Go to "Permissions" -> Click "Add Permission" and grant the following policies to the user:
    - `AgentKitFullAccess` (Full access to AgentKit)
@@ -81,16 +81,16 @@ ai_coding/
    - Log in to the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
    - Go to "API Key Management" -> Create or copy an existing API Key. The `MODEL_AGENT_API_KEY` environment variable will need to be set to this value.
    - As shown below:
-   ![Model Ark API Key Management](../../assets/images/ark_api_key_management.jpg)
+     ![Model Ark API Key Management](../../assets/images/ark_api_key_management_en.png)
 5. Activate pre-built model inference endpoints:
    - Log in to the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
-   - Go to "Activation Management" -> "Language Models" -> Find the desired model -> Click "Activate Service".
+   - Go to "Foundation Models" -> Find the respective model -> Click "Access API".
    - Confirm activation and wait for the service to become effective (usually 1-2 minutes).
    - Activate the following models used in this case:
-        - `deepseek-v4-pro-260425`
-        - `doubao-seed-code-preview-251028`
+     - `deepseek-v4-pro-260425`
+     - `doubao-seed-code-preview-251028`
    - As shown below:
-   ![Model Ark Model Service Management](../../assets/images/ark_model_service_management.jpg)
+     ![Model Ark Model Service Management](../../assets/images/ark_model_service_management_en.png)
 
 #### AgentKit Tool ID
 
@@ -100,7 +100,7 @@ ai_coding/
    - Tool Name: `ai-coding-agent`
    - Description: AI Programming Assistant Tool
 4. Copy the generated Tool ID for configuration (the `AGENTKIT_TOOL_ID` environment variable will need to be set to this value), as shown below:
-   ![AgentKit Sandbox Tool](../../assets/images/agentkit_sandbox_tool.jpg)
+   ![AgentKit Sandbox Tool](../../assets/images/agentkit_sandbox_tool_en.png)
 
 ### Install Dependencies
 

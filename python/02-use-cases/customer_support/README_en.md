@@ -14,7 +14,7 @@ This use case demonstrates how to build an enterprise-level customer support sys
 
 ## Core Functionality
 
-![Customer Support Agent with AgentKit Runtime](img/archtecture_customer_support.jpg)
+![Customer Support Agent with AgentKit Runtime](img/archtecture_customer_support_en.png)
 
 ```text
 Customer Inquiry
@@ -33,13 +33,13 @@ Customer Support Agent (Main Router)
 
 ## Agent Capabilities
 
-| Component | Description |
-| - | - |
-| **Agent Service** | [`agent.py`](agent.py) - The main application, orchestrating sub-agents via `AgentkitAgentServerApp` |
-| **CRM Tool** | [`tools/crm_mock.py`](tools/crm_mock.py) - A mock CRM API providing CRUD operations for customers, purchases, warranties, and tickets |
-| **Knowledge Base** | [`pre_build/knowledge/`](pre_build/knowledge/) - Product guides, policy documents, and troubleshooting manuals |
-| **Short-Term Memory** | Local session context to maintain conversation continuity |
-| **Long-Term Memory** | Viking vector database or Mem0 for persisting user history |
+| Component             | Description                                                                                                                           |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **Agent Service**     | [`agent.py`](agent.py) - The main application, orchestrating sub-agents via `AgentkitAgentServerApp`                                  |
+| **CRM Tool**          | [`tools/crm_mock.py`](tools/crm_mock.py) - A mock CRM API providing CRUD operations for customers, purchases, warranties, and tickets |
+| **Knowledge Base**    | [`pre_build/knowledge/`](pre_build/knowledge/) - Product guides, policy documents, and troubleshooting manuals                        |
+| **Short-Term Memory** | Local session context to maintain conversation continuity                                                                             |
+| **Long-Term Memory**  | Viking vector database or Mem0 for persisting user history                                                                            |
 
 ## Directory Structure
 
@@ -72,7 +72,7 @@ customer_support/
 1. Log in to the [BytePlus Console](https://console.byteplus.com)
 2. Go to "Access Control" → "Users" -> Create a new user or search for an existing one -> Click the username to go to "User Details" -> Go to "Keys" -> Create a new key or copy an existing AK/SK.
    - As shown below:
-   ![BytePlus AK/SK Management](../../assets/images/volcengine_aksk.jpg)
+     ![BytePlus AK/SK Management](../../assets/images/volcengine_aksk.jpg)
 3. Configure access permissions for services required by AgentKit:
    - On the "User Details" page -> Go to "Permissions" -> Click "Add Permission" and grant the following policies to the user:
      - `AgentKitFullAccess` (Full access to AgentKit)
@@ -81,15 +81,15 @@ customer_support/
    - Log in to the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
    - Go to "API Key Management" -> Create or copy an existing API Key. The `MODEL_AGENT_API_KEY` environment variable will need to be set to this value.
    - As shown below:
-   ![Model Ark API Key Management](../../assets/images/ark_api_key_management.jpg)
+     ![Model Ark API Key Management](../../assets/images/ark_api_key_management_en.png)
 5. Activate pre-built model inference endpoints:
    - Log in to the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
-   - Go to "Activation Management" -> "Language Models" -> Find the desired model -> Click "Activate Service".
+   - Go to "Foundation Models" -> Find the respective model -> Click "Access API".
    - Confirm activation and wait for the service to become effective (usually 1-2 minutes).
    - Activate the following models used in this case (you can also activate other models as needed and specify them in the `agent.py` code):
-      - `deepseek-v4-pro-260425`
+     - `deepseek-v4-pro-260425`
    - As shown below:
-   ![Model Ark Service Management](../../assets/images/ark_model_service_management.jpg)
+     ![Model Ark Service Management](../../assets/images/ark_model_service_management_en.png)
 
 **Knowledge Base (auto-configured on first run):**:
 
@@ -101,7 +101,7 @@ customer_support/
 
 ### Install Dependencies
 
-*It is recommended to use the `uv` tool to build the project.*
+*It is recommended to use the* *`uv`* *tool to build the project.*
 
 ```bash
 # install uv
@@ -153,6 +153,7 @@ export DATABASE_MEM0_API_KEY=<mem0_api_key>
 ## Local Execution
 
 Use `veadk web` for local debugging:
+
 > `veadk web` is a FastAPI-based web service for debugging Agent applications. Running this command starts a web server that loads and runs your AgentKit agent code, providing a chat interface to interact with the agent. In the sidebar or specific panels of the interface, you can view the agent's operational details, including its thought process, tool calls, and model inputs/outputs.
 
 ```bash
@@ -215,7 +216,7 @@ agentkit config \
 agentkit launch
 ```
 
-2. Invoke the agent
+1. Invoke the agent
 
 ```bash
 agentkit invoke '{"prompt": "I want to buy a smart TV for my living room, mainly for gaming, with a budget under 3000 yuan."}'
@@ -259,7 +260,7 @@ Customer Support demonstration.
 
 ## FAQ
 
-**Error: `DATABASE_TOS_BUCKET not set`**
+**Error:** **`DATABASE_TOS_BUCKET not set`**
 
 - Required for automatic knowledge base initialization.
 - Set the name of the TOS bucket for uploading knowledge files.
@@ -271,7 +272,7 @@ Customer Support demonstration.
 - Ensure TOS is configured correctly and the account has the necessary permissions.
 - Check the import task status in the AgentKit console.
 
-**Default Test User `CUST001`:**
+**Default Test User** **`CUST001`:**
 
 - Demo data is tied to this customer ID.
 - Production deployments should pass `user_id` in the request headers and integrate with a real identity system.
@@ -285,7 +286,7 @@ Customer Support demonstration.
 **Service Ticket Operations Require User Consent:**
 
 - Creating/updating/deleting tickets requires explicit user approval.
-- Ensure all required fields (customer_id, product_sn, issue_description) are collected before performing the operation.
+- Ensure all required fields (customer\_id, product\_sn, issue\_description) are collected before performing the operation.
 
 ## Related Resources
 
