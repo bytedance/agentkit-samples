@@ -216,7 +216,7 @@ agentkit config \
 agentkit launch
 ```
 
-1. Invoke the agent
+2. Invoke the agent
 
 ```bash
 agentkit invoke '{"prompt": "I want to buy a smart TV for my living room, mainly for gaming, with a budget under 3000 yuan."}'
@@ -260,7 +260,7 @@ Customer Support demonstration.
 
 ## FAQ
 
-**Error:** **`DATABASE_TOS_BUCKET not set`**
+**Error: `DATABASE_TOS_BUCKET not set`**
 
 - Required for automatic knowledge base initialization.
 - Set the name of the TOS bucket for uploading knowledge files.
@@ -272,7 +272,7 @@ Customer Support demonstration.
 - Ensure TOS is configured correctly and the account has the necessary permissions.
 - Check the import task status in the AgentKit console.
 
-**Default Test User** **`CUST001`:**
+**Default Test User `CUST001`:**
 
 - Demo data is tied to this customer ID.
 - Production deployments should pass `user_id` in the request headers and integrate with a real identity system.
@@ -286,7 +286,7 @@ Customer Support demonstration.
 **Service Ticket Operations Require User Consent:**
 
 - Creating/updating/deleting tickets requires explicit user approval.
-- Ensure all required fields (customer\_id, product\_sn, issue\_description) are collected before performing the operation.
+- Ensure all required fields (customer_id, product_sn, issue_description) are collected before performing the operation.
 
 ## Related Resources
 
