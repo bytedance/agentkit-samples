@@ -1,0 +1,23 @@
+{
+  "skill_name": "byted-volcengine-alert-inspection-analyzer",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "查询群 oc_xxx 里 6月5日 云告警通知机器人的告警信息，并分析是否有未恢复告警。",
+      "expected_output": "应拉取指定群指定日期的飞书消息，过滤告警机器人消息，生成 JSON 与 Markdown 报告，包含警告数、恢复数、未闭环数、风险等级和处置建议。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "把今天飞书告警群里的云监控告警导出来，分析重复告警和高峰时间段。",
+      "expected_output": "应按今天时间范围读取消息，聚合策略、指标、资源、小时分布，指出重复触发资源和集中时段。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "分析这批 raw_messages.json 里的火山引擎云监控告警通知，输出 report.md。",
+      "expected_output": "应调用脚本标准化 raw_messages.json，输出 normalized_messages.json、analysis.json、report.md。",
+      "files": ["raw_messages.json"]
+    }
+  ]
+}
