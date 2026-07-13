@@ -33,13 +33,13 @@ Customer Support Agent (Main Router)
 
 ## Agent Capabilities
 
-| Component             | Description                                                                                                                           |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **Agent Service**     | [`agent.py`](agent.py) - The main application, orchestrating sub-agents via `AgentkitAgentServerApp`                                  |
-| **CRM Tool**          | [`tools/crm_mock.py`](tools/crm_mock.py) - A mock CRM API providing CRUD operations for customers, purchases, warranties, and tickets |
-| **Knowledge Base**    | [`pre_build/knowledge/`](pre_build/knowledge/) - Product guides, policy documents, and troubleshooting manuals                        |
-| **Short-Term Memory** | Local session context to maintain conversation continuity                                                                             |
-| **Long-Term Memory**  | Viking vector database or Mem0 for persisting user history                                                                            |
+| Component | Description |
+| - | - |
+| **Agent Service** | [`agent.py`](agent.py) - The main application, orchestrating sub-agents via `AgentkitAgentServerApp` |
+| **CRM Tool** | [`tools/crm_mock.py`](tools/crm_mock.py) - A mock CRM API providing CRUD operations for customers, purchases, warranties, and tickets |
+| **Knowledge Base** | [`pre_build/knowledge/`](pre_build/knowledge/) - Product guides, policy documents, and troubleshooting manuals |
+| **Short-Term Memory** | Local session context to maintain conversation continuity |
+| **Long-Term Memory** | Viking vector database or Mem0 for persisting user history |
 
 ## Directory Structure
 
@@ -101,7 +101,7 @@ customer_support/
 
 ### Install Dependencies
 
-*It is recommended to use the* *`uv`* *tool to build the project.*
+*It is recommended to use the `uv` tool to build the project.*
 
 ```bash
 # install uv
