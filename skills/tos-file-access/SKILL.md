@@ -1,16 +1,16 @@
 ---
 name: tos-file-access
-description: Upload files or directories to Volcano Engine TOS (Torch Object Storage) and download files from URLs. Use this skill when (1) Upload Agent-generated files or directories (like videos, images, reports, output folders) to TOS for sharing, (2) Download files from URLs before Agent processing.
+description: Upload files or directories to TOS-compatible object storage for Volcano Engine or BytePlus and download files from URLs. Use this skill when (1) Upload Agent-generated files or directories for sharing, (2) Download files from URLs before Agent processing.
 license: Complete terms in LICENSE.txt
 ---
 
 # TOS File Access
 
-This skill provides utilities for uploading files and directories to Volcano Engine TOS (Torch Object Storage) and downloading files from URLs.
+This skill provides utilities for uploading files and directories to TOS-compatible object storage for Volcano Engine or BytePlus, and downloading files from URLs.
 
 ## Overview
 
-**TOS (Torch Object Storage)** is Volcano Engine's object storage service, similar to AWS S3. This skill enables:
+**TOS-compatible object storage** is used by Volcano Engine and BytePlus, similar to AWS S3. This skill enables:
 
 - **Upload**: Upload Agent-generated files or entire directories to TOS and get shareable signed URLs (for files) or TOS paths (for directories)
 - **Download**: Download files from URLs to local storage for Agent processing
@@ -54,19 +54,16 @@ python scripts/tos_upload.py /path/to/report.pdf --bucket my-bucket --region cn-
 Download files from URLs to local storage.
 
 **Usage:**
-
 ```bash
 python scripts/file_download.py <url1> [url2 ...] [--save-dir DIR] [--filenames NAME1 NAME2 ...]
 ```
 
 **Arguments:**
-
 - `urls`: One or more URLs to download (positional, required)
 - `--save-dir`: Save directory (optional, defaults to `/tmp`)
 - `--filenames`: Custom filenames for downloaded files (optional, must match number of URLs)
 
 **Examples:**
-
 ```bash
 # Download single file to /tmp
 python scripts/file_download.py https://tos-cn-beijing.volces.com/bucket/file.pdf
@@ -89,45 +86,39 @@ python scripts/file_download.py \
 Upload files or directories to TOS and generate signed access URLs (for files) or TOS paths (for directories).
 
 **Key Features:**
-
 - **Auto-detection**: Automatically detects whether the path is a file or directory
 - **Session-based paths**: Uses `TOOL_USER_SESSION_ID` environment variable to organize uploads
 - **Preserves structure**: For directories, maintains the full directory structure in TOS
 - **Automatic bucket creation**: Creates bucket if it doesn't exist (with private ACL)
 
 **Usage:**
-
 ```bash
 python scripts/tos_upload.py <path> --bucket BUCKET [--region REGION] [--expires SECONDS]
 ```
 
 **Arguments:**
-
 - `path`: Local file or directory path to upload (positional, required)
 - `--bucket`: TOS bucket name (required)
-- `--region`: TOS region (optional, defaults to `cn-beijing`)
+- `--region`: TOS region (optional, defaults to `cn-beijing` for `volcengine`, `ap-southeast-1` for `byteplus`)
 - `--expires`: Signed URL expiration in seconds (optional, defaults to 604800 = 7 days, only applies to file uploads)
 
 **Upload Structure:**
-
 - **File**: `upload/{session_prefix}/{filename}`
   - Example: `upload/skill_agent_veadk_default_user_tmp-session-20251210150057/video.mp4`
 - **Directory**: `upload/{session_prefix}/{directory_name}/{relative_path}`
   - Example: `upload/skill_agent_veadk_default_user_tmp-session-20251210150057/output_folder/file1.txt`
 
 **Session Prefix:**
-
 - If `TOOL_USER_SESSION_ID` is set, uses that value as prefix
 - Otherwise, falls back to timestamp format `YYYYMMDD_HHMMSS`
 
-**Authentication:**
+**Cloud provider and authentication:**
 Requires one of:
-
+- `CLOUD_PROVIDER`: `volcengine` or `byteplus` (optional, defaults to `volcengine`)
 - Environment variables: `VOLCENGINE_ACCESS_KEY` and `VOLCENGINE_SECRET_KEY`
 - VeFaaS IAM Role (automatic credential retrieval)
 
 **Examples:**
-
 ```bash
 # Upload single file (auto-detected)
 python scripts/tos_upload.py /workspace/output.mp4 --bucket my-bucket
@@ -148,12 +139,10 @@ python scripts/tos_upload.py /workspace/output_dir \
 ```
 
 **Returns:**
-
 - **For files**: Prints a signed URL that can be shared with users (valid for specified duration)
 - **For directories**: Prints a TOS path in format `tos://bucket-name/path/to/directory`
 
 **Output Examples:**
-
 ```bash
 # File upload output
 ============================================================
@@ -174,14 +163,15 @@ tos://my-bucket/upload/skill_agent_xxx/output_folder
 
 ## Environment Variables
 
-- `VOLCENGINE_ACCESS_KEY`: Volcano Engine access key for TOS authentication
-- `VOLCENGINE_SECRET_KEY`: Volcano Engine secret key for TOS authentication
+- `CLOUD_PROVIDER`: Cloud provider, `volcengine` or `byteplus` (optional, defaults to `volcengine`)
+- `VOLCENGINE_ACCESS_KEY`: Access key for object storage authentication
+- `VOLCENGINE_SECRET_KEY`: Secret key for object storage authentication
+- `REGION` or `DATABASE_TOS_REGION`: Optional region fallback when `--region` is not provided
 - `TOOL_USER_SESSION_ID`: Session ID used to generate organized upload paths (optional, falls back to timestamp)
 
 ## Common Use Cases
 
 1. **Video Processing**: Download source video → process → upload result
-
    ```bash
    # Download
    python scripts/file_download.py https://example.com/input.mp4 --save-dir /workspace
@@ -191,7 +181,6 @@ tos://my-bucket/upload/skill_agent_xxx/output_folder
    ```
 
 2. **Data Analysis**: Download datasets → analyze → upload charts/reports folder
-
    ```bash
    # Download data
    python scripts/file_download.py https://example.com/data.csv --save-dir /workspace
@@ -201,7 +190,6 @@ tos://my-bucket/upload/skill_agent_xxx/output_folder
    ```
 
 3. **Batch Processing**: Process multiple files and upload output directory
-
    ```bash
    # Process files (your code here, generates /workspace/batch_output/)
    # Upload entire output directory
@@ -209,17 +197,11 @@ tos://my-bucket/upload/skill_agent_xxx/output_folder
    ```
 
 4. **Project Export**: Upload a complete project directory structure
-
    ```bash
    # Upload project directory with subdirectories
    python scripts/tos_upload.py /workspace/my_project --bucket project-storage
    # Result: tos://project-storage/upload/{session_id}/my_project/...
    ```
-
-
-## Error Handling
-
-- IF the script raises the error `VOLCENGINE_ACCESS_KEY and VOLCENGINE_SECRET_KEY are not provided or IAM Role is not configured.`, inform the user that they need to provide the `VOLCENGINE_ACCESS_KEY` and `VOLCENGINE_SECRET_KEY` environment variable. Write it to the environment variable file in the workspace. If the file already exists, append it to the end. Ensure the environment variable format is correct, make the environment variable effective, and retry the task that just failed.
 
 ## Notes
 
@@ -234,3 +216,4 @@ tos://my-bucket/upload/skill_agent_xxx/output_folder
 - **IAM Role support**: Scripts automatically retrieve credentials from VeFaaS IAM when available
 - **Error handling**: Scripts print clear error messages for network, permission, or file issues
 - **Bucket requirement**: Bucket name must be specified via `--bucket` parameter (required)
+- **Provider selection**: Set `CLOUD_PROVIDER=byteplus` to use BytePlus endpoints; otherwise Volcano Engine endpoints are used

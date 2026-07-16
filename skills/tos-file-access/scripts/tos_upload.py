@@ -11,23 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
 TOS file/directory upload utility
-Provides functionality to upload files or directories to Volcano Engine TOS object storage and returns signed access URLs
+Provides functionality to upload files or directories to TOS object storage and returns signed access URLs
 """
 
 import argparse
 import logging
 import os
-import requests
 import sys
 from datetime import datetime
 from pathlib import Path
-from pydantic import BaseModel
 from typing import Optional, Union
 
-from dotenv import load_dotenv
 import tos
 from tos import HttpMethodType
 
@@ -35,6 +31,7 @@ from tos import HttpMethodType
 sys.path.append(str(Path(__file__).resolve().parent))
 # Parent directory
 sys.path.append(str(Path(__file__).resolve().parent.parent))
+from veadk.auth.veauth.utils import get_credential_from_vefaas_iam
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -45,85 +42,6 @@ if not logger.handlers:
     formatter = logging.Formatter("%(message)s")
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
-
-
-def success_loaded_openclaw_dotenv() -> bool:
-    openclaw_env = Path("/root/.openclaw/.env")
-    # openclaw_env = Path(
-    #     "/Users/bytedance/workspace/agentkit/agentkit-samples/skills/.venv/.openclaw/.env"
-    # )
-    if openclaw_env.exists():
-        success = load_dotenv(openclaw_env)
-    logger.info(f"Successfully loaded environment variables from {openclaw_env}")
-    return success
-
-
-LOAD_OPENCLAW_DOTENV_SUCCESS = success_loaded_openclaw_dotenv()
-
-
-class VeIAMCredential(BaseModel):
-    access_key_id: str
-    secret_access_key: str
-    session_token: str
-
-
-def get_credential_from_service() -> VeIAMCredential:
-    """Get credential from credential service"""
-
-    endpoint = os.getenv("CREDENTIAL_SERVICE_ENDPOINT")
-    api_key = os.getenv("CREDENTIAL_SERVICE_API_KEY")
-
-    if not endpoint or not api_key:
-        logger.error(
-            "CREDENTIAL_SERVICE_ENDPOINT and CREDENTIAL_SERVICE_API_KEY environment variables must be set to fetch credentials from service."
-        )
-        return None
-
-    try:
-        response = requests.get(
-            url=f"{endpoint}/credential",
-            headers={"Authorization": f"Bearer {api_key}"},
-            timeout=5,
-        )
-        response.raise_for_status()
-        credential_data = response.json()["data"]
-        logger.info(f"Successfully fetched credentials from service {endpoint}.")
-        print(f"Credential data from service: {credential_data}")  # Debug output
-        return VeIAMCredential(
-            access_key_id=credential_data["access_key_id"],
-            secret_access_key=credential_data["secret_access_key"],
-            session_token=credential_data["session_token"],
-        )
-    except Exception as e:
-        logger.error(f"Failed to fetch credentials from service: {e}")
-        return None
-
-
-def identify_volc_env() -> str:
-    """
-    Identify the Volcano Engine environment (vefaas or ecs).
-    """
-
-    VEFAAS_IAM_CRIDENTIAL_PATH = "/var/run/secrets/iam/credential"
-    ECS_CLOUD_LINUX_ENV_PATH = "/etc/cloud/cloud.cfg"
-    ECS_CLOUD_WINDOWS_ENV_PATH = r"C:\Program Files\Cloudbase Solutions\Cloudbase-Init"
-
-    if os.path.exists(VEFAAS_IAM_CRIDENTIAL_PATH):
-        return "vefaas"
-    elif os.path.exists(ECS_CLOUD_LINUX_ENV_PATH):
-        return "ecs"
-    elif os.path.exists(ECS_CLOUD_WINDOWS_ENV_PATH):
-        return "ecs"
-    else:
-        return "unknown"
-
-
-VOLC_ENV = identify_volc_env()
-if VOLC_ENV == "vefaas":
-    try:
-        from veadk.auth.veauth.utils import get_credential_from_vefaas_iam
-    except ImportError:
-        logger.error("vefaas environment detected but veadk import failed.")
 
 
 def _get_session_prefix() -> str:
@@ -141,10 +59,31 @@ def _get_session_prefix() -> str:
         return datetime.now().strftime("%Y%m%d_%H%M%S")
 
 
+def _resolve_tos_config(region: Optional[str] = None) -> tuple[str, str, str]:
+    """Resolve cloud provider, region, and TOS endpoint from environment."""
+    provider = (os.getenv("CLOUD_PROVIDER") or "volcengine").lower()
+    if provider == "byteplus":
+        default_region = "ap-southeast-1"
+        sld = "bytepluses"
+    else:
+        provider = "volcengine"
+        default_region = "cn-beijing"
+        sld = "volces"
+
+    resolved_region = (
+        region
+        or os.getenv("REGION")
+        or os.getenv("DATABASE_TOS_REGION")
+        or default_region
+    )
+    endpoint = f"tos-{resolved_region}.{sld}.com"
+    return provider, resolved_region, endpoint
+
+
 def upload_file_to_tos(
     file_path: str,
     bucket_name: str,
-    region: str = "cn-beijing",
+    region: Optional[str] = None,
     ak: Optional[str] = None,
     sk: Optional[str] = None,
     session_token: Optional[str] = None,
@@ -156,7 +95,7 @@ def upload_file_to_tos(
     Args:
         file_path: Local file path
         bucket_name: TOS bucket name
-        region: TOS region, defaults to cn-beijing
+        region: TOS region; defaults to cn-beijing for volcengine and ap-southeast-1 for byteplus
         ak: Access Key; if empty, reads from environment variables
         sk: Secret Key; if empty, reads from environment variables
         session_token: Session token
@@ -167,8 +106,9 @@ def upload_file_to_tos(
         None: Returns None if upload fails
 
     Environment variables:
-        VOLCENGINE_ACCESS_KEY: Volcano Engine access key
-        VOLCENGINE_SECRET_KEY: Volcano Engine secret key
+        CLOUD_PROVIDER: Cloud provider, volcengine or byteplus
+        VOLCENGINE_ACCESS_KEY: Access key
+        VOLCENGINE_SECRET_KEY: Secret key
         TOOL_USER_SESSION_ID: Session ID for generating object key prefix
     """
     if bucket_name is None:
@@ -190,38 +130,19 @@ def upload_file_to_tos(
     session_token = session_token or ""
 
     if not (access_key and secret_key):
-        # First try to get credentials from Credential Service if environment variables are set
-        if os.getenv("CREDENTIAL_SERVICE_ENDPOINT") and os.getenv(
-            "CREDENTIAL_SERVICE_API_KEY"
-        ):
-            logger.info("Trying to fetch credentials from Credential Service...")
-            try:
-                cred = get_credential_from_service()
-                access_key = cred.access_key_id
-                secret_key = cred.secret_access_key
-                session_token = cred.session_token
-            except Exception as e:
-                logger.warning(f"Failed to get credential from Credential Service: {e}")
-
-        if VOLC_ENV == "vefaas":
-            if get_credential_from_vefaas_iam:
-                logger.info("Trying to fetch credentials from VeFaaS IAM...")
-                try:
-                    cred = get_credential_from_vefaas_iam()
-                    access_key = cred.access_key_id
-                    secret_key = cred.secret_access_key
-                    session_token = cred.session_token
-                except Exception as e:
-                    logger.warning(f"Failed to get credential from vefaas iam: {e}")
-            else:
-                logger.warning(
-                    "vefaas environment detected but get_credential_from_vefaas_iam is None."
-                )
+        try:
+            cred = get_credential_from_vefaas_iam()
+            access_key = cred.access_key_id
+            secret_key = cred.secret_access_key
+            session_token = cred.session_token
+        except Exception as e:
+            logger.error(f"Failed to get credentials from IAM: {e}")
 
     if not access_key or not secret_key:
-        raise PermissionError(
-            "VOLCENGINE_ACCESS_KEY and VOLCENGINE_SECRET_KEY are not provided or IAM Role  or Credential Service is not configured."
+        logger.error(
+            "Error: VOLCENGINE_ACCESS_KEY and VOLCENGINE_SECRET_KEY are not provided or IAM Role is not configured."
         )
+        return None
 
     # Auto-generate object_key: upload/{session_prefix}/{filename}
     session_prefix = _get_session_prefix()
@@ -232,15 +153,18 @@ def upload_file_to_tos(
     client = None
     try:
         # Initialize TOS client
-        endpoint = f"tos-{region}.volces.com"
+        provider, resolved_region, endpoint = _resolve_tos_config(region)
         client = tos.TosClientV2(
             ak=access_key,
             sk=secret_key,
             security_token=session_token,
             endpoint=endpoint,
-            region=region,
+            region=resolved_region,
         )
 
+        logger.info(f"Cloud Provider: {provider}")
+        logger.info(f"TOS Region: {resolved_region}")
+        logger.info(f"TOS Endpoint: {endpoint}")
         logger.info(f"Starting file upload: {file_path}")
         logger.info(f"Target Bucket: {bucket_name}")
         logger.info(f"Object Key: {object_key}")
@@ -308,7 +232,7 @@ def upload_file_to_tos(
 def upload_directory_to_tos(
     directory_path: str,
     bucket_name: str,
-    region: str = "cn-beijing",
+    region: Optional[str] = None,
     ak: Optional[str] = None,
     sk: Optional[str] = None,
     session_token: Optional[str] = None,
@@ -320,7 +244,7 @@ def upload_directory_to_tos(
     Args:
         directory_path: Local directory path
         bucket_name: TOS bucket name
-        region: TOS region, defaults to cn-beijing
+        region: TOS region; defaults to cn-beijing for volcengine and ap-southeast-1 for byteplus
         ak: Access Key; if empty, reads from environment variables
         sk: Secret Key; if empty, reads from environment variables
         session_token: Session token
@@ -331,8 +255,9 @@ def upload_directory_to_tos(
         None: Returns None if upload fails
 
     Environment variables:
-        VOLCENGINE_ACCESS_KEY: Volcano Engine access key
-        VOLCENGINE_SECRET_KEY: Volcano Engine secret key
+        CLOUD_PROVIDER: Cloud provider, volcengine or byteplus
+        VOLCENGINE_ACCESS_KEY: Access key
+        VOLCENGINE_SECRET_KEY: Secret key
     """
     if bucket_name is None:
         logger.error("Error: bucket name The bucket has not been specified.")
@@ -353,36 +278,17 @@ def upload_directory_to_tos(
     session_token = session_token or ""
 
     if not (access_key and secret_key):
-        # First try to get credentials from Credential Service if environment variables are set
-        if os.getenv("CREDENTIAL_SERVICE_ENDPOINT") and os.getenv(
-            "CREDENTIAL_SERVICE_API_KEY"
-        ):
-            logger.info("Trying to fetch credentials from Credential Service...")
-            try:
-                cred = get_credential_from_service()
-                access_key = cred.access_key_id
-                secret_key = cred.secret_access_key
-                session_token = cred.session_token
-            except Exception as e:
-                logger.warning(f"Failed to get credential from Credential Service: {e}")
-
-        if VOLC_ENV == "vefaas":
-            if get_credential_from_vefaas_iam:
-                try:
-                    cred = get_credential_from_vefaas_iam()
-                    access_key = cred.access_key_id
-                    secret_key = cred.secret_access_key
-                    session_token = cred.session_token
-                except Exception as e:
-                    logger.error(f"Failed to get credential from vefaas iam: {e}")
-            else:
-                logger.warning(
-                    "vefaas environment detected but get_credential_from_vefaas_iam is None."
-                )
+        try:
+            cred = get_credential_from_vefaas_iam()
+            access_key = cred.access_key_id
+            secret_key = cred.secret_access_key
+            session_token = cred.session_token
+        except Exception as e:
+            logger.error(f"Failed to get credentials from IAM: {e}")
 
     if not access_key or not secret_key:
         logger.error(
-            "Error: VOLCENGINE_ACCESS_KEY and VOLCENGINE_SECRET_KEY are not provided or IAM Role or Credential Service is not configured."
+            "Error: VOLCENGINE_ACCESS_KEY and VOLCENGINE_SECRET_KEY are not provided or IAM Role is not configured."
         )
         return None
 
@@ -396,15 +302,18 @@ def upload_directory_to_tos(
 
     try:
         # Initialize TOS client
-        endpoint = f"tos-{region}.volces.com"
+        provider, resolved_region, endpoint = _resolve_tos_config(region)
         client = tos.TosClientV2(
             ak=access_key,
             sk=secret_key,
             security_token=session_token,
             endpoint=endpoint,
-            region=region,
+            region=resolved_region,
         )
 
+        logger.info(f"Cloud Provider: {provider}")
+        logger.info(f"TOS Region: {resolved_region}")
+        logger.info(f"TOS Endpoint: {endpoint}")
         logger.info(f"Starting directory upload: {directory_path}")
         logger.info(f"Target Bucket: {bucket_name}")
         logger.info(f"Object Key Prefix: {object_key_prefix}")
@@ -438,12 +347,10 @@ def upload_directory_to_tos(
 
                 # Upload file
                 try:
-                    result = client.put_object_from_file(
+                    client.put_object_from_file(
                         bucket=bucket_name, key=object_key, file_path=file_path
                     )
-                    logger.info(
-                        f"Uploaded: {file_path} -> {object_key}, result: {result}"
-                    )
+                    logger.info(f"Uploaded: {file_path} -> {object_key}")
 
                 except Exception as e:
                     logger.error(f"Failed to upload {file_path}: {e}")
@@ -476,7 +383,7 @@ def upload_directory_to_tos(
 def upload_to_tos(
     path: str,
     bucket_name: str,
-    region: str = "cn-beijing",
+    region: Optional[str] = None,
     ak: Optional[str] = None,
     sk: Optional[str] = None,
     session_token: Optional[str] = None,
@@ -536,26 +443,27 @@ def upload_to_tos(
 def main():
     """Command-line interface for tos_upload"""
     parser = argparse.ArgumentParser(
-        description="Upload files or directories to Volcano Engine TOS and generate signed URLs",
+        description="Upload files or directories to TOS and generate signed URLs",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   # Upload a file (auto-detect)
   python tos_upload.py /path/to/file.mp4 --bucket my-bucket
-
+  
   # Upload a directory (auto-detect)
   python tos_upload.py /path/to/directory --bucket my-bucket
-
+  
   # Upload to different region with custom expiration
   python tos_upload.py /path/to/file.json --bucket my-bucket --region cn-beijing --expires 86400
 
 File Upload Structure:
   File:      upload/{session_prefix}/{filename}
   Directory: upload/{session_prefix}/{directory_name}/{relative_path}
-
+  
 Environment Variables:
-  VOLCENGINE_ACCESS_KEY     Volcano Engine access key
-  VOLCENGINE_SECRET_KEY     Volcano Engine secret key
+  CLOUD_PROVIDER            volcengine or byteplus
+  VOLCENGINE_ACCESS_KEY     Access key
+  VOLCENGINE_SECRET_KEY     Secret key
   TOOL_USER_SESSION_ID      Session ID for generating object key prefix
         """,
     )
@@ -567,8 +475,8 @@ Environment Variables:
     parser.add_argument(
         "--region",
         type=str,
-        default="cn-beijing",
-        help="TOS region (default: cn-beijing)",
+        default=None,
+        help="TOS region (default: cn-beijing for volcengine, ap-southeast-1 for byteplus)",
     )
 
     parser.add_argument(
