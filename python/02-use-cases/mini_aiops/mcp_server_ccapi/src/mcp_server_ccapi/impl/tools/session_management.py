@@ -15,7 +15,6 @@
 import datetime
 import json
 import uuid
-
 from mcp.server.fastmcp import Context
 from mcp_server_ccapi.context import Context as ServerContext
 from mcp_server_ccapi.errors import ClientError
@@ -27,8 +26,8 @@ from mcp_server_ccapi.impl.tools.credential import (
 from mcp_server_ccapi.schema_manager import get_volcengine_credentials
 from mcp_server_ccapi.volcengine_client import (
     create_universal_info,
+    do_call_with_http_info_async,
     get_volcengine_client,
-    do_call_with_http_info_async
 )
 from os import environ
 from volcenginesdkcore.rest import ApiException
@@ -37,7 +36,7 @@ from volcenginesdkcore.rest import ApiException
 async def check_environment_variables_impl(ctx: Context, workflow_store: dict) -> dict:
     """Check if required environment variables are set correctly implementation."""
     credentials = get_volcengine_credentials(ctx, None)
-    if not (credentials.get("access_key_id") and credentials.get("secret_access_key")):
+    if not (credentials.get('access_key_id') and credentials.get('secret_access_key')):
         raise ClientError('Please provide VOLCENGINE_ACCESS_KEY and VOLCENGINE_SECRET_KEY')
 
     # Generate environment token
@@ -50,7 +49,7 @@ async def check_environment_variables_impl(ctx: Context, workflow_store: dict) -
             'environment_variables': {
                 'SECURITY_SCANNING': environ.get('SECURITY_SCANNING', 'disable'),
             },
-            'ak': credentials.get("access_key_id"),
+            'ak': credentials.get('access_key_id'),
             'sk': credentials.get('secret_access_key'),
             'session_token': credentials.get('session_token'),
             'properly_configured': True,
@@ -78,7 +77,9 @@ async def check_environment_variables_impl(ctx: Context, workflow_store: dict) -
     }
 
 
-async def get_volcengine_session_info_impl(ctx: Context, environment_token: str, workflow_store: dict) -> dict:
+async def get_volcengine_session_info_impl(
+    ctx: Context, environment_token: str, workflow_store: dict
+) -> dict:
     """Get information about the current Volcengine session implementation.
 
     IMPORTANT: Always display the Volcengine context information to the user when this tool is called.
@@ -170,7 +171,7 @@ async def get_volcengine_session_info_impl(ctx: Context, environment_token: str,
 
 
 async def get_volcengine_profile_info(ctx: Context, region: str | None = None):
-    """Get information about the current Volcengine"""
+    """Get information about the current Volcengine."""
     global client
     credentials = get_volcengine_credentials(ctx, region)
     try:
@@ -237,13 +238,15 @@ async def get_volcengine_profile_info(ctx: Context, region: str | None = None):
                 'valid': False,
                 'error': str(ie),
                 'region': credentials['region'] or 'cn-beijing',
-                'using_env_vars': credentials['access_key_id'] != '' and credentials['secret_access_key'] != '',
+                'using_env_vars': credentials['access_key_id'] != ''
+                and credentials['secret_access_key'] != '',
             }
     except Exception as e:
         return {
             'valid': False,
             'error': str(e),
             'region': credentials['region'] or 'cn-beijing',
-            'using_env_vars': credentials['access_key_id'] != '' and credentials['secret_access_key'] != '',
+            'using_env_vars': credentials['access_key_id'] != ''
+            and credentials['secret_access_key'] != '',
         }
     return {}

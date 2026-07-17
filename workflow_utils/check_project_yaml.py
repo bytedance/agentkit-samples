@@ -3,7 +3,7 @@ import argparse
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import yaml
 
@@ -155,7 +155,7 @@ def check_components(metadata: dict[str, Any]):
         )
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("files", nargs="*")
     args = parser.parse_args(argv)

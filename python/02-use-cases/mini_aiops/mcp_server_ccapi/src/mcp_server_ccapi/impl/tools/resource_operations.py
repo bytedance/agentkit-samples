@@ -13,11 +13,11 @@
 """Resource operations implementation for CCAPI MCP server."""
 
 import json
+from mcp.server.fastmcp import Context
 from mcp_server_ccapi.cloud_control_utils import (
     progress_event,
     validate_patch,
 )
-from mcp.server.fastmcp import Context
 from mcp_server_ccapi.context import Context as ServerContext
 from mcp_server_ccapi.errors import (
     ClientError,
@@ -38,8 +38,8 @@ from mcp_server_ccapi.models.models import (
 )
 from mcp_server_ccapi.volcengine_client import (
     create_universal_info,
+    do_call_with_http_info_async,
     get_volcengine_client_from_config,
-    do_call_with_http_info_async
 )
 from os import environ
 from volcenginesdkcore.rest import ApiException
@@ -87,7 +87,9 @@ def _validate_token_chain(
     workflow_store[security_scan_token]['parent_token'] = explained_token
 
 
-async def create_resource_impl(ctx:Context, request: CreateResourceRequest, workflow_store: dict) -> dict:
+async def create_resource_impl(
+    ctx: Context, request: CreateResourceRequest, workflow_store: dict
+) -> dict:
     """Create an Volcengine resource implementation."""
     validate_resource_type(request.resource_type)
 
@@ -168,7 +170,9 @@ async def create_resource_impl(ctx:Context, request: CreateResourceRequest, work
     return result
 
 
-async def update_resource_impl(ctx: Context, request: UpdateResourceRequest, workflow_store: dict) -> dict:
+async def update_resource_impl(
+    ctx: Context, request: UpdateResourceRequest, workflow_store: dict
+) -> dict:
     """Update a Volcengine resource implementation."""
     validate_resource_type(request.resource_type)
     validate_identifier(request.identifier)
@@ -264,7 +268,9 @@ async def update_resource_impl(ctx: Context, request: UpdateResourceRequest, wor
     return result
 
 
-async def delete_resource_impl(ctx: Context, request: DeleteResourceRequest, workflow_store: dict) -> dict:
+async def delete_resource_impl(
+    ctx: Context, request: DeleteResourceRequest, workflow_store: dict
+) -> dict:
     """Delete an Volcengine resource implementation."""
     validate_resource_type(request.resource_type)
     validate_identifier(request.identifier)
@@ -324,9 +330,7 @@ async def delete_resource_impl(ctx: Context, request: DeleteResourceRequest, wor
 
 
 async def get_resource_impl(
-    ctx: Context,
-    request: GetResourceRequest,
-    workflow_store: dict | None = None
+    ctx: Context, request: GetResourceRequest, workflow_store: dict | None = None
 ) -> dict:
     """Get details of a specific Volcengine resource implementation."""
     validate_resource_type(request.resource_type)
@@ -380,7 +384,9 @@ async def get_resource_impl(
                 # Get credentials token first
                 env_check = await check_environment_variables_impl(ctx, workflow_store)
                 env_token = env_check['environment_token']
-                session_info = await get_volcengine_session_info_impl(ctx, env_token, workflow_store)
+                session_info = await get_volcengine_session_info_impl(
+                    ctx, env_token, workflow_store
+                )
                 creds_token = session_info['credentials_token']
 
                 # Use existing security analysis workflow
@@ -439,7 +445,9 @@ async def get_resource_impl(
         raise handle_volcengine_api_error(e)
 
 
-async def get_resource_request_status_impl(ctx: Context, request_token: str, region: str | None = None) -> dict:
+async def get_resource_request_status_impl(
+    ctx: Context, request_token: str, region: str | None = None
+) -> dict:
     """Get the status of a long running operation implementation."""
     if not request_token:
         raise ClientError('Please provide a request token to track the request')

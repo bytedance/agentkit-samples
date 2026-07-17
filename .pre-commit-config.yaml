@@ -5,10 +5,12 @@ repos:
   hooks:
     # Run the linter.
     - id: ruff-check
+      exclude: ^(01-tutorials|02-use-cases|03-integrations|skills)/
       types_or: [ python, pyi ]
       args: [ --fix ]
     # Run the formatter.
     - id: ruff-format
+      exclude: ^(01-tutorials|02-use-cases|03-integrations|skills)/
       types_or: [ python, pyi ]
 - repo: https://github.com/gitleaks/gitleaks
   rev: v8.24.2
@@ -18,10 +20,10 @@ repos:
   hooks:
     - id: markdownlint-cli2
       name: markdownlint-cli2
-      entry: npx
-      args:
-        - markdownlint-cli2
-      language: system
+      entry: markdownlint-cli2
+      language: node
+      additional_dependencies:
+        - markdownlint-cli2@0.18.1
       pass_filenames: false
     - id: check-use-cases-project-yaml
       name: check-use-cases-project-yaml

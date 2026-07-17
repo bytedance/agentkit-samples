@@ -1,3 +1,0 @@
-lark_oapi
-veadk-python
-agentkit-sdk-python

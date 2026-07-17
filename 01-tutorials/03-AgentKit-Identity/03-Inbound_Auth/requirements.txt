@@ -1,2 +1,0 @@
-veadk-python
-agentkit-sdk-python

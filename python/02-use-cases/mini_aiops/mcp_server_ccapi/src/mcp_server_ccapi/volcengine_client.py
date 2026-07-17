@@ -10,16 +10,16 @@
 #
 # This modified file is released under the same license.
 
+import asyncio
 import json
 import os
-import asyncio
-from typing import Any
+from mcp.server.fastmcp import Context
 from mcp_server_ccapi.impl.tools.credential import (
     get_volcengine_credentials,
 )
+from typing import Any
 from volcenginesdkcore import ApiClient, Configuration, UniversalApi, UniversalInfo
 from volcenginesdkcore.rest import ApiException
-from mcp.server.fastmcp import Context
 
 
 def create_universal_info(
@@ -29,6 +29,7 @@ def create_universal_info(
     method='POST',
     content_type='application/json',
 ):
+    """Create UniversalInfo for a Volcengine API request."""
     if content_type is None:
         content_type = 'application/json'
     if method == 'GET':
@@ -102,23 +103,21 @@ def get_volcengine_client(
 _CONCURRENCY = int(os.getenv('MCP_SERVER_CONCURRENCY', '16') or '16')
 _api_semaphore: asyncio.Semaphore | None = None
 
+
 def _get_semaphore() -> asyncio.Semaphore:
     global _api_semaphore
     if _api_semaphore is None:
         _api_semaphore = asyncio.Semaphore(_CONCURRENCY)
     return _api_semaphore
 
+
 async def do_call_with_http_info_async(
-    client: UniversalApi,
-    info: UniversalInfo,
-    body: dict | None
+    client: UniversalApi, info: UniversalInfo, body: dict | None
 ) -> Any:
+    """Call the Volcengine API asynchronously with concurrency control."""
     async with _get_semaphore():
-        return await asyncio.to_thread(
-            client.do_call_with_http_info,
-            info=info,
-            body=body
-        )
+        return await asyncio.to_thread(client.do_call_with_http_info, info=info, body=body)
+
 
 # 使用示例
 if __name__ == '__main__':

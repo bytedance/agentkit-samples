@@ -1,3 +1,0 @@
-veadk-python
-veadk-python[extensions]
-google-adk

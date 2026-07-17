@@ -12,7 +12,8 @@
 
 
 def handle_volcengine_api_error(e: Exception) -> Exception:
-    """Handle Volcengine API errors
+    """Handle Volcengine API errors.
+
     Args:
         e: The exception that was raised
 

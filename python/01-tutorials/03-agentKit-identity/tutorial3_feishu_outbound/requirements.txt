@@ -1,9 +1,0 @@
-dotenv
-flask
-flask-socketio
-python-socketio
-requests
-httpx
-Authlib
-PyJWT
-veadk-python
