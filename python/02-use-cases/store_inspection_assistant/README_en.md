@@ -69,7 +69,7 @@ Main BytePlus products or Agent components:
 1. Log in to the [BytePlus Console](https://console.byteplus.com)
 2. Go to "Access Control" → "Users" -> Create a new user or search for an existing username -> Click the username to enter "User Details" -> Go to "Keys" -> Create a new key or copy an existing AK/SK.
    - As shown below:
-     ![BytePlus AK/SK Management](../../assets/images/volcengine_aksk.jpg)
+     ![BytePlus AK/SK Management](../../assets/images/volcengine_aksk_en.png)
 3. Configure access permissions for the services AgentKit depends on for the user:
    - On the "User Details" page -> Go to "Permissions" -> Click "Add Permission" and grant the following policies to the user:
      - `AgentKitFullAccess` (Full access to AgentKit)
@@ -78,16 +78,15 @@ Main BytePlus products or Agent components:
    - Log in to the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
    - Go to "API Key Management" -> Create or copy an existing API Key. The `MODEL_AGENT_API_KEY` environment variable will need to be set to this value.
    - As shown below:
-     ![Model Ark API Key Management](../../assets/images/ark_api_key_management.jpg)
+     ![Model Ark API Key Management](../../assets/images/ark_api_key_management_en.png)
 5. Activate pre-built model inference endpoints:
    - Log in to the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
-   - Go to "Activation Management" -> "Language Models" -> Find the respective model -> Click "Activate Service".
-   - Confirm activation and wait for the service to become effective (usually 1-2 minutes).
+   - Go to "Foundation Models" -> Find the respective model -> Click "Access API".
    - Activate the following models used in this case (you can also activate other models' pre-built inference endpoints as needed and specify them in the `agent.py` code):
      - `deepseek-v4-pro-260425`
      - `doubao-seed-2-0-pro-260215`
    - As shown below:
-     ![Model Ark Model Service Management](../../assets/images/ark_model_service_management.jpg)
+     ![Model Ark Model Service Management](../../assets/images/ark_model_service_management_en.png)
 
 ### Install Dependencies
 
@@ -170,7 +169,7 @@ After successful deployment:
 
 The agent list page in AgentKit provides a debugging entry point. Click it to debug the agent's functionality in a visual UI.
 
-![img](./img/agent-test-run.png)
+![img](./img/agent-test-run-en.png)
 
 #### **Debugging with the command line**
 
