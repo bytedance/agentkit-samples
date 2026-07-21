@@ -1,7 +1,0 @@
-__pycache__/
-*.pyc
-.venv/
-.env
-
-# agentkit per-deploy artifacts (build/apply logs, image record)
-.agentkit/artifacts/
