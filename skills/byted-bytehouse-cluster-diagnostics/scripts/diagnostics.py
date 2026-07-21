@@ -22,6 +22,8 @@ import sys
 import json
 import requests
 
+
+
 def main():
     if len(sys.argv) < 2:
         print("错误: 请提供诊断问题。用法: python3 diagnostics.py \"你的诊断问题\"")
@@ -32,7 +34,7 @@ def main():
     if not host:
         print("错误: 请设置 BYTEHOUSE_HOST 环境变量。")
         sys.exit(1)
-        
+
     # 构建API URL，确保格式正确
     if not host.startswith('http'):
         url = f"https://{host}/matrix/v1/conversation"

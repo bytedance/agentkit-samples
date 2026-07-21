@@ -1,0 +1,5 @@
+clickhouse-connect>=0.7.0
+clickhouse-driver>=0.2.6
+requests>=2.31.0
+volcengine-python-sdk[ark]>=1.0.0
+numpy>=1.24.0

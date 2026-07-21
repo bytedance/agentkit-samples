@@ -11,6 +11,7 @@ except ImportError:
     print("clickhouse-connect not installed. Please run: pip install clickhouse-connect")
     sys.exit(1)
 
+
 def get_client(host, password):
     host = host or os.environ.get('BYTEHOUSE_HOST', '')
     password = password or os.environ.get('BYTEHOUSE_PASSWORD', '')
@@ -20,9 +21,10 @@ def get_client(host, password):
     if not password:
         raise ValueError("BYTEHOUSE_USER and BYTEHOUSE_PASSWORD are required")
 
-    user = 'bytehouse'
-    port = 8123
+    user = os.environ.get('BYTEHOUSE_USER', 'bytehouse')
+    port = int(os.environ.get('BYTEHOUSE_PORT', '8123'))
     secure = True
+
 
     return clickhouse_connect.get_client(
         host=host,
@@ -30,7 +32,7 @@ def get_client(host, password):
         username=user,
         password=password,
         secure=secure,
-        verify=False
+        verify=False,
     )
 
 def main():

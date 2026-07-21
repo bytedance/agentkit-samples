@@ -18,7 +18,7 @@
 
 # ==================== 示例1: 初始化客户端 ====================
 """
-from reference import ByteHouseMultimodalSearch
+from search_client import ByteHouseMultimodalSearch
 
 # 方式1：HTTP连接（默认，适合大多数场景）
 search = ByteHouseMultimodalSearch(

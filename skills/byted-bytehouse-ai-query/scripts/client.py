@@ -32,7 +32,7 @@ def create_client(
     port: str = None,
     user: str = None,
     password: str = None,
-    database: str = None
+    database: str = None,
 ) -> 'clickhouse_connect.Client':
     """
     创建 ByteHouse 连接客户端
@@ -58,7 +58,7 @@ def create_client(
     user = user or os.environ.get('BYTEHOUSE_USER', 'bytehouse')
     password = password or os.environ.get('BYTEHOUSE_PASSWORD', '')
     database = database or os.environ.get('BYTEHOUSE_DATABASE', '')
-    
+
     if not host:
         raise ValueError("BYTEHOUSE_HOST is required")
     if not user or not password:
@@ -80,7 +80,7 @@ def create_client(
             # 公有云版本用 8123
             port = 8123
         secure = True
-    
+
     return clickhouse_connect.get_client(
         host=host,
         port=port,
@@ -88,7 +88,7 @@ def create_client(
         password=password,
         database=database if database else None,
         secure=secure,
-        verify=False
+        verify=False,
     )
 
 

@@ -1,16 +1,16 @@
 ---
 name: tos-file-access
-description: Upload files or directories to TOS-compatible object storage for Volcano Engine or BytePlus and download files from URLs. Use this skill when (1) Upload Agent-generated files or directories for sharing, (2) Download files from URLs before Agent processing.
+description: Upload files or directories to Volcano Engine TOS (Torch Object Storage) and download files from URLs. Use this skill when (1) Upload Agent-generated files or directories (like videos, images, reports, output folders) to TOS for sharing, (2) Download files from URLs before Agent processing.
 license: Complete terms in LICENSE.txt
 ---
 
 # TOS File Access
 
-This skill provides utilities for uploading files and directories to TOS-compatible object storage for Volcano Engine or BytePlus, and downloading files from URLs.
+This skill provides utilities for uploading files and directories to Volcano Engine TOS (Torch Object Storage) and downloading files from URLs.
 
 ## Overview
 
-**TOS-compatible object storage** is used by Volcano Engine and BytePlus, similar to AWS S3. This skill enables:
+**TOS (Torch Object Storage)** is Volcano Engine's object storage service, similar to AWS S3. This skill enables:
 
 - **Upload**: Upload Agent-generated files or entire directories to TOS and get shareable signed URLs (for files) or TOS paths (for directories)
 - **Download**: Download files from URLs to local storage for Agent processing
@@ -43,8 +43,8 @@ python scripts/tos_upload.py /path/to/output.mp4 --bucket my-bucket
 # Upload entire directory (auto-detected)
 python scripts/tos_upload.py /path/to/output_folder --bucket my-bucket
 
-# Upload to BytePlus with custom expiration
-TOS_REGION=ap-southeast-1 python scripts/tos_upload.py /path/to/report.pdf --bucket my-bucket --expires 86400
+# Upload with custom region and expiration
+python scripts/tos_upload.py /path/to/report.pdf --bucket my-bucket --region cn-beijing --expires 86400
 ```
 
 ## Scripts
@@ -105,7 +105,7 @@ python scripts/tos_upload.py <path> --bucket BUCKET [--region REGION] [--expires
 
 - `path`: Local file or directory path to upload (positional, required)
 - `--bucket`: TOS bucket name (required)
-- `--region`: TOS region (optional, defaults to `TOS_REGION`, `DATABASE_TOS_REGION`, or provider default: `ap-southeast-1` for BytePlus, `cn-beijing` for Volcano Engine)
+- `--region`: TOS region (optional, defaults to `cn-beijing`)
 - `--expires`: Signed URL expiration in seconds (optional, defaults to 604800 = 7 days, only applies to file uploads)
 
 **Upload Structure:**
@@ -120,11 +120,9 @@ python scripts/tos_upload.py <path> --bucket BUCKET [--region REGION] [--expires
 - If `TOOL_USER_SESSION_ID` is set, uses that value as prefix
 - Otherwise, falls back to timestamp format `YYYYMMDD_HHMMSS`
 
-**Cloud provider and authentication:**
+**Authentication:**
 Requires one of:
 
-- `TOS_REGION=ap-southeast-1` selects BytePlus endpoint first
-- `CLOUD_PROVIDER=byteplus` selects BytePlus endpoint when `TOS_REGION` is not `ap-southeast-1`
 - Environment variables: `VOLCENGINE_ACCESS_KEY` and `VOLCENGINE_SECRET_KEY`
 - VeFaaS IAM Role (automatic credential retrieval)
 
@@ -137,9 +135,10 @@ python scripts/tos_upload.py /workspace/output.mp4 --bucket my-bucket
 # Upload entire directory (auto-detected)
 python scripts/tos_upload.py /workspace/results_folder --bucket my-bucket
 
-# Upload to BytePlus with 1-day expiration
-TOS_REGION=ap-southeast-1 python scripts/tos_upload.py /workspace/report.pdf \
+# Upload to different region with 1-day expiration
+python scripts/tos_upload.py /workspace/report.pdf \
   --bucket my-reports \
+  --region cn-beijing \
   --expires 86400
 
 # Upload directory with all options
@@ -175,11 +174,8 @@ tos://my-bucket/upload/skill_agent_xxx/output_folder
 
 ## Environment Variables
 
-- `TOS_REGION`: TOS region (optional). `ap-southeast-1` selects BytePlus endpoint.
-- `CLOUD_PROVIDER`: Cloud provider (optional). `byteplus` selects BytePlus endpoint when `TOS_REGION` is not `ap-southeast-1`; otherwise Volcano Engine endpoint is used.
-- `VOLCENGINE_ACCESS_KEY`: Access key for object storage authentication
-- `VOLCENGINE_SECRET_KEY`: Secret key for object storage authentication
-- `DATABASE_TOS_REGION`: Optional region fallback when `--region` and `TOS_REGION` are not provided
+- `VOLCENGINE_ACCESS_KEY`: Volcano Engine access key for TOS authentication
+- `VOLCENGINE_SECRET_KEY`: Volcano Engine secret key for TOS authentication
 - `TOOL_USER_SESSION_ID`: Session ID used to generate organized upload paths (optional, falls back to timestamp)
 
 ## Common Use Cases
@@ -238,4 +234,3 @@ tos://my-bucket/upload/skill_agent_xxx/output_folder
 - **IAM Role support**: Scripts automatically retrieve credentials from VeFaaS IAM when available
 - **Error handling**: Scripts print clear error messages for network, permission, or file issues
 - **Bucket requirement**: Bucket name must be specified via `--bucket` parameter (required)
-- **Endpoint selection**: `TOS_REGION=ap-southeast-1` takes priority for BytePlus. Otherwise `CLOUD_PROVIDER=byteplus` selects BytePlus. All other cases use Volcano Engine.

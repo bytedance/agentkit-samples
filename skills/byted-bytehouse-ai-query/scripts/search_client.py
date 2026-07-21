@@ -19,7 +19,6 @@ ByteHouse 多模态检索客户端
 
 import os
 import json
-import asyncio
 from typing import List, Dict, Any
 
 from embedding import MultimodalEmbedding
@@ -28,75 +27,55 @@ from embedding import MultimodalEmbedding
 class ByteHouseMultimodalSearch:
     """ByteHouse多模态检索客户端"""
     
-    def __init__(self, 
+    def __init__(self,
                  connection_type: str = "http",
                  secure: bool = True,
                  compress: str = "zstd",
                  connect_timeout: int = 300,
-                 send_receive_timeout: int = 1000,
-                 prefer_mcp: bool = True):
+                 send_receive_timeout: int = 1000):
         """
         初始化ByteHouse多模态检索客户端
-        
+
         Args:
             connection_type: 连接方式，可选 http/tcp
             secure: 是否启用加密连接
             compress: 压缩方式，可选 zstd/lz4/False
             connect_timeout: 连接超时时间，单位秒
             send_receive_timeout: 请求超时时间，单位秒
-            prefer_mcp: 是否优先使用ByteHouse MCP Skill
         """
         self.connection_type = connection_type
         self.dimensions = int(os.environ.get("EMBEDDING_DIMENSIONS", 2048))
         self.embedding = MultimodalEmbedding()
-        self.use_mcp = False
-        self.mcp_client = None
-        
-        # 优先尝试使用MCP连接
-        if prefer_mcp:
-            try:
-                from mcp_client import ByteHouseMCPClient
-                
-                async def test_mcp_connection():
-                    async with ByteHouseMCPClient() as client:
-                        await client.connect()
-                        return client
-                
-                self.mcp_client = asyncio.run(test_mcp_connection())
-                self.use_mcp = True
-            except Exception:
-                self.use_mcp = False
-        
-        # MCP不可用时使用原生驱动连接
-        if not self.use_mcp:
-            if connection_type == "http":
-                import clickhouse_connect
-                self.client = clickhouse_connect.get_client(
-                    host=os.environ.get("BYTEHOUSE_HOST"),
-                    port=int(os.environ.get("BYTEHOUSE_PORT", 8123)),
-                    username=os.environ.get("BYTEHOUSE_USER"),
-                    password=os.environ.get("BYTEHOUSE_PASSWORD"),
-                    database=os.environ.get("BYTEHOUSE_DATABASE", "default"),
-                    secure=secure,
-                    compress=compress,
-                    send_receive_timeout=send_receive_timeout
-                )
-            elif connection_type == "tcp":
-                from clickhouse_driver import Client
-                self.client = Client(
-                    host=os.environ.get("BYTEHOUSE_HOST"),
-                    port=int(os.environ.get("BYTEHOUSE_PORT", 9000)),
-                    user=os.environ.get("BYTEHOUSE_USER"),
-                    password=os.environ.get("BYTEHOUSE_PASSWORD"),
-                    database=os.environ.get("BYTEHOUSE_DATABASE", "default"),
-                    connect_timeout=connect_timeout,
-                    send_receive_timeout=send_receive_timeout,
-                    compression=compress if compress else False,
-                    secure=secure,
-                    client_revision=54430
-                )
-            else:
-                raise ValueError(f"不支持的连接类型: {connection_type}")
+
+        # 使用原生驱动连接 ByteHouse
+        if connection_type == "http":
+            import clickhouse_connect
+            self.client = clickhouse_connect.get_client(
+                host=os.environ.get("BYTEHOUSE_HOST"),
+                port=int(os.environ.get("BYTEHOUSE_PORT", 8123)),
+                username=os.environ.get("BYTEHOUSE_USER"),
+                password=os.environ.get("BYTEHOUSE_PASSWORD"),
+                database=os.environ.get("BYTEHOUSE_DATABASE", "default"),
+                secure=secure,
+                compress=compress,
+                send_receive_timeout=send_receive_timeout
+            )
+        elif connection_type == "tcp":
+            from clickhouse_driver import Client
+            self.client = Client(
+                host=os.environ.get("BYTEHOUSE_HOST"),
+                port=int(os.environ.get("BYTEHOUSE_PORT", 9000)),
+                user=os.environ.get("BYTEHOUSE_USER"),
+                password=os.environ.get("BYTEHOUSE_PASSWORD"),
+                database=os.environ.get("BYTEHOUSE_DATABASE", "default"),
+                connect_timeout=connect_timeout,
+                send_receive_timeout=send_receive_timeout,
+                compression=compress if compress else False,
+                secure=secure,
+                client_revision=54430
+            )
+        else:
+            raise ValueError(f"不支持的连接类型: {connection_type}")
     
     
     def _check_dql(self, sql: str, force: bool = False):
@@ -116,29 +95,15 @@ class ByteHouseMultimodalSearch:
                 sys.exit(1)
 
     def _execute_sql(self, sql: str, query_type: str = "select", force: bool = False):
-        """内部通用SQL执行方法，自动适配MCP和原生驱动"""
+        """内部通用SQL执行方法，直接使用原生驱动执行 SQL"""
         self._check_dql(sql, force)
         try:
-            if self.use_mcp:
-                tool_name = "run_select_query" if query_type == "select" else "run_dml_ddl_query"
-                
-                async def run_mcp_query():
-                    return await self.mcp_client.call_tool(tool_name, {"query": sql})
-                
-                result = asyncio.run(run_mcp_query())
-                if result and len(result) > 0:
-                    try:
-                        return [list(item.values()) for item in json.loads(result[0])]
-                    except:
-                        return [line.split('\t') for line in result[0].strip().split('\n')]
-                return []
+            if query_type == "select":
+                result = self.client.query(sql)
+                return result.result_rows if hasattr(result, 'result_rows') else result
             else:
-                if query_type == "select":
-                    result = self.client.query(sql)
-                    return result.result_rows if hasattr(result, 'result_rows') else result
-                else:
-                    return self.client.command(sql)
-        
+                return self.client.command(sql)
+
         except Exception as e:
             error_msg = str(e).lower()
             if "connection" in error_msg or "timeout" in error_msg:
@@ -283,24 +248,19 @@ class ByteHouseMultimodalSearch:
         
         if rows:
             try:
-                if self.use_mcp:
-                    values_str = [f"({row[0]}, '{row[1]}', '{row[2]}', '{row[3]}', {row[4]}, '{row[5]}')" for row in rows]
-                    insert_sql = f"INSERT INTO {table_name} VALUES {','.join(values_str)}"
-                    self._execute_sql(insert_sql, query_type="dml", force=True)
+                self._check_dql(f"INSERT INTO {table_name} (批量插入 {len(rows)} 条数据)", True)
+                if self.connection_type == "http":
+                    self.client.insert(
+                        table_name,
+                        rows,
+                        column_names=['id', 'content_type', 'content', 'title', 'embedding', 'metadata'],
+                        column_type_names=['UInt64', 'Enum', 'String', 'String', 'Array(Float32)', 'Map(String, String)']
+                    )
                 else:
-                    self._check_dql(f"INSERT INTO {table_name} (批量插入 {len(rows)} 条数据)", True)
-                    if self.connection_type == "http":
-                        self.client.insert(
-                            table_name,
-                            rows,
-                            column_names=['id', 'content_type', 'content', 'title', 'embedding', 'metadata'],
-                            column_type_names=['UInt64', 'Enum', 'String', 'String', 'Array(Float32)', 'Map(String, String)']
-                        )
-                    else:
-                        self.client.execute(
-                            f'INSERT INTO {table_name} VALUES',
-                            rows
-                        )
+                    self.client.execute(
+                        f'INSERT INTO {table_name} VALUES',
+                        rows
+                    )
                 success_count = len(rows)
             except Exception as e:
                 for row in rows:

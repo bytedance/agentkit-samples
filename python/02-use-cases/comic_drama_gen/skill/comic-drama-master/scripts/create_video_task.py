@@ -14,10 +14,6 @@ from typing import Optional
 
 import requests
 
-from env_loader import load_project_env
-
-load_project_env()
-
 logger = logging.getLogger(__name__)
 
 _VALID_DURATIONS = set(range(4, 16))
@@ -44,12 +40,6 @@ def _build_content(
     last_frame_image_url: Optional[str],
 ) -> list:
     content = []
-    for label, url in (
-        ("first_frame", first_frame_image_url),
-        ("last_frame", last_frame_image_url),
-    ):
-        if url and not url.startswith(("http://", "https://")):
-            raise ValueError(f"{label} must be an HTTP(S) URL, not a local path: {url}")
     if first_frame_image_url and last_frame_image_url:
         content.append(
             {
@@ -105,22 +95,22 @@ def create_video_task(
 
         task_id = resp.json().get("id")
         if not task_id:
-            raise ValueError(f"Response is missing task_id: {resp.text}")
+            raise ValueError(f"响应缺少 task_id: {resp.text}")
 
-        logger.info(f"Task submitted task_id={task_id} duration={duration_seconds}s")
+        logger.info(f"任务已提交 task_id={task_id} duration={duration_seconds}s")
         return task_id
 
     except requests.exceptions.RequestException as e:
         body = getattr(getattr(e, "response", None), "text", "")
-        raise Exception(f"Failed to submit video task: {e} | Response: {body}")
+        raise Exception(f"提交视频任务失败: {e} | 响应: {body}")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Create a video generation task")
-    parser.add_argument("--prompt", required=True, help="Video prompt")
-    parser.add_argument("--duration", type=int, default=10, help="Duration in seconds")
-    parser.add_argument("--first-frame", default=None, help="First-frame image URL")
-    parser.add_argument("--last-frame", default=None, help="Last-frame image URL")
+    parser = argparse.ArgumentParser(description="创建视频生成任务")
+    parser.add_argument("--prompt", required=True, help="视频提示词")
+    parser.add_argument("--duration", type=int, default=10, help="时长（秒）")
+    parser.add_argument("--first-frame", default=None, help="首帧图片 URL")
+    parser.add_argument("--last-frame", default=None, help="尾帧图片 URL")
     args = parser.parse_args()
 
     task_id = create_video_task(
