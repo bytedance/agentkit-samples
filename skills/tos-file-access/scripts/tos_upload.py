@@ -141,10 +141,34 @@ def _get_session_prefix() -> str:
         return datetime.now().strftime("%Y%m%d_%H%M%S")
 
 
+def _resolve_tos_config(region: Optional[str] = None) -> tuple[str, str, str]:
+    """Resolve cloud provider, region, and endpoint from TOS_REGION/CLOUD_PROVIDER."""
+    tos_region = os.getenv("TOS_REGION")
+
+    if tos_region == "ap-southeast-1":
+        provider = "byteplus"
+    elif (os.getenv("CLOUD_PROVIDER") or "").lower() == "byteplus":
+        provider = "byteplus"
+    else:
+        provider = "volcengine"
+
+    default_region = "ap-southeast-1" if provider == "byteplus" else "cn-beijing"
+    resolved_region = (
+        region
+        or tos_region
+        or os.getenv("DATABASE_TOS_REGION")
+        or default_region
+    )
+
+    sld = "bytepluses" if provider == "byteplus" else "volces"
+    resolved_endpoint = f"tos-{resolved_region}.{sld}.com"
+    return provider, resolved_region, resolved_endpoint
+
+
 def upload_file_to_tos(
     file_path: str,
     bucket_name: str,
-    region: str = "cn-beijing",
+    region: Optional[str] = None,
     ak: Optional[str] = None,
     sk: Optional[str] = None,
     session_token: Optional[str] = None,
@@ -156,7 +180,7 @@ def upload_file_to_tos(
     Args:
         file_path: Local file path
         bucket_name: TOS bucket name
-        region: TOS region, defaults to cn-beijing
+        region: TOS region; defaults to TOS_REGION, DATABASE_TOS_REGION, or provider default
         ak: Access Key; if empty, reads from environment variables
         sk: Secret Key; if empty, reads from environment variables
         session_token: Session token
@@ -167,8 +191,10 @@ def upload_file_to_tos(
         None: Returns None if upload fails
 
     Environment variables:
-        VOLCENGINE_ACCESS_KEY: Volcano Engine access key
-        VOLCENGINE_SECRET_KEY: Volcano Engine secret key
+        TOS_REGION: TOS region; ap-southeast-1 selects BytePlus
+        CLOUD_PROVIDER: byteplus selects BytePlus when TOS_REGION is not ap-southeast-1
+        VOLCENGINE_ACCESS_KEY: Access key
+        VOLCENGINE_SECRET_KEY: Secret key
         TOOL_USER_SESSION_ID: Session ID for generating object key prefix
     """
     if bucket_name is None:
@@ -232,15 +258,18 @@ def upload_file_to_tos(
     client = None
     try:
         # Initialize TOS client
-        endpoint = f"tos-{region}.volces.com"
+        provider, resolved_region, resolved_endpoint = _resolve_tos_config(region)
         client = tos.TosClientV2(
             ak=access_key,
             sk=secret_key,
             security_token=session_token,
-            endpoint=endpoint,
-            region=region,
+            endpoint=resolved_endpoint,
+            region=resolved_region,
         )
 
+        logger.info(f"Cloud Provider: {provider}")
+        logger.info(f"TOS Region: {resolved_region}")
+        logger.info(f"TOS Endpoint: {resolved_endpoint}")
         logger.info(f"Starting file upload: {file_path}")
         logger.info(f"Target Bucket: {bucket_name}")
         logger.info(f"Object Key: {object_key}")
@@ -308,7 +337,7 @@ def upload_file_to_tos(
 def upload_directory_to_tos(
     directory_path: str,
     bucket_name: str,
-    region: str = "cn-beijing",
+    region: Optional[str] = None,
     ak: Optional[str] = None,
     sk: Optional[str] = None,
     session_token: Optional[str] = None,
@@ -320,7 +349,7 @@ def upload_directory_to_tos(
     Args:
         directory_path: Local directory path
         bucket_name: TOS bucket name
-        region: TOS region, defaults to cn-beijing
+        region: TOS region; defaults to TOS_REGION, DATABASE_TOS_REGION, or provider default
         ak: Access Key; if empty, reads from environment variables
         sk: Secret Key; if empty, reads from environment variables
         session_token: Session token
@@ -331,8 +360,10 @@ def upload_directory_to_tos(
         None: Returns None if upload fails
 
     Environment variables:
-        VOLCENGINE_ACCESS_KEY: Volcano Engine access key
-        VOLCENGINE_SECRET_KEY: Volcano Engine secret key
+        TOS_REGION: TOS region; ap-southeast-1 selects BytePlus
+        CLOUD_PROVIDER: byteplus selects BytePlus when TOS_REGION is not ap-southeast-1
+        VOLCENGINE_ACCESS_KEY: Access key
+        VOLCENGINE_SECRET_KEY: Secret key
     """
     if bucket_name is None:
         logger.error("Error: bucket name The bucket has not been specified.")
@@ -396,15 +427,18 @@ def upload_directory_to_tos(
 
     try:
         # Initialize TOS client
-        endpoint = f"tos-{region}.volces.com"
+        provider, resolved_region, resolved_endpoint = _resolve_tos_config(region)
         client = tos.TosClientV2(
             ak=access_key,
             sk=secret_key,
             security_token=session_token,
-            endpoint=endpoint,
-            region=region,
+            endpoint=resolved_endpoint,
+            region=resolved_region,
         )
 
+        logger.info(f"Cloud Provider: {provider}")
+        logger.info(f"TOS Region: {resolved_region}")
+        logger.info(f"TOS Endpoint: {resolved_endpoint}")
         logger.info(f"Starting directory upload: {directory_path}")
         logger.info(f"Target Bucket: {bucket_name}")
         logger.info(f"Object Key Prefix: {object_key_prefix}")
@@ -448,7 +482,7 @@ def upload_directory_to_tos(
                 except Exception as e:
                     logger.error(f"Failed to upload {file_path}: {e}")
 
-        tos_path = f"tos://{bucket_name}/{object_key_prefix} "
+        tos_path = f"tos://{bucket_name}/{object_key_prefix}"
         logger.info(f"Directory upload completed! TOS Path: {tos_path}")
         return tos_path
 
@@ -476,7 +510,7 @@ def upload_directory_to_tos(
 def upload_to_tos(
     path: str,
     bucket_name: str,
-    region: str = "cn-beijing",
+    region: Optional[str] = None,
     ak: Optional[str] = None,
     sk: Optional[str] = None,
     session_token: Optional[str] = None,
@@ -536,7 +570,7 @@ def upload_to_tos(
 def main():
     """Command-line interface for tos_upload"""
     parser = argparse.ArgumentParser(
-        description="Upload files or directories to Volcano Engine TOS and generate signed URLs",
+        description="Upload files or directories to TOS and generate signed URLs",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -546,16 +580,18 @@ Examples:
   # Upload a directory (auto-detect)
   python tos_upload.py /path/to/directory --bucket my-bucket
 
-  # Upload to different region with custom expiration
-  python tos_upload.py /path/to/file.json --bucket my-bucket --region cn-beijing --expires 86400
+  # Upload to BytePlus with custom expiration
+  TOS_REGION=ap-southeast-1 python tos_upload.py /path/to/file.json --bucket my-bucket --expires 86400
 
 File Upload Structure:
   File:      upload/{session_prefix}/{filename}
   Directory: upload/{session_prefix}/{directory_name}/{relative_path}
 
 Environment Variables:
-  VOLCENGINE_ACCESS_KEY     Volcano Engine access key
-  VOLCENGINE_SECRET_KEY     Volcano Engine secret key
+  TOS_REGION                TOS region; ap-southeast-1 selects BytePlus
+  CLOUD_PROVIDER            byteplus selects BytePlus when TOS_REGION is not ap-southeast-1
+  VOLCENGINE_ACCESS_KEY     Access key
+  VOLCENGINE_SECRET_KEY     Secret key
   TOOL_USER_SESSION_ID      Session ID for generating object key prefix
         """,
     )
@@ -567,8 +603,8 @@ Environment Variables:
     parser.add_argument(
         "--region",
         type=str,
-        default="cn-beijing",
-        help="TOS region (default: cn-beijing)",
+        default=None,
+        help="TOS region (default: TOS_REGION, DATABASE_TOS_REGION, or provider default)",
     )
 
     parser.add_argument(
