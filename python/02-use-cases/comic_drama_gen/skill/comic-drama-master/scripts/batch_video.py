@@ -51,7 +51,7 @@ def _build_content(prompt: str, first_frame_image_url: Optional[str]) -> list:
     if first_frame_image_url:
         if not first_frame_image_url.startswith(("http://", "https://")):
             raise ValueError(
-                f"first_frame 必须是 HTTP(S) URL，不能使用本地路径: {first_frame_image_url}"
+                f"first_frame must be an HTTP(S) URL, not a local path: {first_frame_image_url}"
             )
         content.append(
             {"type": "image_url", "image_url": {"url": first_frame_image_url}}
@@ -192,37 +192,37 @@ def _extract_video_url(data: dict) -> Optional[str]:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="批量视频任务管理")
+    parser = argparse.ArgumentParser(description="Batch video task management")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # submit 子命令
-    submit_parser = subparsers.add_parser("submit", help="批量提交视频任务")
+    submit_parser = subparsers.add_parser("submit", help="Submit video tasks in batch")
     submit_parser.add_argument(
-        "--prompts-file", required=True, help="JSON 文件，包含 prompts 列表"
+        "--prompts-file", required=True, help="JSON file containing the prompts list"
     )
     submit_parser.add_argument(
-        "--first-frames-file", default=None, help="JSON 文件，包含首帧 URL 列表"
+        "--first-frames-file", default=None, help="JSON file containing first-frame URL list"
     )
     submit_parser.add_argument(
         "--duration",
         type=int,
         default=10,
-        help="统一视频时长（秒），当 --durations-file 未提供时使用",
+        help="Shared video duration in seconds, used when --durations-file is not provided",
     )
     submit_parser.add_argument(
         "--durations-file",
         default=None,
-        help="JSON 文件，包含每段时长列表（与 prompts 一一对应）",
+        help="JSON file containing per-scene durations aligned with prompts",
     )
 
     # poll 子命令
-    poll_parser = subparsers.add_parser("poll", help="轮询等待任务完成")
+    poll_parser = subparsers.add_parser("poll", help="Poll until video tasks complete")
     poll_parser.add_argument(
         "--task-ids-file",
         required=True,
-        help="JSON 文件，包含 {scene_key: task_id} 字典",
+        help="JSON file containing a {scene_key: task_id} mapping",
     )
-    poll_parser.add_argument("--interval", type=int, default=30, help="轮询间隔（秒）")
+    poll_parser.add_argument("--interval", type=int, default=30, help="Polling interval in seconds")
 
     args = parser.parse_args()
 

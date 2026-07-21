@@ -54,15 +54,15 @@ def upload_file_to_tos(
         region = os.getenv("DATABASE_TOS_REGION", DEFAULT_REGION)
     if bucket_name in INVALID_BUCKET_VALUES:
         logger.error(
-            "TOS bucket 未配置或仍是占位值，请设置 DATABASE_TOS_BUCKET 为真实桶名"
+            "TOS bucket is missing or still uses a placeholder value. Set DATABASE_TOS_BUCKET to a real bucket name."
         )
         return None
 
     if not os.path.exists(file_path):
-        logger.error(f"文件不存在: {file_path}")
+        logger.error(f"File does not exist: {file_path}")
         return None
     if not os.path.isfile(file_path):
-        logger.error(f"路径不是文件: {file_path}")
+        logger.error(f"Path is not a file: {file_path}")
         return None
 
     try:
@@ -92,13 +92,13 @@ def upload_file_to_tos(
             region=region,
         )
 
-        logger.info(f"上传文件: {file_path} -> {bucket_name}/{object_key}")
+        logger.info(f"Uploading file: {file_path} -> {bucket_name}/{object_key}")
 
         try:
             client.head_bucket(bucket_name)
         except tos.exceptions.TosServerError as e:
             if e.status_code == 404:
-                logger.warning(f"桶 {bucket_name} 不存在")
+                logger.warning(f"Bucket does not exist: {bucket_name}")
             else:
                 raise e
 
@@ -114,17 +114,17 @@ def upload_file_to_tos(
         )
 
         signed_url = signed_url_output.signed_url
-        logger.info(f"上传成功，签名 URL: {signed_url[:100]}...")
+        logger.info(f"Upload succeeded, signed URL: {signed_url[:100]}...")
         return signed_url
 
     except tos.exceptions.TosClientError as e:
-        logger.error(f"TOS 客户端错误: {e}")
+        logger.error(f"TOS client error: {e}")
         return None
     except tos.exceptions.TosServerError as e:
-        logger.error(f"TOS 服务端错误: {e}")
+        logger.error(f"TOS server error: {e}")
         return None
     except Exception as e:
-        logger.error(f"上传失败: {e}")
+        logger.error(f"Upload failed: {e}")
         return None
     finally:
         if client:
@@ -133,12 +133,12 @@ def upload_file_to_tos(
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(message)s")
-    parser = argparse.ArgumentParser(description="上传文件到 TOS")
-    parser.add_argument("file_path", help="本地文件路径")
-    parser.add_argument("--bucket", default=None, help="TOS 桶名")
-    parser.add_argument("--object-key", default=None, help="存储路径")
-    parser.add_argument("--region", default=None, help="区域")
-    parser.add_argument("--expires", type=int, default=604800, help="URL 有效期（秒）")
+    parser = argparse.ArgumentParser(description="Upload a file to TOS")
+    parser.add_argument("file_path", help="Local file path")
+    parser.add_argument("--bucket", default=None, help="TOS bucket name")
+    parser.add_argument("--object-key", default=None, help="Object storage path")
+    parser.add_argument("--region", default=None, help="TOS region")
+    parser.add_argument("--expires", type=int, default=604800, help="URL expiration in seconds")
     args = parser.parse_args()
 
     url = upload_file_to_tos(
@@ -152,5 +152,5 @@ if __name__ == "__main__":
     if url:
         print(json.dumps({"signed_url": url}, ensure_ascii=False))
     else:
-        print(json.dumps({"error": "上传失败"}, ensure_ascii=False))
+        print(json.dumps({"error": "Upload failed"}, ensure_ascii=False))
         sys.exit(1)
