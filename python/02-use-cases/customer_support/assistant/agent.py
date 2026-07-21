@@ -1,16 +1,14 @@
-# Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd. and/or its affiliates.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+"""The agent, defined on its own so it can be served two ways.
+
+`main.py` wraps it in the ADK API server (`AgentkitAgentServerApp`); the veADK
+Frontend discovers it directly — `veadk frontend --agents-dir .`
+loads each subpackage that exposes `root_agent`. Keeping this module free of
+any server/agentkit import is what lets the frontend load it.
+
+Tools are plain Python functions with type hints and a docstring — the docstring
+is what the model reads to decide when and how to call them.
+"""
+
 
 import datetime
 import logging
@@ -32,7 +30,6 @@ from tools.crm_mock import (
     update_service_record,
 )
 
-from agentkit.apps import AgentkitAgentServerApp
 from dotenv import load_dotenv
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.planners import BuiltInPlanner
@@ -60,7 +57,7 @@ app_name = "customer_support_agent"
 default_user_id = "CUST001"
 
 # 默认模型设置
-default_model_name = "deepseek-v4-pro-260425"
+default_model_name = "doubao-seed-2-1-turbo-260628"
 
 model_name = os.getenv("MODEL_AGENT_NAME", default_model_name)
 
@@ -234,10 +231,3 @@ agent = Agent(
 
 runner = Runner(agent=agent, app_name=app_name)
 root_agent = agent
-
-agent_server_app = AgentkitAgentServerApp(
-    agent=root_agent, short_term_memory=short_term_memory
-)
-
-if __name__ == "__main__":
-    agent_server_app.run(host="0.0.0.0", port=8000)

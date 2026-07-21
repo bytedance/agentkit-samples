@@ -1,5 +1,5 @@
 veadk-python==0.5.37
 google-adk==1.32.0
 agentkit-sdk-python==0.5.10
-mem0ai==2.0.4
+mem0ai==0.1.118
 litellm
