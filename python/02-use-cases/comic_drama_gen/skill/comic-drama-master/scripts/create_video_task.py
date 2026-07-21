@@ -14,6 +14,10 @@ from typing import Optional
 
 import requests
 
+from env_loader import load_project_env
+
+load_project_env()
+
 logger = logging.getLogger(__name__)
 
 _VALID_DURATIONS = set(range(4, 16))
@@ -40,6 +44,12 @@ def _build_content(
     last_frame_image_url: Optional[str],
 ) -> list:
     content = []
+    for label, url in (
+        ("first_frame", first_frame_image_url),
+        ("last_frame", last_frame_image_url),
+    ):
+        if url and not url.startswith(("http://", "https://")):
+            raise ValueError(f"{label} 必须是 HTTP(S) URL，不能使用本地路径: {url}")
     if first_frame_image_url and last_frame_image_url:
         content.append(
             {

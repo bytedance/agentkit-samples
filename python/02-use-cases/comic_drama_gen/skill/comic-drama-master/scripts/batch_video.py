@@ -18,6 +18,10 @@ from typing import Optional
 
 import requests
 
+from env_loader import load_project_env
+
+load_project_env()
+
 logger = logging.getLogger(__name__)
 
 _VALID_DURATIONS = set(range(4, 16))
@@ -45,6 +49,10 @@ def _strip_cli_flags(prompt: str) -> str:
 def _build_content(prompt: str, first_frame_image_url: Optional[str]) -> list:
     content = []
     if first_frame_image_url:
+        if not first_frame_image_url.startswith(("http://", "https://")):
+            raise ValueError(
+                f"first_frame 必须是 HTTP(S) URL，不能使用本地路径: {first_frame_image_url}"
+            )
         content.append(
             {"type": "image_url", "image_url": {"url": first_frame_image_url}}
         )
@@ -86,14 +94,14 @@ def submit_video_tasks(
         scene_duration = durations[i] if durations else duration_seconds
         if not (4 <= scene_duration <= 15):
             scene_duration = 10
-        payload = {
-            "model": _MODEL,
-            "content": _build_content(prompt, frame_url),
-            "seed": -1,
-            "duration": scene_duration,
-            "watermark": False,
-        }
         try:
+            payload = {
+                "model": _MODEL,
+                "content": _build_content(prompt, frame_url),
+                "seed": -1,
+                "duration": scene_duration,
+                "watermark": False,
+            }
             resp = requests.post(_API_BASE, json=payload, headers=headers, timeout=30)
             resp.raise_for_status()
             task_id = resp.json().get("id")

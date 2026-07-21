@@ -16,11 +16,16 @@ from typing import Optional
 import tos
 from tos import HttpMethodType
 
+from env_loader import load_project_env
+
 logger = logging.getLogger(__name__)
 
-# 默认常量
-DEFAULT_BUCKET = "agentkit-platform-2107625663"
+# 默认常量。TOS bucket 必须由部署环境显式配置，避免误用其他账号的桶。
+DEFAULT_BUCKET = ""
 DEFAULT_REGION = "cn-beijing"
+INVALID_BUCKET_VALUES = {"", "your_bucket_name", "your_bucket"}
+
+load_project_env()
 
 
 def upload_file_to_tos(
@@ -47,6 +52,11 @@ def upload_file_to_tos(
         bucket_name = os.getenv("DATABASE_TOS_BUCKET", DEFAULT_BUCKET)
     if region is None:
         region = os.getenv("DATABASE_TOS_REGION", DEFAULT_REGION)
+    if bucket_name in INVALID_BUCKET_VALUES:
+        logger.error(
+            "TOS bucket 未配置或仍是占位值，请设置 DATABASE_TOS_BUCKET 为真实桶名"
+        )
+        return None
 
     if not os.path.exists(file_path):
         logger.error(f"文件不存在: {file_path}")
@@ -68,8 +78,8 @@ def upload_file_to_tos(
 
     if not object_key:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = os.path.basename(file_path)
-        object_key = f"upload/{filename}_{timestamp}"
+        stem, ext = os.path.splitext(os.path.basename(file_path))
+        object_key = f"upload/{stem}_{timestamp}{ext}"
 
     client = None
     try:
@@ -122,6 +132,7 @@ def upload_file_to_tos(
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(message)s")
     parser = argparse.ArgumentParser(description="上传文件到 TOS")
     parser.add_argument("file_path", help="本地文件路径")
     parser.add_argument("--bucket", default=None, help="TOS 桶名")
