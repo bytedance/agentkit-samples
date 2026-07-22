@@ -70,6 +70,7 @@ cover/
 
 # Django stuff:
 *.log
+volcengine_redis_mcp.pid
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
