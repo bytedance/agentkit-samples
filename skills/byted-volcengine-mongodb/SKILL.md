@@ -1,5 +1,5 @@
 ---
-name: volcengine-mongodb
+name: byted-volcengine-mongodb
 description: 使用火山引擎 MongoDB Skill，帮助用户完成 MongoDB 相关的实例管理、备份恢复、参数等运维任务，可直接调用 uv run ./scripts/call_mongodb.py 脚本获取实时结果。当需要访问管理在火山引擎 MongoDB 实例详细信息时，此 Skill 可以提供方便的接口。
 version: 1.0.0
 metadata:
@@ -98,26 +98,113 @@ python ./scripts/call_mongodb.py [action] [options]
 <实际结果内容>
 ```
 
-## 常见使用场景
+## 使用示例
 
-### 1. 查看所有实例
+### 实例查询
+
+#### 查看所有实例
+
 ```bash
 uv run ./scripts/call_mongodb.py list-instances
 ```
 
-### 2. 查看实例详情
-```bash
-uv run ./scripts/call_mongodb.py describe-instance --instance-id mongo-xxx
+**输出示例：**
+```json
+{
+  "db_instances": [
+    {
+      "instance_id": "mongo-replica-e40665523086",
+      "instance_name": "副本集只读控制面",
+      "instance_status": "Running",
+      "instance_type": "ReplicaSet",
+      "db_engine_version_str": "MongoDB 4.0",
+      "charge_type": "PostPaid",
+      "create_time": "2026-07-22T06:37:45Z",
+      "zone_id": "cn-beijing-d,cn-beijing-a,cn-beijing-c"
+    }
+  ],
+  "total": 34
+}
 ```
 
-### 3. 查看实例备份
+#### 查看指定实例详情
+
 ```bash
-uv run ./scripts/call_mongodb.py list-backups --instance-id mongo-xxx
+uv run ./scripts/call_mongodb.py describe-instance \
+  --instance-id mongo-xxx
 ```
 
-### 4. 查看实例参数配置
+**输出示例：**
+```json
+{
+  "db_instance": {
+    "instance_id": "mongo-replica-e40665523086",
+    "instance_name": "副本集只读控制面",
+    "instance_status": "Running",
+    "instance_type": "ReplicaSet",
+    "db_engine_version_str": "MongoDB 4.0",
+    "nodes": [
+      {
+        "node_id": "mongo-replica-e40665523086-0",
+        "node_role": "Primary",
+        "node_spec": "mongo.2c4g",
+        "node_status": "Running"
+      }
+    ]
+  }
+}
+```
+
+### 运维管理
+
+#### 查看实例备份列表
+
 ```bash
-uv run ./scripts/call_mongodb.py list-parameters --instance-id mongo-xxx
+uv run ./scripts/call_mongodb.py list-backups \
+  --instance-id mongo-xxx
+```
+
+**输出示例：**
+```json
+{
+  "backups": [
+    {
+      "backup_id": "875c42ec8d574e95a885c301b0c5e593",
+      "backup_file_name": "full-1784702562511139825",
+      "backup_status": "Success",
+      "backup_type": "Physical",
+      "backup_start_time": "2026-07-22T06:42:30Z",
+      "backup_file_size": 200644645
+    }
+  ],
+  "total": 1
+}
+```
+
+#### 查看实例参数配置
+
+```bash
+uv run ./scripts/call_mongodb.py list-parameters \
+  --instance-id mongo-xxx
+```
+
+**输出示例：**
+```json
+{
+  "db_engine": "MongoDB",
+  "db_engine_version": "MongoDB_4_0",
+  "instance_id": "mongo-replica-e40665523086",
+  "instance_parameters": [
+    {
+      "parameter_names": "connPoolMaxConnsPerHost",
+      "parameter_value": "600",
+      "parameter_default_value": "600",
+      "parameter_type": "Integer",
+      "force_restart": true,
+      "parameter_description": "设置当前实例或节点的全局连接池最大容量"
+    }
+  ]
+}
 ```
 
 ## 环境变量配置
