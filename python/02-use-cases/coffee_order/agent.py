@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 app_name = "online_order_agent"
 # support users to update model in runtime environment variable
-model_name = os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201")
+model_name = os.getenv("MODEL_AGENT_NAME", "deepseek-v4-pro-260425")
 
 #  config knowledgebase backend: Viking vector database
 knowledge_collection_name = os.getenv("DATABASE_VIKING_COLLECTION", "")
