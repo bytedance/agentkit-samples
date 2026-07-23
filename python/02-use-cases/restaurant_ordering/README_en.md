@@ -147,9 +147,9 @@ restaurant_ordering/
 
 ### Prerequisites
 
-**1. Activate Volcano Ark Model Service:**
+**1. Activate BytePlus ModelArk Service:**
 
-- Visit the [Volcano Ark Console](https://exp.volcengine.com/ark?mode=chat)
+- Visit the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - Activate the model service
 
 **2. Obtain Volcano Engine Access Credentials:**
@@ -191,7 +191,7 @@ source .venv/bin/activate
 ### Environment Setup
 
 ```bash
-# Volcano Ark model name
+# BytePlus ModelArk model name
 export MODEL_AGENT_NAME=deepseek-v4-pro-260425
 
 # Volcano Engine access credentials (required)
@@ -232,9 +232,9 @@ python agent.py
 
 **Important Note**: Before running this example, please visit the [AgentKit Console Authorization Page](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) to authorize all dependent services to ensure the case can be executed normally.
 
-**1. Activate Volcano Ark Model Service:**
+**1. Activate BytePlus ModelArk Service:**
 
-- Visit the [Volcano Ark Console](https://exp.volcengine.com/ark?mode=chat)
+- Visit the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - Activate the model service
 
 **2. Obtain Volcano Engine Access Credentials:**
@@ -446,7 +446,7 @@ None.
 
 - [VeADK Official Documentation](https://volcengine.github.io/veadk-python/)
 - [AgentKit Development Guide](https://volcengine.github.io/agentkit-sdk-python/)
-- [Volcano Ark Model Service](https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new&projectName=default)
+- [BytePlus ModelArk Service](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - [Google ADK Context Compaction](https://google.github.io/adk-docs/context/compaction/)
 
 ## Code License

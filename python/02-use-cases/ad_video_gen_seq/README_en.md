@@ -37,9 +37,9 @@ The system exposes one Root Agent and orchestrates the following sub-agents in s
 
 | Related Service | Description | Pricing |
 | --- | --- | --- |
-| [Doubao-Seed-1.6](https://console.volcengine.com/ark/region:ark+cn-beijing/model/detail?Id=doubao-seed-1-6) | Understands user inputs and converts them into tool calls. | [Multiple pricing options](https://www.volcengine.com/docs/82379/1099320) |
-| [Doubao-Seedance 1.5 pro](https://console.volcengine.com/ark/region:ark+cn-beijing/model/detail?Id=doubao-seedance-1-5-pro) | Converts images and text descriptions into videos. | [Multiple pricing options](https://www.volcengine.com/docs/82379/1099320) |
-| [Doubao-Seedream 4.5 pro](https://console.volcengine.com/ark/region:ark+cn-beijing/model/detail?Id=doubao-seedream-4-5) | Generates images from text or reference images. | [Multiple pricing options](https://www.volcengine.com/docs/82379/1099320) |
+| [Doubao-Seed-1.6](https://docs.byteplus.com/en/docs/ModelArk/1108216) | Understands user inputs and converts them into tool calls. | [Model details and pricing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
+| [Doubao-Seedance 2.0](https://docs.byteplus.com/en/docs/ModelArk/1108216) | Converts images and text descriptions into videos. | [Model details and pricing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
+| [Doubao-Seedream 5.0 pro](https://docs.byteplus.com/en/docs/ModelArk/1108216) | Generates images from text or reference images. | [Model details and pricing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
 
 ## Run Locally
 
@@ -51,7 +51,7 @@ Before starting, make sure your environment meets these requirements:
 - veadk-python 0.5.5 (see `pyproject.toml`)
 - `uv` is recommended for dependency management
 - `ffmpeg` available locally (used by `moviepy` for video composition)
-- <a target="_blank" href="https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey">Get Volcengine Ark API KEY</a>
+- <a target="_blank" href="https://console.byteplus.com/ark/region:ark+ap-southeast-1/apiKey">Get BytePlus ModelArk API key</a>
 - <a target="_blank" href="https://console.volcengine.com/iam/keymanage/">Get Volcengine AK/SK</a>
 
 ### Quick Start
@@ -197,4 +197,3 @@ FAQ list to be added.
 ## License
 
 This project is open-sourced. See the LICENSE file in the repository root for details.
-

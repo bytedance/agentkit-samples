@@ -74,20 +74,20 @@ Main BytePlus products or Agent components:
    - On the "User Details" page -> Go to "Permissions" -> Click "Add Permission" and grant the following policies to the user:
      - `AgentKitFullAccess` (Full access to AgentKit)
      - `APMPlusServerFullAccess` (Full access to APMPlus)
-4. Obtain the BytePlus Model Ark model agent API Key for the user:
-   - Log in to the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
+4. Obtain the BytePlus ModelArk agent API key for the user:
+   - Log in to the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
    - Go to "API Key Management" -> Create or copy an existing API Key. The `MODEL_AGENT_API_KEY` environment variable will need to be set to this value.
    - As shown below:
-     ![Model Ark API Key Management](../../assets/images/ark_api_key_management.jpg)
+     ![ModelArk API Key Management](../../assets/images/ark_api_key_management.jpg)
 5. Activate pre-built model inference endpoints:
-   - Log in to the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
+   - Log in to the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
    - Go to "Activation Management" -> "Language Models" -> Find the respective model -> Click "Activate Service".
    - Confirm activation and wait for the service to become effective (usually 1-2 minutes).
    - Activate the following models used in this case (you can also activate other models' pre-built inference endpoints as needed and specify them in the `agent.py` code):
      - `deepseek-v4-pro-260425`
      - `doubao-seed-2-0-pro-260215`
    - As shown below:
-     ![Model Ark Model Service Management](../../assets/images/ark_model_service_management.jpg)
+     ![ModelArk Service Management](../../assets/images/ark_model_service_management.jpg)
 
 ### Install Dependencies
 
@@ -195,7 +195,7 @@ Demonstration of the smart store inspection.
 
 - [TOS Object Storage](https://docs.byteplus.com/en/docs/tos/docs-what-is-tos)
 - [AgentKit Console](https://console.byteplus.com/agentkit)
-- [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
+- [BytePlus ModelArk Service](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 
 ## Code License
 
