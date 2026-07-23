@@ -37,16 +37,16 @@ Travel Agent (Travel Planner)
 
 | Component | Description |
 | - | - |
-| **Agent Service** | [agent.py](https://github.com/bytedance/agentkit-samples/blob/main/02-use-cases/beginner/travel_concierge/agent.py) - The travel planning Agent application. |
-| **Professional Instructions** | [agent.py](https://github.com/bytedance/agentkit-samples/blob/main/02-use-cases/beginner/travel_concierge/agent.py#L21-L94) - Detailed role definition and workflow. |
-| **Test Client** | [client.py](https://github.com/bytedance/agentkit-samples/blob/main/02-use-cases/beginner/travel_concierge/client.py) - SSE streaming invocation client. |
-| **Project Configuration** | [pyproject.toml](https://github.com/bytedance/agentkit-samples/blob/main/02-use-cases/beginner/travel_concierge/pyproject.toml) - Dependency management (uv tool). |
+| **Agent Service** | [agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/workshop/beginner/travel_concierge/agent.py) - The travel planning Agent application. |
+| **Professional Instructions** | [agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/workshop/beginner/travel_concierge/agent.py#L21-L94) - Detailed role definition and workflow. |
+| **Test Client** | [client.py](https://github.com/bytedance/agentkit-samples/blob/main/python/workshop/beginner/travel_concierge/client.py) - SSE streaming invocation client. |
+| **Project Configuration** | [pyproject.toml](https://github.com/bytedance/agentkit-samples/blob/main/python/workshop/beginner/travel_concierge/pyproject.toml) - Dependency management (uv tool). |
 | **Web Search** | `web_search` - Built-in web search tool. |
 | **Short-term Memory** | Local backend for storing session context. |
 
 ### Code Features
 
-**Agent Definition** ([agent.py](https://github.com/bytedance/agentkit-samples/blob/main/02-use-cases/beginner/travel_concierge/agent.py#L100-L105)):
+**Agent Definition** ([agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/workshop/beginner/travel_concierge/agent.py#L100-L105)):
 
 ```python
 root_agent = Agent(
@@ -57,7 +57,7 @@ root_agent = Agent(
 )
 ```
 
-**Professional Instruction System** ([agent.py](https://github.com/bytedance/agentkit-samples/blob/main/02-use-cases/beginner/travel_concierge/agent.py#L21-L44)):
+**Professional Instruction System** ([agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/workshop/beginner/travel_concierge/agent.py#L21-L44)):
 
 Contains a complete role definition:
 
@@ -502,7 +502,7 @@ You are a professional travel itinerary planner, skilled at creating travel plan
 
 ### Web Search Tool Usage
 
-**Tool Integration** ([agent.py](https://github.com/bytedance/agentkit-samples/blob/main/02-use-cases/beginner/travel_concierge/agent.py#L104)):
+**Tool Integration** ([agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/workshop/beginner/travel_concierge/agent.py#L104)):
 
 ```python
 from veadk.tools.builtin_tools.web_search import web_search
@@ -554,9 +554,9 @@ The Agent will:
 
 After completing Travel Concierge, you can explore:
 
-1. **[Hello World](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/hello_world/README.md)** - Learn about basic Agents.
-2. **[MCP Simple](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/mcp_simple/README.md)** - Integrate more professional tools.
-3. **[Multi Agents](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/multi_agents/README.md)** - Build multi-agent collaboration.
+1. **[Hello World](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/hello_world/README.md)** - Learn about basic Agents.
+2. **[MCP Simple](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/mcp_simple/README.md)** - Integrate more professional tools.
+3. **[Multi Agents](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/multi_agents/README.md)** - Build multi-agent collaboration.
 4. **[Video Generator](../../video_gen/README.md)** - Complex toolchain orchestration.
 
 ## FAQ

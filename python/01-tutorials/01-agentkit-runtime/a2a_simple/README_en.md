@@ -38,7 +38,7 @@ a2a_simple/
 ├── tools/                   # Tool implementations
 │   ├── roll_die.py         # Die rolling tool
 │   └── check_prime.py      # Prime number checking tool
-├── agentkit.yaml           # AgentKit deployment configuration
+├── agentkit.yaml           # Dependency management (uv tool)
 ├── requirements.txt        # Python dependencies
 ├── pyproject.toml          # Project configuration
 ├── Dockerfile              # Docker image build file
@@ -49,16 +49,16 @@ a2a_simple/
 
 | Component | Description |
 | - | - |
-| **Agent Service** | [agent.py](https://github.com/bytedance/agentkit-samples/blob/main/01-tutorials/01-agentkit-runtime/a2a_simple/agent.py) - `hello_world_agent`, provides tool services (port 8000). |
-| **Local Client** | [local_client.py](https://github.com/bytedance/agentkit-samples/blob/main/01-tutorials/01-agentkit-runtime/a2a_simple/local_client.py) - `A2ASimpleClient`, invokes the Agent service. |
-| **Tool: roll_die** | [tools/roll_die.py](https://github.com/bytedance/agentkit-samples/blob/main/01-tutorials/01-agentkit-runtime/a2a_simple/tools/roll_die.py) - Rolls a die. |
-| **Tool: check_prime** | [tools/check_prime.py](https://github.com/bytedance/agentkit-samples/blob/main/01-tutorials/01-agentkit-runtime/a2a_simple/tools/check_prime.py) - Checks for prime numbers. |
+| **Agent Service** | [agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/a2a_simple/agent.py) - `hello_world_agent`, provides tool services (port 8000). |
+| **Local Client** | [local_client.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/a2a_simple/local_client.py) - `A2ASimpleClient`, invokes the Agent service. |
+| **Tool: roll_die** | [tools/roll_die.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/a2a_simple/tools/roll_die.py) - Rolls a die. |
+| **Tool: check_prime** | [tools/check_prime.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/a2a_simple/tools/check_prime.py) - Checks for prime numbers. |
 | **AgentCard** | Agent metadata and capability description. |
-| **Project Configuration** | [agentkit.yaml](https://github.com/bytedance/agentkit-samples/blob/main/01-tutorials/01-agentkit-runtime/a2a_simple/agentkit.yaml) - AgentKit deployment configuration. |
+| **Project Configuration** | [pyproject.toml](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/a2a_simple/pyproject.toml) - Dependency management (uv tool). |
 
 ### Code Highlights
 
-**Agent Definition** ([agent.py](https://github.com/bytedance/agentkit-samples/blob/main/01-tutorials/01-agentkit-runtime/a2a_simple/agent.py#L9-L35)):
+**Agent Definition** ([agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/a2a_simple/agent.py#L9-L35)):
 
 ```python
 root_agent = Agent(
@@ -91,7 +91,7 @@ root_agent = Agent(
 )
 ```
 
-**AgentCard Configuration** ([agent.py](https://github.com/bytedance/agentkit-samples/blob/main/01-tutorials/01-agentkit-runtime/a2a_simple/agent.py#L45-L55)):
+**AgentCard Configuration** ([agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/a2a_simple/agent.py#L45-L55)):
 
 ```python
 agent_card = AgentCard(
@@ -107,7 +107,7 @@ agent_card = AgentCard(
 )
 ```
 
-**Local Client Invocation** ([local_client.py](https://github.com/bytedance/agentkit-samples/blob/main/01-tutorials/01-agentkit-runtime/a2a_simple/local_client.py#L28-L88)):
+**Local Client Invocation** ([local_client.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/a2a_simple/local_client.py#L28-L88)):
 
 ```python
 async def create_task(self, agent_url: str, message: str) -> str:
@@ -126,7 +126,7 @@ async def create_task(self, agent_url: str, message: str) -> str:
         responses.append(response)
 ```
 
-**Tool State Management** ([tools/roll_die.py](https://github.com/bytedance/agentkit-samples/blob/main/01-tutorials/01-agentkit-runtime/a2a_simple/tools/roll_die.py#L6-L21)):
+**Tool State Management** ([tools/roll_die.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/a2a_simple/tools/roll_die.py#L6-L21)):
 
 ```python
 def roll_die(sides: int, tool_context: ToolContext) -> int:
