@@ -25,7 +25,7 @@
 主要使用的火山引擎产品或 Agent 组件：
 
 - 方舟大模型：
-  - deepseek-v3-2-251201
+  - deepseek-v4-pro-260425
 - VikingDB 知识库
 - VikingDB 记忆库
 - TOS 存储服务

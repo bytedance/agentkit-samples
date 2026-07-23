@@ -20,7 +20,7 @@
 
 环境变量:
     MODEL_IMAGE_API_KEY or ARK_API_KEY or MODEL_AGENT_API_KEY: Ark API key (required)
-    MODEL_IMAGE_NAME: Image model name (optional, default: doubao-seedream-4-5-251128)
+    MODEL_IMAGE_NAME: Image model name (optional, default: doubao-seedream-5-0-pro-260628)
 
 用法:
     # 从 JSON 文件读取 prompts 列表，并行生成
@@ -42,7 +42,7 @@ from typing import Optional
 from volcenginesdkarkruntime import Ark
 
 # Default model
-DEFAULT_MODEL = "doubao-seedream-4-5-251128"
+DEFAULT_MODEL = "doubao-seedream-5-0-pro-260628"
 
 # 最大并行数（避免 API rate limit）
 DEFAULT_MAX_WORKERS = 3

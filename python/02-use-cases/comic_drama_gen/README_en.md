@@ -72,11 +72,11 @@ Comic Drama Master (comic_drama_master)
 
 1. Log in to the [Volcano Engine Console](https://console.volcengine.com)
 2. Go to "Access Control" → "Users" → Create a new user → Enter "Keys" → Create a new key to obtain AK/SK
-3. Go to the [Volcano Ark Console](https://console.volcengine.com/ark) → "API Key Management" → Create an API Key
+3. Go to the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview) → "API Key Management" → Create an API Key
 4. Activate the following pre-built inference endpoints:
-   - Agent model: `deepseek-v3-2-251201`
-   - Image generation model: `doubao-seedream-5-0-260128`
-   - Video generation model: `doubao-seedance-1-5-pro-251215`
+   - Agent model: `deepseek-v4-pro-260425`
+   - Image generation model: `doubao-seedream-5-0-pro-260628`
+   - Video generation model: `doubao-seedance-2-0-260128`
 
 #### Node.js Environment
 
@@ -117,7 +117,7 @@ DATABASE_TOS_BUCKET=your_tos_bucket_name
 # Optional
 COMIC_DRAMA_OUTPUT_DIR=./my-comic-drama
 VIDEO_DURATION_MINUTES=0.5
-DEFAULT_VIDEO_MODEL_NAME=doubao-seedance-1-5-pro-251215
+DEFAULT_VIDEO_MODEL_NAME=doubao-seedance-2-0-260128
 ```
 
 > The `.env` file is automatically loaded at startup (via `python-dotenv` or the built-in parser) and will not override existing exported environment variables.
@@ -136,7 +136,7 @@ export DATABASE_TOS_BUCKET=your_tos_bucket_name
 # Optional
 export COMIC_DRAMA_OUTPUT_DIR=./my-comic-drama
 export VIDEO_DURATION_MINUTES=0.5
-export DEFAULT_VIDEO_MODEL_NAME=doubao-seedance-1-5-pro-251215
+export DEFAULT_VIDEO_MODEL_NAME=doubao-seedance-2-0-260128
 ```
 
 **Environment Variables Reference:**
@@ -145,11 +145,11 @@ export DEFAULT_VIDEO_MODEL_NAME=doubao-seedance-1-5-pro-251215
 |----------|----------|---------|-------------|
 | `VOLCENGINE_ACCESS_KEY` | ✅ | — | Volcano Engine access key |
 | `VOLCENGINE_SECRET_KEY` | ✅ | — | Volcano Engine secret key |
-| `ARK_API_KEY` | ✅ | — | Volcano Ark API Key |
+| `ARK_API_KEY` | ✅ | — | BytePlus ModelArk API key |
 | `DATABASE_TOS_BUCKET` | ✅ | — | TOS bucket name |
 | `COMIC_DRAMA_OUTPUT_DIR` | ❌ | `output/` under project dir | Output root directory |
 | `VIDEO_DURATION_MINUTES` | ❌ | `0.5` | Video duration in minutes, supports 0.5/1/2/3/4 (0.5 = 30s) |
-| `DEFAULT_VIDEO_MODEL_NAME` | ❌ | `doubao-seedance-1-5-pro-251215` | Video generation model name |
+| `DEFAULT_VIDEO_MODEL_NAME` | ❌ | `doubao-seedance-2-0-260128` | Video generation model name |
 
 ### Local Execution
 
@@ -417,7 +417,7 @@ curl --location 'https://xxxxx.apigateway-cn-beijing.volceapi.com/run_sse' \
 ## 🔗 Related Resources
 
 - [AgentKit Official Documentation](https://www.volcengine.com/docs/86681/1844878)
-- [Volcano Ark Console](https://console.volcengine.com/ark)
+- [BytePlus ModelArk Service](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - [TOS Object Storage](https://www.volcengine.com/product/TOS)
 - [AgentKit Console](https://console.volcengine.com/agentkit)
 

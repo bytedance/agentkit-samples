@@ -30,7 +30,7 @@ Before you begin, ensure your development environment meets the following requir
 - Python 3.10 or higher
 - VeADK 0.2.28 or higher
 - It is recommended to use `uv` for dependency management.
-- <a target="_blank" href="https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey">Get Volcano Ark API KEY</a>
+- <a target="_blank" href="https://console.byteplus.com/ark/region:ark+ap-southeast-1/apiKey">Get BytePlus ModelArk API key</a>
 - <a target="_blank" href="https://console.volcengine.com/iam/keymanage/">Get Volcano Engine AK/SK</a>
 
 ### Quick Start

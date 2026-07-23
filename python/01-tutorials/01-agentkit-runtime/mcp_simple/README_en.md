@@ -70,8 +70,8 @@ mcp_simple/
 
 ### Prerequisites
 
-**1. Activate Volcengine Ark Model Service**
-- Visit [Volcengine Ark Console](https://exp.volcengine.com/ark?mode=chat) and activate the service.
+**1. Activate BytePlus ModelArk Service**
+- Visit [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview) and activate the service.
 
 **2. Get Access Credentials**
 - Refer to [User Guide](https://www.volcengine.com/docs/6291/65568?lang=zh) to get AK/SK.
@@ -102,8 +102,8 @@ source .venv/bin/activate
 ### Environment Configuration
 
 ```bash
-# Volcengine Ark Model Name
-export MODEL_AGENT_NAME=deepseek-v3-2-251201
+# BytePlus ModelArk model name
+export MODEL_AGENT_NAME=deepseek-v4-pro-260425
 
 # Volcengine Access Credentials
 export VOLCENGINE_ACCESS_KEY=<Your Access Key>
@@ -134,7 +134,7 @@ uv run client.py
 ```text
 [run agent] Event from server:
 [create session] Response from server: {'id': 'agentkit_session', 'appName': 'mcp_agent', 'userId': 'agentkit_user', 'state': {}, 'events': [], 'lastUpdateTime': 1768465256.520708}
-data: {"modelVersion":"deepseek-v3-2-251201"...
+data: {"modelVersion":"deepseek-v4-pro-260425"...
 ...
 ```
 
@@ -202,7 +202,7 @@ None
 
 - [VeADK Official Documentation](https://volcengine.github.io/veadk-python/)
 - [AgentKit Development Guide](https://volcengine.github.io/agentkit-sdk-python/)
-- [Volcengine Ark Model Service](https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new&projectName=default)
+- [BytePlus ModelArk Service](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - [MCP Protocol Specification](https://modelcontextprotocol.io)
 - [Volcengine MCP Marketplace](https://www.volcengine.com/mcp-marketplace)
 - [TOS Object Storage Documentation](https://www.volcengine.com/docs/tos)
