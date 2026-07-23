@@ -83,9 +83,9 @@ travel_concierge/
 
 ### Prerequisites
 
-**1. Activate BytePlus ModelArk Service:**
+**1. Activate Volcano Ark Model Service:**
 
-- Visit the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
+- Visit the [Volcano Ark Console](https://exp.volcengine.com/ark?mode=chat)
 - Activate the model service.
 
 **2. Obtain Volcano Engine Access Credentials:**
@@ -127,7 +127,7 @@ source .venv/bin/activate
 ### Environment Setup
 
 ```bash
-# BytePlus ModelArk model name
+# Volcano Ark model name
 export MODEL_AGENT_NAME=doubao-seed-1-6-251015
 
 # Volcano Engine access credentials (required)
@@ -179,9 +179,9 @@ The web interface allows real-time viewing of web search calls and results.
 
 **Important Note**: Before running this example, please visit the [AgentKit Console Authorization Page](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) to authorize all dependent services to ensure the case can be executed normally.
 
-**1. Activate BytePlus ModelArk Service:**
+**1. Activate Volcano Ark Model Service:**
 
-- Visit the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
+- Visit the [Volcano Ark Console](https://exp.volcengine.com/ark?mode=chat)
 - Activate the model service.
 
 **2. Obtain Volcano Engine Access Credentials:**
@@ -567,7 +567,7 @@ None.
 
 - [VeADK Official Documentation](https://volcengine.github.io/veadk-python/)
 - [AgentKit Development Guide](https://volcengine.github.io/agentkit-sdk-python/)
-- [BytePlus ModelArk Service](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
+- [Volcano Ark Model Service](https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new&projectName=default)
 
 ## Code License
 

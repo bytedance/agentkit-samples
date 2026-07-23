@@ -23,7 +23,7 @@ AgentKit Runtime
 Hello World Agent
     ├── VeADK Agent (Conversation Engine)
     ├── ShortTermMemory (Session Memory)
-    └── BytePlus ModelArk (LLM)
+    └── BytePlus Model Ark (LLM)
 ```
 
 ### Core Components
@@ -77,9 +77,9 @@ hello_world/
 
 ### Prerequisites
 
-**1. Activate BytePlus ModelArk Service:**
+**1. Activate BytePlus Model Ark Service:**
 
-- Visit the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
+- Visit the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - Activate the model service
 
 **2. Obtain BytePlus Access Credentials:**
@@ -121,7 +121,7 @@ source .venv/bin/activate
 ### Environment Preparation
 
 ```bash
-# BytePlus ModelArk model name
+# BytePlus Model Ark Model Name
 export MODEL_AGENT_NAME=deepseek-v4-pro-260425
 
 # BytePlus Access Credentials (required)
@@ -175,9 +175,9 @@ data: {"event":"on_llm_chunk","data":{"content":"Of course I remember, your name
 
 **Important Note**: Before running this example, please visit the [AgentKit Console Authorization Page](https://console.byteplus.com/agentkit/auth) to authorize all dependent services to ensure the case can be executed normally.
 
-**1. Activate BytePlus ModelArk Service:**
+**1. Activate BytePlus Model Ark Service:**
 
-- Visit the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
+- Visit the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - Activate the model service
 
 **2. Obtain BytePlus Access Credentials:**
@@ -275,7 +275,7 @@ None.
 
 - [VeADK Official Documentation](https://volcengine.github.io/veadk-python/)
 - [AgentKit Development Guide](https://volcengine.github.io/agentkit-sdk-python/)
-- [BytePlus ModelArk Service](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
+- [BytePlus Model Ark Model Service](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 
 ## Code License
 

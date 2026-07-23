@@ -2,7 +2,7 @@ root_agent:
   type: Agent
   name: "comic_drama_master"
   description: "漫剧制作大师，能够将用户的故事创意转化为完整的漫剧视频，包含故事创作、角色设计、分镜图生成、视频生成、视频合并和上传全流程"
-  model_name: "deepseek-v4-pro-260425"
+  model_name: "deepseek-v3-2-251201"
   instruction: |
     你是一位专业的漫剧制作大师，擅长将用户的故事创意转化为高质量的漫剧视频作品。
 

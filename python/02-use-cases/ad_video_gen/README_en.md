@@ -35,9 +35,9 @@ The system exposes one Root Agent. Internally, the Prompt constraints and tool c
 
 | Related Service | Description | Pricing |
 | --- | --- | --- |
-| DeepSeek V4 Pro (`deepseek-v4-pro-260425`) | Understands user input, plans the marketing story, and converts it into tool calls. | [Model details and pricing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
-| Doubao Seedream 5.0 pro (`doubao-seedream-5-0-pro-260628`) | Generates the 2x2 marketing story reference image from text or product image references. | [Model details and pricing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
-| Doubao Seedance 2.0 (`doubao-seedance-2-0-260128`) | Generates the marketing short video from the 2x2 reference image and video description. | [Model details and pricing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
+| DeepSeek V4 Pro (`deepseek-v4-pro-260425`) | Understands user input, plans the marketing story, and converts it into tool calls. | [Multiple pricing options](https://www.volcengine.com/docs/82379/1099320) |
+| Doubao Seedream 5.0 (`doubao-seedream-5-0-260128`) | Generates the 2x2 marketing story reference image from text or product image references. | [Multiple pricing options](https://www.volcengine.com/docs/82379/1099320) |
+| Doubao Seedance 2.0 (`doubao-seedance-2-0-260128`) | Generates the marketing short video from the 2x2 reference image and video description. | [Multiple pricing options](https://www.volcengine.com/docs/82379/1099320) |
 
 ## Run Locally
 
@@ -49,7 +49,7 @@ Before starting, make sure your environment meets these requirements:
 - veadk-python 0.5.37 (see `pyproject.toml`)
 - agentkit-sdk-python 0.5.10 (see `pyproject.toml`)
 - `uv` is recommended for dependency management
-- <a target="_blank" href="https://console.byteplus.com/ark/region:ark+ap-southeast-1/apiKey">Get a BytePlus ModelArk API key</a>
+- <a target="_blank" href="https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey">Get a Volcengine Ark API KEY</a>
 
 ### Quick Start
 
@@ -83,7 +83,7 @@ export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/
 export MODEL_AGENT_API_KEY=<Your Ark API Key>
 
 # Image generation model
-export MODEL_IMAGE_NAME=doubao-seedream-5-0-pro-260628
+export MODEL_IMAGE_NAME=doubao-seedream-5-0-260128
 export MODEL_IMAGE_API_BASE=https://ark.cn-beijing.volces.com/api/v3/
 export MODEL_IMAGE_API_KEY=<Your Ark API Key>
 

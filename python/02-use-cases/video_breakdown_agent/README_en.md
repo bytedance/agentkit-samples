@@ -53,7 +53,7 @@ Main Volcengine products and Agent components:
 - Ark LLM Platform:
   - doubao-seed-1-6-251015 (primary reasoning model)
   - doubao-seed-1-6-vision-250815 (vision analysis model)
-  - doubao-seedance-2-0-260128 (video generation, image-to-video)
+  - doubao-seedance-1-5-pro-251215 (video generation, image-to-video)
   - doubao-seedance-1-0-pro-250528 (video generation, text-to-video)
 - TOS Object Storage
 - Volcengine ASR Speech Recognition (optional)
@@ -159,7 +159,7 @@ Based on the scene breakdown, the LLM 3-stage workflow generates:
 
 **Generation Info:**
 - Time range: 0.0-3.0s | Duration: 3s (auto-snapped to 5s)
-- Model: doubao-seedance-2-0-260128 (image-to-video)
+- Model: doubao-seedance-1-5-pro-251215 (image-to-video)
 - Estimated cost: ¥0.70
 
 **XiaoShi (Root Agent):** ✅ Video generation complete!
@@ -233,9 +233,9 @@ video_breakdown_agent/
 
 - Python 3.12 or higher
 
-**1. Enable BytePlus ModelArk Service:**
+**1. Enable Volcengine Ark Model Service:**
 
-- Visit [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
+- Visit [Volcengine Ark Console](https://console.volcengine.com/ark/region:ark+cn-beijing/overview)
 - Enable model inference service
 - Create API Key (used for `MODEL_AGENT_API_KEY`)
 
@@ -301,7 +301,7 @@ MODEL_VISION_NAME=doubao-seed-1-6-vision-250815
 
 # Video recreation (optional, required only when using video generation)
 MODEL_VIDEO_API_KEY=your_ark_api_key  # can be the same as MODEL_AGENT_API_KEY
-MODEL_VIDEO_NAME=doubao-seedance-2-0-260128  # default, can be omitted
+MODEL_VIDEO_NAME=doubao-seedance-1-5-pro-251215  # default, can be omitted
 ```
 
 **Method 2: Use environment variables directly**
@@ -384,7 +384,7 @@ After deployment, you need to configure the following environment variables in t
 - `VOLCENGINE_SECRET_KEY`: Volcengine Secret Key
 - `DATABASE_TOS_BUCKET`: TOS bucket name
 - `DATABASE_TOS_REGION`: TOS region (default: `cn-beijing`)
-- `MODEL_VIDEO_NAME`: Video generation model (optional, default: `doubao-seedance-2-0-260128`)
+- `MODEL_VIDEO_NAME`: Video generation model (optional, default: `doubao-seedance-1-5-pro-251215`)
 
 **4. Test deployment:**
 
@@ -555,7 +555,7 @@ Longer videos will require more processing time and model tokens.
 
 - [VeADK Documentation](https://volcengine.github.io/veadk-python/)
 - [AgentKit Documentation](https://www.volcengine.com/docs/6459)
-- [BytePlus ModelArk Service](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
+- [Volcengine Ark Platform](https://console.volcengine.com/ark)
 - [LiteLLM Documentation](https://docs.litellm.ai/)
 - [FFmpeg Documentation](https://ffmpeg.org/documentation.html)
 

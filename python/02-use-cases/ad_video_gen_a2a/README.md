@@ -28,7 +28,7 @@
 | --- | --- | --- |
 | [Doubao-Seed-1.6](https://console.volcengine.com/ark/region:ark+cn-beijing/model/detail?Id=doubao-seed-1-6) | 负责理解用户信息并转化为工具调用。 | [多种计费方式](https://www.volcengine.com/docs/82379/1099320) |
 | [Doubao-Seedance 1.0 pro](https://console.volcengine.com/ark/region:ark+cn-beijing/model/detail?Id=doubao-seedance-1-0-pro) | 负责将图片和文字描述转为视频。 | [多种计费方式](https://www.volcengine.com/docs/82379/1099320) |
-| [Doubao-Seedream 5.0 pro](https://console.volcengine.com/ark/region:ark+cn-beijing/model/detail?Id=doubao-seedream-5-0-pro-260628) | 负责根据文字或参考图生成图片 | [多种计费方式](https://www.volcengine.com/docs/82379/1099320) |
+| [Doubao-Seedream 4.5 pro](https://console.volcengine.com/ark/region:ark+cn-beijing/model/detail?Id=doubao-seedream-4-5) | 负责根据文字或参考图生成图片 | [多种计费方式](https://www.volcengine.com/docs/82379/1099320) |
 
 ## 本地运行
 

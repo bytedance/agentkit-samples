@@ -22,10 +22,10 @@ from veadk.consts import DEFAULT_VIDEO_MODEL_API_BASE
 logger = logging.getLogger(__name__)
 
 # 默认视频生成模型（按场景区分）
-# I2V（图生视频）：doubao-seedance-2-0-260128，支持首尾帧、有声视频、adaptive比例
+# I2V（图生视频）：doubao-seedance-1-5-pro-251215，支持首尾帧、有声视频、adaptive比例
 # T2V（文生视频）：doubao-seedance-1-0-pro-250528，纯文本生成
 # Lite（轻量图生视频）：doubao-seedance-1-0-lite-i2v-250428，参考图
-DEFAULT_VIDEO_MODEL = "doubao-seedance-2-0-260128"  # i2v 默认
+DEFAULT_VIDEO_MODEL = "doubao-seedance-1-5-pro-251215"  # i2v 默认
 DEFAULT_VIDEO_MODEL_T2V = "doubao-seedance-1-0-pro-250528"  # t2v 默认
 
 # Doubao-Seedance 系列合法时长（秒），超出范围自动 snap 到最近合法值
@@ -154,7 +154,7 @@ def validate_video_model_config() -> tuple[bool, str]:
             "export MODEL_VIDEO_API_KEY='your_api_key_here'\n\n"
             "💡 提示：视频生成功能需要 Doubao-Seedance 模型权限\n"
             "  支持的模型：\n"
-            "  - doubao-seedance-2-0-260128 (推荐，支持首尾帧/音频)\n"
+            "  - doubao-seedance-1-5-pro-251215 (推荐，支持首尾帧/音频)\n"
             "  - doubao-seedance-1-0-pro-250528 (标准版)\n"
             "  - doubao-seedance-1-0-lite-i2v-250428 (图生视频)"
         )
@@ -303,7 +303,7 @@ async def generate_single_video(
         )
 
     # 根据是否有图片内容自动选择模型
-    # - 有图片 (i2v)：优先 doubao-seedance-2-0-260128
+    # - 有图片 (i2v)：优先 doubao-seedance-1-5-pro-251215
     # - 纯文本 (t2v)：优先 doubao-seedance-1-0-pro-250528
     has_image = any(item.get("type") == "image_url" for item in content)
     if configured_model:

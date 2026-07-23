@@ -45,9 +45,9 @@ Welcome to the AgentKit Beginner Case Collection! This directory contains a seri
 
 **Important Note**: Before running any examples, please visit the [AgentKit Console Authorization Page](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) to authorize all dependent services to ensure the cases can execute properly.
 
-**1. Activate BytePlus ModelArk Service:**
+**1. Activate Volcano Ark Model Service:**
 
-- Visit the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview) to activate the model service.
+- Visit the [Volcano Ark Console](https://exp.volcengine.com/ark?mode=chat) to activate the model service.
 
 **2. Obtain Volcano Engine Access Credentials:**
 
@@ -391,7 +391,7 @@ After completing the Beginner cases, you can:
 
 - [VeADK Official Documentation](https://volcengine.github.io/veadk-python/)
 - [AgentKit Development Guide](https://volcengine.github.io/agentkit-sdk-python/)
-- [BytePlus ModelArk Service](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
+- [Volcano Ark Model Service](https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new&projectName=default)
 - [VikingDB Documentation](https://www.volcengine.com/docs/84313/1860732?lang=en)
 - [MCP Protocol Specification](https://modelcontextprotocol.io)
 

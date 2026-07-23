@@ -79,9 +79,9 @@ viking_knowledge/
 
 ### Prerequisites
 
-**1. Activate BytePlus ModelArk Service:**
+**1. Activate BytePlus Model Ark Model Service:**
 
-- Visit the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
+- Visit the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - Activate the model service.
 
 **2. Activate VikingDB Service:**
@@ -133,7 +133,7 @@ source .venv/bin/activate
 ### Environment Setup
 
 ```bash
-# BytePlus ModelArk model name
+# BytePlus Model Ark model name
 # kch edit: Update the documented default model for this sample.
 export MODEL_AGENT_NAME=deepseek-v4-pro-260425
 
@@ -174,9 +174,9 @@ uv run agent.py
 
 **Important Note**: Before running this example, please visit the [AgentKit Console Authorization Page](https://console.byteplus.com/agentkit/auth) to authorize all dependent services to ensure the case can be executed normally.
 
-**1. Activate BytePlus ModelArk Service:**
+**1. Activate BytePlus Model Ark Model Service:**
 
-- Visit the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
+- Visit the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - Activate the model service.
 
 **2. Activate VikingDB Service:**
@@ -302,7 +302,7 @@ None.
 
 - [VeADK Official Documentation](https://volcengine.github.io/veadk-python/)
 - [AgentKit Development Guide](https://volcengine.github.io/agentkit-sdk-python/)
-- [BytePlus ModelArk Service](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
+- [BytePlus Model Ark Service](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - [BytePlus VikingDB Documentation](https://docs.byteplus.com/en/docs/VikingDB/Overview)
 
 ## Code License

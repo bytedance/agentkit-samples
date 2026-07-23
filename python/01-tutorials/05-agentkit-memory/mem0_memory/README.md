@@ -44,7 +44,7 @@ Agent + Runner
 # 短期记忆：仅同session有效
 agent1 = Agent(
     name="test_agent",
-    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v4-pro-260425"),
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
     instruction="You are a helpful assistant.",
 )
 
@@ -67,7 +67,7 @@ await runner1.save_session_to_long_term_memory(session_id=history_session_id)
 # 长期记忆：跨session有效
 agent2 = Agent(
     name="test_agent",
-    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v4-pro-260425"),
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
     instruction="Use LoadMemory tool to search previous info.",
     long_term_memory=long_term_memory,
 )
@@ -137,7 +137,7 @@ source .venv/bin/activate
 
 ```bash
 # 火山方舟模型名称
-export MODEL_AGENT_NAME=deepseek-v4-pro-260425
+export MODEL_AGENT_NAME=deepseek-v3-2-251201
 
 # 火山引擎访问凭证（必需）
 export VOLCENGINE_ACCESS_KEY=<Your Access Key>

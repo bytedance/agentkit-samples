@@ -74,9 +74,9 @@ AgentKit Runtime
 2. 进入「访问控制」→「用户」→ 新建用户 → 进入「密钥」→ 新建密钥，获取 AK/SK
 3. 进入 [火山方舟控制台](https://console.volcengine.com/ark) →「API Key 管理」→ 创建 API Key
 4. 开通以下模型的预置推理接入点：
-   - Agent 模型：`deepseek-v4-pro-260425`
-   - 生图模型：`doubao-seedream-5-0-pro-260628`
-   - 生视频模型：`doubao-seedance-2-0-260128`
+   - Agent 模型：`deepseek-v3-2-251201`
+   - 生图模型：`doubao-seedream-5-0-260128`
+   - 生视频模型：`doubao-seedance-1-5-pro-251215`
 
 #### Node.js 环境
 
@@ -117,7 +117,7 @@ DATABASE_TOS_BUCKET=your_tos_bucket_name
 # 可选
 COMIC_DRAMA_OUTPUT_DIR=./my-comic-drama
 VIDEO_DURATION_MINUTES=0.5
-DEFAULT_VIDEO_MODEL_NAME=doubao-seedance-2-0-260128
+DEFAULT_VIDEO_MODEL_NAME=doubao-seedance-1-5-pro-251215
 ```
 
 > `.env` 文件会在启动时自动加载（通过 `python-dotenv` 或内置解析器），不会覆盖已导出的环境变量。
@@ -136,7 +136,7 @@ export DATABASE_TOS_BUCKET=your_tos_bucket_name
 # 可选
 export COMIC_DRAMA_OUTPUT_DIR=./my-comic-drama
 export VIDEO_DURATION_MINUTES=0.5
-export DEFAULT_VIDEO_MODEL_NAME=doubao-seedance-2-0-260128
+export DEFAULT_VIDEO_MODEL_NAME=doubao-seedance-1-5-pro-251215
 ```
 
 **环境变量说明：**
@@ -149,7 +149,7 @@ export DEFAULT_VIDEO_MODEL_NAME=doubao-seedance-2-0-260128
 | `DATABASE_TOS_BUCKET` | ✅ | — | TOS 存储桶名称 |
 | `COMIC_DRAMA_OUTPUT_DIR` | ❌ | 项目目录下的 `output/` | 产物输出根目录 |
 | `VIDEO_DURATION_MINUTES` | ❌ | `0.5` | 视频时长（分钟），支持 0.5/1/2/3/4（0.5 = 30 秒）|
-| `DEFAULT_VIDEO_MODEL_NAME` | ❌ | `doubao-seedance-2-0-260128` | 视频生成模型名称 |
+| `DEFAULT_VIDEO_MODEL_NAME` | ❌ | `doubao-seedance-1-5-pro-251215` | 视频生成模型名称 |
 
 ### 本地运行
 

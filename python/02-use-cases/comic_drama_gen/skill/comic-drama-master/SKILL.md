@@ -208,7 +208,7 @@ python scripts/video_scorer.py "<task_folder绝对路径>"
   - `VOLCENGINE_ACCESS_KEY` / `VOLCENGINE_SECRET_KEY`：火山引擎 AK/SK（网络搜索 + TOS 上传用）
   - `VIDEO_DURATION_MINUTES`：视频时长（可选，默认 0.5（30秒），支持 0.5/1/2/3/4）
   - `COMIC_DRAMA_OUTPUT_DIR`：产物输出根目录（可选，默认项目目录下的 `output/`）
-  - `DEFAULT_VIDEO_MODEL_NAME`：视频生成模型名称（可选，默认 `doubao-seedance-2-0-260128`）
+  - `DEFAULT_VIDEO_MODEL_NAME`：视频生成模型名称（可选，默认 `doubao-seedance-1-5-pro-251215`）
 
 ---
 

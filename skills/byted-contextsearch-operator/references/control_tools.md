@@ -66,16 +66,6 @@ Rules:
 - Delete-like console actions require `--confirm`.
 - Use `--dry-run` before unfamiliar actions to inspect method/action/body.
 
-## Not data plane
-
-Runtime `search`, `chat`, and context listing are not low-level control-plane actions. Use:
-
-```bash
-data.py list
-data.py search --context <context> --text "<query>"
-data.py chat --context <context> --message "<message>"
-```
-
 ## Arbitrary OpenAPI fallback
 
 Use only when neither goal-based commands nor `console list` include the needed action.
