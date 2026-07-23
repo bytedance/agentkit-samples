@@ -38,7 +38,7 @@ Customer Service Agent（客服主 Agent）
 | 组件 | 描述 |
 | - | - |
 | **主 Agent** | [agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/multi_agents/agent.py) - 客服主 Agent，负责整体调度 |
-| **子 Agent** | [sub_agents/](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/multi_agents/sub_agents) - 三个专业子 Agent |
+| **子 Agent** | [sub_agents/](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/multi_agents/sub_agents) - 三个专业子 Agent |
 | **- Sequential** | [sequential_agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/multi_agents/sub_agents/sequential_agent.py) - 顺序执行工作流 |
 | **- Parallel** | [parallel_agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/multi_agents/sub_agents/parallel_agent.py) - 并行信息获取 |
 | **- Loop** | [loop_agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/multi_agents/sub_agents/loop_agent.py) - 循环优化回复质量 |

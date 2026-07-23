@@ -433,9 +433,9 @@ agent_server_app = AgentkitAgentServerApp(
 
 After completing the Restaurant Ordering example, you can explore more features:
 
-1. **[A2A Simple](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/a2a_simple/README.md)** - Learn the Agent-to-Agent communication protocol
-2. **[Multi Agents](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/multi_agents/README.md)** - Build more complex multi-agent collaboration systems
-3. **[Travel Concierge](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/travel_concierge/README.md)** - Use web search tools to plan trips
+1. **[A2A Simple](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/a2a_simple/README.md)** - Learn the Agent-to-Agent communication protocol
+2. **[Multi Agents](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/multi_agents/README.md)** - Build more complex multi-agent collaboration systems
+3. **[Travel Concierge](https://github.com/bytedance/agentkit-samples/blob/main/python/workshop/beginner/travel_concierge/README.md)** - Use web search tools to plan trips
 4. **[Video Generator](../../video_gen/README.md)** - Advanced video generation example
 
 ## FAQ

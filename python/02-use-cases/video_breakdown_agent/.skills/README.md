@@ -65,4 +65,4 @@ python report-generator-skill/scripts/generate_report.py breakdown.json hook_ana
 ## 参考
 
 - [VeADK 内置工具文档](https://volcengine.github.io/veadk-python/tools/builtin/)
-- [AgentKit Skills 示例](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/agent_skills)
+- [AgentKit Skills 示例](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/04-agentkit-tools/skills_sandbox)
