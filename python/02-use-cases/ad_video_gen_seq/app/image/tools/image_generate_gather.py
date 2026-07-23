@@ -20,11 +20,19 @@ from veadk.tools.builtin_tools.image_generate import (
     image_generate as image_generate_builtin,
 )
 from veadk.utils.logger import get_logger
+from veadk.config import getenv
+from veadk.consts import DEFAULT_IMAGE_GENERATE_MODEL_NAME
+
 
 logger = get_logger(__name__)
 
 
-async def image_generate(tasks: list[dict], tool_context: ToolContext) -> Dict:
+async def image_generate(
+    tasks: list[dict],
+    tool_context: ToolContext,
+    timeout: int = 600,
+    model_name: str = getenv("MODEL_IMAGE_NAME", DEFAULT_IMAGE_GENERATE_MODEL_NAME),
+) -> Dict:
     """Generate images with Seedream 4.5.
 
     Commit batch image generation requests via tasks.
@@ -32,6 +40,15 @@ async def image_generate(tasks: list[dict], tool_context: ToolContext) -> Dict:
     Args:
         tasks (list[dict]):
             A list of image-generation tasks. Each task is a dict.
+        timeout (int)
+            The timeout limit for the image generation task request, in seconds, with a default value of 600 seconds.
+        model_name (str):
+            Optional model name. If not specified, use the default model from environment.
+            If during execution, this tool encounters a model-related error (note that it must be a model-related error, otherwise do not perform this action), such as `ModelNotOpen`,
+            then after reminding about the relevant issue, you can execute this tool again and downgrade the model to the following models, passing this parameter:
+            - `doubao-seedream-5-0-260128`
+            - `doubao-seedream-4-5-251128`
+            - `doubao-seedream-4-0-250828`
     Per-task schema
     ---------------
     Required:
@@ -89,7 +106,7 @@ async def image_generate(tasks: list[dict], tool_context: ToolContext) -> Dict:
     - 组图任务必须 sequential_image_generation="auto"。
     - size 推荐使用 2048x2048 或表格里的标准比例，确保生成质量。
     """
-    logger.debug(f"image_generate_gather tasks: {tasks}")
+    logger.error(f"image_generate_gather tasks: {tasks}")
     new_tasks = []
     task_origin_info = []  # Stores (original_task_index, sub_index_within_group)
 
@@ -146,7 +163,9 @@ async def image_generate(tasks: list[dict], tool_context: ToolContext) -> Dict:
 
     # Call the underlying image_generate function with the flattened list of tasks
     logger.debug(f"image_generate_gather new_tasks: {new_tasks}")
-    raw_result = await image_generate_builtin(new_tasks, tool_context)
+    raw_result = await image_generate_builtin(
+        new_tasks, tool_context, timeout, model_name
+    )
     logger.debug(f"image_generate_gather raw_result: {raw_result}")
 
     # Remap the results to match the original task structure
@@ -166,6 +185,10 @@ async def image_generate(tasks: list[dict], tool_context: ToolContext) -> Dict:
 
             original_idx, original_sub_idx = task_origin_info[new_task_idx]
             new_key = f"task_{original_idx}_image_{original_sub_idx}"
+            logger.error(
+                f"image_generate_gather new_task_idx: {new_task_idx}, original_idx: {original_idx}, original_sub_idx: {original_sub_idx}"
+            )
+            logger.error(f"image_generate_gather new_key: {new_key}, url: {url}")
             remapped_success.append({new_key: url})
 
     for error_item in raw_result.get("error_list", []):
