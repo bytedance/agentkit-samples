@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="AgentKit 混合云客服智能体建设路线图" />
+    <title>混合云客服智能体建设路线图</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23162935'/%3E%3Cpath d='M17 19h8v10h14V19h8v26h-8V36H25v9h-8z' fill='%23fff'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="/guide/styles.css?v=roadmap-7" />
+  </head>
+  <body>
+    <header class="hero">
+      <nav class="topbar" aria-label="页面导航">
+        <a class="wordmark" href="#top" aria-label="返回顶部">
+          <span class="wordmark-mark">HC</span>
+          <span>Hybrid Cloud Agent Blueprint</span>
+        </a>
+        <div class="top-links">
+          <a href="#journey">建设步骤</a>
+          <a href="#checklist">上线清单</a>
+          <a href="https://github.com/Xiaoaier-Z-L/agentkit-samples/blob/codex/hybrid-cloud-customer-service-demo/python/02-use-cases/hybrid_cloud_customer_service/docs/runtime_deployment.md" target="_blank" rel="noreferrer">Runtime 部署 ↗</a>
+          <a href="https://github.com/Xiaoaier-Z-L/agentkit-samples/blob/codex/hybrid-cloud-customer-service-demo/python/02-use-cases/hybrid_cloud_customer_service/docs/agent_internal_implementation.md" target="_blank" rel="noreferrer">混合云开发指南 ↗</a>
+        </div>
+      </nav>
+
+      <div id="top" class="hero-grid">
+        <div class="hero-copy">
+          <p class="kicker">CUSTOMER SERVICE AGENT · BUILD STORY</p>
+          <h1>从一个能回答问题的 Agent，走到可上线的混合云客服智能体</h1>
+          <p class="hero-lead">
+            这不是 AgentKit 控制台，也不负责对话。页面只回答一个问题：如果要建设一个企业客服智能体，Runtime、会话、记忆、知识、工具、安全、评测和可观测应该按什么顺序接入？
+          </p>
+          <div class="hero-actions">
+            <a class="primary-action" href="#journey">开始查看 7 个步骤</a>
+            <span class="status-note"><i></i> 代码、平台动作、验收证据一一对应</span>
+          </div>
+        </div>
+        <aside class="story-card" aria-label="客服智能体目标故事">
+          <p class="story-label">目标故事</p>
+          <blockquote>“上周买的理财产品可以退吗？我偏好快速到账，帮我提交工单。”</blockquote>
+          <div class="story-flow">
+            <span>规则有依据</span><b>→</b><span>偏好能记住</span><b>→</b><span>操作可执行</span>
+          </div>
+          <p class="story-foot">每新增一种能力，都必须有平台配置、代码入口和验收证据。</p>
+        </aside>
+      </div>
+    </header>
+
+    <main>
+      <section class="principles" aria-label="建设原则">
+        <article><strong>先运行，再增强</strong><span>Runtime 是所有能力的承载边界。</span></article>
+        <article><strong>按场景选组件</strong><span>不需要记忆，就不必为了“完整”而接入。</span></article>
+        <article><strong>每一步可验证</strong><span>配置成功不等于业务链路成功。</span></article>
+      </section>
+
+      <section class="agent-handoff" aria-labelledby="agent-handoff-title">
+        <div class="handoff-copy">
+          <p class="kicker">AFTER INTERACTIVE DEPLOY</p>
+          <h2 id="agent-handoff-title">首次部署不用 Prompt，后续步骤交给项目 Skill</h2>
+          <p>
+            <code>deploy_interactive.sh</code> 已负责第一台 Live Runtime。接下来把当前
+            Demo 目录作为智能编码 Agent 的项目根目录，从下方路线图复制 Prompt；Prompt
+            会先加载仓库内的 <code>AGENTS.md</code> 和项目 Skill，再执行对应步骤。
+          </p>
+        </div>
+        <ol class="handoff-steps">
+          <li><span>01</span><div><strong>选择阶段</strong><small>从 Runtime 验收或下一项能力开始</small></div></li>
+          <li><span>02</span><div><strong>复制 Prompt</strong><small>Prompt 只有指令，不包含真实凭据</small></div></li>
+          <li><span>03</span><div><strong>新建 Agent 任务</strong><small>粘贴执行；人工步骤会单独停下提示</small></div></li>
+        </ol>
+        <p class="handoff-note">无需安装 Codex；任何能读取仓库和执行终端命令的智能编码 Agent 都可使用。</p>
+      </section>
+
+      <section id="journey" class="journey-section">
+        <div class="section-heading">
+          <div>
+            <p class="kicker">SIX-STAGE ROADMAP</p>
+            <h2>一个客服智能体的建设路径</h2>
+          </div>
+          <p>7 个阶段按安全优先顺序展开；每个阶段在详情中标明对应步骤文档，并提供可直接复制给智能编码 Agent 的执行 Prompt。</p>
+        </div>
+
+        <div class="journey-layout">
+          <ol class="roadmap" aria-label="客服智能体建设步骤">
+            <li>
+              <button class="step-card active" type="button" data-step="runtime" aria-pressed="true">
+                <span class="step-index">01</span>
+                <span class="step-copy"><small>部署后</small><strong>验收 Runtime，按需更新</strong><em>现在验收；有变更时再更新</em></span>
+                <span class="step-arrow">→</span>
+              </button>
+            </li>
+            <li>
+              <button class="step-card" type="button" data-step="knowledge" aria-pressed="false">
+                <span class="step-index">02</span>
+                <span class="step-copy"><small>先创建</small><strong>接入企业知识库</strong><em>发布 Ready，暂不联合验证</em></span>
+                <span class="step-arrow">→</span>
+              </button>
+            </li>
+            <li>
+              <button class="step-card" type="button" data-step="memory" aria-pressed="false">
+                <span class="step-index">03</span>
+                <span class="step-copy"><small>再创建</small><strong>加入会话与记忆</strong><em>准备 Ready，暂不联合验证</em></span>
+                <span class="step-arrow">→</span>
+              </button>
+            </li>
+            <li>
+              <button class="step-card" type="button" data-step="actions" aria-pressed="false">
+                <span class="step-index">04</span>
+                <span class="step-copy"><small>先关联</small><strong>验证知识与记忆闭环</strong><em>先完成基础客服上下文</em></span>
+                <span class="step-arrow">→</span>
+              </button>
+            </li>
+            <li>
+              <button class="step-card" type="button" data-step="security" aria-pressed="false">
+                <span class="step-index">05</span>
+                <span class="step-copy"><small>必须</small><strong>建立身份与安全边界</strong><em>先知道谁能做什么</em></span>
+                <span class="step-arrow">→</span>
+              </button>
+            </li>
+            <li>
+              <button class="step-card" type="button" data-step="extensions" aria-pressed="false">
+                <span class="step-index">06</span>
+                <span class="step-copy"><small>按需扩展</small><strong>调用外部能力</strong><em>MCP、Skill 与 A2A 并列接入</em></span>
+                <span class="step-arrow">→</span>
+              </button>
+            </li>
+            <li>
+              <button class="step-card" type="button" data-step="quality" aria-pressed="false">
+                <span class="step-index">07</span>
+                <span class="step-copy"><small>上线门槛</small><strong>评测、Trace 与发布验收</strong><em>证明它真的可上线</em></span>
+                <span class="step-arrow">→</span>
+              </button>
+            </li>
+          </ol>
+
+          <article id="step-detail" class="detail-panel" aria-live="polite">
+            <div class="detail-topline">
+              <span id="detail-number">STEP 01</span>
+              <span id="detail-badge" class="detail-badge required">必须</span>
+            </div>
+            <h3 id="detail-title">验收 Runtime，按需更新</h3>
+            <p id="detail-summary" class="detail-summary"></p>
+            <section class="readme-alignment">
+              <span>步骤文档</span>
+              <div id="detail-readme-sections"></div>
+            </section>
+            <div class="detail-grid">
+              <section>
+                <h4>客服场景得到什么</h4>
+                <p id="detail-outcome"></p>
+              </section>
+              <section>
+                <h4 class="platform-heading">
+                  <span>平台侧动作</span>
+                  <a id="detail-guide-link" href="#" target="_blank" rel="noreferrer">详细操作 ↗</a>
+                </h4>
+                <ul id="detail-platform"></ul>
+              </section>
+            </div>
+            <section class="code-section">
+              <div><h4>关键代码 / 配置</h4><span id="detail-file"></span></div>
+              <pre><code id="detail-code"></code></pre>
+            </section>
+            <section class="prompt-section">
+              <div class="prompt-section-heading">
+                <div><span>交给智能编码 Agent</span><h4>加载项目 Skill 后按步骤执行</h4></div>
+                <small>复制 Prompt 后新建 Agent 任务并粘贴；Prompt 不包含任何真实凭据。</small>
+              </div>
+              <div id="detail-prompts"></div>
+            </section>
+            <section class="verification">
+              <span>验收证据</span>
+              <p id="detail-verification"></p>
+            </section>
+            <section class="resource-links" aria-label="详细文档与源码">
+              <span>继续查看</span>
+              <div id="detail-links"></div>
+            </section>
+            <div class="detail-nav">
+              <button id="previous-step" type="button">← 上一步</button>
+              <span id="progress-text">1 / 6</span>
+              <button id="next-step" type="button">下一步 →</button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="architecture" aria-labelledby="architecture-title">
+        <div>
+          <p class="kicker">WHAT LIVES WHERE</p>
+          <h2 id="architecture-title">代码负责行为，平台负责托管与治理</h2>
+          <p>不要把平台资源 ID、访问凭据和环境域名写死在 Agent 代码中。Runtime 关联组件后，由平台注入连接信息；代码只实现清晰的适配边界。</p>
+        </div>
+        <div class="architecture-flow" aria-label="代码与平台的职责关系">
+          <div><small>Agent 代码</small><strong>Prompt · Workflow · Tool contract</strong></div>
+          <b>→</b>
+          <div><small>AgentKit Runtime</small><strong>Identity · Session · Component injection</strong></div>
+          <b>→</b>
+          <div><small>混合云组件</small><strong>云搜索 · MEM0 · PostgreSQL · Sandbox</strong></div>
+        </div>
+      </section>
+
+      <section id="checklist" class="checklist-section">
+        <div class="section-heading">
+          <div><p class="kicker">RELEASE GATE</p><h2>上线前的最小证据集</h2></div>
+          <p>下面每一项都需要真实结果，而不是“已经配置”的截图。</p>
+        </div>
+        <div class="checklist-grid">
+          <article><span>01</span><strong>Runtime Ready</strong><p>linux/amd64 镜像启动成功，`/invoke` 返回最终回答。</p></article>
+          <article><span>02</span><strong>状态隔离</strong><p>同用户跨会话可召回；不同用户不能读取彼此信息。</p></article>
+          <article><span>03</span><strong>知识有来源</strong><p>规则回答命中云搜索文档并返回可核验引用。</p></article>
+          <article><span>04</span><strong>操作可控</strong><p>写操作参数校验、人工确认、幂等和工具白名单生效。</p></article>
+          <article><span>05</span><strong>安全拒答</strong><p>提示词注入、凭据索取和越权请求不会触发危险工具。</p></article>
+          <article><span>06</span><strong>评测与 Trace</strong><p>实验通过，失败 Case 可通过 Trace 定位到模型或工具 Span。</p></article>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <strong>Hybrid Cloud Customer Service Blueprint</strong>
+      <span>建设步骤可视化 · 不模拟 AgentKit 控制台 · 不承载客户对话</span>
+    </footer>
+    <script src="/guide/app.js?v=roadmap-27"></script>
+  </body>
+</html>
