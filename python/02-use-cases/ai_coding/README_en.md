@@ -77,21 +77,20 @@ ai_coding/
    - On the "User Details" page -> Go to "Permissions" -> Click "Add Permission" and grant the following policies to the user:
    - `AgentKitFullAccess` (Full access to AgentKit)
    - `APMPlusServerFullAccess` (Full access to APMPlus)
-4. Obtain a BytePlus ModelArk agent API key:
-   - Log in to the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
+4. Obtain a BytePlus Model Ark model agent API Key:
+   - Log in to the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
    - Go to "API Key Management" -> Create or copy an existing API Key. The `MODEL_AGENT_API_KEY` environment variable will need to be set to this value.
    - As shown below:
-   ![ModelArk API Key Management](../../assets/images/ark_api_key_management.jpg)
+   ![Model Ark API Key Management](../../assets/images/ark_api_key_management.jpg)
 5. Activate pre-built model inference endpoints:
-   - Log in to the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
+   - Log in to the [BytePlus Model Ark Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
    - Go to "Activation Management" -> "Language Models" -> Find the desired model -> Click "Activate Service".
    - Confirm activation and wait for the service to become effective (usually 1-2 minutes).
    - Activate the following models used in this case:
         - `deepseek-v4-pro-260425`
         - `doubao-seed-code-preview-251028`
    - As shown below:
-   ![ModelArk Service Management](../../assets/images/ark_model_service_management.jpg)
-
+   ![Model Ark Model Service Management](../../assets/images/ark_model_service_management.jpg)
 
 #### AgentKit Tool ID
 
@@ -132,7 +131,7 @@ export BYTEPLUS_ACCESS_KEY={your_ak}
 export BYTEPLUS_SECRET_KEY={your_sk}
 export DATABASE_TOS_BUCKET=agentkit-platform-{{your_account_id}}
 export AGENTKIT_TOOL_ID={{your_tool_id}}
-export MODEL_AGENT_API_KEY={{your_model_agent_api_key}} # Required for local debugging, obtained from BytePlus ModelArk
+export MODEL_AGENT_API_KEY={{your_model_agent_api_key}} # Required for local debugging, obtained from BytePlus Model Ark
 ```
 
 **Environment Variable Explanations:**
@@ -144,8 +143,7 @@ export MODEL_AGENT_API_KEY={{your_model_agent_api_key}} # Required for local deb
   - Example: `DATABASE_TOS_BUCKET=agentkit-platform-12345678901234567890`
   - `{{your_account_id}}` needs to be replaced with your BytePlus account ID.
 - `AGENTKIT_TOOL_ID`: The Tool ID obtained from the AgentKit console.
-- `MODEL_AGENT_API_KEY`: The Model Agent API Key obtained from BytePlus ModelArk.
-
+- `MODEL_AGENT_API_KEY`: The Model Agent API Key obtained from BytePlus Model Ark.
 
 ## Testing
 

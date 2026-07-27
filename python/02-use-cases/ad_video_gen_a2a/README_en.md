@@ -26,9 +26,9 @@ The system includes 4 core agents, each with its own responsibilities:
 
 | Service | Description | Billing Information |
 | --- | --- | --- |
-| [Doubao-Seed-1.6](https://docs.byteplus.com/en/docs/ModelArk/1108216) | Responsible for understanding user information and converting it into tool calls. | [Model details and billing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
-| [Doubao-Seedance 2.0](https://docs.byteplus.com/en/docs/ModelArk/1108216) | Responsible for converting images and text descriptions into videos. | [Model details and billing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
-| [Doubao-Seedream 5.0 pro](https://docs.byteplus.com/en/docs/ModelArk/1108216) | Responsible for generating images based on text or reference images. | [Model details and billing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
+| [Doubao-Seed-1.6](https://console.volcengine.com/ark/region:ark+cn-beijing/model/detail?Id=doubao-seed-1-6) | Responsible for understanding user information and converting it into tool calls. | [Multiple billing methods](https://www.volcengine.com/docs/82379/1099320) |
+| [Doubao-Seedance 1.0 pro](https://console.volcengine.com/ark/region:ark+cn-beijing/model/detail?Id=doubao-seedance-1-0-pro) | Responsible for converting images and text descriptions into videos. | [Multiple billing methods](https://www.volcengine.com/docs/82379/1099320) |
+| [Doubao-Seedream 4.5 pro](https://console.volcengine.com/ark/region:ark+cn-beijing/model/detail?Id=doubao-seedream-4-5) | Responsible for generating images based on text or reference images. | [Multiple billing methods](https://www.volcengine.com/docs/82379/1099320) |
 
 ## Local Execution
 
@@ -40,7 +40,7 @@ Before you begin, please ensure that your development environment meets the foll
 - VeADK 0.2.28 or higher
 - Playwright 1.55.0 or higher
 - It is recommended to use `uv` for dependency management.
-- <a target="_blank" href="https://console.byteplus.com/ark/region:ark+ap-southeast-1/apiKey">Get BytePlus ModelArk API key</a>
+- <a target="_blank" href="https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey">Get Volcano Ark API KEY</a>
 - <a target="_blank" href="https://console.volcengine.com/iam/keymanage/">Get Volcano Engine AK/SK</a>
 
 ### Quick Start
@@ -72,7 +72,7 @@ cd app/director-agent
 cp config.yaml.example config.yaml
 ```
 
-Then, edit the `config.yaml` file and fill in your BytePlus ModelArk API key, Volcano Engine AK/SK, and other information. Please repeat this operation for `market-agent`, `evaluate-agent`, `release-agent`, and `multimedia-agent`.
+Then, edit the `config.yaml` file and fill in your Volcano Ark API Key, Volcano Engine AK/SK, and other information. Please repeat this operation for `market-agent`, `evaluate-agent`, `release-agent`, and `multimedia-agent`.
 
 For specific configuration items, please refer to the <a target="_blank" href="https://github.com/volcengine/veadk-python/blob/main/config.yaml.full">veadk-python config.yaml configuration document</a>.
 

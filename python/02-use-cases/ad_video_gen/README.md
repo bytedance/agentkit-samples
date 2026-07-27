@@ -36,7 +36,7 @@
 | 相关服务 | 描述 | 计费说明 |
 | --- | --- | --- |
 | DeepSeek V4 Pro (`deepseek-v4-pro-260425`) | 负责理解用户信息、规划营销故事并转化为工具调用。 | [多种计费方式](https://www.volcengine.com/docs/82379/1099320) |
-| Doubao Seedream 5.0 pro (`doubao-seedream-5-0-pro-260628`) | 负责根据文本或参考商品图生成四宫格营销故事参考图。 | [多种计费方式](https://www.volcengine.com/docs/82379/1099320) |
+| Doubao Seedream 5.0 (`doubao-seedream-5-0-260128`) | 负责根据文本或参考商品图生成四宫格营销故事参考图。 | [多种计费方式](https://www.volcengine.com/docs/82379/1099320) |
 | Doubao Seedance 2.0 (`doubao-seedance-2-0-260128`) | 负责根据四宫格参考图和视频描述生成营销短视频。 | [多种计费方式](https://www.volcengine.com/docs/82379/1099320) |
 
 ## 本地运行
@@ -83,7 +83,7 @@ export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/
 export MODEL_AGENT_API_KEY=<Your Ark API Key>
 
 # 生图模型
-export MODEL_IMAGE_NAME=doubao-seedream-5-0-pro-260628
+export MODEL_IMAGE_NAME=doubao-seedream-5-0-260128
 export MODEL_IMAGE_API_BASE=https://ark.cn-beijing.volces.com/api/v3/
 export MODEL_IMAGE_API_KEY=<Your Ark API Key>
 

@@ -33,6 +33,6 @@ components:               # Agentkit 依赖服务
     # memory: VikingMem | Mem0
     product: mcptoolset
 models:                   # 涉及到的具体模型列表
-    - deepseek-v4-pro-260425
+    - deepseek-v3-2-251201
 
 image: agentkit-template-public-cn-beijing.cr.volces.com/template/aiops_agent:latest

@@ -23,7 +23,7 @@ AgentKit Runtime
 Skills Sandbox
     ├── VeADK Agent (Dialogue Engine)
     ├── ShortTermMemory (Session Memory)
-    └── BytePlus ModelArk (LLM)
+    └── Volcengine Ark Model (LLM)
 ```
 
 ### Core Components
@@ -53,9 +53,9 @@ skills_sandbox/
 
 ### Prerequisites
 
-**1. Activate BytePlus ModelArk Service:**
+**1. Activate Volcengine Ark Model Service:**
 
-- Visit the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
+- Visit the [Volcengine Ark Console](https://exp.volcengine.com/ark?mode=chat)
 - Activate the model service
 
 **2. Obtain Volcengine Access Credentials:**
@@ -150,9 +150,9 @@ uv run client.py
 
 **Important Note**: Before running this example, please visit the [AgentKit Console Authorization Page](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) to authorize all dependent services to ensure the example can run correctly.
 
-**1. Activate BytePlus ModelArk Service:**
+**1. Activate Volcengine Ark Model Service:**
 
-- Visit the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
+- Visit the [Volcengine Ark Console](https://exp.volcengine.com/ark?mode=chat)
 - Activate the model service
 
 **2. Obtain Volcengine Access Credentials:**
@@ -260,7 +260,7 @@ None.
 
 - [VeADK Official Documentation](https://volcengine.github.io/veadk-python/)
 - [AgentKit Developer Guide](https://volcengine.github.io/agentkit-sdk-python/)
-- [BytePlus ModelArk Service](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
+- [Volcengine Ark Model Service](https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new&projectName=default)
 
 ## Code License
 

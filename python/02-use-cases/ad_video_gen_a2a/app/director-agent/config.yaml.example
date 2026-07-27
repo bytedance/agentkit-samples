@@ -10,7 +10,7 @@ model:
     api_base: https://ark.cn-beijing.volces.com/api/v3/
     api_key: 
   image:
-    name: doubao-seedream-5-0-pro-260628
+    name: doubao-seedream-4-5-251128
     api_base: https://ark.cn-beijing.volces.com/api/v3/
     api_key: 
   format:

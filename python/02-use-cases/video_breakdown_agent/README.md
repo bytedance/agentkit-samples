@@ -139,7 +139,7 @@ etc.
 
 **生成信息：**
 - 时间段：0.0-3.0 秒 | 时长：3秒（自动对齐至 5 秒）
-- 模型：doubao-seedance-2-0-260128（图生视频）
+- 模型：doubao-seedance-1-5-pro-251215（图生视频）
 - 预估费用：¥0.70
 
 **小视（Root Agent）：** ✅ 视频生成完成！
@@ -321,7 +321,8 @@ Root Agent（小视 - 主编排器）
 - 方舟大模型：
   - doubao-seed-1-6-251015（主推理模型）
   - doubao-seed-1-6-vision-250815（视觉分析模型）
-  - doubao-seedance-2-0-260128（视频生成，图生视频）
+  - doubao-seedance-1-5-pro-251215（视频生成，图生视频）
+  - doubao-seedance-1-0-pro-250528（视频生成，文生视频）
 - TOS 对象存储
 - 火山 ASR 语音识别（可选）
 - Web Search 联网搜索
@@ -475,7 +476,7 @@ export MODEL_VISION_NAME=doubao-seed-1-6-vision-250815
 
 # 视频复刻功能（可选，使用视频生成能力时需配置）
 export MODEL_VIDEO_API_KEY=<Your Ark API Key>  # 可与 MODEL_AGENT_API_KEY 相同
-export MODEL_VIDEO_NAME=doubao-seedance-2-0-260128  # 默认值，可省略
+export MODEL_VIDEO_NAME=doubao-seedance-1-5-pro-251215  # 默认值，可省略
 ```
 
 ### 调试方法
