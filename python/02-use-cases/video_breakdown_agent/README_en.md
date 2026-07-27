@@ -320,8 +320,9 @@ export DATABASE_TOS_BUCKET=your_tos_bucket_name
 **Method 1: Local debugging with veadk web (recommended)**
 
 ```bash
-# veadk automatically discovers video_breakdown_agent/ package
-uv run veadk web
+# Run from the parent directory so veadk discovers video_breakdown_agent/
+cd python/02-use-cases
+veadk web
 ```
 
 Access `http://localhost:8000` to interact with the Agent.

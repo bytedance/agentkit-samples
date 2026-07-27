@@ -107,6 +107,7 @@ cp config.yaml.example config.yaml
   通过 `veadk web` 进行本地测试
 
   ```bash
+  cd python/02-use-cases
   veadk web
   ```
 

@@ -79,8 +79,8 @@ export VOLCENGINE_ACCESS_KEY=<Your Access Key>
 export VOLCENGINE_SECRET_KEY=<Your Secret Key>
 export TOOL_TOS_URL=https://tos.mcp.volcbiz.com/mcp\?token\=xxxxx  # 可选，仅 mcp_simple 需要
 
-# 进入到beginner案例的根目录
-cd 02-use-cases/beginner
+# 进入到 beginner 案例的上级目录
+cd python/workshop/beginner
 
 # 安装所有案例的依赖（使用 uv）
 uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple

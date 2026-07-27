@@ -119,8 +119,8 @@ export VOLCENGINE_SECRET_KEY=<Your Secret Key>
 ### Debugging Method
 
 ```bash
-# Enter the project directory
-cd python/01-tutorials/04-agentkit-tools/skills_sandbox
+# Enter the parent directory
+cd python/01-tutorials/04-agentkit-tools
 
 # Start the VeADK Web UI
 veadk web --port 8080
