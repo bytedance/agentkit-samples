@@ -119,8 +119,8 @@ export VOLCENGINE_SECRET_KEY=<Your Secret Key>
 ### 调试方法
 
 ```bash
-# 进入项目目录
-cd python/01-tutorials/04-agentkit-tools/skills_sandbox
+# 进入上级目录
+cd python/01-tutorials/04-agentkit-tools
 
 # 启动 VeADK Web 界面
 veadk web --port 8080
