@@ -30,16 +30,16 @@ Skills Sandbox
 
 | 组件 | 描述 |
 | - | - |
-| **Agent 服务** | [agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/04-agentkit-tools/skills_sandbox/agent.py) - 主应用程序，定义 Agent 和记忆组件 |
-| **测试客户端** | [client.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/04-agentkit-tools/skills_sandbox/client.py) - SSE 流式调用客户端 |
-| **项目配置** | [pyproject.toml](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/04-agentkit-tools/skills_sandbox/pyproject.toml) - 依赖管理（uv 工具） |
+| **Agent 服务** | [agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-0.x.x/agent.py) - 主应用程序，定义 Agent 和记忆组件 |
+| **测试客户端** | [client.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-0.x.x/client.py) - SSE 流式调用客户端 |
+| **项目配置** | [pyproject.toml](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-0.x.x/pyproject.toml) - 依赖管理（uv 工具） |
 | **AgentKit 配置** | agentkit.yaml - 云端部署配置文件 |
 | **短期记忆** | 使用本地后端存储会话上下文 |
 
 ## 目录结构说明
 
 ```bash
-skills_sandbox/
+skills_sandbox/veadk-0.x.x/
 ├── agent.py           # Agent 运行一个 skills 任务
 ├── client.py          # 测试客户端（SSE 流式调用）
 ├── requirements.txt   # Python 依赖列表 （agentkit部署时需要指定依赖文件)
@@ -78,7 +78,7 @@ brew install uv
 
 ```bash
 # 进入项目目录
-cd python/01-tutorials/04-agentkit-tools/skills_sandbox
+cd python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-0.x.x
 ```
 
 您可以通过 `pip` 工具来安装本项目依赖：
@@ -120,7 +120,7 @@ export VOLCENGINE_SECRET_KEY=<Your Secret Key>
 
 ```bash
 # 进入项目目录
-cd python/01-tutorials/04-agentkit-tools/skills_sandbox
+cd python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-0.x.x
 
 # 启动 VeADK Web 界面
 veadk web --port 8080
@@ -133,7 +133,7 @@ Web 界面提供图形化对话测试环境，支持实时查看消息流和调�
 此外，还可以使用命令行测试，调试 agent.py。
 
 ```bash
-cd python/01-tutorials/04-agentkit-tools/skills_sandbox
+cd python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-0.x.x
 
 # 启动 Agent 服务
 uv run agent.py
@@ -176,7 +176,7 @@ export VOLCENGINE_SECRET_KEY=<Your Secret Key>
 ### AgentKit 云上部署
 
 ```bash
-cd python/01-tutorials/04-agentkit-tools/skills_sandbox
+cd python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-0.x.x
 
 # 配置部署参数
 # optional：如果 agentkit config 中不添加 --runtime_envs AGENTKIT_TOOL_ID={{your_tool_id}}，可以在 AgentKit 控制台 智能体运行时 中，关键组件，选择 沙箱工具，并发布
@@ -248,7 +248,7 @@ table th:nth-of-type(3) {
 | 请运行以下工作流程：1. 帮我写一个pdf处理的skill，能够支持加载pdf、编辑pdf和从pdf中提取文字信息即可；2. 将写好的 skill 注册到 skill space。 | ![生成 skill 效果截图](assets/images/create.jpeg) |
 | 请运行以下工作流程：1. 使用 veadk-python skill ，写一个 VeADK Agent，能够通过提问 'hello' 来回复。2. 执行一下代码确保没问题；3. 将验证好的代码发给我。 | ![veadk skill 效果截图](assets/images/veadk-skill.png) |
 | 使用 internal-comms skill 帮我写一个3p沟通材料，通知3p团队项目进度更新。关于产品团队，主要包括过去一周问题和未来一周计划，具体包括问题：写产品团队遇到的客户问题 (1. GPU+模型推理框架性能低于开源版本，比如时延高、吞吐低；2. GPU推理工具易用性差)，以及如何解决的；计划：明年如何规划GPU产品功能和性能优化 (1. 发力GPU基础设施对生图生视频模型的支持；2. GPU推理相关工具链路易用性提升)。其他内容，可以酌情组织。 | ![internal-comms skill 效果截图](assets/images/internal-comms-skill.jpeg) |
-| 请运行以下工作流程：1. 使用 canvas-design skill 帮我创作一件基于几何图形的艺术绘图。2. 使用 tos-file-access skill 把产物上传到存储桶 {YOUR_TOS_BUCKET_NAME} 里。 | ![canvas-design skill 效果截图](assets/images/cavas-design-skill.jpeg) |
+| 请运行以下工作流程：1. 使用 canvas-design skill 帮我创作一件基于几何图形的艺术绘图。2. 使用 tos-file-access skill 把产物上传到存储桶 {YOUR_TOS_BUCKET_NAME} 里。 | ![canvas-design skill 效果截图](assets/images/canvas-design-skill.jpeg) |
 | 我需要一个2人份的纯素高蛋白食谱，目标增肌。每周预算350元，喜欢30分钟内的快手菜。不喜欢蘑菇。使用 healthy-meal-planner skill 帮我制订一周的食谱。 | ![healthy-meal-planner skill 效果截图](assets/images/health-meal-planner-skill.jpeg) |
 | 请运行以下工作流程：1. 我需要一个2人份的纯素高蛋白食谱，目标增肌。每周预算350元，喜欢30分钟内的快手菜。不喜欢蘑菇。使用 healthy-meal-planner skill 帮我制订一周的食谱。2. 将制订好的食谱写入文件 recipe.md，然后使用 tos-file-access skill 把这个文件上传到存储桶 {YOUR_TOS_BUCKET_NAME}，最后把上传后的文件链接发给我。 | ![healthy-meal-planner skill 上传结果到 TOS 效果截图](assets/images/health-meal-planner-skill-tos.png) |
 

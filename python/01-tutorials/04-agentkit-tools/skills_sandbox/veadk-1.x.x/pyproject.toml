@@ -1,0 +1,11 @@
+[project]
+name = "agentkit-skill-sandbox-samples"
+version = "0.1.0"
+description = "agentkit skills sandbox samples with veadk-1.x.x"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "agentkit-sdk-python==0.8.0",
+    "google-adk==2.2.0",
+    "veadk-python==1.0.9",
+]

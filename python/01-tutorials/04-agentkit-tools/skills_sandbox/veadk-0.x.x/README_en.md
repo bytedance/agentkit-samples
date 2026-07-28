@@ -30,16 +30,16 @@ Skills Sandbox
 
 | Component | Description |
 | - | - |
-| **Agent Service** | [agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/04-agentkit-tools/skills_sandbox/agent.py) - Main application, defines the Agent and memory components |
-| **Test Client** | [client.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/04-agentkit-tools/skills_sandbox/client.py) - SSE streaming client |
-| **Project Configuration** | [pyproject.toml](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/04-agentkit-tools/skills_sandbox/pyproject.toml) - Dependency management (uv tool) |
+| **Agent Service** | [agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-0.x.x/agent.py) - Main application, defines the Agent and memory components |
+| **Test Client** | [client.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-0.x.x/client.py) - SSE streaming client |
+| **Project Configuration** | [pyproject.toml](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-0.x.x/pyproject.toml) - Dependency management (uv tool) |
 | **AgentKit Configuration** | agentkit.yaml - Cloud deployment configuration file |
 | **Short-term Memory** | Uses a local backend to store session context |
 
 ## Directory Structure Explanation
 
 ```bash
-skills_sandbox/
+skills_sandbox/veadk-0.x.x/
 ├── agent.py           # Agent runs a skills task
 ├── client.py          # Test client (SSE streaming)
 ├── requirements.txt   # Python dependency list (required for agentkit deployment)
@@ -78,7 +78,7 @@ brew install uv
 
 ```bash
 # Enter the project directory
-cd python/01-tutorials/04-agentkit-tools/skills_sandbox
+cd python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-0.x.x
 ```
 
 You can use the `pip` tool to install the project dependencies:
@@ -120,7 +120,7 @@ export VOLCENGINE_SECRET_KEY=<Your Secret Key>
 
 ```bash
 # Enter the project directory
-cd python/01-tutorials/04-agentkit-tools/skills_sandbox
+cd python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-0.x.x
 
 # Start the VeADK Web UI
 veadk web --port 8080
@@ -133,7 +133,7 @@ The web interface provides a graphical dialogue testing environment, supporting 
 Alternatively, you can use the command line for testing and debugging agent.py.
 
 ```bash
-cd python/01-tutorials/04-agentkit-tools/skills_sandbox
+cd python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-0.x.x
 
 # Start the Agent service
 uv run agent.py
@@ -176,7 +176,7 @@ export VOLCENGINE_SECRET_KEY=<Your Secret Key>
 ### AgentKit Cloud Deployment
 
 ```bash
-cd python/01-tutorials/04-agentkit-tools/skills_sandbox
+cd python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-0.x.x
 
 # Configure deployment parameters
 # optional: if you don't add --runtime_envs AGENTKIT_TOOL_ID={{your_tool_id}} in agentkit config, you can select the Sandbox tool in the AgentKit console's agent runtime and publish
@@ -248,7 +248,7 @@ table th:nth-of-type(3) {
 | Please run the following workflow: 1. Help me write a pdf processing skill that can support loading pdfs, editing pdfs, and extracting text from pdfs; 2. Register the written skill to the skill space. | ![Create skill screenshot](assets/images/create.jpeg) |
 | Please run the following workflow: 1. Use the veadk-python skill to write a VeADK Agent that can respond to the question 'hello'. 2. Execute the code to ensure there are no problems; 3. Send me the verified code. | ![veadk skill screenshot](assets/images/veadk-skill.png) |
 | Use the internal-comms skill to help me write a 3p communication material to notify the 3p team of project progress updates. Regarding the product team, it mainly includes the problems of the past week and the plan for the next week, specifically including the problems: write down the customer problems encountered by the product team (1. GPU+model inference framework performance is lower than the open source version, such as high latency and low throughput; 2. GPU inference tools are difficult to use), and how to solve them; plan: how to plan GPU product functions and performance optimization next year (1. Focus on GPU infrastructure support for image and video generation models; 2. Improve the usability of GPU inference related toolchains). Other content can be organized as appropriate. | ![internal-comms skill screenshot](assets/images/internal-comms-skill.jpeg) |
-| Please run the following workflow: 1. Use the canvas-design skill to help me create an art drawing based on geometric shapes. 2. Use the tos-file-access skill to upload the product to the bucket {YOUR_TOS_BUCKET_NAME}. | ![canvas-design skill screenshot](assets/images/cavas-design-skill.jpeg) |
+| Please run the following workflow: 1. Use the canvas-design skill to help me create an art drawing based on geometric shapes. 2. Use the tos-file-access skill to upload the product to the bucket {YOUR_TOS_BUCKET_NAME}. | ![canvas-design skill screenshot](assets/images/canvas-design-skill.jpeg) |
 | I need a vegan high-protein recipe for 2 people, with the goal of muscle gain. The weekly budget is 350 yuan, and I like quick dishes that take less than 30 minutes. I don't like mushrooms. Use the healthy-meal-planner skill to help me create a one-week meal plan. | ![healthy-meal-planner skill screenshot](assets/images/health-meal-planner-skill.jpeg) |
 | Please run the following workflow: 1. I need a vegan high-protein recipe for 2 people, with the goal of muscle gain. The weekly budget is 350 yuan, and I like quick dishes that take less than 30 minutes. I don't like mushrooms. Use the healthy-meal-planner skill to help me create a one-week meal plan. 2. Write the prepared meal plan to the file recipe.md, then use the tos-file-access skill to upload this file to the bucket {YOUR_TOS_BUCKET_NAME}, and finally send me the link to the uploaded file. | ![healthy-meal-planner skill upload result to TOS screenshot](assets/images/health-meal-planner-skill-tos.png) |
 

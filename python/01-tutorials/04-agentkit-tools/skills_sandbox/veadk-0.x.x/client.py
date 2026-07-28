@@ -13,8 +13,6 @@ if __name__ == "__main__":
     base_url = "http://127.0.0.1:8000"
     api_key = "agentkit test key"
 
-    task_num = 1
-
     # Step 1: create a session
     def create_session():
         create_session_request = CreateSessionRequest(

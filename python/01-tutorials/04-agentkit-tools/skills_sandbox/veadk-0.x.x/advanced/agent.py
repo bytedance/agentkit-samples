@@ -24,7 +24,7 @@ agent = Agent(
     # case3: skills 文件在 AgentKit skill space 和 本地，运行完全在本地
     # skills=[skill_space_id, skills_file_path],
     # skills_mode="local",
-    # case2: skills 文件在本地，运行也完全在本地
+    # case4: skills 文件在本地，运行也完全在本地
     # skills=[skills_file_path],
     # skills_mode="local",
 )

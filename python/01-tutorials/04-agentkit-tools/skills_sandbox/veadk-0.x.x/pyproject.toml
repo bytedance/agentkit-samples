@@ -1,7 +1,7 @@
 [project]
-name = "agentkit-hello-world-example"
+name = "agentkit-skill-sandbox-samples"
 version = "0.1.0"
-description = "Add your description here"
+description = "agentkit skills sandbox samples with veadk-0.x.x"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
