@@ -8,8 +8,6 @@ from urllib.parse import urlparse
 
 import requests
 
-from platform_request_context import request_authorization
-
 
 logger = logging.getLogger(__name__)
 
@@ -39,15 +37,8 @@ def normalize_knowledge_tool_metadata(tools: list[object]) -> None:
 
 
 def _bearer_token() -> str:
-    """Use the published Knowledge credential; request auth is local fallback."""
-    configured = os.getenv("KNOWLEDGE_BEARER_TOKEN", "").strip()
-    if configured:
-        return configured
-
-    authorization = request_authorization().strip()
-    if authorization.lower().startswith("bearer "):
-        return authorization[7:].strip()
-    return ""
+    """Return only the platform-injected Knowledge service credential."""
+    return os.getenv("KNOWLEDGE_BEARER_TOKEN", "").strip()
 
 
 def _knowledge_endpoint() -> str:
@@ -100,8 +91,9 @@ def build_platform_knowledge(app_name: str):
             del kwargs
             token = _bearer_token()
             if not token:
-                # Do not silently use local demo knowledge as a substitute.
-                logger.warning("Knowledge search skipped: no published or request bearer token")
+                # An inbound Runtime JWT/API key is scoped to the Runtime gateway
+                # and must never be forwarded to a downstream Knowledge service.
+                logger.warning("Knowledge search skipped: no published Knowledge credential")
                 return []
             response = requests.post(
                 f"{endpoint}/v1/search",

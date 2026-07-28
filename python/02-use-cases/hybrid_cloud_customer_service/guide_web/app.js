@@ -1,7 +1,5 @@
-const REPOSITORY_ROOT = 'https://github.com/Xiaoaier-Z-L/agentkit-samples';
-// This published branch already contains the validated customer-service docs
-// and source, so links work before the current UI changes are merged.
-const BRANCH = 'codex/hybrid-cloud-customer-service-demo';
+const REPOSITORY_ROOT = 'https://github.com/bytedance/agentkit-samples';
+const BRANCH = 'main';
 const DEMO_PATH = 'python/02-use-cases/hybrid_cloud_customer_service';
 const docUrl = path => `${REPOSITORY_ROOT}/blob/${BRANCH}/${DEMO_PATH}/${path}`;
 const fileUrl = path => `${REPOSITORY_ROOT}/blob/${BRANCH}/${DEMO_PATH}/${path}`;

@@ -83,14 +83,13 @@ order = self.crm.create_work_order(
 
 ## 4. 知识库：云搜索关联后适配为 VeADK KnowledgeBase
 
-混合云知识库后端是云搜索。知识库须先在 **AgentKit → 知识库** 创建并发布，再关联并发布 Runtime。完成后平台会注入 `KNOWLEDGE_BASE_URL`（真实 HTTP Base URL）与 `KNOWLEDGE_BEARER_TOKEN`（短期 Bearer Key）。Agent 直接使用这两个环境变量；它们无需、也不应手工写入镜像或仓库。`Authorization` 请求头仅作为本地调试兜底，不是生产鉴权来源。
+混合云知识库后端是云搜索。知识库须先在 **AgentKit → 知识库** 创建并发布，再关联并发布 Runtime。完成后平台会注入 `KNOWLEDGE_BASE_URL`（真实 HTTP Base URL）与 `KNOWLEDGE_BEARER_TOKEN`（短期 Bearer Key）。Agent 直接使用这两个环境变量；它们无需、也不应手工写入镜像或仓库。Runtime 入站请求的 `Authorization` 只用于网关身份认证，绝不能作为知识库或其他下游服务的凭证；平台未注入知识库专用凭证时应跳过检索。
 
 ```python
 # platform_knowledge.py
 endpoint = os.getenv("KNOWLEDGE_BASE_URL", "").rstrip("/")
 token = os.getenv("KNOWLEDGE_BEARER_TOKEN", "")
-token = request_authorization().removeprefix("Bearer ")
-if not endpoint:
+if not endpoint or not token:
     return None
 
 response = requests.post(

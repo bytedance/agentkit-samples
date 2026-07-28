@@ -77,7 +77,8 @@ def install_fake_veadk(monkeypatch) -> None:
 def test_platform_knowledge_search(monkeypatch) -> None:
     install_fake_veadk(monkeypatch)
     monkeypatch.setenv("KNOWLEDGE_BASE_URL", "https://knowledge.example")
-    token = _request_authorization.set("Bearer request-api-key")
+    monkeypatch.setenv("KNOWLEDGE_BEARER_TOKEN", "knowledge-service-token")
+    token = _request_authorization.set("Bearer inbound-runtime-token")
     calls = []
 
     def fake_post(url, **kwargs):
@@ -95,17 +96,26 @@ def test_platform_knowledge_search(monkeypatch) -> None:
 
     assert results[0].content == "退款期为七天"
     assert calls[0][0] == "https://knowledge.example/v1/search"
-    assert calls[0][1]["headers"]["Authorization"] == "Bearer request-api-key"
+    assert calls[0][1]["headers"]["Authorization"] == "Bearer knowledge-service-token"
     assert calls[0][1]["json"]["top_k"] == 2
 
 
-def test_platform_knowledge_requires_request_or_configured_token(monkeypatch) -> None:
+def test_platform_knowledge_does_not_forward_inbound_runtime_token(monkeypatch) -> None:
     install_fake_veadk(monkeypatch)
     monkeypatch.setenv("KNOWLEDGE_BASE_URL", "https://knowledge.example")
     monkeypatch.delenv("KNOWLEDGE_BEARER_TOKEN", raising=False)
+    token = _request_authorization.set("Bearer inbound-runtime-token")
 
-    knowledge = platform_knowledge.build_platform_knowledge("demo")
-    assert knowledge.search("退款规则") == []
+    def unexpected_post(*args, **kwargs):
+        del args, kwargs
+        raise AssertionError("inbound Runtime token must not reach Knowledge")
+
+    monkeypatch.setattr(platform_knowledge.requests, "post", unexpected_post)
+    try:
+        knowledge = platform_knowledge.build_platform_knowledge("demo")
+        assert knowledge.search("退款规则") == []
+    finally:
+        _request_authorization.reset(token)
 
 
 def test_platform_knowledge_rejects_raw_knowledge_service_id(monkeypatch) -> None:
