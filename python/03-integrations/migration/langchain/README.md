@@ -1,8 +1,13 @@
-# LangChain Agent 迁移示例
+# LangChain 项目适配 AgentKit Runtime 示例
 
-这个示例从一个已有的 LangChain 旅行规划 Agent 开始，演示如何把它迁移到 AgentKit Runtime。
+本示例将演示如何将 LangChain 项目适配到 AgentKit Runtime 上。
 
-原始 Agent 的入口是 `agent.py:agent`，类型是 `TravelPlanningRunnable`。它接收用户的旅行问题，解析城市、天数、预算、同行人和兴趣偏好，然后调用搜索工具和预算工具，生成每天的景点、美食和交通建议。
+示例项目模拟一个用户已有的 LangChain 旅行规划项目。该项目的业务入口是 `agent.py:agent`，类型是 `TravelPlanningRunnable`。它接收用户的旅行问题，解析城市、天数、预算、同行人和兴趣偏好，然后调用工具生成每天的景点、美食和交通建议。
+
+示例中的工具用于模拟真实 LangChain 项目中的 tool use：
+
+- `search_travel_web`：模拟依赖外部知识检索的工具，内部调用 `veadk.tools.builtin_tools.web_search`
+- `estimate_trip_budget`：模拟本地业务计算工具，根据城市、天数和预算生成预算判断
 
 `agent.py` 中和迁移相关的主要 import 是：
 
@@ -16,16 +21,11 @@ from veadk.tools.builtin_tools.web_search import web_search as builtin_web_searc
 - `tool`：把普通 Python 函数声明为 LangChain tool
 - `builtin_web_search`：提供真实联网搜索能力，供 `search_travel_web` 调用
 
-迁移时不改写 `agent.py` 的业务逻辑。`agentkit migrate` 会生成 `agentkit_app.py` 和 `.agentkit/` 配置；生成的 Runtime 应用通过 `LangChainAgentkitBridge(input_key="question")` 调用原始 `agent.py:agent`。
+适配到 AgentKit Runtime 时，不需要改写 `agent.py` 的业务逻辑。`agentkit migrate` 会生成 `agentkit_app.py` 和 `.agentkit/` 配置；生成的 Runtime 应用通过 `LangChainAgentkitBridge(input_key="question")` 调用原始 `agent.py:agent`。
 
-## Agent 能力
+## 适配后的调用链路
 
-这个 Agent 有两个 LangChain tools：
-
-- `search_travel_web`：调用 `veadk.tools.builtin_tools.web_search` 搜索景点、预约、美食和交通信息
-- `estimate_trip_budget`：根据城市、天数和预算给出预算判断
-
-`agent.py:agent` 会组合这两个工具的结果，生成最终行程。
+适配前，用户可以直接调用 `agent.py:agent`。适配后，AgentKit Runtime 会通过生成的 `agentkit_app.py` 调用同一个入口：
 
 ```text
 用户问题

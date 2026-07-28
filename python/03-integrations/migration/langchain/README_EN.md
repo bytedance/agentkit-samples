@@ -1,8 +1,13 @@
-# LangChain Agent Migration Sample
+# LangChain Project Adaptation to AgentKit Runtime Sample
 
-This sample starts from an existing LangChain travel-planning agent and shows how to migrate it to AgentKit Runtime.
+This sample shows how to adapt a LangChain project to AgentKit Runtime.
 
-The original agent entry is `agent.py:agent`, implemented as `TravelPlanningRunnable`. It takes a user's travel request, parses the city, number of days, budget, travelers, and interests, then calls a search tool and a budget tool to generate daily attraction, food, and transportation suggestions.
+The sample project represents an existing LangChain travel-planning project that a user already has. Its business entry point is `agent.py:agent`, implemented as `TravelPlanningRunnable`. It takes a user's travel request, parses the city, number of days, budget, travelers, and interests, then calls tools to generate daily attraction, food, and transportation suggestions.
+
+The tools in this sample simulate tool use in a real LangChain project:
+
+- `search_travel_web`: simulates a tool that depends on external knowledge retrieval, and internally calls `veadk.tools.builtin_tools.web_search`
+- `estimate_trip_budget`: simulates a local business calculation tool that evaluates the budget based on city, number of days, and total budget
 
 The migration-related imports in `agent.py` are:
 
@@ -16,16 +21,11 @@ from veadk.tools.builtin_tools.web_search import web_search as builtin_web_searc
 - `tool`: converts Python functions into LangChain tools
 - `builtin_web_search`: provides real web search for `search_travel_web`
 
-Migration does not rewrite the business logic in `agent.py`. `agentkit migrate` generates `agentkit_app.py` and `.agentkit/` configuration. The generated Runtime app calls the original `agent.py:agent` through `LangChainAgentkitBridge(input_key="question")`.
+When adapting the project to AgentKit Runtime, you do not need to rewrite the business logic in `agent.py`. `agentkit migrate` generates `agentkit_app.py` and `.agentkit/` configuration. The generated Runtime app calls the original `agent.py:agent` through `LangChainAgentkitBridge(input_key="question")`.
 
-## Agent Capabilities
+## Adapted Call Flow
 
-This agent has two LangChain tools:
-
-- `search_travel_web`: calls `veadk.tools.builtin_tools.web_search` to search attractions, reservations, food, and transportation information
-- `estimate_trip_budget`: evaluates the budget based on city, number of days, and total budget
-
-`agent.py:agent` combines the tool results and generates the final itinerary.
+Before adaptation, users can call `agent.py:agent` directly. After adaptation, AgentKit Runtime calls the same entry point through the generated `agentkit_app.py`:
 
 ```text
 User question
