@@ -108,44 +108,22 @@ VOLCENGINE_ACCESS_KEY=your_ak
 VOLCENGINE_SECRET_KEY=your_sk
 ```
 
-### Running from the Command Line
-
-#### 1. Configure Dependencies
+### Deploying via Command Line
 
 ```bash
-cd python/02-use-cases/data_analysis_with_datalake
 uv python install 3.12
 uv venv -p 3.12 .venv
 source .venv/bin/activate
 uv pip install -r requirements.txt
-```
 
-#### 2. Debug with VeADK Web
-
-Following the VeADK Web app discovery convention, start the service from the parent `python/02-use-cases` directory:
-
-```bash
-cd python/02-use-cases
-veadk web
-```
-
-By default, it listens on `http://127.0.0.1:8000`.
-
-#### 3. Run with ADK CLI
-
-```bash
-cd python/02-use-cases
+# CLI Run
 adk run data_analysis_with_datalake
-```
+# Prompt: what is data and list movies with score > 9 from director Francis Ford
 
-Example prompt: `what is data and list movies with score > 9 from director Francis Ford`
+# veadk Run
+veadk web
 
-### AgentKit Deployment
-
-To deploy to AgentKit, run the commands from the example directory:
-
-```bash
-cd python/02-use-cases/data_analysis_with_datalake
+# Run on AgentKit
 agentkit config --tos_bucket <your bucket name>
 agentkit launch
 ```

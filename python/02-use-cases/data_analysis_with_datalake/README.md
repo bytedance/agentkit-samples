@@ -108,44 +108,22 @@ VOLCENGINE_ACCESS_KEY=your_ak
 VOLCENGINE_SECRET_KEY=your_sk
 ```
 
-### 使用命令行运行
-
-#### 1. 配置环境依赖
+### 使用命令行部署
 
 ```bash
-cd python/02-use-cases/data_analysis_with_datalake
 uv python install 3.12
 uv venv -p 3.12 .venv
 source .venv/bin/activate
 uv pip install -r requirements.txt
-```
 
-#### 2. 使用 VeADK Web 调试
-
-按照 VeADK Web 的应用发现规范，请在上一级 `python/02-use-cases` 目录启动服务：
-
-```bash
-cd python/02-use-cases
-veadk web
-```
-
-默认监听 `http://127.0.0.1:8000`。
-
-#### 3. 使用 ADK CLI 运行
-
-```bash
-cd python/02-use-cases
+# cli run
 adk run data_analysis_with_datalake
-```
+#Prompt: what is data and list movies with score > 9 from director Francis Ford
 
-示例 Prompt：`what is data and list movies with score > 9 from director Francis Ford`
+# veadk运行
+veadk web
 
-### AgentKit 部署
-
-如需部署到 AgentKit，请在示例目录执行：
-
-```bash
-cd python/02-use-cases/data_analysis_with_datalake
+# 在agentkit上运行
 agentkit config --tos_bucket <your bucket name>
 agentkit launch
 ```

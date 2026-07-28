@@ -107,7 +107,6 @@ Key fields in `config.yaml` include:
   Use `veadk web` for local testing:
 
   ```bash
-  cd python/02-use-cases
   veadk web
   ```
 
