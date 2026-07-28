@@ -9,6 +9,7 @@ POST_DEPLOY_INVOKE="${AGENTKIT_POST_DEPLOY_INVOKE:-1}"
 DEPLOY_CONFIG_FILE=""
 LAUNCH_LOG_FILE=""
 RUNTIME_LIST_FILE=""
+PING_RESPONSE_FILE=""
 
 cleanup() {
   if [[ -n "${DEPLOY_CONFIG_FILE}" && -f "${DEPLOY_CONFIG_FILE}" ]]; then
@@ -19,6 +20,9 @@ cleanup() {
   fi
   if [[ -n "${RUNTIME_LIST_FILE}" && -f "${RUNTIME_LIST_FILE}" ]]; then
     rm -f -- "${RUNTIME_LIST_FILE}"
+  fi
+  if [[ -n "${PING_RESPONSE_FILE}" && -f "${PING_RESPONSE_FILE}" ]]; then
+    rm -f -- "${PING_RESPONSE_FILE}"
   fi
 }
 trap cleanup EXIT
@@ -52,6 +56,14 @@ case "${POST_DEPLOY_INVOKE}" in
   0|1) ;;
   *)
     echo "AGENTKIT_POST_DEPLOY_INVOKE 只支持 0 或 1；默认是 1。" >&2
+    exit 1
+    ;;
+esac
+
+case "${AGENTKIT_ALLOW_HTTP_OIDC:-0}" in
+  0|1) ;;
+  *)
+    echo "AGENTKIT_ALLOW_HTTP_OIDC 只支持 0 或 1；默认是 0。" >&2
     exit 1
     ;;
 esac
@@ -93,6 +105,15 @@ for command_name in agentkit python; do
     exit 1
   fi
 done
+
+run_project_agentkit() {
+  if [[ "${AGENTKIT_ALLOW_HTTP_OIDC:-0}" = "1" ]]; then
+    uv run --frozen python \
+      "${PROJECT_ROOT}/scripts/agentkit_cli_poc.py" "$@"
+  else
+    agentkit "$@"
+  fi
+}
 
 if [[ ! -f "${CONFIG_FILE}" ]]; then
   cp "${PROJECT_ROOT}/agentkit.yaml.example" "${CONFIG_FILE}"
@@ -136,14 +157,19 @@ PY
     exit 1
   fi
   echo "Checking configured ${configured_scheme}://${configured_host}/ping ..."
-  curl --fail --silent --show-error \
+  PING_RESPONSE_FILE="$(mktemp "${TMPDIR:-/tmp}/agentkit-ping.XXXXXX")"
+  chmod 600 "${PING_RESPONSE_FILE}"
+  if ! curl --fail --silent --show-error \
     --connect-timeout 10 \
     --max-time 20 \
-    "${configured_scheme}://${configured_host}/ping" |
-    grep --quiet '"pong"' || {
-      echo "当前全局 AgentKit OpenAPI /ping 预检失败。" >&2
-      exit 1
-    }
+    "${configured_scheme}://${configured_host}/ping" >"${PING_RESPONSE_FILE}"; then
+    echo "当前全局 AgentKit OpenAPI /ping 网络预检失败。" >&2
+    exit 1
+  fi
+  if ! grep --quiet '"pong"' "${PING_RESPONSE_FILE}"; then
+    echo "当前全局 AgentKit OpenAPI /ping 响应不符合预期。" >&2
+    exit 1
+  fi
   if ! agentkit runtime list >/dev/null 2>&1; then
     echo "AgentKit 控制面鉴权验证失败；详细 CLI 错误可能包含 Access Key，已隐藏。" >&2
     echo "请在当前终端安全设置完整控制面变量，重新运行脚本以刷新全局配置。" >&2
@@ -175,9 +201,15 @@ fi
 # AgentKit 0.5.5 does not inherit the global region into an existing project
 # config. Persist it explicitly so CreateRuntime does not fall back to
 # cn-beijing while CR and control-plane calls use the delivered region.
-agentkit config \
+if ! run_project_agentkit config \
   --config "${CONFIG_FILE}" \
-  --region "${PROJECT_REGION}" >/dev/null
+  --region "${PROJECT_REGION}" >/dev/null; then
+  echo "项目 Runtime Region 写入失败；未创建或更新任何 Runtime。" >&2
+  if [[ "${AGENTKIT_ALLOW_HTTP_OIDC:-0}" = "1" ]]; then
+    echo "HTTP OIDC POC 兼容入口未能通过 AgentKit 配置校验。" >&2
+  fi
+  exit 1
+fi
 echo "Project Runtime region set to ${PROJECT_REGION}."
 
 read -r PROJECT_RUNTIME_NAME CONFIGURED_RUNTIME_ID < <(
@@ -329,7 +361,7 @@ echo "Launching hybrid Runtime in ${DEPLOY_MODE} mode ..."
 LAUNCH_LOG_FILE="$(mktemp "${TMPDIR:-/tmp}/agentkit-launch.XXXXXX")"
 chmod 600 "${LAUNCH_LOG_FILE}"
 set +e
-agentkit launch \
+run_project_agentkit launch \
   --config-file "${DEPLOY_CONFIG_FILE}" \
   --platform linux/amd64 \
   --preflight-mode skip 2>&1 | tee "${LAUNCH_LOG_FILE}"
@@ -398,11 +430,11 @@ PY
 chmod 600 "${CONFIG_FILE}"
 echo "Saved non-secret Runtime binding to ${CONFIG_FILE}; future launches will update it."
 
-agentkit status --config-file "${DEPLOY_CONFIG_FILE}" --verbose
+run_project_agentkit status --config-file "${DEPLOY_CONFIG_FILE}" --verbose
 
 if [[ "${POST_DEPLOY_INVOKE}" = "1" ]]; then
   echo "Invoking deployed ${DEPLOY_MODE} Runtime ..."
-  agentkit invoke \
+  run_project_agentkit invoke \
     --config-file "${DEPLOY_CONFIG_FILE}" \
     "退款多久到账？"
 else

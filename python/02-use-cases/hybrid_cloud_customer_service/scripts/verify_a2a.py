@@ -89,7 +89,7 @@ def main() -> int:
     card_ok = check(
         "data AgentCard",
         card.get("name") == expected_agent_name() and card_has_required_skill(card),
-        "the A2A Center-selected Agent advertises the selected Skill ID",
+        "the selected AgentCard advertises the expected capability in skills[].id",
     )
     health = request_json(f"{data_endpoint}/health", data_key)
     model_ok = check(

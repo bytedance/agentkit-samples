@@ -137,11 +137,28 @@ Token 粘贴到 Prompt。
 [`skills/customer-service-compliance.zip`](../../../skills/customer-service-compliance.zip)；上传、关联与验证见该步骤文档。
 
 步骤 07 的数据分析 A2A Runtime 使用独立交互入口
-`./scripts/deploy_a2a_interactive.sh`：交互输入 Agent 名称、Skill ID 与模型配置后自动构建、发布并等待就绪。
+`./scripts/deploy_a2a_interactive.sh`：交互输入 Agent 名称、AgentCard 能力 ID 与模型配置后自动构建、发布并等待就绪。
 首次 A2A 空间/AgentCard 登记仍需在控制台确认。A2A 中心是可登记多个 Agent 的治理与发现入口；
 本 Demo 的投诉分析 Agent 只是默认验收目标。登记后执行 `./scripts/configure_a2a_peer_interactive.sh`，
-手动输入从 A2A 中心选中的 Agent 名称、Skill ID、服务地址和隐藏 Key，安全写入主客服 Runtime
-并自动 release，详情见 [A2A/身份](docs/steps/07-a2a-identity-session.md)。
+手动输入 A2A 中心显示的服务地址和隐藏 Key；脚本会读取 AgentCard，自动取得 Agent 名称及
+`skills[].id` 能力 ID，并安全写入主客服 Runtime 后自动 release。若 Card 声明多个能力，
+脚本才会列出 ID 供选择。详情见 [A2A/身份](docs/steps/07-a2a-identity-session.md)。
+
+> A2A 规范把 AgentCard 的能力列表命名为 `skills`，所以代码兼容保留
+> `A2A_DATA_AGENT_SKILL_ID`；这里填写的是 `AgentCard.skills[].id`（例如
+> `complaint-trend-analysis`），不是步骤 06 的 Skills 中心 Skill，也不是
+> `SKILL_SPACE_ID` 或 Skills Sandbox。
+
+同一步骤的身份安全验收使用另一个独立入口
+`./scripts/deploy_oauth_interactive.sh`。它只创建或更新
+`hybrid-cloud-customer-service-oauth`，不会替换主 Runtime 的 API Key 鉴权、Name/ID
+或任何 Knowledge、Memory、Sandbox、MCP、Skills、A2A 关联。发布后使用
+`./scripts/verify_oauth_interactive.sh --show-response`：脚本从用户池获取短期 Token，并直接以
+`Authorization: Bearer <token>` 调用独立 OAuth Runtime；HTTP 200 和最终回答即为默认验收。
+这不是另一套 OAuth 服务测试。需要演示网关拒绝行为时，再显式增加 `--negative-checks`
+验证缺失和伪造 JWT；Client Secret 与 Token 均不打印、不落盘。
+POC 认证域名仅支持 HTTP 时，部署脚本会为本次 OAuth 子进程启用 CLI 0.5.5 兼容校验；
+正式环境仍必须使用 HTTPS。
 
 `Runtime Ready` 只代表实例健康。完整验收还需远端 `mode=live` 的最终回答，以及平台
 Agent/Workflow/LLM/Tool Trace。

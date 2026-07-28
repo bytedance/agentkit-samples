@@ -45,12 +45,18 @@ def main() -> None:
     parser.add_argument("--region", required=True)
     parser.add_argument("--rpc-url", required=True)
     parser.add_argument("--agent-name", required=True)
-    parser.add_argument("--skill-id", required=True)
+    parser.add_argument(
+        "--capability-id",
+        "--skill-id",
+        dest="capability_id",
+        required=True,
+        help="AgentCard skills[].id; unrelated to an AgentKit Skills Center Skill",
+    )
     parser.add_argument("--timeout-seconds", type=int, default=30)
     parser.add_argument("--wait-seconds", type=int, default=180)
     args = parser.parse_args()
-    if not re.fullmatch(r"[a-z0-9][a-z0-9._-]{1,62}", args.skill_id):
-        raise SystemExit("Skill ID format is invalid.")
+    if not re.fullmatch(r"[a-z0-9][a-z0-9._-]{1,62}", args.capability_id):
+        raise SystemExit("AgentCard capability ID format is invalid.")
 
     peer_key = os.getenv("A2A_DATA_AGENT_API_KEY", "").strip()
     if not peer_key:
@@ -66,7 +72,10 @@ def main() -> None:
         "A2A_DATA_AGENT_API_KEY": peer_key,
         "A2A_DATA_AGENT_TIMEOUT_SECONDS": str(args.timeout_seconds),
         "A2A_DATA_AGENT_NAME": args.agent_name,
-        "A2A_DATA_AGENT_SKILL_ID": args.skill_id,
+        # The A2A protocol names this AgentCard field `skills[].id`. Keep the
+        # established environment key for compatibility; it is not a Skills
+        # Center Skill or SKILL_SPACE_ID.
+        "A2A_DATA_AGENT_SKILL_ID": args.capability_id,
     }
     merged = merge_runtime_envs(current.envs, overrides)
     client.update_runtime(
@@ -82,7 +91,8 @@ def main() -> None:
     )
     print(
         "Main Runtime peer configuration updated with preserved environment values "
-        "(changed: selected A2A Agent URL, API Key, name, Skill ID and timeout)."
+        "(changed: selected A2A Agent URL, API Key, name, AgentCard capability ID "
+        "and timeout)."
     )
 
     run_agentkit("runtime", "release", "--runtime-id", args.runtime_id, "--region", args.region)

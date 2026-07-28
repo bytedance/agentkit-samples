@@ -205,6 +205,12 @@ def test_runtime_deployment_guide_uses_environment_specific_openapi_host() -> No
         PROJECT_ROOT / "scripts/configure_a2a_peer_interactive.sh"
     ).read_text()
     a2a_verify = (PROJECT_ROOT / "scripts/verify_a2a_interactive.sh").read_text()
+    oauth_deploy = (PROJECT_ROOT / "scripts/deploy_oauth_interactive.sh").read_text()
+    oauth_verify = (PROJECT_ROOT / "scripts/verify_oauth_interactive.sh").read_text()
+    oauth_verify_py = (PROJECT_ROOT / "scripts/verify_oauth.py").read_text()
+    oauth_cli_compat = (
+        PROJECT_ROOT / "scripts/agentkit_cli_poc.py"
+    ).read_text()
     agentkit_config = (PROJECT_ROOT / "agentkit.yaml.example").read_text()
     dockerfile = (PROJECT_ROOT / "Dockerfile").read_text()
     requirements_lock = (PROJECT_ROOT / "requirements.lock").read_text()
@@ -239,12 +245,40 @@ def test_runtime_deployment_guide_uses_environment_specific_openapi_host() -> No
     assert "AGENTKIT_MODEL_REQUIRED=1" in a2a_deploy
     assert "A2A_AGENT_NAME" in a2a_deploy
     assert "A2A_AGENT_SKILL_ID" in a2a_deploy
+    assert "AgentCard 能力 ID" in a2a_deploy
     assert "AGENTKIT_POST_DEPLOY_INVOKE=0" in a2a_deploy
     assert "configure_a2a_peer.py" in a2a_peer_deploy
+    assert "discover_a2a_card.py" in a2a_peer_deploy
+    assert "AgentCard 能力 ID" in a2a_peer_deploy
+    assert "--capability-id" in a2a_peer_deploy
+    assert "要委派的 Skill ID" not in a2a_peer_deploy
     assert 'read -r -s -p "数据 Agent Runtime API Key' in a2a_peer_deploy
     assert "确认继续 [y/N]" in a2a_peer_deploy
     assert "verify_a2a.py" in a2a_verify
     assert "Data Runtime API Key" in a2a_verify
+    assert "AgentCard 能力 ID" in a2a_verify
+    assert "hybrid-cloud-customer-service-oauth" in oauth_deploy
+    assert 'runtime_auth_type"] = "custom_jwt"' in oauth_deploy
+    assert "runtime_jwt_discovery_url" in oauth_deploy
+    assert "runtime_jwt_allowed_clients" in oauth_deploy
+    assert "oauth_runtime_id == primary_runtime_id" in oauth_deploy
+    assert "AGENTKIT_POST_DEPLOY_INVOKE=0" in oauth_deploy
+    assert "Client Secret 不属于部署配置" in oauth_deploy
+    assert "AGENTKIT_ALLOW_HTTP_OIDC=1" in oauth_deploy
+    assert "正式环境必须使用 HTTPS" in oauth_deploy
+    assert "HybridStrategyConfig" in oauth_cli_compat
+    assert 'rule["pattern"] = r"^https?://.+"' in oauth_cli_compat
+    assert "AGENTKIT_ALLOW_HTTP_OIDC" in deploy_script
+    assert "run_project_agentkit launch" in deploy_script
+    assert "项目 Runtime Region 写入失败" in deploy_script
+    assert '"${configured_scheme}://${configured_host}/ping" >"${PING_RESPONSE_FILE}"' in deploy_script
+    assert 'grep --quiet \'"pong"\' "${PING_RESPONSE_FILE}"' in deploy_script
+    assert "read -r -s -p" in oauth_verify
+    assert "OAUTH_CLIENT_SECRET" in oauth_verify
+    assert "--negative-checks" in oauth_verify_py
+    assert "OAuth Runtime invoke" in oauth_verify_py
+    assert "invalid credential" in oauth_verify_py
+    assert "missing credential" in oauth_verify_py
     assert "uv sync --frozen --extra dev" in deploy_script
     assert "export AGENTKIT_OPENAPI_HOST" not in app_js
     assert "--platform linux/amd64" in deploy_script
@@ -322,12 +356,15 @@ def test_compact_chat_keeps_streaming_support_without_preset_prompts() -> None:
     assert "data-prompt=" not in index.text
     assert "你好，有什么可以帮助你？" in app_js.text
     assert "远端 SSE 会被解析为最终回答" in index.text
-    assert "正确阅读在线测试响应" in app_js.text
-    assert "content.parts[].thought = true" in app_js.text
+    assert "核对 Trace 与 Claim 边界" in app_js.text
     identity_panel = app_js.text.split("  identity: {", 1)[1].split("  session: {", 1)[0]
     knowledge_panel = app_js.text.split("  knowledge: {", 1)[1].split("  memory: {", 1)[0]
     assert "请求范围内传递 Bearer 凭据" not in identity_panel
     assert "供知识库适配器调用" not in identity_panel
+    assert "deploy_oauth_interactive.sh" in identity_panel
+    assert "verify_oauth_interactive.sh --show-response" in identity_panel
+    assert "RUNTIME_API_KEY" not in identity_panel
+    assert "hybrid-cloud-customer-service-oauth" in identity_panel
     assert "Backend 从当前请求读取 Bearer 凭据" in knowledge_panel
 
 
@@ -406,6 +443,11 @@ def test_roadmap_summaries_align_to_readme_and_offer_copyable_codex_prompts() ->
     assert "promptKeys: ['memory']" in app_js
     assert "promptKeys: ['associate', 'verify']" in app_js
     assert "promptKeys: ['identity']" in app_js
+    assert "deploy_oauth_interactive.sh" in app_js
+    assert "verify_oauth_interactive.sh --show-response" in app_js
+    assert "hybrid-cloud-customer-service-oauth" in app_js
+    assert "Bearer Token 调用" in app_js
+    assert "--negative-checks" in app_js
     assert "promptKeys: ['sandboxMcp', 'skills', 'a2a']" in app_js
     assert "A2A 完整部署与验收" in app_js
     assert "数据 Agent（AgentCard / message-send）" in app_js
@@ -518,6 +560,8 @@ def test_readme_starts_with_interactive_deploy_then_routes_to_skill_prompts() ->
     assert "scripts/deploy_hybrid.sh" in skill
     assert "scripts/deploy_a2a_interactive.sh" in skill
     assert "scripts/configure_a2a_peer_interactive.sh" in skill
+    assert "scripts/deploy_oauth_interactive.sh" in skill
+    assert "scripts/verify_oauth_interactive.sh" in skill
     assert "scripts/bootstrap_platform.py" in skill
     assert "scripts/verify_knowledge_memory_interactive.sh" in skill
     assert "Never write or print AK/SK" in skill

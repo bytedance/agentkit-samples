@@ -25,10 +25,10 @@ fi
 
 read -r -p "数据 Agent 展示名称 [hybrid-cloud-complaint-data-agent]: " a2a_agent_name
 a2a_agent_name="${a2a_agent_name:-hybrid-cloud-complaint-data-agent}"
-read -r -p "数据 Agent Skill ID [complaint-trend-analysis]: " a2a_skill_id
+read -r -p "AgentCard 能力 ID（skills[].id）[complaint-trend-analysis]: " a2a_skill_id
 a2a_skill_id="${a2a_skill_id:-complaint-trend-analysis}"
 if [[ ! "${a2a_skill_id}" =~ ^[a-z0-9][a-z0-9._-]{1,62}$ ]]; then
-  echo "Skill ID 只能包含小写字母、数字、点、下划线或连字符。" >&2
+  echo "AgentCard 能力 ID 只能包含小写字母、数字、点、下划线或连字符。" >&2
   exit 2
 fi
 
@@ -66,6 +66,7 @@ chmod 600 "${A2A_CONFIG_FILE}"
 echo "将部署独立的 A2A 数据分析 Runtime：hybrid-cloud-customer-service-a2a。"
 echo "首次部署默认使用 -a2a 后缀，不会修改主客服 Runtime 的本地绑定。"
 echo "AgentCard：${a2a_agent_name}；业务能力：${a2a_skill_id}。"
+echo "说明：该能力 ID 来自 A2A AgentCard 的 skills[].id，与 Skills 中心、Skills Space 无关。"
 echo "接下来会像主 Runtime 一样交互收集模型配置；模型 Key 只进入临时部署配置。"
 echo "A2A 中心的首次空间/AgentCard 授权仍需在控制台确认。"
 

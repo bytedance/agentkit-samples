@@ -63,15 +63,6 @@ else
   peer_rpc_url="${peer_base}/a2a"
 fi
 
-peer_agent_name=""
-while [[ -z "${peer_agent_name}" ]]; do
-  read -r -p "A2A 中心详情中的 Agent 名称: " peer_agent_name
-done
-peer_skill_id=""
-while [[ -z "${peer_skill_id}" ]]; do
-  read -r -p "要委派的 Skill ID: " peer_skill_id
-done
-
 peer_key=""
 while [[ -z "${peer_key}" ]]; do
   read -r -s -p "数据 Agent Runtime API Key（输入不可见）: " peer_key
@@ -79,13 +70,56 @@ while [[ -z "${peer_key}" ]]; do
 done
 
 export A2A_DATA_AGENT_API_KEY="${peer_key}"
+trap 'unset A2A_DATA_AGENT_API_KEY peer_key' EXIT
+
+echo "正在从服务地址读取 AgentCard（不会显示 API Key）..."
+card_summary="$(
+  uv run --frozen python "${PROJECT_ROOT}/scripts/discover_a2a_card.py" \
+    --service-url "${peer_base}"
+)"
+peer_agent_name="$(
+  uv run --frozen python - "${card_summary}" <<'PY'
+import json
+import sys
+
+print(json.loads(sys.argv[1])["name"])
+PY
+)"
+capability_ids="$(
+  uv run --frozen python - "${card_summary}" <<'PY'
+import json
+import sys
+
+print("\n".join(json.loads(sys.argv[1])["capability_ids"]))
+PY
+)"
+capability_count="$(printf '%s\n' "${capability_ids}" | awk 'NF {count++} END {print count+0}')"
+
+echo "已发现 AgentCard：${peer_agent_name}"
+if [[ "${capability_count}" -eq 1 ]]; then
+  peer_capability_id="${capability_ids}"
+  echo "已自动选择 AgentCard 能力 ID：${peer_capability_id}"
+else
+  echo "AgentCard 声明了多个能力："
+  while IFS= read -r capability_id; do
+    [[ -n "${capability_id}" ]] && printf '  - %s\n' "${capability_id}"
+  done <<< "${capability_ids}"
+  peer_capability_id=""
+  while [[ -z "${peer_capability_id}" ]]; do
+    read -r -p "请选择其中一个 AgentCard 能力 ID: " peer_capability_id
+    if ! printf '%s\n' "${capability_ids}" | grep -Fqx "${peer_capability_id}"; then
+      echo "输入值不在 AgentCard 的 skills[].id 列表中。" >&2
+      peer_capability_id=""
+    fi
+  done
+fi
+
 uv run --frozen python "${PROJECT_ROOT}/scripts/configure_a2a_peer.py" \
   --runtime-id "${main_runtime_id}" \
   --region "${region}" \
   --rpc-url "${peer_rpc_url}" \
   --agent-name "${peer_agent_name}" \
-  --skill-id "${peer_skill_id}"
-unset A2A_DATA_AGENT_API_KEY peer_key
+  --capability-id "${peer_capability_id}"
 
 echo "A2A 对端已写入主客服 Runtime 并完成 release。"
 echo "下一步：从主 Runtime 的快速调用页获取其 Endpoint/API Key，按 A2A 步骤文档发起委派验收。"

@@ -88,15 +88,19 @@ const CODEX_PROMPTS = {
   a2a: {
     label: '步骤 07：A2A 外部 Agent',
     text: `请按上述项目 Skill 执行 docs/steps/07-a2a-identity-session.md。
-先把 ./scripts/deploy_a2a_interactive.sh 命令交给用户在 Demo 终端手动执行，不要替用户操作交互终端：首次默认创建带 -a2a 后缀的独立数据 Runtime，用户手动填写 Agent 展示名称、Skill ID 和模型配置，脚本自动注入 AGENT_APP_MODE=a2a_data_analyst，不会修改主客服 Runtime 绑定。Registry Token 过期时只指导用户刷新 docker login；用户回复登录成功后仍由用户重新执行脚本。
-随后指导用户在 A2A 中心选择空间并注册该 Runtime 的 AgentCard。A2A 中心是可登记多个外部 Agent 的治理与发现入口，不等于一个写死的数据 Agent；本 Demo 默认的 complaint-trend-analysis 只是验收样例。请从所选 Agent 详情复制名称、Skill ID 和服务地址，从数据 Runtime 调用页取得它自己的 API Key，再让用户手动执行 ./scripts/configure_a2a_peer_interactive.sh 输入这些值并安全合并到主 Runtime、自动 release。
-最后让用户运行 ./scripts/verify_a2a_interactive.sh --show-response 并手动输入两端 Endpoint/Key 和所选 Agent/Skill。同一轮 A2A_CANARY 确认码必须同时出现在数据 Agent 直接 message/send 和主 Runtime 委派结果；用脚本输出的 user_id/session_id 找到主 Runtime Trace，确认 execute_tool delegate_complaint_trend_analysis，并在数据 Runtime 日志确认 AgentCard GET 200、POST /a2a 200。三项证据缺一不可，不用 demo fallback 代替真实平台通过。`,
+先把 ./scripts/deploy_a2a_interactive.sh 命令交给用户在 Demo 终端手动执行，不要替用户操作交互终端：首次默认创建带 -a2a 后缀的独立数据 Runtime，用户手动填写 Agent 展示名称、AgentCard 能力 ID（skills[].id）和模型配置，脚本自动注入 AGENT_APP_MODE=a2a_data_analyst，不会修改主客服 Runtime 绑定。Registry Token 过期时只指导用户刷新 docker login；用户回复登录成功后仍由用户重新执行脚本。
+随后指导用户在 A2A 中心选择空间并注册该 Runtime 的 AgentCard。A2A 中心是可登记多个外部 Agent 的治理与发现入口，不等于一个写死的数据 Agent；本 Demo 默认的 complaint-trend-analysis 只是 AgentCard 能力验收样例。请从所选 Agent 详情复制服务地址，从数据 Runtime 调用页取得它自己的 API Key，再让用户手动执行 ./scripts/configure_a2a_peer_interactive.sh。脚本会读取 AgentCard，自动取得 Agent 名称与 skills[].id；单能力自动选中，多能力才要求选择，然后安全合并到主 Runtime 并自动 release。详情页若未展示 ID，右上角“JSON 文件”可人工查看，但不是必需步骤。
+明确说明：A2A 规范虽然把能力数组命名为 skills，但这里不创建或调用 Skills 中心 Skill，不使用 SKILL_SPACE_ID、Skills ZIP 或 Skills Sandbox。
+最后让用户运行 ./scripts/verify_a2a_interactive.sh --show-response 并手动输入两端 Endpoint/Key、所选 Agent 和 AgentCard 能力 ID。同一轮 A2A_CANARY 确认码必须同时出现在数据 Agent 直接 message/send 和主 Runtime 委派结果；用脚本输出的 user_id/session_id 找到主 Runtime Trace，确认 execute_tool delegate_complaint_trend_analysis，并在数据 Runtime 日志确认 AgentCard GET 200、POST /a2a 200。三项证据缺一不可，不用 demo fallback 代替真实平台通过。`,
   },
   identity: {
     label: '步骤 07：身份与安全边界',
     text: `请按上述项目 Skill 执行 docs/steps/07-a2a-identity-session.md 的身份部分。
-分别验证有效身份、无效身份和 tenant/user 不一致拒绝；确认越权、提示词窃取与凭据索取会被拦截，且没有危险工具调用。
-OAuth、用户池或生产权限修改都先列为人工操作，不自行扩大权限。PostgreSQL 会话与跨会话记忆已经在步骤 02–04 验收，本步骤不要重复创建、绑定或验证。`,
+主客服 Runtime 必须保持现有 API Key、Name/ID 和全部组件关联不变；不要把它原地切换为 OAuth。
+先让我在 Demo 终端手动运行 ./scripts/deploy_oauth_interactive.sh。该脚本使用独立 agentkit.oauth.yaml，首次只创建 hybrid-cloud-customer-service-oauth；按提示输入认证域名、用户池 ID 和允许的 Client ID，Client Secret 不参与部署。
+发布后确认 OAuth Runtime 的可访问用户池正确且 Ready/Healthy，再让我运行 ./scripts/verify_oauth_interactive.sh --show-response，在终端交互输入 OAuth Runtime Endpoint、用户池 ID 与 Client ID，并隐藏输入 Client Secret。脚本从用户池取得短期 Token 后直接以 Bearer Token 调用该 Runtime；HTTP 200 和最终回答就是默认验收，不要另造一套 OAuth 服务测试。只有需要演示拒绝行为时才增加 --negative-checks；Token 和 Client Secret 不得输出或落盘。
+首个 OAuth 请求必须无工具，随后在该独立 Runtime 的 Trace 中确认 /invoke → workflow → agent → llm，且没有 Authorization/JWT 原文。明确说明 client_credentials 只证明应用身份；真人用户登录需 Authorization Code + PKCE，网关通过也不等于 sub/自定义 tenant_id 已完成业务映射。
+PostgreSQL 会话与跨会话记忆已经在步骤 02–04 验收，本步骤不要重复创建、绑定或验证，也不要把入站 JWT 复用给 Knowledge、MCP、Skills 或 A2A。`,
   },
   quality: {
     label: '步骤 08：评测、Trace 与发布验收',
@@ -213,20 +217,23 @@ const STEPS = [
     title: '建立身份与安全边界',
     readmeSections: ['步骤 07：身份权限'],
     promptKeys: ['identity'],
-    summary: '在接入 MCP、Skills 或 A2A 之前，先让网关验证请求身份、租户与用户边界，并确认安全攻击不会触发危险工具。PostgreSQL 会话与跨会话记忆已在步骤 02–04 验收，不重复执行。',
-    outcome: '系统先知道“谁在请求、属于哪个租户、能调用哪些能力”，再把外部/托管能力暴露给用户。',
+    summary: '在接入 MCP、Skills 或 A2A 之前，保留主 Runtime 的 API Key 基线，另建 -oauth Runtime 验证用户池 JWT。PostgreSQL 会话与跨会话记忆已在步骤 02–04 验收，不重复执行。',
+    outcome: '用完全独立的数据面证明用户池签发 Token、网关验签和拒绝无效凭据，不覆盖已经验收的客服主 Runtime。',
     platform: [
-      '选择 Runtime API Key 或 OAuth JWT 入站认证方式',
-      '为用户池、角色与 Runtime 配置最小权限',
-      '验证无效身份、tenant/user 不一致和攻击请求均被拒绝',
+      '运行 deploy_oauth_interactive.sh 创建 hybrid-cloud-customer-service-oauth',
+      '绑定允许访问的用户池 Client，主 Runtime 继续保持 API Key',
+      '从用户池取得短期 Token，并以 Bearer Token 调用 OAuth Runtime',
+      '在 OAuth Runtime Trace 中确认成功链路且无 JWT 原文',
     ],
-    file: 'platform_request_context.py · platform_capabilities.py · tools/guardrail.py',
+    file: 'scripts/deploy_oauth_interactive.sh · scripts/verify_oauth_interactive.sh · scripts/verify_oauth.py',
     links: [
       { label: '身份权限步骤文档', href: docUrl('docs/steps/07-a2a-identity-session.md'), kind: 'doc' },
+      { label: '独立 OAuth Runtime 部署脚本', href: fileUrl('scripts/deploy_oauth_interactive.sh'), kind: 'source' },
+      { label: 'OAuth JWT 验收脚本', href: fileUrl('scripts/verify_oauth_interactive.sh'), kind: 'source' },
       { label: '请求身份上下文源码', href: fileUrl('platform_request_context.py'), kind: 'source' },
     ],
-    code: `身份：gateway → tenant_id + user_id\n安全：拒绝越权、提示词窃取与凭据索取\n\n# 外部能力接入前先完成此阶段`,
-    verification: '有效身份可调用；无效或越权身份返回 401/403；攻击 Case 被拦截且没有危险工具调用，Trace 中没有凭据原文。',
+    code: `./scripts/deploy_oauth_interactive.sh\n./scripts/verify_oauth_interactive.sh --show-response\n\n主 Runtime：API Key，保持不变\n身份 Runtime：custom_jwt，独立 -oauth`,
+    verification: '短期 Token 获取成功，Bearer 调用 OAuth Runtime 返回 HTTP 200 和最终回答；Trace 中没有凭据原文。401/403 反例仅在显式 --negative-checks 时验收。',
   },
   {
     id: 'extensions',

@@ -85,7 +85,23 @@ Read `docs/steps/04-knowledge-memory-validation.md`. Do not run the proof until 
 
 ### Step 5 — Sandbox and MCP
 
-Read `docs/steps/05-sandbox-mcp.md` and `docs/mcp_validation.md`. Distinguish AIO Sandbox from the local fallback and platform MCP from the demo `/mcp`. Require real Runtime logs or Trace evidence for tool execution.
+Read `docs/steps/05-sandbox-mcp.md` and `docs/mcp_validation.md`. Distinguish AIO Sandbox
+from the local fallback and platform MCP from the demo `/mcp`. Require real Runtime logs
+or Trace evidence for tool execution.
+
+For MCP, keep service transport, tool discovery, Toolset selection, Runtime association,
+and live execution as separate evidence layers. First use the MCP service **调试** page's
+**连接测试** with the API Key entered only in a user-visible hidden field. If it remains
+pending or times out, stop at `MCP service transport/startup timeout`; `Ready` does not
+prove the backend is listening, and neither `GetMCPTools` `NotFound` nor an empty Runtime
+tool list proves that the target tool was not selected. Inspect redacted service logs for
+startup/dependency cold start, Streamable HTTP path/protocol, DNS/egress, and auth failures.
+In a multi-service Toolset, one timed-out service can abort or truncate aggregate discovery
+and hide another service's tools; require every included service to pass connection testing,
+or use a single-service Toolset for deterministic acceptance.
+Only after connection succeeds may tool enumeration prove whether the exact tool is
+present. Then confirm Toolset scope, release the Runtime, and require the requested tool,
+the Runtime MCP-router Tool Span, and service discovery/`tools/call` evidence.
 
 ### Step 6 — Skills
 
@@ -113,7 +129,51 @@ use the code's user/session values to locate the three required Trace/log eviden
 
 ### Step 7 — A2A and identity
 
-Read `docs/steps/07-a2a-identity-session.md` and `docs/a2a_agent_validation.md`. Deploy the separate deterministic data-analysis Runtime through `scripts/deploy_a2a_interactive.sh`; its first-run Runtime name is `hybrid-cloud-customer-service-a2a`, so it cannot select the main Runtime from the public template. It creates/updates only the A2A Runtime binding, injects `AGENT_APP_MODE=a2a_data_analyst` and does not require a model key. Do not manually create a same-image Runtime unless that script is unavailable. Current CLI support stops at Runtime deployment: the first A2A Space/AgentCard registration and any production authorization stay as console-confirmed actions. After registration, obtain the data Runtime API Key from its call page and the service address from the A2A Center, then use `scripts/configure_a2a_peer_interactive.sh`. That script confirms the main Runtime ID, safely merges only the A2A peer variables, preserves all existing environment values in memory, releases the main Runtime, and waits for `Ready`. Run `scripts/verify_a2a_interactive.sh --show-response` for final proof: it generates one `A2A_CANARY`, directly validates Card/message-send, then validates main Runtime delegation; require three PASS lines plus the main Runtime delegation Tool Span and data Runtime AgentCard GET/`POST /a2a` 200 logs with the same canary. Treat the main customer-service Runtime and data-analysis Runtime as separate identities. Validate gateway authentication and tenant/user isolation independently. PostgreSQL session and cross-session Memory evidence belong to steps 02–04 and must not be repeated here.
+Read `docs/steps/07-a2a-identity-session.md` and `docs/a2a_agent_validation.md`. Deploy the separate deterministic data-analysis Runtime through `scripts/deploy_a2a_interactive.sh`; its first-run Runtime name is `hybrid-cloud-customer-service-a2a`, so it cannot select the main Runtime from the public template. It creates/updates only the A2A Runtime binding, injects `AGENT_APP_MODE=a2a_data_analyst` and does not require a model key. Do not manually create a same-image Runtime unless that script is unavailable. Current CLI support stops at Runtime deployment: the first A2A Space/AgentCard registration and any production authorization stay as console-confirmed actions. After registration, obtain the data Runtime API Key from its call page and the service address from the A2A Center, then use `scripts/configure_a2a_peer_interactive.sh`. That script confirms the main Runtime ID, safely merges only the A2A peer variables, preserves all existing environment values in memory, releases the main Runtime, and waits for `Ready`. Run `scripts/verify_a2a_interactive.sh --show-response` for final proof: it generates one `A2A_CANARY`, directly validates Card/message-send, then validates main Runtime delegation; require three PASS lines plus the main Runtime delegation Tool Span and data Runtime AgentCard GET/`POST /a2a` 200 logs with the same canary.
+
+Do not require the operator to copy a capability ID from the A2A Center UI. That page may
+show only the capability display name; its **JSON file** contains `skills[].id`.
+`scripts/configure_a2a_peer_interactive.sh` must instead use the supplied service address
+and hidden data-Runtime API Key to discover the AgentCard. It automatically selects one
+capability and presents only discovered IDs when the Card contains several.
+
+Keep A2A terminology separate from the AgentKit Skills Center. The A2A specification calls
+the AgentCard capability array `skills`, and this demo retains
+`A2A_DATA_AGENT_SKILL_ID` as a compatibility environment key, but its value is an
+AgentCard `skills[].id` capability such as `complaint-trend-analysis`. In user-facing
+instructions call it **AgentCard capability ID**. It is not a published Skills Center
+Skill, `SKILL_SPACE_ID`, Skills ZIP, or Skills Sandbox association; never route an A2A
+peer configuration through `execute_skills`.
+
+Treat OAuth identity as a third, separate Runtime. Never change the primary API-Key
+Runtime in place. Run `scripts/deploy_oauth_interactive.sh`; its first-run name is
+`hybrid-cloud-customer-service-oauth`, and its independent `agentkit.oauth.yaml`
+contains only non-secret `custom_jwt`, OIDC Discovery, and allowed Client ID settings.
+The operator must confirm/create the user-pool OAuth Client in the console. Never request
+or persist the Client Secret during deployment. After release, run
+`scripts/verify_oauth_interactive.sh --show-response`; it obtains a short-lived token with
+hidden Client credentials and immediately invokes the independent OAuth Runtime with
+`Authorization: Bearer <token>`. Treat HTTP 200 plus a visible final response as the
+default positive proof; do not invent a separate OAuth-service validation workflow.
+Missing/malformed JWT rejection is an optional security demonstration enabled with
+`--negative-checks`, not a prerequisite for the normal token-to-Runtime flow. The first
+proof must be tool-free. Require OAuth Runtime Trace evidence with no Authorization/JWT
+value. State clearly that client credentials prove application
+identity only; end-user identity needs Authorization Code + PKCE, and gateway acceptance
+does not prove `sub`/custom `tenant_id` propagation. Never reuse the inbound user JWT as a
+Knowledge, MCP, Skills, or A2A downstream credential.
+
+The current hybrid-cloud POC user-pool host may be HTTP-only while AgentKit CLI 0.5.5
+locally validates Discovery as HTTPS-only. When the operator explicitly selects HTTP,
+allow `deploy_oauth_interactive.sh` to enable its process-local compatibility wrapper.
+Never apply that relaxation to the primary Runtime or a formal environment; formal
+environments must use HTTPS. If deployment returns immediately after the OpenAPI `/ping`
+line and no OAuth Runtime exists, diagnose the local config/Region validation path before
+claiming that Runtime creation failed.
+
+Treat the main customer-service Runtime, data-analysis Runtime, and OAuth Runtime as
+separate identities. PostgreSQL session and cross-session Memory evidence belong to
+steps 02–04 and must not be repeated here.
 
 ### Step 8 — Evaluation and observability
 
