@@ -1,8 +1,8 @@
-veadk-python[extensions]==0.5.37
-google-adk==1.32.0
+veadk-python[extensions]==1.0.9
+google-adk==1.36.1
 python-dotenv==1.2.1
 lancedb==0.25.3
-agentkit-sdk-python==0.5.10
+agentkit-sdk-python>=0.8.0
 litellm
 volcengine-python-sdk[ark]>=5.0.1
 pyarrow==21.0.0

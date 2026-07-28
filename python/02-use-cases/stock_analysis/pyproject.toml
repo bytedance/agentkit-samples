@@ -5,8 +5,8 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "agentkit-sdk-python==0.5.10",
-    "google-adk==1.32.0",
+    "agentkit-sdk-python>=0.8.0",
+    "google-adk==1.36.1",
     "litellm",
-    "veadk-python==0.5.37",
+    "veadk-python==1.0.9",
 ]

@@ -6,4 +6,4 @@ requests
 httpx
 Authlib
 PyJWT
-veadk-python
+veadk-python==1.0.9

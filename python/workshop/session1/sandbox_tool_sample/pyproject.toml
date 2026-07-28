@@ -8,7 +8,7 @@ dependencies = [
     "langchain>=0.1.0",
     "langchain-openai>=0.1.0",
     "python-dotenv>=1.2.1",
-    "agentkit-sdk-python>=0.2.0",
-    "veadk-python>=0.2.29",
+    "agentkit-sdk-python>=0.8.0",
+    "veadk-python==1.0.9",
     "google-genai",
 ]

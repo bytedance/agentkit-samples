@@ -4,9 +4,9 @@ version = "0.1.0"
 description = "Coffee order application using AgentKit"
 requires-python = ">=3.12"
 dependencies = [
-    "veadk-python[extensions]==0.5.20",
-    "agentkit-sdk-python==0.5.1",
-    "google-adk==1.21.0",
+    "veadk-python[extensions]==1.0.9",
+    "agentkit-sdk-python>=0.8.0",
+    "google-adk==1.36.1",
     "qrcode==8.2",
     "tos==2.8.7",
     "volcengine==1.0.215",

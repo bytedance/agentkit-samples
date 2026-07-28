@@ -1,2 +1,2 @@
 lark-oapi>=1.4.8
-veadk-python
+veadk-python==1.0.9
