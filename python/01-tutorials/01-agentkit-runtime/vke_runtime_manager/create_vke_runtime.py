@@ -72,6 +72,21 @@ def validate_create_body(body, source):
         )
 
 
+def validate_update_body(body, source):
+    required_paths = [
+        ("RuntimeId",),
+        ("ArtifactUrl",),
+    ]
+    missing = [".".join(path) for path in required_paths if not body_text(body, path)]
+    if missing:
+        raise ValueError(
+            "Missing required UpdateRuntime body field(s) in "
+            + source
+            + ": "
+            + ", ".join(sorted(missing))
+        )
+
+
 def int_config(config, key, default_value):
     value = config.get(key)
     if value in ("", None):
@@ -103,6 +118,10 @@ def apply_runtime_name_timestamp(body):
 
 def default_state_path(config_path):
     return config_path + ".vke-runtime-state.json"
+
+
+def default_log_path(state_path):
+    return state_path + ".log"
 
 
 def read_json_file(path):
@@ -165,6 +184,21 @@ def api_error(result):
     return f"{code} - {message}"
 
 
+def api_request_id(result):
+    metadata = result.get("ResponseMetadata") or {}
+    return metadata.get("RequestId") or "-"
+
+
+def runtime_api_error_message(operation, result, error):
+    return (
+        operation
+        + "，请反馈~ request_id: "
+        + api_request_id(result)
+        + "，错误信息: "
+        + error
+    )
+
+
 def extract_runtime_id(result):
     result_body = result.get("Result") or {}
     return (
@@ -201,7 +235,7 @@ def build_create_body(config):
         "namespace": config_text(config, "namespace"),
     }
 
-    vke_configuration["WorkspaceId"] = config_text(config, "WorkspaceId") or "default"
+    vke_configuration["workspace_id"] = config_text(config, "workspace_id") or "default"
 
     return {
         "name": runtime_name_prefix(config),
@@ -246,7 +280,26 @@ def resolve_create_body(config, config_path, body_file):
     return apply_runtime_name_timestamp(body), "config_fields"
 
 
-def create_runtime(config_path, body, body_source, state_path, verbose):
+def resolve_update_body(args, state):
+    if args.body_file:
+        body = ensure_body_dict(read_json_file(args.body_file), args.body_file)
+        validate_update_body(body, args.body_file)
+        return body, "body_file"
+
+    runtime_id = runtime_id_from_args_or_state(args, state)
+    artifact_url = config_text({"artifact_url": args.artifact_url}, "artifact_url")
+    if not artifact_url:
+        raise ValueError("missing artifact url; pass --artifact-url or --body-file")
+
+    body = {
+        "RuntimeId": runtime_id,
+        "ArtifactUrl": artifact_url,
+    }
+    validate_update_body(body, "--artifact-url")
+    return body, "args"
+
+
+def create_runtime(config_path, body, body_source, state_path, log_path, verbose):
     state = {
         "schema_version": STATE_SCHEMA_VERSION,
         "name": body.get("name", ""),
@@ -266,6 +319,7 @@ def create_runtime(config_path, body, body_source, state_path, verbose):
         method="POST",
         verbose=verbose,
         config_path=config_path,
+        log_path=log_path,
     )
     error = api_error(result)
     if error:
@@ -291,17 +345,54 @@ def create_runtime(config_path, body, body_source, state_path, verbose):
     return runtime_id, state
 
 
-def get_runtime(config_path, runtime_id, verbose):
+def get_runtime(config_path, runtime_id, log_path, verbose):
     result = call_api(
         "GetRuntime",
         {"RuntimeId": runtime_id},
         method="POST",
         verbose=verbose,
         config_path=config_path,
+        log_path=log_path,
     )
     error = api_error(result)
     if error:
-        raise RuntimeError("GetRuntime failed: " + error)
+        raise RuntimeError(
+            runtime_api_error_message("查看 runtime 状态失败", result, error)
+        )
+    return result
+
+
+def delete_runtime(config_path, runtime_id, log_path, verbose):
+    result = call_api(
+        "DeleteRuntime",
+        {"RuntimeId": runtime_id},
+        method="POST",
+        verbose=verbose,
+        config_path=config_path,
+        log_path=log_path,
+    )
+    error = api_error(result)
+    if error:
+        raise RuntimeError(
+            runtime_api_error_message("删除 runtime 失败", result, error)
+        )
+    return result
+
+
+def update_runtime(config_path, body, log_path, verbose):
+    result = call_api(
+        "UpdateRuntime",
+        body,
+        method="POST",
+        verbose=verbose,
+        config_path=config_path,
+        log_path=log_path,
+    )
+    error = api_error(result)
+    if error:
+        raise RuntimeError(
+            runtime_api_error_message("更新 runtime 失败", result, error)
+        )
     return result
 
 
@@ -311,6 +402,31 @@ def update_state_from_get_runtime(state_path, state, result):
     state["endpoint"] = extract_endpoint(result)
     state["updated_at"] = datetime.datetime.now().isoformat()
     state["last_get_response_metadata"] = result.get("ResponseMetadata") or {}
+    write_state(state_path, state)
+    return state
+
+
+def update_state_from_delete_runtime(state_path, state, runtime_id, result):
+    state["schema_version"] = state.get("schema_version") or STATE_SCHEMA_VERSION
+    state["runtime_id"] = ""
+    state["deleted_runtime_id"] = runtime_id
+    state["status"] = "Deleted"
+    state["endpoint"] = ""
+    state["updated_at"] = datetime.datetime.now().isoformat()
+    state["deleted_at"] = state["updated_at"]
+    state["last_delete_response_metadata"] = result.get("ResponseMetadata") or {}
+    write_state(state_path, state)
+    return state
+
+
+def update_state_from_update_runtime(state_path, state, body, body_source, result):
+    state["schema_version"] = state.get("schema_version") or STATE_SCHEMA_VERSION
+    state["runtime_id"] = body.get("RuntimeId") or state.get("runtime_id", "")
+    state["status"] = "Updating"
+    state["artifact_url"] = body.get("ArtifactUrl") or state.get("artifact_url", "")
+    state["update_body_source"] = body_source
+    state["updated_at"] = datetime.datetime.now().isoformat()
+    state["last_update_response_metadata"] = result.get("ResponseMetadata") or {}
     write_state(state_path, state)
     return state
 
@@ -326,6 +442,7 @@ def wait_for_ready(
     config_path,
     runtime_id,
     state_path,
+    log_path,
     state,
     timeout_seconds,
     interval_seconds,
@@ -335,7 +452,7 @@ def wait_for_ready(
     last_state = state
 
     while True:
-        result = get_runtime(config_path, runtime_id, verbose)
+        result = get_runtime(config_path, runtime_id, log_path, verbose)
         last_state = update_state_from_get_runtime(state_path, last_state, result)
 
         status = last_state.get("status")
@@ -373,13 +490,19 @@ def runtime_id_from_args_or_state(args, state):
 def run_create(args):
     config = load_config(args.config)
     state_path = args.state or default_state_path(args.config)
+    log_path = args.log or default_log_path(state_path)
     state = read_state(state_path)
     runtime_id = state.get("runtime_id")
+
+    if not args.quiet:
+        print(f"Log: {log_path}")
 
     if runtime_id:
         print(f"Found existing RuntimeId in state, skip create: {runtime_id}")
     else:
         body, body_source = resolve_create_body(config, args.config, args.body_file)
+        if not args.quiet:
+            print(f"Creating runtime: {body.get('name')}")
         lock_path = state_path + ".lock"
         acquire_create_lock(lock_path)
         try:
@@ -388,6 +511,7 @@ def run_create(args):
                 body,
                 body_source,
                 state_path,
+                log_path,
                 not args.quiet,
             )
             print(f"CreateRuntime succeeded, RuntimeId: {runtime_id}")
@@ -398,6 +522,7 @@ def run_create(args):
         args.config,
         runtime_id,
         state_path,
+        log_path,
         state or read_state(state_path),
         args.timeout,
         args.interval,
@@ -407,16 +532,75 @@ def run_create(args):
 
 def run_get(args):
     state_path = args.state or default_state_path(args.config)
+    log_path = args.log or default_log_path(state_path)
     state = read_state(state_path)
     runtime_id = runtime_id_from_args_or_state(args, state)
 
-    result = get_runtime(args.config, runtime_id, not args.quiet)
+    if not args.quiet:
+        print(f"Log: {log_path}")
+        print(f"Checking runtime status: {runtime_id}")
+
+    result = get_runtime(args.config, runtime_id, log_path, not args.quiet)
     state = update_state_from_get_runtime(state_path, state, result)
     print_runtime_summary(
         runtime_id,
         state.get("status"),
         state.get("endpoint"),
         state_path,
+    )
+
+
+def run_delete(args):
+    state_path = args.state or default_state_path(args.config)
+    log_path = args.log or default_log_path(state_path)
+    state = read_state(state_path)
+    runtime_id = runtime_id_from_args_or_state(args, state)
+
+    if not args.quiet:
+        print(f"Log: {log_path}")
+        print(f"Deleting runtime: {runtime_id}")
+
+    result = delete_runtime(args.config, runtime_id, log_path, not args.quiet)
+    state = update_state_from_delete_runtime(state_path, state, runtime_id, result)
+    print_runtime_summary(
+        runtime_id,
+        state.get("status"),
+        state.get("endpoint"),
+        state_path,
+    )
+
+
+def run_update(args):
+    state_path = args.state or default_state_path(args.config)
+    log_path = args.log or default_log_path(state_path)
+    state = read_state(state_path)
+    body, body_source = resolve_update_body(args, state)
+    runtime_id = body.get("RuntimeId")
+
+    if not args.quiet:
+        print(f"Log: {log_path}")
+        print(f"Updating runtime: {runtime_id}")
+        print(f"ArtifactUrl: {body.get('ArtifactUrl')}")
+
+    result = update_runtime(args.config, body, log_path, not args.quiet)
+    state = update_state_from_update_runtime(
+        state_path,
+        state,
+        body,
+        body_source,
+        result,
+    )
+    print(f"UpdateRuntime succeeded, RuntimeId: {runtime_id}")
+
+    wait_for_ready(
+        args.config,
+        runtime_id,
+        state_path,
+        log_path,
+        state,
+        args.timeout,
+        args.interval,
+        not args.quiet,
     )
 
 
@@ -429,6 +613,8 @@ def build_parser():
             "  python3 create_vke_runtime.py create --config config.json\n"
             "  python3 create_vke_runtime.py get --config config.json\n"
             "  python3 create_vke_runtime.py get --config config.json --runtime-id r-xxxx\n"
+            "  python3 create_vke_runtime.py delete --config config.json\n"
+            "  python3 create_vke_runtime.py update --config config.json --artifact-url IMAGE_URL\n"
             "  python3 create_vke_runtime.py create --config config.json --body-file body.json\n"
             "\n"
             "Config fields:\n"
@@ -445,7 +631,7 @@ def build_parser():
             "  DiscoveryUrl                   OAuth/OIDC IdP discovery URL。\n"
             "  namespace                      VKE 集群 namespace。\n"
             "  vke_cluster_id                 VKE 集群 ID。\n"
-            "  WorkspaceId                    CP 服务工作区，未配置时默认为 default。\n"
+            "  workspace_id                    CP 服务工作区，未配置时默认为 default。\n"
             "  min_instance                   AgentKit Runtime 最小实例数。\n"
             "  max_instance                   AgentKit Runtime 最大实例数。\n"
             "\n"
@@ -453,15 +639,40 @@ def build_parser():
             "  name is a prefix. The final CreateRuntime body uses\n"
             "  <name>-YYYYmmddHHMMSS for config, config.body, and --body-file.\n"
             "\n"
+            "State file:\n"
+            "  --state specifies the runtime state JSON path. The state file stores\n"
+            "  RuntimeId, status, endpoint, and timestamps. If --state is omitted,\n"
+            "  the default path is <config>.vke-runtime-state.json. When create runs\n"
+            "  again and the state file already contains RuntimeId, the script skips\n"
+            "  CreateRuntime and checks the existing runtime status instead.\n"
+            "\n"
+            "Log file:\n"
+            "  Terminal output only shows key steps and runtime status. Detailed\n"
+            "  API request/response records are written to --log. If --log is omitted,\n"
+            "  the default path is <state>.log.\n"
+            "\n"
             "See README.md for full config.json and body.json examples."
         ),
     )
 
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--config", required=True, help="config.json path")
-    common.add_argument("--state", help="runtime state json path")
     common.add_argument(
-        "--quiet", action="store_true", help="hide detailed API request/response logs"
+        "--state",
+        help=(
+            "runtime state json path; saves RuntimeId/status/endpoint and is reused "
+            "to skip duplicate create calls"
+        ),
+    )
+    common.add_argument(
+        "--log",
+        help=(
+            "API detail log path; defaults to <state>.log and stores request/response "
+            "records"
+        ),
+    )
+    common.add_argument(
+        "--quiet", action="store_true", help="hide non-essential terminal messages"
     )
 
     subparsers = parser.add_subparsers(dest="command")
@@ -491,6 +702,38 @@ def build_parser():
         "--runtime-id", help="RuntimeId; defaults to the value in state"
     )
 
+    delete_parser = subparsers.add_parser(
+        "delete",
+        parents=[common],
+        help="delete runtime by --runtime-id or saved state",
+    )
+    delete_parser.add_argument(
+        "--runtime-id", help="RuntimeId; defaults to the value in state"
+    )
+
+    update_parser = subparsers.add_parser(
+        "update",
+        parents=[common],
+        help="update runtime image, then poll status until Ready",
+    )
+    update_parser.add_argument(
+        "--runtime-id", help="RuntimeId; defaults to the value in state"
+    )
+    update_parser.add_argument(
+        "--artifact-url",
+        help="new image URL for UpdateRuntime; required unless --body-file is set",
+    )
+    update_parser.add_argument(
+        "--body-file",
+        help="full UpdateRuntime JSON body path; must contain RuntimeId and ArtifactUrl",
+    )
+    update_parser.add_argument(
+        "--timeout", type=int, default=300, help="seconds to wait for Ready"
+    )
+    update_parser.add_argument(
+        "--interval", type=int, default=10, help="seconds between GetRuntime checks"
+    )
+
     return parser
 
 
@@ -503,6 +746,10 @@ def main():
             run_create(args)
         elif args.command == "get":
             run_get(args)
+        elif args.command == "delete":
+            run_delete(args)
+        elif args.command == "update":
+            run_update(args)
         else:
             parser.print_help()
             sys.exit(2)

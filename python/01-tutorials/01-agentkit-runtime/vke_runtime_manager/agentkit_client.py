@@ -3,6 +3,7 @@ import datetime
 import hashlib
 import hmac
 import json
+import os
 from urllib.parse import quote
 
 REQUIRED_CONFIG_KEYS = (
@@ -36,6 +37,27 @@ def _build_get_query_params(body: dict) -> dict:
         else:
             params[pascal_key] = value
     return params
+
+
+def _redact_headers(headers):
+    redacted = {}
+    for key, value in headers.items():
+        if key.lower() == "authorization":
+            redacted[key] = "<redacted>"
+        else:
+            redacted[key] = value
+    return redacted
+
+
+def write_api_log(log_path, record):
+    if not log_path:
+        return
+
+    directory = os.path.dirname(os.path.abspath(log_path))
+    os.makedirs(directory, exist_ok=True)
+    with open(log_path, "a") as f:
+        json.dump(record, f, indent=2, ensure_ascii=False, default=str)
+        f.write("\n")
 
 
 def load_config(config_path: str):
@@ -148,6 +170,7 @@ def call_api(
     method="POST",
     verbose=True,
     config_path=None,
+    log_path=None,
 ):
     config = load_config(config_path)
 
@@ -190,26 +213,34 @@ def call_api(
     )
     url = f"https://{host}{path}?{query_string}"
 
-    if verbose:
-        print(f"=== 请求 {action} ===")
-        print(f"  Method: {method}")
-        print(f"  URL: {url}")
-        print(f"  Host: {host}")
-        print(f"  Region: {region}")
-        print(f"  Service: {service}")
-        print(f"  Version: {api_version}")
-        if x_forward_env:
-            print(f"  X-Forward-Env: {x_forward_env}")
-        label = "Query Params" if method == "GET" else "Body"
-        print(f"  {label}: {json.dumps(body, indent=2, ensure_ascii=False)}")
-        print()
+    log_record = {
+        "timestamp": datetime.datetime.now().isoformat(),
+        "action": action,
+        "request": {
+            "method": method,
+            "url": url,
+            "host": host,
+            "region": region,
+            "service": service,
+            "version": api_version,
+            "headers": _redact_headers(headers),
+            "body": body,
+        },
+    }
 
     import requests
 
-    if method == "GET":
-        resp = requests.get(url, headers=headers, timeout=30)
-    else:
-        resp = requests.post(url, headers=headers, data=body_bytes, timeout=30)
+    try:
+        if method == "GET":
+            resp = requests.get(url, headers=headers, timeout=30)
+        else:
+            resp = requests.post(url, headers=headers, data=body_bytes, timeout=30)
+    except Exception as exc:
+        log_record["response"] = {
+            "error": str(exc),
+        }
+        write_api_log(log_path, log_record)
+        raise
 
     try:
         result = resp.json()
@@ -220,20 +251,18 @@ def call_api(
             }
         }
 
-    if verbose:
-        print(f"=== 响应 {action} ===")
-        print(f"  HTTP Status: {resp.status_code}")
-        print(json.dumps(result, indent=2, ensure_ascii=False, default=str))
-        print()
+    log_record["response"] = {
+        "http_status": resp.status_code,
+        "body": result,
+    }
 
     metadata = result.get("ResponseMetadata", {})
     error = metadata.get("Error")
-    if verbose:
-        if error:
-            print(f"  请求失败: {error.get('Code')} - {error.get('Message')}")
-        else:
-            print("  请求成功")
-        if metadata.get("RequestId"):
-            print(f"  RequestId: {metadata.get('RequestId')}")
+    log_record["summary"] = {
+        "success": not bool(error),
+        "request_id": metadata.get("RequestId"),
+        "error": error,
+    }
+    write_api_log(log_path, log_record)
 
     return result

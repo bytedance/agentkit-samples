@@ -12,7 +12,7 @@
   "DiscoveryUrl": "YOUR_OIDC_DISCOVERY_URL",
   "namespace": "YOUR_VKE_NAMESPACE",
   "vke_cluster_id": "YOUR_VKE_CLUSTER_ID",
-  "WorkspaceId": "default",
+  "workspace_id": "default",
   "min_instance": 1,
   "max_instance": 2
 }
