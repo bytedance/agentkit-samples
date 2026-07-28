@@ -15,6 +15,13 @@ REQUIRED_CONFIG_KEYS = (
 )
 
 
+def config_value(config, key):
+    value = config.get(key)
+    if isinstance(value, str):
+        return value.strip()
+    return value
+
+
 def to_pascal_case(snake_str: str) -> str:
     return "".join(word.capitalize() for word in snake_str.split("_"))
 
@@ -38,7 +45,7 @@ def load_config(config_path: str):
     with open(config_path, "r") as f:
         config = json.load(f)
 
-    missing = [key for key in REQUIRED_CONFIG_KEYS if not config.get(key)]
+    missing = [key for key in REQUIRED_CONFIG_KEYS if not config_value(config, key)]
     if missing:
         raise ValueError(
             f"Missing required config field(s) in {config_path}: {', '.join(sorted(missing))}"

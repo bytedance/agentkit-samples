@@ -15,52 +15,6 @@ READY_STATUS = "Ready"
 FAILED_STATUSES = {"Failed", "CreateFailed", "Error"}
 
 
-def print_config_example():
-    print(
-        json.dumps(
-            {
-                "volcengine_access_key": "",
-                "volcengine_secret_key": "",
-                "volcengine_region": "cn-beijing",
-                "volcengine_agentkit_host": "agentkit-stg.cn-beijing.volcengineapi.com",
-                "volcengine_agentkit_api_version": "2025-10-30",
-                "volcengine_agentkit_service": "agentkit_stg",
-                "x_forward_env": "liulei",
-                "artifact_url": "agentkit-platform-2107625663-cn-beijing.cr.volces.com/hia/echo-api:2026-07-27",
-                "role_name": "Agentkit_runtime_vke_test",
-                "DiscoveryUrl": "https://example.com/.well-known/openid-configuration",
-                "namespace": "hiagent",
-                "vke_cluster_id": "YOUR_VKE_CLUSTER_ID",
-                "min_instance": 1,
-                "max_instance": 2,
-                "WorkspaceId": "",
-                "body": {
-                    "name": "optional-full-body-example",
-                    "artifact_type": "image",
-                    "artifact_url": "optional-full-body-wins-over-fields",
-                    "role_name": "optional-full-body-wins-over-fields",
-                    "provider": "VKE",
-                    "min_instance": 1,
-                    "max_instance": 2,
-                    "authorizer_configuration": {
-                        "CustomJwtAuthorizer": {
-                            "DiscoveryUrl": "optional-full-body-wins-over-fields",
-                        },
-                    },
-                    "provider_config": {
-                        "vke_configuration": {
-                            "vke_cluster_id": "optional-full-body-wins-over-fields",
-                            "namespace": "optional-full-body-wins-over-fields",
-                        },
-                    },
-                },
-            },
-            indent=2,
-            ensure_ascii=False,
-        )
-    )
-
-
 def config_text(config, key):
     value = config.get(key)
     if isinstance(value, str):
@@ -77,10 +31,42 @@ def validate_runtime_config(config, config_path):
         "vke_cluster_id",
     ]
     missing = [key for key in required if not config_text(config, key)]
+    if not runtime_name_prefix(config):
+        missing.append("name (or runtime_name / runtimename)")
     if missing:
         raise ValueError(
             "Missing required runtime config field(s) in "
             + config_path
+            + ": "
+            + ", ".join(sorted(missing))
+        )
+
+
+def body_text(body, path):
+    value = body
+    for key in path:
+        if not isinstance(value, dict):
+            return None
+        value = value.get(key)
+    if isinstance(value, str):
+        return value.strip()
+    return value
+
+
+def validate_create_body(body, source):
+    required_paths = [
+        ("name",),
+        ("artifact_url",),
+        ("role_name",),
+        ("authorizer_configuration", "CustomJwtAuthorizer", "DiscoveryUrl"),
+        ("provider_config", "vke_configuration", "vke_cluster_id"),
+        ("provider_config", "vke_configuration", "namespace"),
+    ]
+    missing = [".".join(path) for path in required_paths if not body_text(body, path)]
+    if missing:
+        raise ValueError(
+            "Missing required CreateRuntime body field(s) in "
+            + source
             + ": "
             + ", ".join(sorted(missing))
         )
@@ -96,8 +82,23 @@ def int_config(config, key, default_value):
         raise ValueError(f"{key} must be an integer") from exc
 
 
-def runtime_name():
-    return "single-chat-gateway-" + datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+def runtime_name_prefix(config):
+    return (
+        config_text(config, "name")
+        or config_text(config, "runtime_name")
+        or config_text(config, "runtimename")
+    )
+
+
+def timestamped_runtime_name(name_prefix):
+    prefix = str(name_prefix).strip().rstrip("-")
+    return prefix + "-" + datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+
+
+def apply_runtime_name_timestamp(body):
+    body = dict(body)
+    body["name"] = timestamped_runtime_name(body.get("name"))
+    return body
 
 
 def default_state_path(config_path):
@@ -200,12 +201,10 @@ def build_create_body(config):
         "namespace": config_text(config, "namespace"),
     }
 
-    workspace_id = config_text(config, "WorkspaceId")
-    if workspace_id:
-        vke_configuration["WorkspaceId"] = workspace_id
+    vke_configuration["WorkspaceId"] = config_text(config, "WorkspaceId") or "default"
 
     return {
-        "name": runtime_name(),
+        "name": runtime_name_prefix(config),
         "artifact_type": "image",
         "artifact_url": config_text(config, "artifact_url"),
         "role_name": config_text(config, "role_name"),
@@ -231,13 +230,20 @@ def ensure_body_dict(body, source):
 
 def resolve_create_body(config, config_path, body_file):
     if body_file:
-        return ensure_body_dict(read_json_file(body_file), body_file), "body_file"
+        body = ensure_body_dict(read_json_file(body_file), body_file)
+        validate_create_body(body, body_file)
+        return apply_runtime_name_timestamp(body), "body_file"
 
     if "body" in config and config["body"] is not None:
-        return ensure_body_dict(config["body"], config_path + ":body"), "config.body"
+        source = config_path + ":body"
+        body = ensure_body_dict(config["body"], source)
+        validate_create_body(body, source)
+        return apply_runtime_name_timestamp(body), "config.body"
 
     validate_runtime_config(config, config_path)
-    return build_create_body(config), "config_fields"
+    body = build_create_body(config)
+    validate_create_body(body, config_path)
+    return apply_runtime_name_timestamp(body), "config_fields"
 
 
 def create_runtime(config_path, body, body_source, state_path, verbose):
@@ -417,11 +423,38 @@ def run_get(args):
 def build_parser():
     parser = argparse.ArgumentParser(
         description="Create or inspect a VKE AgentKit runtime.",
-    )
-    parser.add_argument(
-        "--print-config-example",
-        action="store_true",
-        help="print a config example and exit",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples:\n"
+            "  python3 create_vke_runtime.py create --config config.json\n"
+            "  python3 create_vke_runtime.py get --config config.json\n"
+            "  python3 create_vke_runtime.py get --config config.json --runtime-id r-xxxx\n"
+            "  python3 create_vke_runtime.py create --config config.json --body-file body.json\n"
+            "\n"
+            "Config fields:\n"
+            "  volcengine_access_key          火山引擎 AK。\n"
+            "  volcengine_secret_key          火山引擎 SK。\n"
+            "  volcengine_region              AgentKit 服务地域，例如 cn-beijing。\n"
+            "  volcengine_agentkit_host       AgentKit 服务域名，例如 agentkit.cn-beijing.volcengineapi.com。\n"
+            "  volcengine_agentkit_api_version  AgentKit OpenAPI 版本。\n"
+            "  volcengine_agentkit_service    AgentKit 服务名称，线上环境为 agentkit。\n"
+            "  x_forward_env                  测试环境标识，线上环境不传。\n"
+            "  name                           Agent Runtime 名称前缀。\n"
+            "  artifact_url                   镜像地址。\n"
+            "  role_name                      火山引擎 IAM Role 名称。\n"
+            "  DiscoveryUrl                   OAuth/OIDC IdP discovery URL。\n"
+            "  namespace                      VKE 集群 namespace。\n"
+            "  vke_cluster_id                 VKE 集群 ID。\n"
+            "  WorkspaceId                    CP 服务工作区，未配置时默认为 default。\n"
+            "  min_instance                   AgentKit Runtime 最小实例数。\n"
+            "  max_instance                   AgentKit Runtime 最大实例数。\n"
+            "\n"
+            "Runtime name:\n"
+            "  name is a prefix. The final CreateRuntime body uses\n"
+            "  <name>-YYYYmmddHHMMSS for config, config.body, and --body-file.\n"
+            "\n"
+            "See README.md for full config.json and body.json examples."
+        ),
     )
 
     common = argparse.ArgumentParser(add_help=False)
@@ -466,10 +499,6 @@ def main():
     args = parser.parse_args()
 
     try:
-        if args.print_config_example:
-            print_config_example()
-            return
-
         if args.command == "create":
             run_create(args)
         elif args.command == "get":

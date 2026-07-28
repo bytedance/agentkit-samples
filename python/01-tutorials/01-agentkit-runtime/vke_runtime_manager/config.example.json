@@ -6,12 +6,13 @@
   "volcengine_agentkit_api_version": "2025-10-30",
   "volcengine_agentkit_service": "agentkit_stg",
   "x_forward_env": "",
+  "name": "YOUR_RUNTIME_NAME",
   "artifact_url": "YOUR_IMAGE_URL",
   "role_name": "YOUR_RUNTIME_ROLE_NAME",
   "DiscoveryUrl": "YOUR_OIDC_DISCOVERY_URL",
   "namespace": "YOUR_VKE_NAMESPACE",
   "vke_cluster_id": "YOUR_VKE_CLUSTER_ID",
-  "WorkspaceId": "",
+  "WorkspaceId": "default",
   "min_instance": 1,
   "max_instance": 2
 }
