@@ -31,7 +31,19 @@ print(
 PY
 }
 
-read -r global_scheme global_host global_region < <(read_global_target)
+# 静默读取机密值：不回显明文，读完后仅打印字符位数作为“已收到”反馈，并保证非空。
+# 用法：read_secret "提示语: " 目标变量名
+read_secret() {
+  local __prompt="$1" __outvar="$2" __value=""
+  while [[ -z "${__value}" ]]; do
+    read -r -s -p "${__prompt}" __value
+    echo
+  done
+  echo "  已收到 ${#__value} 位字符（内容不显示）。"
+  printf -v "${__outvar}" '%s' "${__value}"
+}
+
+read -r global_scheme global_host global_region < <(read_global_target) || true
 
 terminal_control_complete=0
 if [[ -n "${AGENTKIT_OPENAPI_HOST:-}" &&
@@ -85,16 +97,8 @@ if [[ "${configure_new_target}" -eq 1 ]]; then
     fi
   done
 
-  target_access_key=""
-  while [[ -z "${target_access_key}" ]]; do
-    read -r -s -p "目标环境 Access Key（输入不可见）: " target_access_key
-    echo
-  done
-  target_secret_key=""
-  while [[ -z "${target_secret_key}" ]]; do
-    read -r -s -p "目标环境 Secret Key（输入不可见）: " target_secret_key
-    echo
-  done
+  read_secret "目标环境 Access Key（输入不可见）: " target_access_key
+  read_secret "目标环境 Secret Key（输入不可见）: " target_secret_key
 
   export AGENTKIT_OPENAPI_SCHEME="${target_scheme}"
   export AGENTKIT_OPENAPI_HOST="${target_host}"
@@ -161,10 +165,9 @@ if [[ "${DEPLOY_MODE}" = "live" && "${MODEL_REQUIRED}" = "1" ]]; then
   esac
 
   model_api_key="${MODEL_AGENT_API_KEY:-${ARK_API_KEY:-}}"
-  while [[ -z "${model_api_key}" ]]; do
-    read -r -s -p "Model API Key（输入不可见且不落盘）: " model_api_key
-    echo
-  done
+  if [[ -z "${model_api_key}" ]]; then
+    read_secret "Model API Key（输入不可见且不落盘）: " model_api_key
+  fi
   export MODEL_AGENT_API_KEY="${model_api_key}"
 
   echo "模型配置已收集：Name=${MODEL_AGENT_NAME}，API Base=${MODEL_AGENT_API_BASE}，API Key=<redacted>。"
