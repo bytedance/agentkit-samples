@@ -1,67 +1,46 @@
 # LangChain Agent Migration Sample
 
-This sample migrates a native LangChain travel-planning agent to AgentKit Runtime. It shows how to keep a LangChain `Runnable`, LangChain `@tool` functions, and streaming output while using `agentkit migrate` to generate a deployable Runtime application.
+This sample starts from an existing LangChain travel-planning agent and shows how to migrate it to AgentKit Runtime.
 
-## Overview
+The original agent entry is `agent.py:agent`, implemented as `TravelPlanningRunnable`. It takes a user's travel request, parses the city, number of days, budget, travelers, and interests, then calls a search tool and a budget tool to generate daily attraction, food, and transportation suggestions.
 
-The sample uses a 3-day Beijing travel-planning scenario. Before migration, `agent.py` contains only the native LangChain agent and tools. After migration, AgentKit Runtime calls the same `agent.py:agent` entry through the generated `agentkit_app.py`.
+The migration-related imports in `agent.py` are:
 
-## Key Features
+```python
+from langchain_core.runnables import Runnable
+from langchain_core.tools import tool
+from veadk.tools.builtin_tools.web_search import web_search as builtin_web_search
+```
 
-- LangChain Agent: exposes `agent.py:agent` as a migratable `Runnable`
-- Tool calls: uses `search_travel_web` to call `veadk.tools.builtin_tools.web_search` for travel information, and `estimate_trip_budget` to estimate the travel budget
-- Input adaptation: uses `--input-key question` to map Runtime input to `{"question": "..."}`
-- Streaming output: keeps `astream`, so streaming responses still work after migration
-- Runtime deployment: runs `agentkit deploy` after migration to deploy to AgentKit Runtime
+- `Runnable`: defines the native LangChain agent entry, `TravelPlanningRunnable`
+- `tool`: converts Python functions into LangChain tools
+- `builtin_web_search`: provides real web search for `search_travel_web`
 
-## Agent Flow
+Migration does not rewrite the business logic in `agent.py`. `agentkit migrate` generates `agentkit_app.py` and `.agentkit/` configuration. The generated Runtime app calls the original `agent.py:agent` through `LangChainAgentkitBridge(input_key="question")`.
+
+## Agent Capabilities
+
+This agent has two LangChain tools:
+
+- `search_travel_web`: calls `veadk.tools.builtin_tools.web_search` to search attractions, reservations, food, and transportation information
+- `estimate_trip_budget`: evaluates the budget based on city, number of days, and total budget
+
+`agent.py:agent` combines the tool results and generates the final itinerary.
 
 ```text
 User question
     |
 AgentKit Runtime
     |
-LangChainAgentkitBridge
+agentkit_app.py
     |
-agent.py:agent
-    |-- search_travel_web      # Searches attractions, reservations, food, and transportation
-    `-- estimate_trip_budget   # Evaluates the travel budget
+LangChainAgentkitBridge(input_key="question")
+    |
+agent.py:agent  # TravelPlanningRunnable
+    |-- search_travel_web
+    |   `-- veadk.tools.builtin_tools.web_search
+    `-- estimate_trip_budget
 ```
-
-### Core Components
-
-| Component | Description |
-| - | - |
-| **LangChain Agent** | `agent.py:agent` - `TravelPlanningRunnable`, the migration entry point |
-| **Search Tool** | `search_travel_web` - LangChain `@tool` that calls `veadk.tools.builtin_tools.web_search` for travel context |
-| **Budget Tool** | `estimate_trip_budget` - LangChain `@tool` that generates a budget assessment |
-| **Migration Entry** | `agentkit migrate` - generates the AgentKit Runtime wrapper and deployment configuration |
-| **Runtime App** | `agentkit_app.py` - generated after migration to connect the app to AgentKit Runtime |
-
-### Code Highlights
-
-**Agent definition**:
-
-```python
-agent = TravelPlanningRunnable()
-```
-
-**Local invocation**:
-
-```python
-agent.invoke({
-    "question": "I want to take my parents to Beijing for 3 days with a total budget of 3000 RMB. We like history and culture, and prefer a relaxed itinerary."
-})
-```
-
-**Migration options**:
-
-```bash
---entry agent.py:agent
---input-key question
-```
-
-The migration command does not rewrite the LangChain tools in `agent.py`. The generated Runtime app calls the original Runnable through `LangChainAgentkitBridge(input_key="question")`.
 
 ## Directory Layout
 
@@ -76,29 +55,40 @@ langchain/
 
 ## Local Run
 
-### Install Dependencies
+Install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### Debug The Native Agent
+Run the native agent directly:
 
 ```bash
 python agent.py
 ```
 
-### Run Tests
+Run tests:
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
-The tests call `veadk.tools.builtin_tools.web_search` through `search_travel_web`.
+The tests call `search_travel_web` directly. They do not use mocks or fixtures.
+
+## Search Configuration
+
+`search_travel_web` directly uses `veadk.tools.builtin_tools.web_search`. For local or cloud execution, follow the common setup used by other samples: authorize dependent services in the [AgentKit Console authorization page](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default), then configure Volcengine AK/SK:
+
+```bash
+VOLCENGINE_ACCESS_KEY=<Your Access Key>
+VOLCENGINE_SECRET_KEY=<Your Secret Key>
+```
+
+If the environment has no search permission, the tool returns a search failure message. The agent still returns a readable sample response.
 
 ## Run Migration
 
-Run the following command in this directory:
+Run this command in the current directory:
 
 ```bash
 agentkit migrate . \
@@ -113,12 +103,12 @@ agentkit migrate . \
 Arguments:
 
 - `--framework langchain`: migrate as a LangChain Runnable
-- `--entry agent.py:agent`: specify the native LangChain agent entry
+- `--entry agent.py:agent`: specify the native agent entry
 - `--input-key question`: write Runtime input into the `question` field
 - `--compat langserve`: generate LangServe-compatible routes
 - `--verify`: run basic checks after generation
 
-After migration, the following files are generated:
+Migration generates:
 
 ```bash
 langchain/
@@ -130,6 +120,8 @@ langchain/
 └── requirements.txt
 ```
 
+The migration command does not rewrite `agent.py`. The generated Runtime app calls the original `agent.py:agent` through `LangChainAgentkitBridge(input_key="question")`.
+
 ## Deploy To AgentKit Runtime
 
 After reviewing `.agentkit/agentkit.yaml`, run:
@@ -138,14 +130,7 @@ After reviewing `.agentkit/agentkit.yaml`, run:
 agentkit deploy
 ```
 
-`search_travel_web` uses `veadk.tools.builtin_tools.web_search`. For local or cloud execution, follow the common setup used by other samples: authorize dependent services in the AgentKit Console authorization page, then configure Volcengine AK/SK:
-
-```bash
-VOLCENGINE_ACCESS_KEY=<Your Access Key>
-VOLCENGINE_SECRET_KEY=<Your Secret Key>
-```
-
-After deployment, the AgentKit Runtime entry point is `agentkit_app.py`. The business logic is still handled by `agent.py:agent` and the original LangChain tools.
+After deployment, the Runtime entry point is `agentkit_app.py`. The business logic is still handled by `agent.py:agent` and the original LangChain tools.
 
 ## Example Prompt
 
