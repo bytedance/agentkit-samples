@@ -9,7 +9,7 @@ The tools in this sample simulate tool use in a real LangChain project:
 - `search_travel_web`: simulates a tool that depends on external knowledge retrieval, and internally calls `veadk.tools.builtin_tools.web_search`
 - `estimate_trip_budget`: simulates a local business calculation tool that evaluates the budget based on city, number of days, and total budget
 
-The migration-related imports in `agent.py` are:
+`agent.py` is a LangChain-based agent. It uses `Runnable` to define the callable entry point, `@tool` to declare tool functions, and calls `veadk.tools.builtin_tools.web_search` inside `search_travel_web` to retrieve external knowledge. The related dependencies are:
 
 ```python
 from langchain_core.runnables import Runnable
@@ -17,9 +17,9 @@ from langchain_core.tools import tool
 from veadk.tools.builtin_tools.web_search import web_search as builtin_web_search
 ```
 
-- `Runnable`: defines the native LangChain agent entry, `TravelPlanningRunnable`
-- `tool`: converts Python functions into LangChain tools
-- `builtin_web_search`: provides real web search for `search_travel_web`
+- `TravelPlanningRunnable(Runnable)`: implements the native LangChain agent and exposes it as `agent.py:agent` for migration
+- `@tool`: declares `search_travel_web` and `estimate_trip_budget` as LangChain tools
+- `builtin_web_search`: called by `search_travel_web` to simulate a real project tool that needs external knowledge retrieval
 
 When adapting the project to AgentKit Runtime, you do not need to rewrite the business logic in `agent.py`. `agentkit migrate` generates `agentkit_app.py` and `.agentkit/` configuration. The generated Runtime app calls the original `agent.py:agent` through `LangChainAgentkitBridge(input_key="question")`.
 

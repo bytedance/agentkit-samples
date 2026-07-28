@@ -9,7 +9,7 @@
 - `search_travel_web`：模拟依赖外部知识检索的工具，内部调用 `veadk.tools.builtin_tools.web_search`
 - `estimate_trip_budget`：模拟本地业务计算工具，根据城市、天数和预算生成预算判断
 
-`agent.py` 中和迁移相关的主要 import 是：
+`agent.py` 是一个基于 LangChain 构建的 Agent。它使用 `Runnable` 定义可调用入口，用 `@tool` 声明工具函数，并在 `search_travel_web` 中调用 `veadk.tools.builtin_tools.web_search` 获取外部知识。相关依赖如下：
 
 ```python
 from langchain_core.runnables import Runnable
@@ -17,9 +17,9 @@ from langchain_core.tools import tool
 from veadk.tools.builtin_tools.web_search import web_search as builtin_web_search
 ```
 
-- `Runnable`：定义原生 LangChain Agent 入口 `TravelPlanningRunnable`
-- `tool`：把普通 Python 函数声明为 LangChain tool
-- `builtin_web_search`：提供真实联网搜索能力，供 `search_travel_web` 调用
+- `TravelPlanningRunnable(Runnable)`：实现原生 LangChain Agent，并作为 `agent.py:agent` 暴露给迁移命令
+- `@tool`：把 `search_travel_web` 和 `estimate_trip_budget` 声明为 LangChain tools
+- `builtin_web_search`：由 `search_travel_web` 调用，用于模拟真实项目中需要外部知识检索的工具
 
 适配到 AgentKit Runtime 时，不需要改写 `agent.py` 的业务逻辑。`agentkit migrate` 会生成 `agentkit_app.py` 和 `.agentkit/` 配置；生成的 Runtime 应用通过 `LangChainAgentkitBridge(input_key="question")` 调用原始 `agent.py:agent`。
 
