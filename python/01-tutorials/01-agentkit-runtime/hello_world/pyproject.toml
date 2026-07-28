@@ -5,9 +5,9 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "veadk-python==0.5.37",
-    "agentkit-sdk-python==0.5.10",
-    "google-adk==1.32.0",
+    "veadk-python==1.0.9",
+    "agentkit-sdk-python>=0.8.0",
+    "google-adk==1.36.1",
     "urllib3<2.0.0",
     "litellm",
     "volcengine-python-sdk>=4.0.31",

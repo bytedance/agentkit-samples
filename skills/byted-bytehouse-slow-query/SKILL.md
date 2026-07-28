@@ -161,7 +161,7 @@ uv run slow_query_analyzer.py
 
 ## 📚 更多信息
 
-详细使用说明请参考 [bytehouse-mcp skill](../bytehouse-mcp/SKILL.md)
+详细使用说明请参考 [byted-bytehouse-mcp skill](../byted-bytehouse-mcp/SKILL.md)
 
 ---
 *最后更新: 2026-03-12*

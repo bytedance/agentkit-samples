@@ -206,7 +206,7 @@ uv run client.py
 | ------ | --- | --------- |
 | tos-file-access | 将文件或目录上传至火山引擎TOS ，从URL下载文件。在以下情况使用此技能：（1）将智能体生成的文件或目录（如视频、图像、报告、输出文件夹）上传至TOS以便共享；（2）在智能体处理前从URL下载文件。 | 请运行以下工作流程：1. 使用 tos-file-access 从 `https://agentkit-skills.tos-cn-beijing.volces.com/upload/topk_benchmark.cpp` 下载一个 topk_benchmark.cpp 代码文件。2. 使用 code-optimization 完善这个代码，把my_topk_inplace函数写好，要求性能要非常好，要比代码里面的标准库还要好。3. 使用 tos-file-access 将最终输出目录（包括最终代码和报告）上传到存储桶 {YOUR_TOS_BUCKET_NAME}。 |
 | code-optimization | 通过迭代改进（最多2轮）优化代码性能。对执行时间和内存使用情况进行基准测试，与基准实现进行比较，并生成详细的优化报告。支持C++、Python、Java、Rust等语言 | 参考上一行 tos-file-access 的提示词。 |
-| veadk-python | 基于VeADK框架实现一个可运行Agent | 请运行以下工作流程：1. 使用 veadk-python skill ，写一个 VeADK Agent，能够通过提问 "hello" 来回复。2. 将写好的代码写入本地一个新的代码文件，然后使用 tos-file-access skill 把这个代码文件上传到存储桶 {YOUR_TOS_BUCKET_NAME}，最后把上传后的代码文件链接发给我。 |
+| veadk-skills | 基于VeADK框架实现一个可运行Agent | 请运行以下工作流程：1. 使用 veadk-skills skill ，写一个 VeADK Agent，能够通过提问 "hello" 来回复。2. 将写好的代码写入本地一个新的代码文件，然后使用 tos-file-access skill 把这个代码文件上传到存储桶 {YOUR_TOS_BUCKET_NAME}，最后把上传后的代码文件链接发给我。 |
 | docx | 详见 [docx](https://github.com/anthropics/skills/tree/main/skills/docx) | |
 | internal-comms | 详见 [internal-comms](https://github.com/anthropics/skills/tree/main/skills/internal-comms) | |
 | pdf | 详见 [pdf](https://github.com/anthropics/skills/tree/main/skills/pdf) | |
@@ -246,7 +246,7 @@ table th:nth-of-type(3) {
 | 示例提示词 | 效果截图 |
 | -------- | ------- |
 | 请运行以下工作流程：1. 帮我写一个pdf处理的skill，能够支持加载pdf、编辑pdf和从pdf中提取文字信息即可；2. 将写好的 skill 注册到 skill space。 | ![生成 skill 效果截图](assets/images/create.jpeg) |
-| 请运行以下工作流程：1. 使用 veadk-python skill ，写一个 VeADK Agent，能够通过提问 'hello' 来回复。2. 执行一下代码确保没问题；3. 将验证好的代码发给我。 | ![veadk skill 效果截图](assets/images/veadk-skill.png) |
+| 请运行以下工作流程：1. 使用 veadk-skills skill ，写一个 VeADK Agent，能够通过提问 'hello' 来回复。2. 执行一下代码确保没问题；3. 将验证好的代码发给我。 | ![veadk skill 效果截图](assets/images/veadk-skill.png) |
 | 使用 internal-comms skill 帮我写一个3p沟通材料，通知3p团队项目进度更新。关于产品团队，主要包括过去一周问题和未来一周计划，具体包括问题：写产品团队遇到的客户问题 (1. GPU+模型推理框架性能低于开源版本，比如时延高、吞吐低；2. GPU推理工具易用性差)，以及如何解决的；计划：明年如何规划GPU产品功能和性能优化 (1. 发力GPU基础设施对生图生视频模型的支持；2. GPU推理相关工具链路易用性提升)。其他内容，可以酌情组织。 | ![internal-comms skill 效果截图](assets/images/internal-comms-skill.jpeg) |
 | 请运行以下工作流程：1. 使用 canvas-design skill 帮我创作一件基于几何图形的艺术绘图。2. 使用 tos-file-access skill 把产物上传到存储桶 {YOUR_TOS_BUCKET_NAME} 里。 | ![canvas-design skill 效果截图](assets/images/cavas-design-skill.jpeg) |
 | 我需要一个2人份的纯素高蛋白食谱，目标增肌。每周预算350元，喜欢30分钟内的快手菜。不喜欢蘑菇。使用 healthy-meal-planner skill 帮我制订一周的食谱。 | ![healthy-meal-planner skill 效果截图](assets/images/health-meal-planner-skill.jpeg) |
