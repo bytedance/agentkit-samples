@@ -57,7 +57,7 @@ business_topologies/
 不要直接肉眼扫 `topology.json`。优先执行当前 Skill 自带的脚本：
 
 ```bash
-python3 ./.trae/skills/change-risk-analyst/scripts/change_risk_from_topology.py \
+python3 ./skills/byted-volcengine-topology-change-impact/scripts/change_risk_from_topology.py \
   --node "<target>" \
   --output markdown
 ```
@@ -67,7 +67,7 @@ python3 ./.trae/skills/change-risk-analyst/scripts/change_risk_from_topology.py 
 如果用户已经明确给了业务：
 
 ```bash
-python3 ./.trae/skills/change-risk-analyst/scripts/change_risk_from_topology.py \
+python3 ./skills/byted-volcengine-topology-change-impact/scripts/change_risk_from_topology.py \
   --business "<business>" \
   --node "<target>" \
   --output markdown
