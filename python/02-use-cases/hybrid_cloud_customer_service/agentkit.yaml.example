@@ -1,0 +1,21 @@
+common:
+  agent_name: hybrid_cloud_customer_service
+  entry_point: agent.py
+  language: Python
+  language_version: "3.12"
+  agent_type: Basic App
+  dependencies_file: requirements.txt
+  runtime_envs:
+    # 面向客户的完整部署默认使用 live。deploy_hybrid.sh 会解析默认方舟
+    # Model Name/API Base，并从当前终端读取 API Key，随后把完整三项写入
+    # 临时 0600 配置；模型凭据不写入本公开模板。
+    DEMO_MODE: live
+  launch_type: hybrid
+launch_types:
+  hybrid:
+    # 显式配置混合云 CR，避免 CLI 回退到公有云 STS 推导 account_id。
+    cr_instance_name: cr-basic
+    cr_namespace_name: agentkit
+    cr_repo_name: hybrid-cloud-customer-service
+    runtime_name: hybrid-cloud-customer-service
+docker_build: {}

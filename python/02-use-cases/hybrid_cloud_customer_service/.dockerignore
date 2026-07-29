@@ -1,0 +1,14 @@
+.git
+.venv
+__pycache__
+.pytest_cache
+.env
+.agentkit-deploy.*
+agentkit*.yaml
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+tests
+assets

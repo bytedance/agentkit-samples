@@ -1,0 +1,10 @@
+{
+  "evaluate_dataset_fields": {
+    "input": {"content_type": "Text", "text": "必须委派给 A2A 数据 Agent 分析过去一年的季度投诉趋势，并明确返回每季度数量和全年总量。"},
+    "reference_output": {"content_type": "Text", "text": "必须说明结果来自 A2A 委派，并包含 Q1=234、Q2=142、Q3=89、Q4=118、全年总量=583。"}
+  },
+  "evaluate_target_output_fields": {
+    "actual_output": {"content_type": "Text", "text": "A2A 数据 Agent 已完成委派：Q1=234，Q2=142，Q3=89，Q4=118，全年总量=583。"}
+  },
+  "ext": {}
+}
