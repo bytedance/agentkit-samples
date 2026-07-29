@@ -54,12 +54,12 @@ This document illustrates common end-to-end workflows for image processing using
 
 2.  **Execute**:
     ```bash
-    python3 scripts/image_resize.py --key images/archive/photo-01.jpg --w 500 --output resized_local.jpg --dry-run
-    python3 scripts/image_resize.py --key images/archive/photo-01.jpg --w 500 --output resized_local.jpg
+    python3 scripts/image_resize.py --key images/archive/photo-01.jpg --width 500 --output resized_local.jpg --dry-run --json
+    python3 scripts/image_resize.py --key images/archive/photo-01.jpg --width 500 --output resized_local.jpg
     ```
 
 3.  **Behavior Notes**:
-    - `--dry-run` prints the resolved process and output target before calling TOS.
+    - `--dry-run --json` prints the resolved process and output target without calling TOS or requiring AK/SK.
     - `--json` returns a machine-readable payload for either local save or TOS persistence mode.
 
 ---
@@ -76,8 +76,8 @@ This document illustrates common end-to-end workflows for image processing using
     ```bash
     python3 scripts/image_format.py \
       --key images/archive/photo-01.jpg \
-      --f webp \
-      --q 80 \
+      --format webp \
+      --quality 80 \
       --saveas-bucket my-output-bucket \
       --saveas-object processed/photo-01.webp \
       --json
@@ -85,6 +85,7 @@ This document illustrates common end-to-end workflows for image processing using
 
 3.  **Behavior Notes**:
     - `--saveas-bucket` / `--saveas-object` switch the script into TOS-to-TOS mode.
+    - `TOS_SAVEAS_BUCKET` and `TOS_SAVEAS_OBJECT_PREFIX` can provide default save-as targets when the CLI arguments are omitted.
     - `--json` returns a structured payload including the resolved process string and TOS save result.
     - `--dry-run` prints the resolved request without calling TOS.
 
@@ -275,7 +276,7 @@ This ensures that failures are caught and reported with meaningful diagnostic in
 
 ### Workflow 9: AI-Powered Image Understanding
 
-**Goal**: Use a VLM (Vision Language Model) to understand image content — describe, OCR, detect faces, or answer visual questions.
+**Goal**: Use the TOS `image/understanding` VLM operation to understand a TOS image object — describe, OCR, detect faces, or answer visual questions for an object stored in TOS.
 
 **Script**: `scripts/image_understanding.py`
 
@@ -305,11 +306,12 @@ This ensures that failures are caught and reported with meaningful diagnostic in
    ```
 
 5. **Behavior Notes**:
-   - The `--prompt` parameter is required. It accepts any natural language question or instruction.
+   - The `--prompt` parameter is required. It accepts any natural language question or instruction about the TOS image object.
    - Default model is `doubao-seed-1.6-vision`. Override with `--model`.
    - `--json` returns a machine-readable payload. `--dry-run` prints the resolved process string before execution.
    - Response time is typically 10-60 seconds due to VLM inference.
    - Requires account whitelist. If not whitelisted, the script will return an error.
+   - Do not use this workflow for ordinary uploaded screenshots or local image understanding tasks that do not involve TOS.
    - The result is a JSON object with a `content` field containing the model's response.
 
 ---
@@ -378,4 +380,5 @@ The final result is a single image with a red bounding box around the detected s
 
 - All steps support `--json` for machine-readable output, making it easy for an agent to parse results and feed them into the next step.
 - Use `--dry-run` on any step to preview the resolved request before execution.
+- Prefer `--dry-run --json` during planning or evaluation; it validates the generated `process` string without making a TOS request.
 - Step 3 depends on Step 1 (image dimensions) and Step 2 (content understanding) to determine coordinates and label text. An agent should extract `ImageWidth`/`ImageHeight` from Step 1 and `content` from Step 2, then compute bounding box coordinates accordingly.

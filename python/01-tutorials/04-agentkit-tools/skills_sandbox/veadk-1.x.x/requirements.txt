@@ -1,0 +1,3 @@
+veadk-python==1.0.8
+agentkit-sdk-python==0.8.0
+google-adk==2.2.0

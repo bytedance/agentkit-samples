@@ -60,11 +60,15 @@ async def test_server():
             if len(tools) > 5:
                 print(f"  ... and {len(tools) - 5} more tools.")
 
-            # --- 2. Test a parameterless read-only tool ---
-            print("\n3. Testing tool invocation: describe_regions")
-            regions_result = await client.call_tool("describe_regions", {})
+            # --- 2. Test a stable region-scoped discovery tool ---
+            print("\n3. Testing tool invocation: describe_zones (with args)")
+            zones_result = await client.call_tool(
+                "describe_zones", {"region_id": region}
+            )
             print("  Result:")
-            print(f"{pretty_print_json(regions_result)}\n")
+            if "Error executing tool" in zones_result:
+                raise RuntimeError(zones_result.strip())
+            print(f"{pretty_print_json(zones_result)}\n")
 
             # --- 3. Test an advanced tool with arguments ---
             print("4. Testing tool invocation: describe_db_instances (with args)")
@@ -73,6 +77,8 @@ async def test_server():
                 "describe_db_instances", {"region_id": region, "page_size": 1}
             )
             print("  Result:")
+            if "Error executing tool" in instances_result:
+                raise RuntimeError(instances_result.strip())
             data = json.loads(instances_result)
             if "instances" in data and len(data["instances"]) > 0:
                 data["instances"] = data["instances"][:1]

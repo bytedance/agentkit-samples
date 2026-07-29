@@ -16,9 +16,6 @@ import sys
 from pathlib import Path
 from veadk.configs.database_configs import NormalTOSConfig
 
-# 当前目录
-sys.path.append(str(Path(__file__).resolve().parent))
-
 from tools.crm_mock import (
     create_service_record,
     delete_service_record,
@@ -47,10 +44,14 @@ from prompts.prompt import (
 )
 
 
+# 项目根目录（customer_support），tools/ 与 prompts/ 位于此处
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.append(str(PROJECT_ROOT))
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-load_dotenv()
+load_dotenv(PROJECT_ROOT / ".env")
 
 app_name = "customer_support_agent"
 default_user_id = "CUST001"
@@ -132,7 +133,7 @@ if should_init_knowledge:
     if not tos_bucket_name:
         raise ValueError("DATABASE_TOS_BUCKET environment variable is not set")
     knowledge.add_from_directory(
-        str(Path(__file__).resolve().parent) + f"/{knowledge_directory}",
+        str(PROJECT_ROOT / knowledge_directory),
         tos_bucket_name=tos_bucket_name,
     )
 

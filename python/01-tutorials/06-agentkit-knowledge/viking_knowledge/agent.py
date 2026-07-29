@@ -27,8 +27,12 @@ from prompts.prompt import ROOT_AGENT_INSTRUCTION_CN, ROOT_AGENT_INSTRUCTION_EN
 from veadk.configs.database_configs import NormalTOSConfig
 
 provider = os.getenv("CLOUD_PROVIDER")
-if provider and provider.lower() == "byteplus":
-    ROOT_AGENT_INSTRUCTION = ROOT_AGENT_INSTRUCTION_EN
+
+ROOT_AGENT_INSTRUCTION = (
+    ROOT_AGENT_INSTRUCTION_EN
+    if provider and provider.lower() == "byteplus"
+    else ROOT_AGENT_INSTRUCTION_CN
+)
 
 # prepare multiple knowledge sources
 with open("/tmp/product_info.txt", "w") as f:
@@ -74,12 +78,14 @@ if knowledge_collection_name != "":
 else:
     raise ValueError("DATABASE_VIKING_COLLECTION environment variable is not set")
 
+tos_bucket_name = os.environ.get("DATABASE_TOS_BUCKET")
+if not tos_bucket_name:
+    raise ValueError("DATABASE_TOS_BUCKET environment variable is not set")
+
 kb.add_from_files(
     files=["/tmp/product_info.txt", "/tmp/service_policy.txt"],
-    tos_bucket_name=os.environ.get("DATABASE_TOS_BUCKET"),
+    tos_bucket_name=tos_bucket_name,
 )
-
-ROOT_AGENT_INSTRUCTION = ROOT_AGENT_INSTRUCTION_CN
 
 # create agent
 root_agent = Agent(

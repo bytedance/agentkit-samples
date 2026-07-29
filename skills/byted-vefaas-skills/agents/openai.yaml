@@ -1,0 +1,3 @@
+interface:
+  display_name: "veFaaS"
+  short_description: "部署应用、管理函数与沙箱，调用 veFaaS OpenAPI"

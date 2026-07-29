@@ -32,7 +32,10 @@ import json
 import os
 import re
 import sys
+import warnings
 from typing import Optional
+
+warnings.filterwarnings("ignore", message="urllib3 v2 only supports OpenSSL.*")
 
 import tos
 from tos.exceptions import TosClientError, TosServerError
@@ -56,9 +59,6 @@ def create_client() -> tos.TosClientV2:
     region = get_env("TOS_REGION")
     security_token = os.getenv("TOS_SECURITY_TOKEN")
 
-    print(
-        f"[INFO] Initializing TOS client for endpoint={endpoint}, region={region} ..."
-    )
     return tos.TosClientV2(
         ak=ak,
         sk=sk,
@@ -76,6 +76,21 @@ def maybe_print_json(raw: bytes) -> bool:
         return True
     except Exception:
         return False
+
+
+def prefixed_object(prefix: Optional[str], default_name: str) -> Optional[str]:
+    if not prefix:
+        return None
+    return f"{prefix.rstrip('/')}/{default_name}"
+
+
+def emit(payload: dict, json_only: bool, heading: Optional[str] = None) -> None:
+    if json_only:
+        print(json.dumps(payload, ensure_ascii=False))
+        return
+    if heading:
+        print(heading)
+    print(json.dumps(payload, indent=2, ensure_ascii=False))
 
 
 def build_process_value(
@@ -145,9 +160,12 @@ def main() -> None:
         )
         sys.exit(1)
 
-    client = create_client()
-    bucket = args.bucket or get_env("TOS_BUCKET")
-    key = args.key or get_env("TOS_OBJECT_KEY")
+    bucket = args.bucket or os.getenv("TOS_BUCKET") or (
+        "<TOS_BUCKET>" if args.dry_run else get_env("TOS_BUCKET")
+    )
+    key = args.key or os.getenv("TOS_OBJECT_KEY") or (
+        "<TOS_OBJECT_KEY>" if args.dry_run else get_env("TOS_OBJECT_KEY")
+    )
     process_value = build_process_value(
         points=args.points,
         radius=args.radius,
@@ -156,19 +174,55 @@ def main() -> None:
         color=args.color,
     )
 
-    save_bucket = args.saveas_bucket
-    save_object = args.saveas_object
-    persist_to_tos = bool(save_bucket or save_object)
+    default_save_object = f"draw_{os.path.basename(key)}"
+    explicit_saveas = bool(args.saveas_bucket or args.saveas_object)
+    env_save_bucket = os.getenv("TOS_SAVEAS_BUCKET")
+    env_save_object = prefixed_object(
+        os.getenv("TOS_SAVEAS_OBJECT_PREFIX"), default_save_object
+    )
+    if explicit_saveas:
+        persist_to_tos = True
+        save_bucket = args.saveas_bucket
+        save_object = args.saveas_object
+    elif args.output:
+        persist_to_tos = False
+        save_bucket = None
+        save_object = None
+    else:
+        save_bucket = env_save_bucket
+        save_object = env_save_object
+        persist_to_tos = bool(save_bucket or save_object)
+    resolved_save_bucket = save_bucket or bucket if persist_to_tos else None
+    resolved_save_object = save_object or default_save_object if persist_to_tos else None
+    output_path = None if persist_to_tos else args.output or default_save_object
 
-    print(f"[INFO] process = {process_value}")
+    plan = {
+        "ok": True,
+        "operation": "image_draw",
+        "bucket": bucket,
+        "key": key,
+        "process": process_value,
+        "mode": "save_to_tos" if persist_to_tos else "save_local",
+        "output_path": output_path,
+        "saveas_bucket": resolved_save_bucket,
+        "saveas_object": resolved_save_object,
+    }
+    if args.dry_run:
+        emit(plan, args.json)
+        return
+
+    client = create_client()
+
+    if not args.json:
+        print(f"[INFO] process = {process_value}")
 
     if persist_to_tos:
-        save_bucket = save_bucket or bucket
-        if not save_object:
-            save_object = f"draw_{os.path.basename(key)}"
-        encoded_bucket = base64.urlsafe_b64encode(save_bucket.encode()).decode()
-        encoded_object = base64.urlsafe_b64encode(save_object.encode()).decode()
-        print(f"[INFO] Processing {bucket}/{key} -> {save_bucket}/{save_object}")
+        encoded_bucket = base64.urlsafe_b64encode(resolved_save_bucket.encode()).decode()
+        encoded_object = base64.urlsafe_b64encode(resolved_save_object.encode()).decode()
+        if not args.json:
+            print(
+                f"[INFO] Processing {bucket}/{key} -> {resolved_save_bucket}/{resolved_save_object}"
+            )
         try:
             output = client.get_object(
                 bucket=bucket,
@@ -189,23 +243,20 @@ def main() -> None:
             print(f"[ERROR] TOS client error: {e}", file=sys.stderr)
             sys.exit(1)
 
-        print("[OK] Save result:")
-        if not maybe_print_json(raw):
-            print(raw.decode("utf-8", errors="replace"))
+        try:
+            data = json.loads(raw.decode("utf-8"))
+        except Exception:
+            data = {"raw": raw.decode("utf-8", errors="replace")}
+        emit({**plan, "result": data}, args.json, "[OK] Save result:")
         return
 
-    if not args.output:
-        print(
-            "[ERROR] --output is required when not saving back to TOS.", file=sys.stderr
-        )
-        sys.exit(1)
-
-    print(f"[INFO] Processing {bucket}/{key} -> {args.output}")
+    if not args.json:
+        print(f"[INFO] Processing {bucket}/{key} -> {output_path}")
     try:
         client.get_object_to_file(
             bucket=bucket,
             key=key,
-            file_path=args.output,
+            file_path=output_path,
             process=process_value,
         )
     except TosServerError as e:
@@ -219,8 +270,12 @@ def main() -> None:
         print(f"[ERROR] TOS client error: {e}", file=sys.stderr)
         sys.exit(1)
 
-    size = os.path.getsize(args.output)
-    print(f"[OK] Output saved to {args.output} ({size} bytes)")
+    size = os.path.getsize(output_path)
+    emit(
+        {**plan, "size": size},
+        args.json,
+        f"[OK] Output saved to {output_path} ({size} bytes)",
+    )
 
 
 if __name__ == "__main__":

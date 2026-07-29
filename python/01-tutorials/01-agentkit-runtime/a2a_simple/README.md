@@ -38,7 +38,7 @@ a2a_simple/
 ├── tools/                   # 工具实现
 │   ├── roll_die.py         # 投掷骰子工具
 │   └── check_prime.py      # 质数检查工具
-├── agentkit.yaml           # AgentKit 部署配置
+├── agentkit.yaml           # 依赖管理（uv 工具）
 ├── requirements.txt        # Python 依赖
 ├── pyproject.toml          # 项目配置
 ├── Dockerfile              # Docker 镜像构建
@@ -49,16 +49,16 @@ a2a_simple/
 
 | 组件 | 描述 |
 | - | - |
-| **Agent 服务** | [agent.py](https://github.com/bytedance/agentkit-samples/blob/main/01-tutorials/01-agentkit-runtime/a2a_simple/agent.py) - hello_world_agent，提供工具服务（端口 8000） |
-| **本地客户端** | [local_client.py](https://github.com/bytedance/agentkit-samples/blob/main/01-tutorials/01-agentkit-runtime/a2a_simple/local_client.py) - A2ASimpleClient，调用 Agent 服务 |
-| **工具：roll_die** | [tools/roll_die.py](https://github.com/bytedance/agentkit-samples/blob/main/01-tutorials/01-agentkit-runtime/a2a_simple/tools/roll_die.py) - 投掷骰子 |
-| **工具：check_prime** | [tools/check_prime.py](https://github.com/bytedance/agentkit-samples/blob/main/01-tutorials/01-agentkit-runtime/a2a_simple/tools/check_prime.py) - 检查质数 |
+| **Agent 服务** | [agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/a2a_simple/agent.py) - hello_world_agent，提供工具服务（端口 8000） |
+| **本地客户端** | [local_client.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/a2a_simple/local_client.py) - A2ASimpleClient，调用 Agent 服务 |
+| **工具：roll_die** | [tools/roll_die.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/a2a_simple/tools/roll_die.py) - 投掷骰子 |
+| **工具：check_prime** | [tools/check_prime.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/a2a_simple/tools/check_prime.py) - 检查质数 |
 | **AgentCard** | Agent 元数据和能力描述 |
-| **项目配置** | [agentkit.yaml](https://github.com/bytedance/agentkit-samples/blob/main/01-tutorials/01-agentkit-runtime/a2a_simple/agentkit.yaml) - AgentKit 部署配置 |
+| **项目配置** | [pyproject.toml](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/a2a_simple/pyproject.toml) - 依赖管理（uv 工具） |
 
 ### 代码特点
 
-**Agent 定义**（[agent.py](https://github.com/bytedance/agentkit-samples/blob/main/01-tutorials/01-agentkit-runtime/a2a_simple/agent.py#L9-L35)）：
+**Agent 定义**（[agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/a2a_simple/agent.py#L9-L35)）：
 
 ```python
 root_agent = Agent(
@@ -91,7 +91,7 @@ root_agent = Agent(
 )
 ```
 
-**AgentCard 配置**（[agent.py](https://github.com/bytedance/agentkit-samples/blob/main/01-tutorials/01-agentkit-runtime/a2a_simple/agent.py#L45-L55)）：
+**AgentCard 配置**（[agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/a2a_simple/agent.py#L45-L55)）：
 
 ```python
 agent_card = AgentCard(
@@ -107,7 +107,7 @@ agent_card = AgentCard(
 )
 ```
 
-**本地客户端调用**（[local_client.py](https://github.com/bytedance/agentkit-samples/blob/main/01-tutorials/01-agentkit-runtime/a2a_simple/local_client.py#L28-L88)）：
+**本地客户端调用**（[local_client.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/a2a_simple/local_client.py#L28-L88)）：
 
 ```python
 async def create_task(self, agent_url: str, message: str) -> str:
@@ -126,7 +126,7 @@ async def create_task(self, agent_url: str, message: str) -> str:
         responses.append(response)
 ```
 
-**工具状态管理**（[tools/roll_die.py](https://github.com/bytedance/agentkit-samples/blob/main/01-tutorials/01-agentkit-runtime/a2a_simple/tools/roll_die.py#L6-L21)）：
+**工具状态管理**（[tools/roll_die.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/a2a_simple/tools/roll_die.py#L6-L21)）：
 
 ```python
 def roll_die(sides: int, tool_context: ToolContext) -> int:

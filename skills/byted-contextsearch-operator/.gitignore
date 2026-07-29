@@ -1,5 +1,4 @@
 __pycache__/
 venv/
 .env
-config.json
 .DS_Store

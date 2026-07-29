@@ -22,7 +22,7 @@ Use `control.py` goal-based commands or console action commands when the user as
 - Manage indexer data sources, indexers, indexer jobs, search configs, or search config versions.
 - Manage models, deployments, network, pricing, specs, PSR resources, gray release, or API keys.
 
-Use [data_plane.md](data_plane.md) only for direct runtime `search/chat/list` against configured context endpoints.
+Runtime retrieval and chat against published context endpoints are outside this skill's scope.
 
 ## Quick start
 
@@ -93,7 +93,6 @@ Rules:
 - "Data source / indexer / search config" -> console actions such as `create_indexer_data_source`, `create_indexer`, `start_indexer_job`, `create_search_config_v2`.
 - "Agentic skills/tools/variables/chat/users" -> corresponding `*_agentic_*` console actions.
 - "Model/deployment/API key" -> goal-based wrappers or console actions.
-- "Runtime search/chat against a context endpoint" -> [data_plane.md](data_plane.md).
 
 ## AgenticSearch creation workflow
 
