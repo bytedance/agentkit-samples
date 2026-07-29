@@ -205,12 +205,14 @@ def chat(request: LocalChatRequest) -> dict[str, object]:
         from demo_core import HybridCustomerService
 
         return _with_transport(
-            HybridCustomerService("demo").chat(
+            HybridCustomerService("demo")
+            .chat(
                 request.message,
                 tenant_id=request.tenant_id,
                 user_id=request.user_id,
                 session_id=request.session_id,
-            ).to_dict(),
+            )
+            .to_dict(),
             "local",
         )
     if not api_key:
@@ -347,20 +349,20 @@ def chat_stream(request: LocalChatRequest) -> StreamingResponse:
                 "done",
                 _with_transport(
                     {
-                    "answer": answer_so_far or "Runtime 未返回可展示的文本。",
-                    "thoughts": [thought_so_far] if thought_so_far else [],
-                    "session_id": request.session_id,
-                    "trace_id": trace_id,
-                    "mode": "live",
-                    "citations": [],
-                    "events": [
-                        {
-                            "name": "runtime.run_sse",
-                            "status": "succeeded",
-                            "mode": "live",
-                            "detail": {},
-                        }
-                    ],
+                        "answer": answer_so_far or "Runtime 未返回可展示的文本。",
+                        "thoughts": [thought_so_far] if thought_so_far else [],
+                        "session_id": request.session_id,
+                        "trace_id": trace_id,
+                        "mode": "live",
+                        "citations": [],
+                        "events": [
+                            {
+                                "name": "runtime.run_sse",
+                                "status": "succeeded",
+                                "mode": "live",
+                                "detail": {},
+                            }
+                        ],
                     },
                     "remote",
                     endpoint,

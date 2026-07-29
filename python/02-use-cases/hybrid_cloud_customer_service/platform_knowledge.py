@@ -30,9 +30,7 @@ def normalize_knowledge_tool_metadata(tools: list[object]) -> None:
         if not isinstance(metadata, dict):
             continue
         backend = metadata.get("backend")
-        if backend is not None and not isinstance(
-            backend, (str, int, float, bool)
-        ):
+        if backend is not None and not isinstance(backend, (str, int, float, bool)):
             metadata["backend"] = type(backend).__name__
 
 

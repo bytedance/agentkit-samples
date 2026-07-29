@@ -82,9 +82,7 @@ def main() -> None:
         runtime_types.UpdateRuntimeRequest(
             runtime_id=args.runtime_id,
             envs=[
-                runtime_types.EnvsItemForUpdateRuntime(
-                    key=item["Key"], value=item["Value"]
-                )
+                runtime_types.EnvsItemForUpdateRuntime(key=item["Key"], value=item["Value"])
                 for item in merged
             ],
         )

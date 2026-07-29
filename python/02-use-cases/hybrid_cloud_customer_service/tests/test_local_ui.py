@@ -65,9 +65,7 @@ def test_remote_ui_accepts_runtime_json_response(monkeypatch) -> None:
     monkeypatch.setattr(local_ui.requests, "post", lambda *args, **kwargs: FakeJsonResponse())
 
     result = local_ui.chat(local_ui.LocalChatRequest(message="退款多久到账？"))
-    response = TestClient(local_ui.app).post(
-        "/ui/chat/stream", json={"message": "退款多久到账？"}
-    )
+    response = TestClient(local_ui.app).post("/ui/chat/stream", json={"message": "退款多久到账？"})
 
     assert result["answer"] == "根据已发布规则，申请后按客户确认的方式到账。"
     assert result["trace_id"] == "runtime-trace"
@@ -201,16 +199,12 @@ def test_runtime_deployment_guide_uses_environment_specific_openapi_host() -> No
     deploy_script = (PROJECT_ROOT / "scripts/deploy_hybrid.sh").read_text()
     interactive_deploy = (PROJECT_ROOT / "scripts/deploy_interactive.sh").read_text()
     a2a_deploy = (PROJECT_ROOT / "scripts/deploy_a2a_interactive.sh").read_text()
-    a2a_peer_deploy = (
-        PROJECT_ROOT / "scripts/configure_a2a_peer_interactive.sh"
-    ).read_text()
+    a2a_peer_deploy = (PROJECT_ROOT / "scripts/configure_a2a_peer_interactive.sh").read_text()
     a2a_verify = (PROJECT_ROOT / "scripts/verify_a2a_interactive.sh").read_text()
     oauth_deploy = (PROJECT_ROOT / "scripts/deploy_oauth_interactive.sh").read_text()
     oauth_verify = (PROJECT_ROOT / "scripts/verify_oauth_interactive.sh").read_text()
     oauth_verify_py = (PROJECT_ROOT / "scripts/verify_oauth.py").read_text()
-    oauth_cli_compat = (
-        PROJECT_ROOT / "scripts/agentkit_cli_poc.py"
-    ).read_text()
+    oauth_cli_compat = (PROJECT_ROOT / "scripts/agentkit_cli_poc.py").read_text()
     agentkit_config = (PROJECT_ROOT / "agentkit.yaml.example").read_text()
     dockerfile = (PROJECT_ROOT / "Dockerfile").read_text()
     requirements_lock = (PROJECT_ROOT / "requirements.lock").read_text()
@@ -223,7 +217,7 @@ def test_runtime_deployment_guide_uses_environment_specific_openapi_host() -> No
     assert "uv run --frozen --extra dev pytest -q" in readme
     assert "python -m venv .venv" not in readme
     assert "pip install -r requirements.txt" not in readme
-    assert '${AGENTKIT_OPENAPI_SCHEME}://${AGENTKIT_OPENAPI_HOST}/ping' in deployment
+    assert "${AGENTKIT_OPENAPI_SCHEME}://${AGENTKIT_OPENAPI_HOST}/ping" in deployment
     assert 'COMMON_HOST="${AGENTKIT_OPENAPI_HOST:?' in configure_script
     assert 'COMMON_SCHEME="${AGENTKIT_OPENAPI_SCHEME:-http}"' in configure_script
     assert 'set_config "services.agentkit.scheme" "${COMMON_SCHEME}"' in configure_script
@@ -271,7 +265,9 @@ def test_runtime_deployment_guide_uses_environment_specific_openapi_host() -> No
     assert "AGENTKIT_ALLOW_HTTP_OIDC" in deploy_script
     assert "run_project_agentkit launch" in deploy_script
     assert "项目 Runtime Region 写入失败" in deploy_script
-    assert '"${configured_scheme}://${configured_host}/ping" >"${PING_RESPONSE_FILE}"' in deploy_script
+    assert (
+        '"${configured_scheme}://${configured_host}/ping" >"${PING_RESPONSE_FILE}"' in deploy_script
+    )
     assert 'grep --quiet \'"pong"\' "${PING_RESPONSE_FILE}"' in deploy_script
     assert "read -r -s -p" in oauth_verify
     assert "OAUTH_CLIENT_SECRET" in oauth_verify
@@ -317,14 +313,11 @@ def test_runtime_deployment_guide_uses_environment_specific_openapi_host() -> No
     assert "详细 CLI 错误可能包含 Access Key，已隐藏" in deploy_script
     assert "mktemp" in deploy_script
     assert "AGENTKIT_DEPLOY_MODE=demo" in deploy_script
-    assert ".agentkit-deploy.*" in (
-        PROJECT_ROOT / ".dockerignore"
-    ).read_text()
+    assert ".agentkit-deploy.*" in (PROJECT_ROOT / ".dockerignore").read_text()
     assert "COPY requirements.lock ./" in dockerfile
     assert (
         "FROM --platform=linux/amd64 python:3.12-slim@sha256:"
-        "cab2dbf575e971934a81e4622f5aba17aa7929719bd7e31033a3a83b97fd0464"
-        in dockerfile
+        "cab2dbf575e971934a81e4622f5aba17aa7929719bd7e31033a3a83b97fd0464" in dockerfile
     )
     assert "pip install --no-cache-dir -r requirements.lock" in dockerfile
     assert "pip install --no-cache-dir -r requirements.txt" not in dockerfile
@@ -516,10 +509,7 @@ def test_chat_distinguishes_remote_transport_from_runtime_data_mode() -> None:
 def test_readme_starts_with_interactive_deploy_then_routes_to_skill_prompts() -> None:
     readme = (PROJECT_ROOT / "README.md").read_text()
     app_js = (PROJECT_ROOT / "guide_web/app.js").read_text()
-    skill = (
-        PROJECT_ROOT
-        / ".agents/skills/agentkit-hybrid-cloud-demo/SKILL.md"
-    ).read_text()
+    skill = (PROJECT_ROOT / ".agents/skills/agentkit-hybrid-cloud-demo/SKILL.md").read_text()
 
     agents = (PROJECT_ROOT / "AGENTS.md").read_text()
 

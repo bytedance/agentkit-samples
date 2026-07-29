@@ -27,9 +27,7 @@ def _allow_http_oidc_for_poc() -> None:
         for config_field in fields(config_class):
             if config_field.name != "runtime_jwt_discovery_url":
                 continue
-            rule = config_field.metadata["validation"]["rules"][
-                AUTH_TYPE_CUSTOM_JWT
-            ]
+            rule = config_field.metadata["validation"]["rules"][AUTH_TYPE_CUSTOM_JWT]
             rule["pattern"] = r"^https?://.+"
             rule["hint"] = "(must be a valid HTTP(S) URL)"
             rule["message"] = "must be a valid HTTP(S) URL"

@@ -6,9 +6,7 @@ from scripts.verify_oauth import visible_sse_text
 
 
 def _event(text: str) -> str:
-    return "data: " + json.dumps(
-        {"content": {"parts": [{"thought": False, "text": text}]}}
-    )
+    return "data: " + json.dumps({"content": {"parts": [{"thought": False, "text": text}]}})
 
 
 def test_visible_sse_text_deduplicates_repeated_final_event() -> None:

@@ -59,9 +59,7 @@ def update_runtime_with_preserved_envs(
             tool_id=tool_id,
             mcp_toolset_id=mcp_toolset_id,
             envs=[
-                runtime_types.EnvsItemForUpdateRuntime(
-                    key=item["Key"], value=item["Value"]
-                )
+                runtime_types.EnvsItemForUpdateRuntime(key=item["Key"], value=item["Value"])
                 for item in merged
             ],
         )
@@ -239,9 +237,7 @@ def main() -> None:
             raise SystemExit(f"Runtime release failed with status: {status}")
         time.sleep(5)
     else:
-        raise SystemExit(
-            f"Runtime did not become Ready within {args.wait_seconds} seconds."
-        )
+        raise SystemExit(f"Runtime did not become Ready within {args.wait_seconds} seconds.")
 
     print(f"Memory attached: {memory_id}")
     print(f"Knowledge attached: {knowledge_id or 'not configured'}")

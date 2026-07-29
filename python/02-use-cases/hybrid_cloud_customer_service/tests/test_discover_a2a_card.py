@@ -16,9 +16,7 @@ def test_extract_card_summary_uses_agentcard_capabilities():
     assert extract_card_summary(
         {
             "name": "hybrid-cloud-complaint-data-agent",
-            "skills": [
-                {"id": "complaint-trend-analysis", "name": "投诉趋势分析"}
-            ],
+            "skills": [{"id": "complaint-trend-analysis", "name": "投诉趋势分析"}],
         }
     ) == {
         "name": "hybrid-cloud-complaint-data-agent",

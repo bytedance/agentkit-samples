@@ -97,8 +97,7 @@ def test_a2a_confirmation_requires_remote_result_not_only_the_canary() -> None:
 
     assert not response_contains_a2a_confirmation(code, code)
     assert response_contains_a2a_confirmation(
-        "A2A 委派分析结果：hybrid-cloud-complaint-data-agent 已由 A2A 数据分析 Agent 完成。"
-        f"{code}",
+        f"A2A 委派分析结果：hybrid-cloud-complaint-data-agent 已由 A2A 数据分析 Agent 完成。{code}",
         code,
     )
 

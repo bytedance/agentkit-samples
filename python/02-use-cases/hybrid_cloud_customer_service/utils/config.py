@@ -25,9 +25,7 @@ class Settings:
         return cls(
             mode=mode,
             model_name=(
-                os.getenv("MODEL_AGENT_NAME")
-                or os.getenv("ARK_MODEL")
-                or DEFAULT_ARK_MODEL_NAME
+                os.getenv("MODEL_AGENT_NAME") or os.getenv("ARK_MODEL") or DEFAULT_ARK_MODEL_NAME
             ),
             model_api_key=os.getenv("MODEL_AGENT_API_KEY") or os.getenv("ARK_API_KEY"),
             model_api_base=(

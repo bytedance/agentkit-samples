@@ -25,9 +25,7 @@ def expected_skill() -> str:
 
 
 def expected_agent_name() -> str:
-    return os.getenv(
-        "A2A_EXPECTED_AGENT_NAME", "hybrid-cloud-complaint-data-agent"
-    ).strip()
+    return os.getenv("A2A_EXPECTED_AGENT_NAME", "hybrid-cloud-complaint-data-agent").strip()
 
 
 def request_json(url: str, api_key: str, *, method: str = "GET", body: dict | None = None) -> dict:
@@ -115,8 +113,7 @@ def main() -> int:
                         {
                             "kind": "text",
                             "text": (
-                                "分析过去一年的投诉趋势并原样保留验收确认码："
-                                f"{confirmation_code}"
+                                f"分析过去一年的投诉趋势并原样保留验收确认码：{confirmation_code}"
                             ),
                         }
                     ],
