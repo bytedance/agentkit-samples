@@ -4,26 +4,25 @@
 
 本项目演示如何将已有 LangChain 项目适配到 AgentKit Runtime。
 
-示例模拟一个用户已有的 LangChain 旅行规划项目。原项目入口是 `agent.py:agent`，类型为 `TravelPlanningRunnable`。它接收旅行问题，解析城市、天数、预算、同行人和兴趣偏好，调用搜索和预算工具生成上下文，再通过 LiteLLM 调用真实 LLM 生成每天的景点、美食和交通建议。
+示例模拟一个用户已有的 LangChain 旅行规划项目。原项目入口是 `agent.py:agent`，由 LangChain `create_agent` 直接创建。它注册模型、系统提示词和本地旅行工具，接收 OpenAI messages 格式输入后由 LangChain agent 调用工具并生成每天的景点、美食和交通建议。
 
-迁移时不需要改写原有业务逻辑。`agentkit migrate` 会生成 `agentkit_app.py` 和 `.agentkit/` 配置，生成后的 Runtime 应用通过 `LangChainAgentkitBridge(input_key="question")` 调用原始 `agent.py:agent`。
+迁移时不需要改写原有业务逻辑。`agentkit migrate` 会生成 `agentkit_app.py` 和 `.agentkit/` 配置，生成后的 Runtime 应用通过 `LangChainAgentkitBridge` 调用原始 `agent.py:agent`。
 
 ## 核心功能
 
-- 展示 LangChain `Runnable` 入口如何被 AgentKit Runtime 调用。
-- 使用 `@tool` 声明联网搜索和预算估算工具。
-- 使用 LiteLLM 从环境变量读取模型配置，并调用真实 LLM 节点。
+- 展示 LangChain agent 入口如何被 AgentKit Runtime 调用。
+- 使用 LangChain `create_agent` 组织模型、提示词和工具。
+- 使用 `@tool` 声明本地旅行资料检索、预算估算和交通建议工具。
 - 保留原生 LangChain 业务代码，并通过 `agentkit migrate` 生成 Runtime 适配层。
 
 ## Agent 能力
 
 本示例包含以下 Agent 能力：
 
-- LangChain `Runnable` 应用入口。
+- LangChain `create_agent` 应用入口。
 - LangChain tools 工具调用。
-- LiteLLM-backed LLM 节点。
-- 火山引擎 AgentKit 内置联网搜索工具。
-- 本地预算估算业务工具。
+- OpenAI-compatible ChatModel 节点。
+- 本地旅行资料、预算估算和交通建议业务工具。
 
 迁移后的调用链路如下：
 
@@ -34,14 +33,14 @@ AgentKit Runtime
     ↓
 agentkit_app.py
     ↓
-LangChainAgentkitBridge(input_key="question")
+LangChainAgentkitBridge
     ↓
-agent.py:agent  # TravelPlanningRunnable
-    ├── search_travel_web
-    │   └── veadk.tools.builtin_tools.web_search
+agent.py:agent
+    ├── create_agent
+    ├── search_travel_notes
     ├── estimate_trip_budget
-    └── model_agent
-        └── litellm.completion
+    ├── recommend_transport
+    └── ChatOpenAI
 ```
 
 ## 目录结构说明
@@ -51,7 +50,7 @@ langchain/
 ├── .env.example       # 火山引擎访问凭证环境变量示例
 ├── README.md          # 中文说明文档
 ├── README_en.md       # 英文说明文档
-├── agent.py           # 原生 LangChain Runnable 和 tools
+├── agent.py           # 原生 LangChain agent 和 tools
 ├── project.yaml       # 项目信息元数据
 └── requirements.txt   # Python 依赖列表
 ```
@@ -80,20 +79,21 @@ uv pip install -r requirements.txt
 
 ### 环境准备
 
-复制 `.env.example` 为 `.env`，并填写模型和火山引擎 AK/SK：
+复制 `.env.example` 为 `.env`，并填写模型配置和 AgentKit 命令所需的火山引擎 AK/SK：
 
 ```bash
 MODEL_AGENT_NAME=<Your Model Name>
-MODEL_AGENT_PROVIDER=openai
 MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
 MODEL_AGENT_API_KEY=<Your Ark API Key>
 VOLCENGINE_ACCESS_KEY=<Your Access Key>
 VOLCENGINE_SECRET_KEY=<Your Secret Key>
 ```
 
-`MODEL_AGENT_API_BASE` 可以使用 Ark Responses endpoint。样例传给 LiteLLM 前会归一化为 OpenAI-compatible API root `https://ark.cn-beijing.volces.com/api/v3`。
+当前代码使用 `langchain_openai.ChatOpenAI` 创建模型，provider 已由 `ChatOpenAI` 类决定，因此不需要 `MODEL_AGENT_PROVIDER`。`MODEL_AGENT_API_BASE` 可以使用 Ark Responses endpoint，样例传给 `ChatOpenAI` 前会归一化为 OpenAI-compatible API root `https://ark.cn-beijing.volces.com/api/v3`。
 
-如果环境没有搜索权限，`search_travel_web` 会返回搜索失败说明，Agent 仍会按示例逻辑生成可读结果。
+`VOLCENGINE_ACCESS_KEY` 和 `VOLCENGINE_SECRET_KEY` 不被原生 LangChain agent 读取，但执行 `agentkit migrate` 和 `agentkit deploy` 时需要配置。
+
+运行原生 LangChain agent 前必须配置 `MODEL_AGENT_NAME` 和 `MODEL_AGENT_API_KEY`。
 
 ### 调试方法
 
@@ -110,7 +110,6 @@ agentkit migrate . \
   --framework langchain \
   --entry agent.py:agent \
   --name migration-langchain-travel \
-  --input-key question \
   --compat langserve \
   --verify
 ```
@@ -119,7 +118,6 @@ agentkit migrate . \
 
 - `--framework langchain`：按 LangChain Runnable 方式迁移。
 - `--entry agent.py:agent`：指定原生 Agent 入口。
-- `--input-key question`：把 Runtime 输入写入 `question` 字段。
 - `--compat langserve`：生成 LangServe 兼容路由。
 - `--verify`：生成后执行基础校验。
 
@@ -133,11 +131,10 @@ agentkit deploy
 
 部署后，Runtime 入口是 `agentkit_app.py`，业务逻辑仍由 `agent.py:agent` 和原有 LangChain tools 执行。
 
-部署时需要提供模型和搜索相关环境变量：
+部署时需要提供模型相关环境变量和 AgentKit 部署所需的火山引擎 AK/SK：
 
 ```bash
 MODEL_AGENT_NAME=<Your Model Name>
-MODEL_AGENT_PROVIDER=openai
 MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
 MODEL_AGENT_API_KEY=<Your Ark API Key>
 VOLCENGINE_ACCESS_KEY=<Your Access Key>
@@ -151,7 +148,7 @@ VOLCENGINE_SECRET_KEY=<Your Secret Key>
 
 ## 效果展示
 
-运行示例提示词后，Agent 会调用搜索和预算工具，并把工具上下文交给真实 LLM 输出按天拆分的旅行规划，内容包含景点安排、餐饮建议、预算判断和交通建议。
+运行示例提示词后，Agent 会通过 LangChain 调用本地旅行资料、预算和交通工具，并输出按天拆分的旅行规划，内容包含景点安排、餐饮建议、预算判断和交通建议。
 
 ```text
 北京3天旅行规划（预算3000元，带父母/长辈）
@@ -162,9 +159,9 @@ VOLCENGINE_SECRET_KEY=<Your Secret Key>
 
 ## 常见问题
 
-- 搜索工具报错怎么办？
+- 没有模型环境变量怎么办？
 
-  请确认已在 AgentKit 控制台完成服务授权，并正确配置 `VOLCENGINE_ACCESS_KEY` 和 `VOLCENGINE_SECRET_KEY`。搜索失败时，样例仍会返回可读的兜底规划。
+  需要先配置 `MODEL_AGENT_NAME` 和 `MODEL_AGENT_API_KEY`。`MODEL_AGENT_API_BASE` 可选，配置为 Ark Responses endpoint 时会自动归一化为 OpenAI-compatible API root。
 
 - 迁移命令会改写原有 `agent.py` 吗？
 

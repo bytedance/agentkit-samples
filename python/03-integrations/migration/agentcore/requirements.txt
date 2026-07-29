@@ -1,4 +1,5 @@
-# Part 1: native Strands agent dependencies
+# Part 1: native Bedrock AgentCore + Strands agent dependencies
+bedrock-agentcore>=0.1.0
 strands-agents[openai]
 
 # Part 2: AgentKit migration runtime dependencies

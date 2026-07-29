@@ -1,28 +1,17 @@
 # LangChain Project Adaptation to AgentKit Runtime Sample
 
-This sample shows how to adapt a LangChain project to AgentKit Runtime.
+This sample shows how to adapt an existing LangChain project to AgentKit Runtime.
 
-The sample project represents an existing LangChain travel-planning project that a user already has. Its business entry point is `agent.py:agent`, implemented as `TravelPlanningRunnable`. It takes a user's travel request, parses the city, number of days, budget, travelers, and interests, calls tools to collect search and budget context, then uses LiteLLM to call a real LLM node for daily attraction, food, and transportation suggestions.
+The sample project represents a user-owned LangChain travel-planning agent. Its original business entry point is `agent.py:agent`, created directly with LangChain `create_agent`. The code registers a model, a system prompt, and simple local tools with `@tool`, then accepts OpenAI messages format input.
 
-The tools in this sample simulate tool use in a real LangChain project:
+## What This Sample Demonstrates
 
-- `search_travel_web`: simulates a tool that depends on external knowledge retrieval, and internally calls `veadk.tools.builtin_tools.web_search`
-- `estimate_trip_budget`: simulates a local business calculation tool that evaluates the budget based on city, number of days, and total budget
-
-`agent.py` is a LangChain-based agent. It uses `Runnable` to define the callable entry point, `@tool` to declare tool functions, and calls `veadk.tools.builtin_tools.web_search` inside `search_travel_web` to retrieve external knowledge. The related dependencies are:
-
-```python
-from langchain_core.runnables import Runnable
-from langchain_core.tools import tool
-from veadk.tools.builtin_tools.web_search import web_search as builtin_web_search
-```
-
-- `TravelPlanningRunnable(Runnable)`: implements the native LangChain agent and exposes it as `agent.py:agent` for migration
-- `@tool`: declares `search_travel_web` and `estimate_trip_budget` as LangChain tools
-- `model_agent`: creates a LiteLLM-backed model node and reads `MODEL_AGENT_NAME`, `MODEL_AGENT_PROVIDER`, `MODEL_AGENT_API_BASE`, and `MODEL_AGENT_API_KEY`
-- `builtin_web_search`: called by `search_travel_web` to simulate a real project tool that needs external knowledge retrieval
-
-When adapting the project to AgentKit Runtime, you do not need to rewrite the business logic in `agent.py`. `agentkit migrate` generates `agentkit_app.py` and `.agentkit/` configuration. The generated Runtime app calls the original `agent.py:agent` through `LangChainAgentkitBridge(input_key="question")`.
+- A native LangChain agent built with `create_agent(model, tools, system_prompt=...)`.
+- Local user-defined LangChain tools:
+  - `search_travel_notes`: returns sample city attractions, food, and route notes.
+  - `estimate_trip_budget`: evaluates the trip budget by city, days, and total budget.
+  - `recommend_transport`: suggests a simple transport strategy.
+- Migration to AgentKit Runtime without rewriting the original business entry point.
 
 ## Adapted Call Flow
 
@@ -35,14 +24,15 @@ AgentKit Runtime
     |
 agentkit_app.py
     |
-LangChainAgentkitBridge(input_key="question")
+LangChainAgentkitBridge
     |
-agent.py:agent  # TravelPlanningRunnable
-    |-- search_travel_web
-    |   `-- veadk.tools.builtin_tools.web_search
+agent.py:agent
+    |
+create_agent
+    |-- search_travel_notes
     |-- estimate_trip_budget
-    `-- model_agent
-        `-- litellm.completion
+    |-- recommend_transport
+    `-- ChatOpenAI
 ```
 
 ## Directory Layout
@@ -51,8 +41,8 @@ agent.py:agent  # TravelPlanningRunnable
 langchain/
 ├── README.md
 ├── README_en.md
-├── agent.py               # Native LangChain Runnable and tools
-├── .env.example           # Model and Volcengine credential examples
+├── agent.py               # Native LangChain agent and tools
+├── .env.example           # Model credential example
 ├── project.yaml           # Sample metadata
 └── requirements.txt       # Python dependencies
 ```
@@ -71,29 +61,19 @@ Run the native agent directly:
 python agent.py
 ```
 
-## Model Configuration
-
-`agent.py` reads model settings from environment variables and uses LiteLLM to call the model:
+Configure the OpenAI-compatible chat model before running the native agent:
 
 ```bash
 export MODEL_AGENT_NAME=<Your Model Name>
-export MODEL_AGENT_PROVIDER=openai
 export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
 export MODEL_AGENT_API_KEY=<Your Ark API Key>
+export VOLCENGINE_ACCESS_KEY=<Your Access Key>
+export VOLCENGINE_SECRET_KEY=<Your Secret Key>
 ```
 
-For consistency with other VeADK/AgentKit samples, `MODEL_AGENT_API_BASE` can use the Ark Responses endpoint. Before calling LiteLLM, the sample normalizes it to the OpenAI-compatible API root `https://ark.cn-beijing.volces.com/api/v3`.
+The code uses `langchain_openai.ChatOpenAI`, so the provider is determined by that class and `MODEL_AGENT_PROVIDER` is not required. `MODEL_AGENT_API_BASE` may point to the Ark Responses endpoint. The sample normalizes it to the OpenAI-compatible API root before passing it to `ChatOpenAI`.
 
-## Search Configuration
-
-`search_travel_web` directly uses `veadk.tools.builtin_tools.web_search`. For local or cloud execution, follow the common setup used by other samples: authorize dependent services in the [AgentKit Console authorization page](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default), then configure Volcengine AK/SK:
-
-```bash
-VOLCENGINE_ACCESS_KEY=<Your Access Key>
-VOLCENGINE_SECRET_KEY=<Your Secret Key>
-```
-
-If the environment has no search permission, the tool returns a search failure message. The agent still returns a readable sample response.
+`VOLCENGINE_ACCESS_KEY` and `VOLCENGINE_SECRET_KEY` are not read by the native LangChain agent, but they are required when running `agentkit migrate` and `agentkit deploy`.
 
 ## Run Migration
 
@@ -104,32 +84,18 @@ agentkit migrate . \
   --framework langchain \
   --entry agent.py:agent \
   --name migration-langchain-travel \
-  --input-key question \
   --compat langserve \
   --verify
 ```
 
 Arguments:
 
-- `--framework langchain`: migrate as a LangChain Runnable
-- `--entry agent.py:agent`: specify the native agent entry
-- `--input-key question`: write Runtime input into the `question` field
-- `--compat langserve`: generate LangServe-compatible routes
-- `--verify`: run basic checks after generation
+- `--framework langchain`: migrate as a LangChain Runnable-compatible entry.
+- `--entry agent.py:agent`: specify the native agent entry.
+- `--compat langserve`: generate LangServe-compatible routes.
+- `--verify`: run basic checks after generation.
 
-Migration generates:
-
-```bash
-langchain/
-├── agentkit_app.py
-├── .agentkit/
-│   ├── agentkit.yaml
-│   ├── Dockerfile
-│   └── migration-plan.json
-└── requirements.txt
-```
-
-The migration command does not rewrite `agent.py`. The generated Runtime app calls the original `agent.py:agent` through `LangChainAgentkitBridge(input_key="question")`.
+The migration command does not rewrite `agent.py`. The generated Runtime app calls the original `agent.py:agent` through `LangChainAgentkitBridge`.
 
 ## Deploy To AgentKit Runtime
 
@@ -139,18 +105,7 @@ After reviewing `.agentkit/agentkit.yaml`, run:
 agentkit deploy
 ```
 
-After deployment, the Runtime entry point is `agentkit_app.py`. The business logic is still handled by `agent.py:agent` and the original LangChain tools.
-
-Deployment needs both model and search environment variables:
-
-```bash
-MODEL_AGENT_NAME=<Your Model Name>
-MODEL_AGENT_PROVIDER=openai
-MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
-MODEL_AGENT_API_KEY=<Your Ark API Key>
-VOLCENGINE_ACCESS_KEY=<Your Access Key>
-VOLCENGINE_SECRET_KEY=<Your Secret Key>
-```
+After deployment, the Runtime entry point is `agentkit_app.py`. The business logic is still handled by the original LangChain agent and tools.
 
 ## Example Prompt
 

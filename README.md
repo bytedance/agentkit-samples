@@ -47,6 +47,12 @@ AgentKit 代码工坊为让您快速上手 AgentKit 平台，提供了不同入�
 
 每个用例都包含完整的实现，并详细说明如何结合 AgentKit 组件构建应用。
 
+## ➤ Agentic Frameworks 适配
+
+AgentKit Runtime 原生支持主流智能体框架，已兼容 LangChain、LangGraph、Strands、Google ADK，以及基于 Bedrock AgentCore Runtime 构建的项目。无需重写现有业务逻辑，只需通过 agentkit migrate 生成 AgentKit Runtime 入口，即可完成运行与部署。
+
+查看示例：[`python/03-integrations/migration`](python/03-integrations/migration)。
+
 ## ➤ 贡献
 
 欢迎您提交您的 Agent 到本仓库！详细的贡献指南请参考 [CONTRIBUTING.md](CONTRIBUTING.md)。
