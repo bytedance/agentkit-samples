@@ -74,20 +74,20 @@ Key features include:
     - On the "User Details" page -> Go to "Permissions" -> Click "Add Permission", and grant the following policies to the user
     - `AgentKitFullAccess` (AgentKit full access)
     - `APMPlusServerFullAccess` (APMPlus full access)
-4. Obtain the Volcano Ark model Agent API Key for the user
-    - Search for the "Volcano Ark" product and click to enter the console
+4. Obtain the BytePlus ModelArk agent API key for the user
+    - Search for the "BytePlus ModelArk" product and click to enter the console
     - Go to "API Key Management" -> Create or copy an existing API Key
     - As shown in the figure below
         ![Ark API Key Management](../img/ark_api_key_management.jpg)
 5. Activate the model's pre-built inference access point
-    - Search for the "Volcano Ark" product and click to enter the console
+    - Search for the "BytePlus ModelArk" product and click to enter the console
     - Go to "Activation Management" -> "Language Models" -> Find the corresponding model -> Click "Activate Service"
     - Activate the following models used in this case
         - root_agent model: `deepseek-v4-pro-260425`
-        - Image generation model: `doubao-seedream-5-0-260128`
+        - Image generation model: `doubao-seedream-5-0-pro-260628`
         - Video generation model: `doubao-seedance-2-0-260128`
     - As shown in the figure below
-        ![Ark Model Service Management](../img/ark_model_service_management.jpg)
+        ![ModelArk Service Management](../img/ark_model_service_management.jpg)
 
 ### Install Dependencies
 
@@ -113,7 +113,7 @@ Set the following environment variables:
 export VOLCENGINE_ACCESS_KEY={your_ak}
 export VOLCENGINE_SECRET_KEY={your_sk}
 export DATABASE_TOS_BUCKET=agentkit-platform-{{your_account_id}}
-export MODEL_AGENT_API_KEY={{your_model_agent_api_key}} # Get from Volcano Ark, required for local debugging
+export MODEL_AGENT_API_KEY={{your_model_agent_api_key}} # Get from BytePlus ModelArk, required for local debugging
 
 # Optional: Specify download directory (defaults to project root)
 export DOWNLOAD_DIR=/tmp
@@ -352,7 +352,7 @@ Video generation effect demonstration.
 - [AgentKit Official Documentation](https://www.volcengine.com/docs/86681/1844878?lang=en)
 - [TOS Object Storage](https://www.volcengine.com/product/TOS)
 - [AgentKit Console](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/overview?projectName=default)
-- [Volcano Ark Console](https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new)
+- [BytePlus ModelArk Service](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 
 ## Code License
 

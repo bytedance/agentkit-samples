@@ -62,9 +62,9 @@ The main Volcano Engine products or Agent components are:
 
 - Python 3.12 or higher
 
-**1. Activate Volcano Ark Model Service:**
+**1. Activate BytePlus ModelArk Service:**
 
-- Visit the [Volcano Ark Console](https://exp.volcengine.com/ark?mode=chat)
+- Visit the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - Activate the model service
 
 **2. Obtain Volcano Engine Access Credentials:**
@@ -141,8 +141,8 @@ source .venv/bin/activate
 Set the following environment variables:
 
 ```bash
-# Volcano Ark Model Name (optional, deepseek-v4-pro-260425 is used by default)
-export MODEL_AGENT_NAME=<Your Ark Model Name>
+# BytePlus ModelArk model name (optional, deepseek-v4-pro-260425 is used by default)
+export MODEL_AGENT_NAME=<Your ModelArk model name>
 
 # Volcano Engine Access Credentials (required)
 export VOLCENGINE_ACCESS_KEY=<Your Access Key>
@@ -293,7 +293,7 @@ None
 
 - [VeADK Official Documentation](https://volcengine.github.io/veadk-python/)
 - [AgentKit Development Guide](https://volcengine.github.io/agentkit-sdk-python/)
-- [Volcano Ark Model Service](https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new&projectName=default)
+- [BytePlus ModelArk Service](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 
 ## Code License
 

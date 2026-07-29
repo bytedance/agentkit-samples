@@ -5,11 +5,11 @@ model:
     api_base: https://ark.cn-beijing.volces.com/api/v3/
     api_key:
     image:
-      name: doubao-seedream-4-5-251128
+      name: doubao-seedream-5-0-pro-260628
       api_base: https://ark.cn-beijing.volces.com/api/v3/
       api_key:
     video:
-      name: doubao-seedance-1-5-pro-251215
+      name: doubao-seedance-2-0-260128
       api_base: https://ark.cn-beijing.volces.com/api/v3/
       api_key:
     evaluate:

@@ -44,7 +44,7 @@ Agent + Runner
 # Short-term memory: only valid in the same session
 agent1 = Agent(
     name="test_agent",
-    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v4-pro-260425"),
     instruction="You are a helpful assistant.",
 )
 
@@ -67,7 +67,7 @@ await runner1.save_session_to_long_term_memory(session_id=history_session_id)
 # Long-term memory: valid across sessions
 agent2 = Agent(
     name="test_agent",
-    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v3-2-251201"),
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v4-pro-260425"),
     instruction="Use LoadMemory tool to search previous info.",
     long_term_memory=long_term_memory,
 )
@@ -87,9 +87,9 @@ viking_memory/
 
 ### Prerequisites
 
-**1. Activate Volcano Ark Model Service:**
+**1. Activate BytePlus ModelArk Service:**
 
-- Visit [Volcano Ark Console](https://exp.volcengine.com/ark?mode=chat)
+- Visit [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - Activate the model service
 
 **2. Activate mem0 Memory Store:**
@@ -136,8 +136,8 @@ source .venv/bin/activate
 ### Environment Setup
 
 ```bash
-# Volcano Ark model name
-export MODEL_AGENT_NAME=deepseek-v3-2-251201
+# BytePlus ModelArk model name
+export MODEL_AGENT_NAME=deepseek-v4-pro-260425
 
 # Volcano Engine access credentials (required)
 export VOLCENGINE_ACCESS_KEY=<Your Access Key>
@@ -175,9 +175,9 @@ uv run client.py # Test memory effect
 
 **Important Note**: Before running this example, please visit the [AgentKit Console Authorization Page](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) to authorize all dependent services to ensure the case can be executed normally.
 
-**1. Activate Volcano Ark Model Service:**
+**1. Activate BytePlus ModelArk Service:**
 
-- Visit [Volcano Ark Console](https://exp.volcengine.com/ark?mode=chat)
+- Visit [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - Activate the model service
 
 **2. Activate mem0 Memory Store:**
@@ -308,7 +308,7 @@ None.
 
 - [VeADK Official Documentation](https://volcengine.github.io/veadk-python/)
 - [AgentKit Development Guide](https://volcengine.github.io/agentkit-sdk-python/)
-- [Volcano Ark Model Service](https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new&projectName=default)
+- [BytePlus ModelArk Service](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - [mem0 Documentation](https://www.volcengine.com/docs/86722/1852874?lang=en)
 
 ## Code License
