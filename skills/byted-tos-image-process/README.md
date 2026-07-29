@@ -4,17 +4,18 @@ This skill provides a clean, reusable image-processing toolkit for files stored 
 
 ## When To Use
 
-Use this skill when you need to:
-- Read image metadata with `image/info`
-- Convert formats such as `jpg`, `png`, and `webp`
-- Generate thumbnails or resize images
-- Draw points or connecting lines on an image
-- Produce zoom-like results with resize plus crop
-- Apply visible text or image watermarks
-- Embed or extract blind watermarks
-- Run a custom `image/...` process rule and save the result locally or back to TOS
+Use this skill when the image is stored in Volcengine TOS or the user explicitly asks for TOS image processing. Typical cases include:
+- Read metadata for a TOS object with `image/info`
+- Convert TOS object formats such as `jpg`, `png`, and `webp`
+- Generate thumbnails or resize TOS image objects
+- Draw points or connecting lines on a TOS image object
+- Produce zoom-like TOS results with resize plus crop
+- Apply visible text or image watermarks to a TOS image object
+- Embed or extract blind watermarks for TOS image objects
+- Run a custom TOS `image/...` process rule and save the result locally or back to TOS
 
 Do not use this skill for:
+- Ordinary uploaded screenshots, local image files, mobile UI screenshots, generic OCR, face detection, or visual question answering that does not involve a TOS bucket/object key
 - Video snapshot workflows
 - Document preview or office conversion
 - Generic storage operations that do not involve TOS image processing
@@ -114,7 +115,8 @@ python3 scripts/image_format.py --f webp --q 80 --output converted.webp
 Resize to width 500:
 
 ```bash
-python3 scripts/image_resize.py --w 500 --output resized.jpg
+python3 scripts/image_resize.py --width 500 --output resized.jpg
+python3 scripts/image_resize.py --width 500 --dry-run --json
 ```
 
 Draw points and lines:
@@ -188,8 +190,11 @@ python3 scripts/image_process.py \
 ## Usage Notes
 
 - The exact `process` string syntax is defined by TOS and should be treated as authoritative.
+- Do not route ordinary local image or screenshot understanding tasks through this skill. If the task does not mention TOS, bucket, object key, save-as, or TOS image process syntax, use native vision/local-file capabilities instead.
 - Dedicated scripts expose common arguments directly, while advanced parameters can usually be passed with `--kv key=value`.
-- The image scripts now consistently support `--bucket` / `--key`, `--output` for local save, `--saveas-bucket` / `--saveas-object` for TOS persistence, and `--json` for machine-readable output. Several scripts also support `--dry-run` to show the resolved request before calling TOS.
+- The image scripts consistently support `--bucket` / `--key`, `--output` for local save, `--saveas-bucket` / `--saveas-object` for TOS persistence, and `--json` for machine-readable output. Process-building scripts support `--dry-run --json` to show the resolved request without calling TOS or requiring AK/SK. Dry-run uses explicit placeholders when bucket/key context is omitted.
+- `TOS_SAVEAS_BUCKET` and `TOS_SAVEAS_OBJECT_PREFIX` are used as default save-as targets when CLI save-as arguments are omitted.
+- `image_resize.py` accepts both `--w/--h/--m` and `--width/--height/--mode`; `image_format.py` accepts both `--f/--q` and `--format/--quality`.
 - `image_draw.py` is useful for agent outputs such as marking detections, key points, or polygon-like paths using `image/draw`.
 - `image_zoom.py` wraps the common "resize first, then crop the interesting region" pattern that agents often need for visual focus.
 - The watermark helper now follows the official parameter model: `text/type/color/size/shadow/rotate/fill` for text, `image` for image watermark, `g/x/y/voffset/t` for base placement, and `order/align/interval` for mixed watermark.

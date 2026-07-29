@@ -39,7 +39,10 @@ import base64
 import json
 import os
 import sys
+import warnings
 from typing import Optional
+
+warnings.filterwarnings("ignore", message="urllib3 v2 only supports OpenSSL.*")
 
 import tos
 from tos.exceptions import TosClientError, TosServerError
@@ -60,9 +63,6 @@ def create_client() -> tos.TosClientV2:
     region = get_env("TOS_REGION")
     security_token = os.getenv("TOS_SECURITY_TOKEN")
 
-    print(
-        f"[INFO] Initializing TOS client for endpoint={endpoint}, region={region} ..."
-    )
     return tos.TosClientV2(
         ak=ak,
         sk=sk,
@@ -100,6 +100,21 @@ def default_output_path(key: str) -> str:
     return f"resized_{base}"
 
 
+def prefixed_object(prefix: Optional[str], default_name: str) -> Optional[str]:
+    if not prefix:
+        return None
+    return f"{prefix.rstrip('/')}/{default_name}"
+
+
+def emit(payload: dict, json_only: bool, heading: Optional[str] = None) -> None:
+    if json_only:
+        print(json.dumps(payload, ensure_ascii=False))
+        return
+    if heading:
+        print(heading)
+    print(json.dumps(payload, indent=2, ensure_ascii=False))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Resize image via TOS process=image/resize"
@@ -107,12 +122,14 @@ def main() -> None:
     parser.add_argument("--bucket", type=str, default=None, help="Override TOS_BUCKET")
     parser.add_argument("--key", type=str, default=None, help="Override TOS_OBJECT_KEY")
     parser.add_argument(
-        "--w", dest="width", type=int, default=None, help="Target width"
+        "--w", "--width", dest="width", type=int, default=None, help="Target width"
     )
     parser.add_argument(
-        "--h", dest="height", type=int, default=None, help="Target height"
+        "--h", "--height", dest="height", type=int, default=None, help="Target height"
     )
-    parser.add_argument("--m", dest="mode", type=str, default=None, help="Resize mode")
+    parser.add_argument(
+        "--m", "--mode", dest="mode", type=str, default=None, help="Resize mode"
+    )
     parser.add_argument(
         "--kv", action="append", default=[], help="Extra process option: key=value"
     )
@@ -127,9 +144,12 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true", help="Print resolved request and exit")
     args = parser.parse_args()
 
-    client = create_client()
-    bucket = args.bucket or get_env("TOS_BUCKET")
-    key = args.key or get_env("TOS_OBJECT_KEY")
+    bucket = args.bucket or os.getenv("TOS_BUCKET") or (
+        "<TOS_BUCKET>" if args.dry_run else get_env("TOS_BUCKET")
+    )
+    key = args.key or os.getenv("TOS_OBJECT_KEY") or (
+        "<TOS_OBJECT_KEY>" if args.dry_run else get_env("TOS_OBJECT_KEY")
+    )
 
     pairs: list[tuple[str, str]] = []
     if args.width is not None:
@@ -147,20 +167,50 @@ def main() -> None:
 
     process_value = build_process("resize", pairs)
 
-    save_bucket = args.saveas_bucket
-    save_object = args.saveas_object
-    persist_to_tos = bool(save_bucket or save_object)
+    default_save_object = f"resized_{os.path.basename(key)}"
+    save_bucket = args.saveas_bucket or os.getenv("TOS_SAVEAS_BUCKET")
+    save_object = args.saveas_object or prefixed_object(
+        os.getenv("TOS_SAVEAS_OBJECT_PREFIX"), default_save_object
+    )
+    explicit_saveas = bool(args.saveas_bucket or args.saveas_object)
+    if explicit_saveas:
+        persist_to_tos = True
+    elif args.output:
+        persist_to_tos = False
+        save_bucket = None
+        save_object = None
+    else:
+        persist_to_tos = bool(save_bucket or save_object)
+    resolved_save_bucket = save_bucket or bucket if persist_to_tos else None
+    resolved_save_object = save_object or default_save_object if persist_to_tos else None
+    output_path = None if persist_to_tos else args.output or default_output_path(key)
+
+    plan = {
+        "ok": True,
+        "operation": "image_resize",
+        "bucket": bucket,
+        "key": key,
+        "process": process_value,
+        "mode": "save_to_tos" if persist_to_tos else "save_local",
+        "output_path": output_path,
+        "saveas_bucket": resolved_save_bucket,
+        "saveas_object": resolved_save_object,
+    }
+    if args.dry_run:
+        emit(plan, args.json)
+        return
+
+    client = create_client()
 
     if persist_to_tos:
-        save_bucket = save_bucket or bucket
-        if not save_object:
-            save_object = f"resized_{os.path.basename(key)}"
+        if not args.json:
+            print(
+                f"[INFO] Resizing {bucket}/{key} -> {resolved_save_bucket}/{resolved_save_object}"
+            )
+            print(f"[INFO] process = {process_value}")
 
-        print(f"[INFO] Resizing {bucket}/{key} -> {save_bucket}/{save_object}")
-        print(f"[INFO] process = {process_value}")
-
-        encoded_bucket = base64.urlsafe_b64encode(save_bucket.encode()).decode()
-        encoded_object = base64.urlsafe_b64encode(save_object.encode()).decode()
+        encoded_bucket = base64.urlsafe_b64encode(resolved_save_bucket.encode()).decode()
+        encoded_object = base64.urlsafe_b64encode(resolved_save_object.encode()).decode()
 
         try:
             output = client.get_object(
@@ -190,13 +240,19 @@ def main() -> None:
             print(raw[:200], file=sys.stderr)
             sys.exit(1)
 
-        print("[OK] Image saved to TOS:")
-        print(json.dumps(data, indent=2, ensure_ascii=False))
+        emit(
+            {
+                **plan,
+                "result": data,
+            },
+            args.json,
+            "[OK] Image saved to TOS:",
+        )
         return
 
-    output_path = args.output or default_output_path(key)
-    print(f"[INFO] Resizing {bucket}/{key} -> {output_path}")
-    print(f"[INFO] process = {process_value}")
+    if not args.json:
+        print(f"[INFO] Resizing {bucket}/{key} -> {output_path}")
+        print(f"[INFO] process = {process_value}")
 
     try:
         client.get_object_to_file(
@@ -214,7 +270,11 @@ def main() -> None:
         sys.exit(1)
 
     size = os.path.getsize(output_path)
-    print(f"[OK] Image saved to {output_path} ({size} bytes)")
+    emit(
+        {**plan, "size": size},
+        args.json,
+        f"[OK] Image saved to {output_path} ({size} bytes)",
+    )
 
 
 if __name__ == "__main__":

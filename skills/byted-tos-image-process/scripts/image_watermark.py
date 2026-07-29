@@ -41,7 +41,10 @@ import json
 import os
 import re
 import sys
+import warnings
 from typing import Optional
+
+warnings.filterwarnings("ignore", message="urllib3 v2 only supports OpenSSL.*")
 
 import tos
 from tos.exceptions import TosClientError, TosServerError
@@ -62,9 +65,6 @@ def create_client() -> tos.TosClientV2:
     region = get_env("TOS_REGION")
     security_token = os.getenv("TOS_SECURITY_TOKEN")
 
-    print(
-        f"[INFO] Initializing TOS client for endpoint={endpoint}, region={region} ..."
-    )
     return tos.TosClientV2(
         ak=ak,
         sk=sk,
@@ -183,6 +183,12 @@ def default_output_path(key: str) -> str:
     if not base:
         return "watermarked_output"
     return f"watermarked_{base}"
+
+
+def prefixed_object(prefix: Optional[str], default_name: str) -> Optional[str]:
+    if not prefix:
+        return None
+    return f"{prefix.rstrip('/')}/{default_name}"
 
 
 def emit(payload: dict, json_only: bool, heading=None) -> None:
@@ -331,9 +337,12 @@ def main() -> None:
         print("[ERROR] Use only one of --image or --image-b64.", file=sys.stderr)
         sys.exit(1)
 
-    client = create_client()
-    bucket = args.bucket or get_env("TOS_BUCKET")
-    key = args.key or get_env("TOS_OBJECT_KEY")
+    bucket = args.bucket or os.getenv("TOS_BUCKET") or (
+        "<TOS_BUCKET>" if args.dry_run else get_env("TOS_BUCKET")
+    )
+    key = args.key or os.getenv("TOS_OBJECT_KEY") or (
+        "<TOS_OBJECT_KEY>" if args.dry_run else get_env("TOS_OBJECT_KEY")
+    )
 
     try:
         pairs = build_modeled_pairs(args)
@@ -355,36 +364,54 @@ def main() -> None:
         sys.exit(1)
 
     process_value = build_process("watermark", pairs)
+    default_save_object = f"watermarked_{os.path.basename(key)}"
+    explicit_saveas = bool(args.saveas_bucket or args.saveas_object)
+    env_save_bucket = os.getenv("TOS_SAVEAS_BUCKET")
+    env_save_object = prefixed_object(
+        os.getenv("TOS_SAVEAS_OBJECT_PREFIX"), default_save_object
+    )
+    if explicit_saveas:
+        persist_to_tos = True
+        save_bucket = args.saveas_bucket
+        save_object = args.saveas_object
+    elif args.output:
+        persist_to_tos = False
+        save_bucket = None
+        save_object = None
+    else:
+        save_bucket = env_save_bucket
+        save_object = env_save_object
+        persist_to_tos = bool(save_bucket or save_object)
+    resolved_save_bucket = save_bucket or bucket if persist_to_tos else None
+    resolved_save_object = save_object or default_save_object if persist_to_tos else None
+    output_path = None if persist_to_tos else args.output or default_output_path(key)
+
     plan = {
         "ok": True,
         "operation": "image_watermark",
         "bucket": bucket,
         "key": key,
         "process": process_value,
-        "saveas_bucket": args.saveas_bucket or bucket
-        if (args.saveas_bucket or args.saveas_object)
-        else None,
-        "saveas_object": args.saveas_object,
+        "mode": "save_to_tos" if persist_to_tos else "save_local",
+        "output_path": output_path,
+        "saveas_bucket": resolved_save_bucket,
+        "saveas_object": resolved_save_object,
     }
     if args.dry_run:
         emit(plan, args.json, "[OK] Resolved request:")
         return
 
-    save_bucket = args.saveas_bucket
-    save_object = args.saveas_object
-    persist_to_tos = bool(save_bucket or save_object)
+    client = create_client()
 
     if persist_to_tos:
-        save_bucket = save_bucket or bucket
-        if not save_object:
-            save_object = f"watermarked_{os.path.basename(key)}"
-
         if not args.json:
-            print(f"[INFO] Watermarking {bucket}/{key} -> {save_bucket}/{save_object}")
+            print(
+                f"[INFO] Watermarking {bucket}/{key} -> {resolved_save_bucket}/{resolved_save_object}"
+            )
             print(f"[INFO] process = {process_value}")
 
-        encoded_bucket = base64.urlsafe_b64encode(save_bucket.encode()).decode()
-        encoded_object = base64.urlsafe_b64encode(save_object.encode()).decode()
+        encoded_bucket = base64.urlsafe_b64encode(resolved_save_bucket.encode()).decode()
+        encoded_object = base64.urlsafe_b64encode(resolved_save_object.encode()).decode()
 
         try:
             output = client.get_object(
@@ -417,8 +444,6 @@ def main() -> None:
         emit(
             {
                 **plan,
-                "saveas_bucket": save_bucket,
-                "saveas_object": save_object,
                 "result": data,
             },
             args.json,
@@ -426,7 +451,6 @@ def main() -> None:
         )
         return
 
-    output_path = args.output or default_output_path(key)
     if not args.json:
         print(f"[INFO] Watermarking {bucket}/{key} -> {output_path}")
         print(f"[INFO] process = {process_value}")

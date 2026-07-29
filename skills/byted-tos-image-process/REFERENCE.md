@@ -62,8 +62,8 @@ Converts the image to a different format and/or adjusts its quality.
 
 | Option | SDK Equivalent    | Description                                       |
 |--------|-------------------|---------------------------------------------------|
-| `f`    | `format` (string) | Target format. The current service behavior maps this to a plain segment such as `image/format,webp`. Common values: `jpg`, `png`, `webp`. |
-| `q`    | `quality` (int)   | Quality for lossy formats (e.g., 1-100 for JPG).  |
+| `f` / `format` | `format` (string) | Target format. The current service behavior maps this to a plain segment such as `image/format,webp`. Common values: `jpg`, `png`, `webp`. |
+| `q` / `quality` | `quality` (int) | Quality for lossy formats (e.g., 1-100 for JPG).  |
 
 **Example `process` string:** `"image/format,webp,q_85"`
 
@@ -77,9 +77,9 @@ Resizes an image with various scaling options.
 
 | Option | SDK Equivalent | Description                                                               |
 |--------|----------------|---------------------------------------------------------------------------|
-| `w`    | `width` (int)  | Target width in pixels.                                                   |
-| `h`    | `height` (int) | Target height in pixels.                                                  |
-| `m`    | `mode` (string)| Resize mode (e.g., `lfit`, `mfit`, `fill`, `fixed`). See official docs for all modes. |
+| `w` / `width` | `width` (int)  | Target width in pixels.                                                   |
+| `h` / `height` | `height` (int) | Target height in pixels.                                                  |
+| `m` / `mode` | `mode` (string)| Resize mode (e.g., `lfit`, `mfit`, `fill`, `fixed`). See official docs for all modes. |
 
 **Example `process` string:** `"image/resize,w_800,m_lfit"` (Resize to width 800, maintain aspect ratio)
 
@@ -161,11 +161,13 @@ This is not a specific operation but a generic entry point to use any process st
 
 **Example `process` string (chaining resize and format):** `"image/resize,w_500|image/format,png"` (Syntax may vary, check official docs for chaining rules).
 
+All process-building scripts support `--dry-run --json` to return the resolved operation, process string, output mode, and save-as target without calling TOS. Dry-run uses explicit placeholders when bucket/key context is omitted. Real execution still requires valid TOS credentials and object context.
+
 ---
 
 ### 9. `ImageUnderstanding`
 
-AI-powered image understanding via VLM (Vision Language Model). Supports description, OCR, face detection, and any visual Q&A through natural language prompts.
+AI-powered understanding for image objects stored in TOS via VLM (Vision Language Model). Supports description, OCR, face detection, and visual Q&A through natural language prompts only when the source image is a TOS object.
 
 **SDK Method:** `client.get_object()` with `request_timeout=120`
 
@@ -221,6 +223,7 @@ process_str = f"image/understanding,m_{model_b64},p_{prompt_b64}"
 - Response time is typically 10-60 seconds. Set `request_timeout=120` on the client.
 - Requires account whitelist. If not whitelisted, returns `"The account: xxx is not in the whitelist."`
 - Image must meet minimum size requirements (width/height/pixels).
+- Do not use this operation for ordinary uploaded screenshots or local images that do not involve a TOS bucket/object key.
 
 **Script:** `scripts/image_understanding.py`
 
