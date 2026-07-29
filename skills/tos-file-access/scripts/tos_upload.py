@@ -48,14 +48,18 @@ if not logger.handlers:
 
 
 def success_loaded_openclaw_dotenv() -> bool:
-    openclaw_env = Path("/root/.openclaw/.env")
-    # openclaw_env = Path(
-    #     "/Users/bytedance/workspace/agentkit/agentkit-samples/skills/.venv/.openclaw/.env"
-    # )
-    if openclaw_env.exists():
-        success = load_dotenv(openclaw_env)
-    logger.info(f"Successfully loaded environment variables from {openclaw_env}")
-    return success
+    try:
+        openclaw_env = Path("/root/.openclaw/.env")
+        # openclaw_env = Path(
+        #     "/Users/bytedance/workspace/agentkit/agentkit-samples/skills/.venv/.openclaw/.env"
+        # )
+        if openclaw_env.exists():
+            success = load_dotenv(openclaw_env)
+        logger.info(f"Successfully loaded environment variables from {openclaw_env}")
+        return success
+    except Exception as e:
+        logger.error(f"Failed to load environment variables from {openclaw_env}: {e}")
+        return False
 
 
 LOAD_OPENCLAW_DOTENV_SUCCESS = success_loaded_openclaw_dotenv()
