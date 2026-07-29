@@ -38,7 +38,7 @@ Customer Service Agent (Main Customer Service Agent)
 | Component | Description |
 | - | - |
 | **Main Agent** | [agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/multi_agents/agent.py) - The main customer service agent, responsible for overall scheduling. |
-| **Sub-Agents** | [sub_agents/](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/multi_agents/sub_agents) - Three specialized sub-agents. |
+| **Sub-Agents** | [sub_agents/](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/multi_agents/sub_agents) - Three specialized sub-agents. |
 | **- Sequential** | [sequential_agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/multi_agents/sub_agents/sequential_agent.py) - Executes a sequential workflow. |
 | **- Parallel** | [parallel_agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/multi_agents/sub_agents/parallel_agent.py) - Retrieves information in parallel. |
 | **- Loop** | [loop_agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/01-agentkit-runtime/multi_agents/sub_agents/loop_agent.py) - Cyclically optimizes response quality. |

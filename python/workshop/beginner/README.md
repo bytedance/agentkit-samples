@@ -8,36 +8,36 @@
 
 | 案例 | 描述 | 核心能力 |
 | - | - | - |
-| **[Hello World](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/hello_world)** | 最简单的对话 Agent | 基础对话、短期记忆 |
-| **[Callback](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/callback)** | Agent 回调与护栏演示 | 生命周期回调、内容审核、PII 过滤 |
+| **[Hello World](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/hello_world)** | 最简单的对话 Agent | 基础对话、短期记忆 |
+| **[Callback](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/callback)** | Agent 回调与护栏演示 | 生命周期回调、内容审核、PII 过滤 |
 
 ### 工具集成
 
 | 案例 | 描述 | 核心能力 |
 | - | - | - |
-| **[MCP Simple](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/mcp_simple)** | MCP 协议工具集成 | MCP 工具、对象存储管理 |
-| **[Travel Concierge](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/travel_concierge)** | 旅游行程规划助手 | Web 搜索、专业指令系统 |
-| **[Restaurant Ordering](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/restaurant_ordering)** | 餐厅点餐助手 | 异步工具、并行调用、上下文压缩 |
+| **[MCP Simple](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/mcp_simple)** | MCP 协议工具集成 | MCP 工具、对象存储管理 |
+| **[Travel Concierge](https://github.com/bytedance/agentkit-samples/tree/main/python/workshop/beginner/travel_concierge)** | 旅游行程规划助手 | Web 搜索、专业指令系统 |
+| **[Restaurant Ordering](https://github.com/bytedance/agentkit-samples/tree/main/python/02-use-cases/restaurant_ordering)** | 餐厅点餐助手 | 异步工具、并行调用、上下文压缩 |
 
 ### 记忆与知识库
 
 | 案例 | 描述 | 核心能力 |
 | - | - | - |
-| **[VikingDB](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/vikingdb)** | 知识库检索增强 | RAG、向量检索、文档问答 |
-| **[VikingMem](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/vikingmem)** | 长短期记忆管理 | 短期记忆、长期记忆、跨会话记忆 |
+| **[VikingDB](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/06-agentkit-knowledge/viking_knowledge)** | 知识库检索增强 | RAG、向量检索、文档问答 |
+| **[VikingMem](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/05-agentkit-memory/viking_memory)** | 长短期记忆管理 | 短期记忆、长期记忆、跨会话记忆 |
 
 ### 多智能体
 
 | 案例 | 描述 | 核心能力 |
 | - | - | - |
-| **[Multi Agents](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/multi_agents)** | 多智能体协作系统 | 顺序执行、并行执行、循环优化 |
-| **[A2A Simple](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/a2a_simple)** | Agent-to-Agent 通信 | A2A 协议、远程 Agent 调用 |
+| **[Multi Agents](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/multi_agents)** | 多智能体协作系统 | 顺序执行、并行执行、循环优化 |
+| **[A2A Simple](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/a2a_simple)** | Agent-to-Agent 通信 | A2A 协议、远程 Agent 调用 |
 
 ### 内容生成
 
 | 案例 | 描述 | 核心能力 |
 | - | - | - |
-| **[Episode Generation](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/episode_generation)** | 图片视频生成 | 子 Agent、图像生成、视频生成 |
+| **[Episode Generation](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/image_video_tools)** | 图片视频生成 | 子 Agent、图像生成、视频生成 |
 
 ## 🚀 快速开始
 
@@ -150,24 +150,24 @@ agentkit invoke 'your test prompt'
 
 ### 路径一：基础入门（推荐新手）
 
-1. **[Hello World](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/hello_world)** - 了解 Agent 基本结构和短期记忆
-2. **[Callback](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/callback)** - 掌握回调机制和护栏功能
-3. **[Travel Concierge](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/travel_concierge)** - 学习工具集成和专业指令
-4. **[VikingDB](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/vikingdb)** - 实践知识库检索增强
+1. **[Hello World](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/hello_world)** - 了解 Agent 基本结构和短期记忆
+2. **[Callback](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/callback)** - 掌握回调机制和护栏功能
+3. **[Travel Concierge](https://github.com/bytedance/agentkit-samples/tree/main/python/workshop/beginner/travel_concierge)** - 学习工具集成和专业指令
+4. **[VikingDB](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/06-agentkit-knowledge/viking_knowledge)** - 实践知识库检索增强
 
 ### 路径二：工具与集成
 
-1. **[Hello World](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/hello_world)** - 基础知识
-2. **[MCP Simple](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/mcp_simple)** - MCP 协议工具集成
-3. **[Restaurant Ordering](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/restaurant_ordering)** - 异步工具和并行调用
-4. **[Episode Generation](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/episode_generation)** - 内容生成工具
+1. **[Hello World](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/hello_world)** - 基础知识
+2. **[MCP Simple](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/mcp_simple)** - MCP 协议工具集成
+3. **[Restaurant Ordering](https://github.com/bytedance/agentkit-samples/tree/main/python/02-use-cases/restaurant_ordering)** - 异步工具和并行调用
+4. **[Episode Generation](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/image_video_tools)** - 内容生成工具
 
 ### 路径三：多智能体系统
 
-1. **[Hello World](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/hello_world)** - 单 Agent 基础
-2. **[Multi Agents](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/multi_agents)** - 多智能体协作模式
-3. **[A2A Simple](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/a2a_simple)** - Agent 间通信
-4. **[VikingMem](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/vikingmem)** - 跨会话记忆管理
+1. **[Hello World](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/hello_world)** - 单 Agent 基础
+2. **[Multi Agents](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/multi_agents)** - 多智能体协作模式
+3. **[A2A Simple](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/a2a_simple)** - Agent 间通信
+4. **[VikingMem](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/05-agentkit-memory/viking_memory)** - 跨会话记忆管理
 
 ## 🔍 案例详解
 
@@ -325,12 +325,12 @@ Agent-to-Agent 协议，展示：
 
 ### Q1: 如何选择第一个学习的案例？
 
-**A**: 强烈推荐从 [Hello World](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/hello_world) 开始，它涵盖了最基础的 Agent 创建和记忆管理。完成后根据您的需求选择：
+**A**: 强烈推荐从 [Hello World](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/hello_world) 开始，它涵盖了最基础的 Agent 创建和记忆管理。完成后根据您的需求选择：
 
-- 需要内容审核 → [Callback](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/callback)
-- 需要工具集成 → [MCP Simple](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/mcp_simple) 或 [Travel Concierge](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/travel_concierge)
-- 需要知识库 → [VikingDB](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/vikingdb)
-- 需要多 Agent → [Multi Agents](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/multi_agents)
+- 需要内容审核 → [Callback](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/callback)
+- 需要工具集成 → [MCP Simple](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/mcp_simple) 或 [Travel Concierge](https://github.com/bytedance/agentkit-samples/tree/main/python/workshop/beginner/travel_concierge)
+- 需要知识库 → [VikingDB](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/06-agentkit-knowledge/viking_knowledge)
+- 需要多 Agent → [Multi Agents](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/multi_agents)
 
 ### Q2: 为什么我的案例无法运行？
 

@@ -8,36 +8,36 @@ Welcome to the AgentKit Beginner Case Collection! This directory contains a seri
 
 | Case | Description | Core Capabilities |
 | - | - | - |
-| **[Hello World](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/hello_world)** | The simplest conversational Agent | Basic conversation, short-term memory |
-| **[Callback](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/callback)** | Agent callback and guardrail demonstration | Lifecycle callbacks, content moderation, PII filtering |
+| **[Hello World](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/hello_world)** | The simplest conversational Agent | Basic conversation, short-term memory |
+| **[Callback](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/callback)** | Agent callback and guardrail demonstration | Lifecycle callbacks, content moderation, PII filtering |
 
 ### Tool Integration
 
 | Case | Description | Core Capabilities |
 | - | - | - |
-| **[MCP Simple](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/mcp_simple)** | MCP protocol tool integration | MCP tools, object storage management |
-| **[Travel Concierge](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/travel_concierge)** | Travel itinerary planning assistant | Web search, professional instruction system |
-| **[Restaurant Ordering](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/restaurant_ordering)** | Restaurant ordering assistant | Asynchronous tools, parallel calls, context compression |
+| **[MCP Simple](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/mcp_simple)** | MCP protocol tool integration | MCP tools, object storage management |
+| **[Travel Concierge](https://github.com/bytedance/agentkit-samples/tree/main/python/workshop/beginner/travel_concierge)** | Travel itinerary planning assistant | Web search, professional instruction system |
+| **[Restaurant Ordering](https://github.com/bytedance/agentkit-samples/tree/main/python/02-use-cases/restaurant_ordering)** | Restaurant ordering assistant | Asynchronous tools, parallel calls, context compression |
 
 ### Memory and Knowledge Base
 
 | Case | Description | Core Capabilities |
 | - | - | - |
-| **[VikingDB](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/vikingdb)** | Knowledge base retrieval augmentation | RAG, vector retrieval, document Q&A |
-| **[VikingMem](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/vikingmem)** | Long and short-term memory management | Short-term memory, long-term memory, cross-session memory |
+| **[VikingDB](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/06-agentkit-knowledge/viking_knowledge)** | Knowledge base retrieval augmentation | RAG, vector retrieval, document Q&A |
+| **[VikingMem](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/05-agentkit-memory/viking_memory)** | Long and short-term memory management | Short-term memory, long-term memory, cross-session memory |
 
 ### Multi-Agent
 
 | Case | Description | Core Capabilities |
 | - | - | - |
-| **[Multi Agents](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/multi_agents)** | Multi-agent collaboration system | Sequential execution, parallel execution, loop optimization |
-| **[A2A Simple](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/a2a_simple)** | Agent-to-Agent communication | A2A protocol, remote Agent invocation |
+| **[Multi Agents](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/multi_agents)** | Multi-agent collaboration system | Sequential execution, parallel execution, loop optimization |
+| **[A2A Simple](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/a2a_simple)** | Agent-to-Agent communication | A2A protocol, remote Agent invocation |
 
 ### Content Generation
 
 | Case | Description | Core Capabilities |
 | - | - | - |
-| **[Episode Generation](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/episode_generation)** | Image and video generation | Sub-Agent, image generation, video generation |
+| **[Episode Generation](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/image_video_tools)** | Image and video generation | Sub-Agent, image generation, video generation |
 
 ## 🚀 Quick Start
 
@@ -150,24 +150,24 @@ agentkit invoke 'your test prompt'
 
 ### Path 1: Basic Introduction (Recommended for Beginners)
 
-1. **[Hello World](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/hello_world)** - Understand the basic structure of an Agent and short-term memory.
-2. **[Callback](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/callback)** - Master callback mechanisms and guardrail functions.
-3. **[Travel Concierge](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/travel_concierge)** - Learn tool integration and professional instructions.
-4. **[VikingDB](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/vikingdb)** - Practice knowledge base retrieval augmentation.
+1. **[Hello World](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/hello_world)** - Understand the basic structure of an Agent and short-term memory.
+2. **[Callback](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/callback)** - Master callback mechanisms and guardrail functions.
+3. **[Travel Concierge](https://github.com/bytedance/agentkit-samples/tree/main/python/workshop/beginner/travel_concierge)** - Learn tool integration and professional instructions.
+4. **[VikingDB](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/06-agentkit-knowledge/viking_knowledge)** - Practice knowledge base retrieval augmentation.
 
 ### Path 2: Tools and Integration
 
-1. **[Hello World](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/hello_world)** - Basic knowledge.
-2. **[MCP Simple](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/mcp_simple)** - MCP protocol tool integration.
-3. **[Restaurant Ordering](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/restaurant_ordering)** - Asynchronous tools and parallel calls.
-4. **[Episode Generation](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/episode_generation)** - Content generation tools.
+1. **[Hello World](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/hello_world)** - Basic knowledge.
+2. **[MCP Simple](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/mcp_simple)** - MCP protocol tool integration.
+3. **[Restaurant Ordering](https://github.com/bytedance/agentkit-samples/tree/main/python/02-use-cases/restaurant_ordering)** - Asynchronous tools and parallel calls.
+4. **[Episode Generation](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/image_video_tools)** - Content generation tools.
 
 ### Path 3: Multi-Agent Systems
 
-1. **[Hello World](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/hello_world)** - Single Agent basics.
-2. **[Multi Agents](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/multi_agents)** - Multi-agent collaboration models.
-3. **[A2A Simple](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/a2a_simple)** - Inter-Agent communication.
-4. **[VikingMem](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/vikingmem)** - Cross-session memory management.
+1. **[Hello World](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/hello_world)** - Single Agent basics.
+2. **[Multi Agents](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/multi_agents)** - Multi-agent collaboration models.
+3. **[A2A Simple](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/a2a_simple)** - Inter-Agent communication.
+4. **[VikingMem](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/05-agentkit-memory/viking_memory)** - Cross-session memory management.
 
 ## 🔍 Detailed Case Explanations
 
@@ -325,12 +325,12 @@ Agent-to-Agent protocol, demonstrating:
 
 ### Q1: Which case should I start with?
 
-**A**: It is highly recommended to start with [Hello World](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/hello_world), as it covers the most basic Agent creation and memory management. After that, choose based on your needs:
+**A**: It is highly recommended to start with [Hello World](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/hello_world), as it covers the most basic Agent creation and memory management. After that, choose based on your needs:
 
-- Need content moderation → [Callback](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/callback)
-- Need tool integration → [MCP Simple](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/mcp_simple) or [Travel Concierge](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/travel_concierge)
-- Need a knowledge base → [VikingDB](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/vikingdb)
-- Need multiple Agents → [Multi Agents](https://github.com/bytedance/agentkit-samples/tree/main/02-use-cases/beginner/multi_agents)
+- Need content moderation → [Callback](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/callback)
+- Need tool integration → [MCP Simple](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/mcp_simple) or [Travel Concierge](https://github.com/bytedance/agentkit-samples/tree/main/python/workshop/beginner/travel_concierge)
+- Need a knowledge base → [VikingDB](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/06-agentkit-knowledge/viking_knowledge)
+- Need multiple Agents → [Multi Agents](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/01-agentkit-runtime/multi_agents)
 
 ### Q2: Why won't my case run?
 
