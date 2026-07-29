@@ -213,6 +213,19 @@ def extract_runtime_status(result):
     return result_body.get("Status") or ""
 
 
+def print_block(title):
+    print()
+    print(f"== {title} ==")
+
+
+def print_field(label, value):
+    print(f"{label}: {value or '-'}")
+
+
+def print_log_path(log_path):
+    print_field("Log", log_path)
+
+
 def extract_endpoint(result):
     result_body = result.get("Result") or {}
     endpoint = result_body.get("Endpoint")
@@ -342,7 +355,7 @@ def create_runtime(config_path, body, body_source, state_path, log_path, verbose
     state["updated_at"] = datetime.datetime.now().isoformat()
     state["last_create_response_metadata"] = result.get("ResponseMetadata") or {}
     write_state(state_path, state)
-    return runtime_id, state
+    return runtime_id, state, result
 
 
 def get_runtime(config_path, runtime_id, log_path, verbose):
@@ -431,11 +444,22 @@ def update_state_from_update_runtime(state_path, state, body, body_source, resul
     return state
 
 
-def print_runtime_summary(runtime_id, status, endpoint, state_path):
-    print(f"RuntimeId: {runtime_id}")
-    print(f"Status: {status or '-'}")
-    print(f"Endpoint: {endpoint or '-'}")
-    print(f"State: {state_path}")
+def print_api_success(action, request_id, runtime_id=None):
+    print_block(action)
+    print_field("Status", "Succeeded")
+    if runtime_id:
+        print_field("RuntimeId", runtime_id)
+    print_field("RequestId", request_id)
+
+
+def print_runtime_summary(runtime_id, status, endpoint, state_path, request_id=None):
+    print_block("Runtime Status")
+    print_field("RuntimeId", runtime_id)
+    print_field("Status", status)
+    print_field("Endpoint", endpoint)
+    if request_id:
+        print_field("RequestId", request_id)
+    print_field("State", state_path)
 
 
 def wait_for_ready(
@@ -457,7 +481,13 @@ def wait_for_ready(
 
         status = last_state.get("status")
         endpoint = last_state.get("endpoint")
-        print_runtime_summary(runtime_id, status, endpoint, state_path)
+        print_runtime_summary(
+            runtime_id,
+            status,
+            endpoint,
+            state_path,
+            api_request_id(result),
+        )
 
         if status == READY_STATUS:
             return last_state
@@ -495,18 +525,22 @@ def run_create(args):
     runtime_id = state.get("runtime_id")
 
     if not args.quiet:
-        print(f"Log: {log_path}")
+        print_log_path(log_path)
 
     if runtime_id:
-        print(f"Found existing RuntimeId in state, skip create: {runtime_id}")
+        print_block("CreateRuntime")
+        print_field("Status", "Skipped")
+        print_field("RuntimeId", runtime_id)
+        print_field("Reason", "RuntimeId found in state")
     else:
         body, body_source = resolve_create_body(config, args.config, args.body_file)
         if not args.quiet:
-            print(f"Creating runtime: {body.get('name')}")
+            print_block("CreateRuntime")
+            print_field("RuntimeName", body.get("name"))
         lock_path = state_path + ".lock"
         acquire_create_lock(lock_path)
         try:
-            runtime_id, state = create_runtime(
+            runtime_id, state, result = create_runtime(
                 args.config,
                 body,
                 body_source,
@@ -514,7 +548,7 @@ def run_create(args):
                 log_path,
                 not args.quiet,
             )
-            print(f"CreateRuntime succeeded, RuntimeId: {runtime_id}")
+            print_api_success("CreateRuntime", api_request_id(result), runtime_id)
         finally:
             release_create_lock(lock_path)
 
@@ -537,8 +571,9 @@ def run_get(args):
     runtime_id = runtime_id_from_args_or_state(args, state)
 
     if not args.quiet:
-        print(f"Log: {log_path}")
-        print(f"Checking runtime status: {runtime_id}")
+        print_log_path(log_path)
+        print_block("GetRuntime")
+        print_field("RuntimeId", runtime_id)
 
     result = get_runtime(args.config, runtime_id, log_path, not args.quiet)
     state = update_state_from_get_runtime(state_path, state, result)
@@ -547,6 +582,7 @@ def run_get(args):
         state.get("status"),
         state.get("endpoint"),
         state_path,
+        api_request_id(result),
     )
 
 
@@ -557,11 +593,13 @@ def run_delete(args):
     runtime_id = runtime_id_from_args_or_state(args, state)
 
     if not args.quiet:
-        print(f"Log: {log_path}")
-        print(f"Deleting runtime: {runtime_id}")
+        print_log_path(log_path)
+        print_block("DeleteRuntime")
+        print_field("RuntimeId", runtime_id)
 
     result = delete_runtime(args.config, runtime_id, log_path, not args.quiet)
     state = update_state_from_delete_runtime(state_path, state, runtime_id, result)
+    print_api_success("DeleteRuntime", api_request_id(result), runtime_id)
     print_runtime_summary(
         runtime_id,
         state.get("status"),
@@ -578,9 +616,10 @@ def run_update(args):
     runtime_id = body.get("RuntimeId")
 
     if not args.quiet:
-        print(f"Log: {log_path}")
-        print(f"Updating runtime: {runtime_id}")
-        print(f"ArtifactUrl: {body.get('ArtifactUrl')}")
+        print_log_path(log_path)
+        print_block("UpdateRuntime")
+        print_field("RuntimeId", runtime_id)
+        print_field("ArtifactUrl", body.get("ArtifactUrl"))
 
     result = update_runtime(args.config, body, log_path, not args.quiet)
     state = update_state_from_update_runtime(
@@ -590,7 +629,7 @@ def run_update(args):
         body_source,
         result,
     )
-    print(f"UpdateRuntime succeeded, RuntimeId: {runtime_id}")
+    print_api_success("UpdateRuntime", api_request_id(result), runtime_id)
 
     wait_for_ready(
         args.config,

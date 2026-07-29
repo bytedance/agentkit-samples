@@ -162,6 +162,8 @@ python3 create_vke_runtime.py create --config config.json --timeout 600 --interv
 
 如果 Runtime 状态变为 `Ready`，脚本结束。若状态进入 `Failed`、`CreateFailed` 或 `Error`，脚本会报错退出。若超时仍未 `Ready`，脚本会提示稍后用 `get` 命令继续查询。
 
+`CreateRuntime` 成功后会在控制台打印 `RequestId`，同时完整请求和响应会写入日志文件。
+
 ## 查询 Runtime
 
 使用 state 文件里的 `RuntimeId`：
@@ -219,6 +221,8 @@ python3 create_vke_runtime.py update --config config.json --runtime-id r-xxxx --
 python3 create_vke_runtime.py update --config config.json --artifact-url IMAGE_URL --timeout 600 --interval 15
 ```
 
+`UpdateRuntime` 成功后会在控制台打印 `RequestId`，同时完整请求和响应会写入日志文件。
+
 也可以使用完整 UpdateRuntime body：
 
 ```bash
@@ -269,6 +273,8 @@ python3 create_vke_runtime.py delete --config config.json --runtime-id r-xxxx
 
 删除成功后，脚本会把 state 标记为 `Deleted`，把删除过的 ID 写入 `deleted_runtime_id`，并清空当前活跃的 `runtime_id`。这样后续再执行 `create` 时，不会被已删除的旧 RuntimeId 阻止重新创建。
 
+`DeleteRuntime` 成功后会在控制台打印 `RequestId`，同时完整请求和响应会写入日志文件。
+
 如果删除失败，终端会展示友好提示，并带上 `request_id`：
 
 ```text
@@ -281,11 +287,35 @@ python3 create_vke_runtime.py delete --config config.json --runtime-id r-xxxx
 
 ```text
 Log: config.json.vke-runtime-state.json.log
-Checking runtime status: r-xxxx
+
+== GetRuntime ==
+RuntimeId: r-xxxx
+
+== Runtime Status ==
 RuntimeId: r-xxxx
 Status: Ready
 Endpoint: https://example.runtime
+RequestId: req-xxxx
 State: config.json.vke-runtime-state.json
+```
+
+创建、更新、删除成功时也会打印对应接口的 `RequestId`：
+
+```text
+== CreateRuntime ==
+Status: Succeeded
+RuntimeId: r-xxxx
+RequestId: req-create-xxxx
+
+== UpdateRuntime ==
+Status: Succeeded
+RuntimeId: r-xxxx
+RequestId: req-update-xxxx
+
+== DeleteRuntime ==
+Status: Succeeded
+RuntimeId: r-xxxx
+RequestId: req-delete-xxxx
 ```
 
 详细 OpenAPI 请求和响应会追加写入日志文件。日志中包含：

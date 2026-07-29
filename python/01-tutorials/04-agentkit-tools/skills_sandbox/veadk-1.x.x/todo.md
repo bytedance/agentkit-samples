@@ -21,4 +21,3 @@ runtime agent (run_code) -> aio sandbox
 runtime agent system prompt: 你是一个xx小助手，你有run_code工具。假设你需要执行skills来完成任务，在执行skills过程中，如果有需要跑的代码、执行一些shell命令，需要调用run_code工具来完成。
 
 [不推荐，之后看需求再搞], case9: local_skills + remote_registry, aio_sandbox
-
