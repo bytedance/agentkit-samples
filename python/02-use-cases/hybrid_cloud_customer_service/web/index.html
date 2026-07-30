@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AgentKit Chat</title>
+    <link rel="stylesheet" href="/web/styles.css?v=workbench-7" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="rail">
+        <div class="brand"><span class="brand-mark">A</span><span>AgentKit Chat</span></div>
+        <section class="session-pane" aria-label="本地会话">
+          <div class="session-pane-head"><strong>会话</strong><button id="new-session" type="button" title="新建会话">＋</button></div>
+          <div id="session-list" class="session-list"></div>
+        </section>
+      </aside>
+
+      <main class="workspace">
+        <header>
+          <div>
+            <p class="eyebrow">HYBRID CLOUD CUSTOMER SERVICE</p>
+            <h1>企业智能客服</h1>
+          </div>
+          <button id="runtime-config-open" class="runtime-config-open" type="button" title="Runtime 凭据只保存在本地 BFF 内存中">连接配置</button>
+          <div id="runtime-status" class="status-pill pending" title="发送请求后显示实际连接目标和 Runtime 数据模式"><span class="dot"></span><span>尚未调用验证</span></div>
+        </header>
+
+        <section id="messages" class="messages"></section>
+
+        <form id="composer" class="composer">
+          <textarea id="message" rows="2" placeholder="向 Agent 提问，Enter 发送，Shift+Enter 换行"></textarea>
+          <button id="send" type="submit" title="发送到当前 Runtime；远端 SSE 会被解析为最终回答和可折叠思考过程">发送</button>
+        </form>
+      </main>
+
+    </div>
+    <dialog id="runtime-config-dialog" class="runtime-config-dialog">
+      <div class="trace-dialog-head">
+        <div><p class="eyebrow">LOCAL BFF CONFIGURATION</p><h2>Runtime 连接配置</h2></div>
+        <button id="runtime-config-close" class="trace-close" type="button" aria-label="关闭 Runtime 配置">×</button>
+      </div>
+      <p class="module-description">Endpoint 与 API Key 只提交给本地 BFF；Key 不会写入浏览器 LocalStorage、URL 或仓库。重启本地 UI 后，本次输入的 Key 自动清除。保存只表示配置进入 BFF；发送一条消息并看到“远端 Runtime · Demo/Live”才证明请求到达远端。</p>
+      <form id="runtime-config-form" class="runtime-config-form">
+        <label>Runtime Endpoint<input id="runtime-config-endpoint" name="endpoint" type="url" placeholder="https://…" required /></label>
+        <label>Runtime API Key<input id="runtime-config-key" name="api_key" type="password" autocomplete="off" placeholder="粘贴 API Key" required /></label>
+        <p id="runtime-config-status" class="runtime-config-status"></p>
+        <div class="runtime-config-actions">
+          <button id="runtime-config-demo" type="button" class="secondary">使用本地 Demo</button>
+          <button id="runtime-config-reset" type="button" class="secondary">恢复 .env 配置</button>
+          <button type="submit">保存并连接</button>
+        </div>
+      </form>
+    </dialog>
+    <script src="/web/app.js?v=workbench-18"></script>
+  </body>
+</html>

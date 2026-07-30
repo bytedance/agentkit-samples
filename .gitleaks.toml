@@ -73,4 +73,9 @@ description = "Empty environment variables with KEY pattern"
 regex = '''os\.environ\[".*?KEY"\]\s*=\s*".+"'''
 
 [allowlist]
-paths = ["requirements.txt", "tests"]
+paths = [
+    "requirements.txt",
+    "tests",
+    "python/02-use-cases/hybrid_cloud_customer_service/requirements.lock",
+    "python/02-use-cases/hybrid_cloud_customer_service/uv.lock",
+]

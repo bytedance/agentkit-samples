@@ -1,0 +1,45 @@
+name: 混合云企业智能客服
+name_en: Hybrid Cloud Customer Service
+description: 基于 AgentKit 构建的混合云企业智能客服全流程示例
+details: |
+  该示例展示企业智能客服从本地开发到混合云 Runtime 发布的完整流程，
+  串联知识库、长期记忆、会话、MCP、Skills、A2A、身份安全、评测和 Trace，
+  并提供交互式部署脚本、验证脚本、路线图界面与客户演示指引。
+tags:
+  industry: 金融
+  from: volcengine
+  framework: veadk
+  language: python
+  tech:
+    - Hybrid Cloud
+    - A2A
+    - MCP
+    - Skills
+    - OAuth
+type: application
+scenarios:
+  - name: 客服知识问答
+    desc: 基于企业知识库回答客户政策咨询问题
+  - name: 用户偏好记忆
+    desc: 跨会话保存偏好并验证不同用户隔离
+  - name: 多智能体协作
+    desc: 通过A2A委派投诉趋势数据分析任务
+  - name: 安全发布验收
+    desc: 使用评测与Trace验证上线质量门槛
+prompts:
+  - text: 知识库验收标记是什么？请只返回标记和来源文件。
+  - text: 请记住我的退款到账偏好，并在新会话中复述。
+  - text: 请调用 Skill 做退款合规检查。
+  - text: 请委派给 A2A 数据 Agent 分析过去一年的季度投诉趋势。
+components:
+  - type: sandbox
+    product: skills_sandbox
+  - type: memory
+    product: mem0
+  - type: mcp_toolset
+    product: mcptoolset
+models:
+  - doubao-seed-2-0-pro
+category: use-case
+language: python
+difficulty: advanced

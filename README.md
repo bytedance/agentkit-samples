@@ -44,6 +44,7 @@ AgentKit 代码工坊为让您快速上手 AgentKit 平台，提供了不同入�
 | [`数据分析智能体`](https://github.com/bytedance/agentkit-samples/tree/main/python/02-use-cases/data_analysis_with_datalake)            | ![label](https://img.shields.io/badge/%E4%B8%93%E5%AE%B6-CD5C5C) | 基于 LanceDB 构建的数据分析智能体                                              |
 | [`电商营销视频生成`](https://github.com/bytedance/agentkit-samples/tree/main/python/02-use-cases/ad_video_gen_a2a)                            | ![label](https://img.shields.io/badge/%E4%B8%93%E5%AE%B6-CD5C5C) | 基于A2A构建的多智能体电商营销视频生成示例，展示如何利用A2A以及图片、视频生成工具进行智能视频内容创作              |
 | [`运行skills的智能体`](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/04-agentkit-tools/skills_sandbox)                            | ![label](https://img.shields.io/badge/%E4%B8%93%E5%AE%B6-CD5C5C) | 基于 AgentKit & VeADK & sandbox 构建可以运行 skills 的智能体 |
+| [`混合云企业智能客服`](https://github.com/bytedance/agentkit-samples/tree/main/python/02-use-cases/hybrid_cloud_customer_service) | ![label](https://img.shields.io/badge/%E4%B8%93%E5%AE%B6-CD5C5C) | 展示混合云部署、知识、记忆、工具、安全、可观测与多 Agent 协同的完整故事线 |
 
 每个用例都包含完整的实现，并详细说明如何结合 AgentKit 组件构建应用。
 
