@@ -1,5 +1,0 @@
-name: hybrid_cloud_customer_service
-category: use-case
-language: python
-difficulty: advanced
-description: Hybrid-cloud enterprise customer-service demo with safety and A2A fallback.

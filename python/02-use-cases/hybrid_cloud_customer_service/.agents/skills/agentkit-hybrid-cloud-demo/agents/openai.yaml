@@ -1,4 +1,0 @@
-interface:
-  display_name: "AgentKit 混合云 Demo"
-  short_description: "按 README 部署、更新并验收 AgentKit 混合云 Demo"
-  default_prompt: "Use $agentkit-hybrid-cloud-demo to deploy or update the hybrid-cloud customer-service demo step by step."
