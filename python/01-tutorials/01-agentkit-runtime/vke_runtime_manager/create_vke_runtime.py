@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import time
+from glob import glob
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from agentkit_client import call_api, load_config
@@ -71,6 +72,27 @@ def validate_create_body(body, source):
             + ", ".join(sorted(missing))
         )
 
+    validate_envs(body.get("Envs"), source)
+
+
+def validate_envs(envs, source):
+    if envs in (None, ""):
+        return
+    if not isinstance(envs, list):
+        raise ValueError(f"Envs in {source} must be a JSON array")
+
+    for index, item in enumerate(envs, start=1):
+        if not isinstance(item, dict):
+            raise ValueError(f"Envs.{index} in {source} must be a JSON object")
+        key = item.get("Key")
+        if not isinstance(key, str) or not key.strip():
+            raise ValueError(f"Envs.{index}.Key in {source} must be a non-empty string")
+        if "Value" not in item:
+            raise ValueError(f"Envs.{index}.Value is required in {source}")
+        value = item.get("Value")
+        if not isinstance(value, str):
+            raise ValueError(f"Envs.{index}.Value in {source} must be a string")
+
 
 def validate_update_body(body, source):
     required_paths = [
@@ -118,6 +140,51 @@ def apply_runtime_name_timestamp(body):
 
 def default_state_path(config_path):
     return config_path + ".vke-runtime-state.json"
+
+
+def timestamped_state_path(config_path):
+    timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    base_path = config_path + f".{timestamp}.vke-runtime-state.json"
+    if not os.path.exists(base_path):
+        return base_path
+
+    suffix = 1
+    while True:
+        path = config_path + f".{timestamp}.{suffix}.vke-runtime-state.json"
+        if not os.path.exists(path):
+            return path
+        suffix += 1
+
+
+def state_path_pattern(config_path):
+    return config_path + ".*.vke-runtime-state.json"
+
+
+def existing_state_paths(config_path):
+    candidates = glob(state_path_pattern(config_path))
+    if os.path.exists(default_state_path(config_path)):
+        candidates.append(default_state_path(config_path))
+    return candidates
+
+
+def latest_state_path(config_path):
+    candidates = existing_state_paths(config_path)
+    if not candidates:
+        return default_state_path(config_path)
+    return max(candidates, key=lambda path: os.path.getmtime(path))
+
+
+def resolve_create_state_path(config_path, explicit_state_path):
+    if explicit_state_path:
+        state = read_state(explicit_state_path)
+        return explicit_state_path, state
+
+    latest_path = latest_state_path(config_path)
+    latest_state = read_state(latest_path)
+    if latest_state.get("runtime_id"):
+        return latest_path, latest_state
+
+    return timestamped_state_path(config_path), {}
 
 
 def default_log_path(state_path):
@@ -250,7 +317,7 @@ def build_create_body(config):
 
     vke_configuration["workspace_id"] = config_text(config, "workspace_id") or "default"
 
-    return {
+    body = {
         "name": runtime_name_prefix(config),
         "artifact_type": "image",
         "artifact_url": config_text(config, "artifact_url"),
@@ -267,6 +334,11 @@ def build_create_body(config):
             "vke_configuration": vke_configuration,
         },
     }
+    envs = config.get("Envs")
+    validate_envs(envs, "config.Envs")
+    if envs:
+        body["Envs"] = envs
+    return body
 
 
 def ensure_body_dict(body, source):
@@ -519,9 +591,8 @@ def runtime_id_from_args_or_state(args, state):
 
 def run_create(args):
     config = load_config(args.config)
-    state_path = args.state or default_state_path(args.config)
+    state_path, state = resolve_create_state_path(args.config, args.state)
     log_path = args.log or default_log_path(state_path)
-    state = read_state(state_path)
     runtime_id = state.get("runtime_id")
 
     if not args.quiet:
@@ -531,7 +602,12 @@ def run_create(args):
         print_block("CreateRuntime")
         print_field("Status", "Skipped")
         print_field("RuntimeId", runtime_id)
-        print_field("Reason", "RuntimeId found in state")
+        print_field("State", state_path)
+        print_field("Reason", "RuntimeId found in state; skip create to avoid replay")
+        print_field(
+            "Next",
+            "Use get/update/delete, or pass --state NEW_STATE to create a new runtime",
+        )
     else:
         body, body_source = resolve_create_body(config, args.config, args.body_file)
         if not args.quiet:
@@ -565,7 +641,7 @@ def run_create(args):
 
 
 def run_get(args):
-    state_path = args.state or default_state_path(args.config)
+    state_path = args.state or latest_state_path(args.config)
     log_path = args.log or default_log_path(state_path)
     state = read_state(state_path)
     runtime_id = runtime_id_from_args_or_state(args, state)
@@ -587,7 +663,7 @@ def run_get(args):
 
 
 def run_delete(args):
-    state_path = args.state or default_state_path(args.config)
+    state_path = args.state or latest_state_path(args.config)
     log_path = args.log or default_log_path(state_path)
     state = read_state(state_path)
     runtime_id = runtime_id_from_args_or_state(args, state)
@@ -609,7 +685,7 @@ def run_delete(args):
 
 
 def run_update(args):
-    state_path = args.state or default_state_path(args.config)
+    state_path = args.state or latest_state_path(args.config)
     log_path = args.log or default_log_path(state_path)
     state = read_state(state_path)
     body, body_source = resolve_update_body(args, state)
@@ -673,6 +749,7 @@ def build_parser():
             "  workspace_id                    CP 服务工作区，未配置时默认为 default。\n"
             "  min_instance                   AgentKit Runtime 最小实例数。\n"
             "  max_instance                   AgentKit Runtime 最大实例数。\n"
+            "  Envs                           Runtime 环境变量数组，元素为 {Key, Value}。\n"
             "\n"
             "Runtime name:\n"
             "  name is a prefix. The final CreateRuntime body uses\n"
@@ -681,9 +758,9 @@ def build_parser():
             "State file:\n"
             "  --state specifies the runtime state JSON path. The state file stores\n"
             "  RuntimeId, status, endpoint, and timestamps. If --state is omitted,\n"
-            "  the default path is <config>.vke-runtime-state.json. When create runs\n"
-            "  again and the state file already contains RuntimeId, the script skips\n"
-            "  CreateRuntime and checks the existing runtime status instead.\n"
+            "  create reuses the latest state with RuntimeId to avoid replay; otherwise\n"
+            "  it creates <config>.YYYYmmddHHMMSS.vke-runtime-state.json. get/update/delete\n"
+            "  use the latest matching state file.\n"
             "\n"
             "Log file:\n"
             "  Terminal output only shows key steps and runtime status. Detailed\n"
@@ -699,8 +776,8 @@ def build_parser():
     common.add_argument(
         "--state",
         help=(
-            "runtime state json path; saves RuntimeId/status/endpoint and is reused "
-            "to skip duplicate create calls"
+            "runtime state json path; create reuses the latest state with RuntimeId "
+            "or creates a timestamped state, get/update/delete use the latest state"
         ),
     )
     common.add_argument(

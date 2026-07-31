@@ -45,7 +45,13 @@ cp config.example.json config.json
   "vke_cluster_id": "YOUR_VKE_CLUSTER_ID",
   "workspace_id": "default",
   "min_instance": 1,
-  "max_instance": 2
+  "max_instance": 2,
+  "Envs": [
+    {
+      "Key": "LOG_LEVEL",
+      "Value": "info"
+    }
+  ]
 }
 ```
 
@@ -69,12 +75,52 @@ cp config.example.json config.json
 | `workspace_id` | 否 | CP 服务工作区，未配置或为空时默认为 `default`。 |
 | `min_instance` | 否 | AgentKit Runtime 最小实例数，默认 `1`。 |
 | `max_instance` | 否 | AgentKit Runtime 最大实例数，默认 `2`。 |
+| `Envs` | 否 | Runtime 环境变量数组，会作为 CreateRuntime 顶层 `Envs` 字段传入。 |
 
 `name` 是 Runtime 名称前缀。创建时脚本会自动拼接时间戳，最终名称格式为：
 
 ```text
 <name>-YYYYmmddHHMMSS
 ```
+
+## 配置 Runtime 环境变量
+
+如果需要给 Runtime 注入环境变量，可以在 `config.json` 顶层配置 `Envs`：
+
+```json
+{
+  "Envs": [
+    {
+      "Key": "HI_AGENT_CONFIG_FILE",
+      "Value": "generalAgent_v3.zip"
+    },
+    {
+      "Key": "LOG_LEVEL",
+      "Value": "info"
+    }
+  ]
+}
+```
+
+脚本根据平铺配置自动构造 CreateRuntime body 时，会把 `Envs` 原样添加到最外层：
+
+```json
+{
+  "name": "sch-hia1-YYYYmmddHHMMSS",
+  "artifact_type": "image",
+  "artifact_url": "YOUR_IMAGE_URL",
+  "role_name": "YOUR_RUNTIME_ROLE_NAME",
+  "provider": "VKE",
+  "Envs": [
+    {
+      "Key": "HI_AGENT_CONFIG_FILE",
+      "Value": "generalAgent_v3.zip"
+    }
+  ]
+}
+```
+
+`Envs` 必须是数组，每个元素必须是包含 `Key` 和 `Value` 的对象；`Key` 需要是非空字符串，`Value` 需要是字符串。数据库密码、Redis 密码等敏感环境变量请只写在本地 `config.json`，不要提交到代码仓库。
 
 ## 安装依赖
 
@@ -117,7 +163,7 @@ python3 create_vke_runtime.py delete -h
 | 参数 | 说明 |
 | --- | --- |
 | `--config CONFIG` | 必填，配置文件路径。 |
-| `--state STATE` | Runtime state JSON 路径。默认是 `<config>.vke-runtime-state.json`。 |
+| `--state STATE` | Runtime state JSON 路径。`create` 默认先复用最新且包含 `RuntimeId` 的 state 防重放；没有可复用 state 时才生成 `<config>.YYYYmmddHHMMSS.vke-runtime-state.json`。`get`、`update`、`delete` 默认读取最新的匹配 state 文件。 |
 | `--log LOG` | API 详细日志路径。默认是 `<state>.log`。 |
 | `--quiet` | 隐藏非必要终端提示；状态摘要仍会输出。 |
 
@@ -130,22 +176,42 @@ python3 create_vke_runtime.py create --config config.json
 创建流程：
 
 1. 读取并校验 `config.json`。
-2. 读取 state 文件；如果 state 中已有 `runtime_id`，跳过 `CreateRuntime`，直接查询已有 Runtime 状态。
-3. 如果没有已有 `runtime_id`，生成 CreateRuntime body，并给 Runtime 名称追加时间戳。
-4. 创建 `<state>.lock`，避免并发重复创建。
-5. 调用 `CreateRuntime`，把 RuntimeId、状态、元信息写入 state 文件。
-6. 按 `--interval` 轮询 `GetRuntime`，最多等待 `--timeout` 秒。
+2. 如果没有传 `--state`，读取当前 `config.json` 对应的最新 state 文件；如果 state 中已有 `runtime_id`，跳过 `CreateRuntime`，直接查询已有 Runtime 状态，避免重复创建。
+3. 如果传了 `--state`，读取指定 state；如果里面已有 `runtime_id`，同样跳过创建。
+4. 如果没有可复用的 `runtime_id`，生成新的带时间戳 state 文件、构造 CreateRuntime body，并给 Runtime 名称追加时间戳。
+5. 创建 `<state>.lock`，避免并发重复创建。
+6. 调用 `CreateRuntime`，把 RuntimeId、状态、元信息写入 state 文件。
+7. 按 `--interval` 轮询 `GetRuntime`，最多等待 `--timeout` 秒。
 
-默认 state 文件：
+新建时默认 state 文件：
 
 ```bash
-config.json.vke-runtime-state.json
+config.json.20260729170112.vke-runtime-state.json
+```
+
+注意：上面的文件只会在没有可复用 state 时创建。如果已存在最新 state 且里面有 `runtime_id`，脚本会复用它并跳过创建，控制台会提示：
+
+```text
+== CreateRuntime ==
+Status: Skipped
+RuntimeId: r-xxxx
+State: config.json.20260729170112.vke-runtime-state.json
+Reason: RuntimeId found in state; skip create to avoid replay
+Next: Use get/update/delete, or pass --state NEW_STATE to create a new runtime
 ```
 
 默认日志文件：
 
 ```bash
-config.json.vke-runtime-state.json.log
+config.json.20260729170112.vke-runtime-state.json.log
+```
+
+时间戳为创建时刻，格式为 `YYYYmmddHHMMSS`。如果同一秒内生成的文件已存在，脚本会追加 `.1`、`.2` 这样的序号。如果不传 `--state`，后续 `get`、`update`、`delete` 会自动读取当前 `config.json` 对应的最新 state 文件。
+
+如果你确认要新建一个 Runtime，而不是复用最新 state，请显式指定一个新的 state 路径：
+
+```bash
+python3 create_vke_runtime.py create --config config.json --state config.json.20260729173000.vke-runtime-state.json
 ```
 
 手动指定 state 和日志路径：
@@ -286,7 +352,7 @@ python3 create_vke_runtime.py delete --config config.json --runtime-id r-xxxx
 终端默认只展示关键节点，例如：
 
 ```text
-Log: config.json.vke-runtime-state.json.log
+Log: config.json.20260729170112.vke-runtime-state.json.log
 
 == GetRuntime ==
 RuntimeId: r-xxxx
@@ -296,7 +362,7 @@ RuntimeId: r-xxxx
 Status: Ready
 Endpoint: https://example.runtime
 RequestId: req-xxxx
-State: config.json.vke-runtime-state.json
+State: config.json.20260729170112.vke-runtime-state.json
 ```
 
 创建、更新、删除成功时也会打印对应接口的 `RequestId`：
@@ -353,7 +419,7 @@ python3 create_vke_runtime.py create --config config.json --body-file body.json
 - `provider_config.vke_configuration.vke_cluster_id`
 - `provider_config.vke_configuration.namespace`
 
-`min_instance`、`max_instance`、`provider_config.vke_configuration.workspace_id`、`provider_config.vke_configuration.nas_mount_configs` 为选填字段。
+`min_instance`、`max_instance`、`Envs`、`provider_config.vke_configuration.workspace_id`、`provider_config.vke_configuration.nas_mount_configs` 为选填字段。
 
 示例 `body.json`：
 
@@ -366,6 +432,12 @@ python3 create_vke_runtime.py create --config config.json --body-file body.json
   "provider": "VKE",
   "min_instance": 1,
   "max_instance": 1,
+  "Envs": [
+    {
+      "Key": "LOG_LEVEL",
+      "Value": "info"
+    }
+  ],
   "authorizer_configuration": {
     "CustomJwtAuthorizer": {
       "DiscoveryUrl": "https://userpool-a95b65a4-5396-417a-a40f-79b266db0108.userpool.auth.id.cn-beijing.volces.com/.well-known/openid-configuration"

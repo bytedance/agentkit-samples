@@ -14,5 +14,11 @@
   "vke_cluster_id": "YOUR_VKE_CLUSTER_ID",
   "workspace_id": "default",
   "min_instance": 1,
-  "max_instance": 2
+  "max_instance": 2,
+  "Envs": [
+    {
+      "Key": "LOG_LEVEL",
+      "Value": "info"
+    }
+  ]
 }
