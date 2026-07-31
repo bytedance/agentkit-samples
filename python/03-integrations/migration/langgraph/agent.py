@@ -1,7 +1,8 @@
 import os
-import re
+from pathlib import Path
 from typing import Any, TypedDict
 
+from dotenv import load_dotenv
 from langchain.agents import create_agent
 from langchain_core.language_models import FakeMessagesListChatModel
 from langchain_core.messages import AIMessage, HumanMessage
@@ -15,6 +16,13 @@ SYSTEM_PROMPT = (
     "你是中国本地旅行规划助手。根据用户需求选择合适工具，结合城市信息、"
     "预算判断和交通建议，输出可执行的每日景点、美食和交通安排。"
 )
+
+_ENV_FILE = Path(__file__).with_name(".env")
+load_dotenv(_ENV_FILE)
+
+
+def _env(name: str, default: str = "") -> str:
+    return os.environ.get(name, "").strip() or default
 
 
 CITY_NOTES = {
@@ -45,26 +53,6 @@ def _find_city(text: str, default: str = "北京") -> str:
     for city in CITY_NOTES:
         if city in text:
             return city
-    return default
-
-
-def _extract_days(text: str, default: int = 3) -> int:
-    match = re.search(r"(\d+)\s*天", text)
-    return int(match.group(1)) if match else default
-
-
-def _extract_budget(text: str, default: int = 3000) -> int:
-    match = re.search(r"(?:预算|总预算)?\s*(\d{3,5})\s*元", text)
-    return int(match.group(1)) if match else default
-
-
-def _extract_travelers(text: str, default: str = "普通出行") -> str:
-    if "父母" in text or "长辈" in text:
-        return "带父母/长辈"
-    if "孩子" in text or "亲子" in text:
-        return "亲子"
-    if "朋友" in text or "同学" in text:
-        return "朋友同行"
     return default
 
 
@@ -128,20 +116,21 @@ class ToolCallingDemoChatModel(FakeMessagesListChatModel):
         return self
 
 
-def _build_chat_model() -> Any:
-    model_name = os.environ.get("MODEL_AGENT_NAME", "").strip()
-    api_key = os.environ.get("MODEL_AGENT_API_KEY", "").strip()
-    if model_name and api_key:
-        kwargs: dict[str, Any] = {
-            "model": model_name,
-            "api_key": api_key,
-            "temperature": float(os.environ.get("MODEL_AGENT_TEMPERATURE", "0.2")),
-        }
-        api_base = os.environ.get("MODEL_AGENT_API_BASE", "").strip()
-        if api_base:
-            kwargs["base_url"] = _openai_base_url(api_base)
-        return ChatOpenAI(**kwargs)
+def _build_openai_chat_model(model_name: str, api_key: str) -> ChatOpenAI:
+    kwargs: dict[str, Any] = {
+        "model": model_name,
+        "api_key": api_key,
+        "temperature": float(_env("MODEL_AGENT_TEMPERATURE", "0.2")),
+    }
 
+    api_base = _env("MODEL_AGENT_API_BASE")
+    if api_base:
+        kwargs["base_url"] = _openai_base_url(api_base)
+
+    return ChatOpenAI(**kwargs)
+
+
+def _build_demo_chat_model() -> ToolCallingDemoChatModel:
     return ToolCallingDemoChatModel(
         responses=[
             AIMessage(
@@ -178,6 +167,16 @@ def _build_chat_model() -> Any:
     )
 
 
+def _build_chat_model() -> Any:
+    model_name = _env("MODEL_AGENT_NAME")
+    api_key = _env("MODEL_AGENT_API_KEY")
+
+    if model_name and api_key:
+        return _build_openai_chat_model(model_name, api_key)
+
+    return _build_demo_chat_model()
+
+
 react_agent = create_agent(
     model=_build_chat_model(),
     tools=TRAVEL_TOOLS,
@@ -185,54 +184,25 @@ react_agent = create_agent(
 )
 
 
-def _extract_question(value: Any) -> str:
-    if isinstance(value, str):
-        return value
-    if isinstance(value, dict):
-        for key in ("question", "input", "prompt"):
-            text = value.get(key)
-            if isinstance(text, str) and text.strip():
-                return text
-        messages = value.get("messages")
-        if isinstance(messages, list) and messages:
-            return _extract_question(messages[-1])
-    content = getattr(value, "content", None)
-    if isinstance(content, str):
-        return content
-    return str(value)
+def _last_message_text(result: dict[str, Any]) -> str:
+    messages = result.get("messages", [])
+    if not messages:
+        return str(result)
+
+    last_message = messages[-1]
+    return getattr(last_message, "content", str(last_message))
 
 
-def _message_text(value: Any) -> str:
-    if value is None:
-        return ""
-    if isinstance(value, str):
-        return value
-    content = getattr(value, "content", None)
-    if isinstance(content, str):
-        return content
-    if isinstance(value, dict):
-        messages = value.get("messages")
-        if isinstance(messages, list) and messages:
-            return _message_text(messages[-1])
-    return str(value)
+def plan_trip(state: TravelState) -> TravelState:
+    result = react_agent.invoke({"messages": [HumanMessage(content=state["question"])]})
+    return {"answer": _last_message_text(result)}
 
 
-def call_react_agent(state: TravelState) -> TravelState:
-    question = _extract_question(state)
-    result = react_agent.invoke({"messages": [HumanMessage(content=question)]})
-    return {"answer": _message_text(result)}
-
-
-def build_graph():
-    builder = StateGraph(TravelState)
-    builder.add_node("call_react_agent", call_react_agent)
-
-    builder.add_edge(START, "call_react_agent")
-    builder.add_edge("call_react_agent", END)
-    return builder.compile(checkpointer=InMemorySaver())
-
-
-agent = build_graph()
+builder = StateGraph(TravelState)
+builder.add_node("plan_trip", plan_trip)
+builder.add_edge(START, "plan_trip")
+builder.add_edge("plan_trip", END)
+agent = builder.compile(checkpointer=InMemorySaver())
 
 
 if __name__ == "__main__":

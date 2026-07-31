@@ -75,7 +75,7 @@ uv pip install -r requirements.txt
 
 ### 环境准备
 
-复制 `.env.example` 为 `.env`，并在 `.env` 中填写需要的模型配置：
+复制 `.env.example` 为 `.env`，然后再.env中写入必要的环境变量：
 
 ```text
 MODEL_AGENT_NAME=<model-name>
