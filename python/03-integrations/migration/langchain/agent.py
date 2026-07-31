@@ -1,9 +1,16 @@
 import os
-from typing import Any
+from pathlib import Path
+from typing import Any, TypedDict
 
 from langchain.agents import create_agent
 from langchain_core.tools import BaseTool, tool
 from langchain_openai import ChatOpenAI
+
+
+class CityTravelNotes(TypedDict):
+    attractions: list[str]
+    foods: list[str]
+    transport: str
 
 
 SYSTEM_PROMPT = (
@@ -11,8 +18,12 @@ SYSTEM_PROMPT = (
     "预算判断和交通建议，输出可执行的每日景点、美食和交通安排。"
 )
 
+DEMO_QUESTION = (
+    "我想带父母去北京玩3天，总预算3000元，喜欢历史文化和"
+    "轻松一点的行程。请帮我规划每天的景点、美食和交通建议。"
+)
 
-CITY_NOTES = {
+CITY_NOTES: dict[str, CityTravelNotes] = {
     "北京": {
         "attractions": ["故宫博物院", "天坛公园", "什刹海胡同", "国家博物馆"],
         "foods": ["北京烤鸭", "炸酱面", "铜锅涮肉"],
@@ -31,7 +42,38 @@ CITY_NOTES = {
 }
 
 
-def _openai_base_url(api_base: str) -> str:
+def _load_dotenv() -> None:
+    env_path = Path(__file__).with_name(".env")
+    if not env_path.exists():
+        return
+
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        if line.startswith("export "):
+            line = line[len("export ") :].lstrip()
+
+        name, value = line.split("=", 1)
+        name = name.strip()
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+            value = value[1:-1]
+        if name and name not in os.environ:
+            os.environ[name] = value
+
+
+_load_dotenv()
+
+
+def _required_env(name: str) -> str:
+    value = os.environ.get(name, "").strip()
+    if not value:
+        raise RuntimeError(f"Set {name} before running this LangChain sample.")
+    return value
+
+
+def _normalize_openai_base_url(api_base: str) -> str:
     base_url = api_base.strip().rstrip("/")
     for suffix in ("/responses", "/chat/completions"):
         if base_url.endswith(suffix):
@@ -48,7 +90,7 @@ def _find_city(text: str, default: str = "北京") -> str:
 
 @tool
 def search_travel_notes(query: str) -> str:
-    """检索内置城市旅行资料，返回景点、美食和出行提示。"""
+    """根据用户旅行需求或城市名，检索内置城市旅行资料。"""
     city = _find_city(query)
     notes = CITY_NOTES[city]
     return (
@@ -61,7 +103,7 @@ def search_travel_notes(query: str) -> str:
 
 @tool
 def estimate_trip_budget(city: str, days: int, budget: int) -> str:
-    """估算指定城市、天数和总预算是否适合当前旅行计划。"""
+    """根据城市、旅行天数和总预算，估算预算是否适合当前计划。"""
     daily_budget = budget // max(days, 1)
     if daily_budget >= 1000:
         level = "比较宽松"
@@ -77,7 +119,7 @@ def estimate_trip_budget(city: str, days: int, budget: int) -> str:
 
 @tool
 def recommend_transport(city: str, travelers: str) -> str:
-    """根据城市和同行人类型给出交通建议。"""
+    """根据城市和同行人类型，给出适合的市内交通建议。"""
     base = CITY_NOTES.get(city, CITY_NOTES["北京"])["transport"]
     if "父母" in travelers or "长辈" in travelers:
         return f"{base} 建议每天只安排1到2个核心区域，并预留午休。"
@@ -94,8 +136,9 @@ TRAVEL_TOOLS: list[BaseTool] = [
 
 
 def build_model() -> ChatOpenAI:
-    model_name = os.environ["MODEL_AGENT_NAME"]
-    api_key = os.environ["MODEL_AGENT_API_KEY"]
+    """Create the OpenAI-compatible chat model used by the LangChain agent."""
+    model_name = _required_env("MODEL_AGENT_NAME")
+    api_key = _required_env("MODEL_AGENT_API_KEY")
     api_base = os.environ.get("MODEL_AGENT_API_BASE", "").strip()
 
     kwargs: dict[str, Any] = {
@@ -104,30 +147,23 @@ def build_model() -> ChatOpenAI:
         "temperature": float(os.environ.get("MODEL_AGENT_TEMPERATURE", "0.2")),
     }
     if api_base:
-        kwargs["base_url"] = _openai_base_url(api_base)
+        kwargs["base_url"] = _normalize_openai_base_url(api_base)
 
     return ChatOpenAI(**kwargs)
 
 
-agent = create_agent(
-    model=build_model(),
-    tools=TRAVEL_TOOLS,
-    system_prompt=SYSTEM_PROMPT,
-)
+def build_agent() -> Any:
+    """Create the native LangChain agent exported for AgentKit migration."""
+    return create_agent(
+        model=build_model(),
+        tools=TRAVEL_TOOLS,
+        system_prompt=SYSTEM_PROMPT,
+    )
+
+
+agent = build_agent()
 
 
 if __name__ == "__main__":
-    result = agent.invoke(
-        {
-            "messages": [
-                {
-                    "role": "user",
-                    "content": (
-                        "我想带父母去北京玩3天，总预算3000元，喜欢历史文化和"
-                        "轻松一点的行程。请帮我规划每天的景点、美食和交通建议。"
-                    ),
-                }
-            ]
-        }
-    )
+    result = agent.invoke({"messages": [{"role": "user", "content": DEMO_QUESTION}]})
     print(result["messages"][-1].content)

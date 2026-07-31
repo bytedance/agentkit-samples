@@ -2,7 +2,7 @@
 
 ## 概述
 
-AgentKit Runtime 原生支持主流智能体框架，已兼容 LangChain、LangGraph、Strands、Google ADK，以及基于 Bedrock AgentCore Runtime 构建的项目。对于 Dify 导出的工作流，可以通过 `agentkit migrate` 将 workflow 输入交给远端 Codex Sandbox进行处理，并生成开箱即用，可部署到AgentKit Runtime的VeADK工程。
+AgentKit Runtime 原生支持主流智能体框架，已兼容 LangChain、LangGraph、Strands、Google ADK，以及基于 Bedrock AgentCore Runtime 构建的项目。对于 Dify 导出的工作流，可以通过 `agentkit migrate` 将 workflow 输入交给远端 Codex Sandbox 进行处理，并生成开箱即用，可部署到 AgentKit Runtime 的 VeADK 工程。
 
 本Demo将展示 Dify advanced-chat 应用的迁移链路：从 Dify 导出的 workflow 出发，生成可直接执行 `agentkit deploy` 的 VeADK 项目。
 
@@ -32,7 +32,7 @@ export MODEL_AGENT_PROVIDER="openai"
 export MODEL_AGENT_API_BASE="https://ark.cn-beijing.volces.com/api/v3"
 export MODEL_AGENT_API_KEY=""
 
-# `AGENTKIT_MIGRATE_MODEL_API_KEY` 是远端 Codex 沙箱使用的模型 key。
+# `AGENTKIT_MIGRATE_MODEL_API_KEY` 是远端 Codex Sandbox 使用的模型 key。
 export AGENTKIT_MIGRATE_MODEL_API_KEY=""
 ```
 
@@ -44,7 +44,7 @@ export MODEL_AGENT_NAME=""
 export MODEL_AGENT_PROVIDER="openai"
 export MODEL_AGENT_API_BASE="https://ark.ap-southeast.bytepluses.com/api/v3/"
 export MODEL_AGENT_API_KEY=""
-# `AGENTKIT_MIGRATE_MODEL_API_KEY` 是远端 Codex 沙箱使用的模型 key。
+# `AGENTKIT_MIGRATE_MODEL_API_KEY` 是远端 Codex Sandbox 使用的模型 key。
 export AGENTKIT_MIGRATE_MODEL_API_KEY=""
 
 # BytePlus AgentKit AKSK

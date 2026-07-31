@@ -11,8 +11,8 @@
 ## 核心功能
 
 - 展示 Strands `Agent` factory 入口如何被 AgentKit Runtime 调用。
+- 使用 Strands `Agent` 组织模型、提示词和工具。
 - 使用 `@tool` 声明本地旅行资料检索、预算估算和交通建议工具。
-- 使用 Strands `OpenAIModel` 创建真实模型；provider 由 `OpenAIModel` 类决定，不需要 `MODEL_AGENT_PROVIDER`。
 - 保留原生 Strands 业务代码，并通过 `agentkit migrate` 生成 Runtime 适配层。
 
 ## Agent 能力
@@ -34,11 +34,12 @@ agentkit_app.py
     ↓
 StrandsAgentkitBridge
     ↓
-agent.py:agent  # zero-argument factory that creates a Strands Agent
-    ├── OpenAIModel / local demo model
+agent.py:agent
+    ├── Agent
     ├── search_travel_notes
     ├── estimate_trip_budget
-    └── recommend_transport
+    ├── recommend_transport
+    └── OpenAIModel
 ```
 
 ## 目录结构说明
@@ -48,8 +49,8 @@ strands/
 ├── .env.example       # 模型配置环境变量示例
 ├── README.md          # 中文说明文档
 ├── README_en.md       # 英文说明文档
-├── agent.py           # 原生 Strands Agent factory、tools 和模型配置
-└── requirements.txt   # Python 依赖列表，分为原生 agent 和 AgentKit 运行时两段
+├── agent.py           # 原生 Strands Agent factory 和 tools
+└── requirements.txt   # Python 依赖列表
 ```
 
 `agentkit migrate` 执行后会在当前目录生成 `agentkit_app.py` 和 `.agentkit/` 目录。生成文件不需要提前提交到样例源码中。
@@ -72,62 +73,51 @@ uv pip install -r requirements.txt
 
 ### 环境准备
 
-复制 `.env.example` 为 `.env`，保留需要的模型变量 key，使用 dotenv 空值形式：
+复制 `.env.example` 为 `.env`，并在 `.env` 中填写需要的模型配置：
 
 ```text
-MODEL_AGENT_NAME=
+MODEL_AGENT_NAME=<model-name>
 MODEL_AGENT_API_BASE=
-MODEL_AGENT_API_KEY=
+MODEL_AGENT_API_KEY=<api-key>
 ```
 
-实际模型配置通过 shell 环境变量提供：
+AgentKit CLI 在运行前会自动加载 `.env` 到 AgentKit CLI 的环境变量中。当前 demo 使用 Strands `OpenAIModel` 创建模型，因此不需要配置 `MODEL_AGENT_PROVIDER`，确保您的模型接入点支持 OpenAI 格式即可。
 
-```bash
-export MODEL_AGENT_NAME=
-export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
-export MODEL_AGENT_API_KEY=
+如果需要将生成的产物部署到 AgentKit Runtime，则将对应平台的账号配置写入 `.env`。
+
+火山引擎国内版：
+
+```text
+VOLCENGINE_ACCESS_KEY=<access-key>
+VOLCENGINE_SECRET_KEY=<secret-key>
 ```
 
-当前代码在配置 `MODEL_AGENT_NAME` 和 `MODEL_AGENT_API_KEY` 后使用 Strands `OpenAIModel` 创建模型，provider 已由 `OpenAIModel` 类决定，因此不需要 `MODEL_AGENT_PROVIDER`。`MODEL_AGENT_API_BASE` 可以使用 Ark Responses endpoint，样例传给 `OpenAIModel` 前会归一化为 OpenAI-compatible API root `https://ark.cn-beijing.volces.com/api/v3`。
+BytePlus 海外版 AgentKit：
 
-如使用火山引擎国内版，将账号 AK/SK 导入环境变量：
-
-```bash
-export VOLCENGINE_ACCESS_KEY=
-export VOLCENGINE_SECRET_KEY=
+```text
+BYTEPLUS_ACCESS_KEY=<access-key>
+BYTEPLUS_SECRET_KEY=<secret-key>
+CLOUD_PROVIDER=byteplus
+BYTEPLUS_REGION=ap-southeast-1
 ```
 
-如使用 BytePlus 海外版 AgentKit，导入以下环境变量：
-
-```bash
-export BYTEPLUS_ACCESS_KEY=
-export BYTEPLUS_SECRET_KEY=
-export CLOUD_PROVIDER=byteplus
-export BYTEPLUS_REGION=ap-southeast-1
-```
-
-账号凭证不写入 `.env.example` 或 `.env`，也不被原生 Strands agent 业务代码读取。
-
-如果没有配置模型环境变量，样例会使用本地 demo model，便于直接查看迁移前后的调用链路。
-
-### 调试方法
-
-直接运行原生 Strands Agent：
+### pre-check
+在执行迁移之前，先确保原来的Strands项目是正常且可运行的：
 
 ```bash
 python agent.py
 ```
 
-该命令会创建 `agent.py:agent` 返回的 Strands Agent，向 agent 发送固定旅行问题，并输出可读的旅行规划结果。
+该命令会调用 `agent.py:agent` 创建 Strands Agent，向 agent 发送固定旅行问题，并输出可读的旅行规划结果。
 
-也可以使用迁移后的 Runtime 应用进行调试。先执行迁移命令：
-
+### 执行Migration命令：
+在确保原项目是可执行的以后，就可以执行migration命令，进行Agentkit项目的适配了
 ```bash
 agentkit migrate . \
   --framework strands \
   --entry agent.py:agent \
   --name migration-strands-travel \
-  --verify 
+  --verify
 ```
 
 参数含义如下：
@@ -136,23 +126,18 @@ agentkit migrate . \
 - `--entry agent.py:agent`：指定原生 Strands Agent 零参 factory 入口。
 - `--verify`：生成后执行基础校验。
 
+执行成功后的产物即可直接部署到Agentkit Runtime上。
+全过程对原本的Strands agent.py无侵入，无改造。
+
 ## AgentKit 部署
 
-确认 `.agentkit/agentkit.yaml` 后执行：
+如果要执行 `agentkit deploy`，可以先关注 `.agentkit/agentkit.yaml` 当中的配置。确认后执行：
 
 ```bash
 agentkit deploy
 ```
 
-部署后，Runtime 入口是 `agentkit_app.py`，业务逻辑仍由 `agent.py:agent` 创建的 Strands Agent 和原有 tools 执行。
-
-部署时需要在部署环境中提供模型相关环境变量；账号凭证继续按上面火山引擎或 BytePlus 版本导入环境变量：
-
-```bash
-export MODEL_AGENT_NAME=
-export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
-export MODEL_AGENT_API_KEY=
-```
+部署后，即可在Agentkit平台的Runtime当中找到部署的项目。
 
 ## 示例提示词
 
@@ -161,7 +146,7 @@ export MODEL_AGENT_API_KEY=
 
 ## 效果展示
 
-运行示例提示词后，agent 会调用本地旅行资料、预算和交通工具，并输出按天拆分的旅行规划，内容包含景点安排、餐饮建议、预算判断和交通建议。
+运行示例提示词后，Agent 会通过 Strands 调用本地旅行资料、预算和交通工具，并输出按天拆分的旅行规划，内容包含景点安排、餐饮建议、预算判断和交通建议。
 
 ```text
 北京3天旅行规划（示例模型输出）
@@ -171,14 +156,6 @@ export MODEL_AGENT_API_KEY=
 ```
 
 ## 常见问题
-
-- 没有模型环境变量怎么办？
-
-  样例会使用本地 demo model 返回可读结果；配置 `MODEL_AGENT_NAME`、`MODEL_AGENT_API_BASE` 和 `MODEL_AGENT_API_KEY` 后，会改用真实 Strands `OpenAIModel`。
-
-- 账号凭证要放在哪里？
-
-  不写入 `.env.example` 或 `.env`。执行 `agentkit migrate` 或 `agentkit deploy` 前，按火山引擎或 BytePlus 版本导入对应环境变量即可。
 
 - 迁移命令会改写原有 `agent.py` 吗？
 

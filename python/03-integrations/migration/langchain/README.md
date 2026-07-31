@@ -73,47 +73,36 @@ uv pip install -r requirements.txt
 
 ### 环境准备
 
-复制 `.env.example` 为 `.env`，保留需要的模型变量 key，使用 dotenv 空值形式：
+复制 `.env.example` 为 `.env`，并在 `.env` 中填写需要的模型配置：
 
 ```text
-MODEL_AGENT_NAME=
+MODEL_AGENT_NAME=<model-name>
 MODEL_AGENT_API_BASE=
-MODEL_AGENT_API_KEY=
+MODEL_AGENT_API_KEY=<api-key>
 ```
 
-实际模型配置通过 shell 环境变量提供：
+AgentKit CLI 在运行前会自动加载 `.env` 到 AgentKit CLI 的环境变量中。当前 demo 使用 `langchain_openai.ChatOpenAI` 创建模型，因此不需要配置 `MODEL_AGENT_PROVIDER`，确保您的模型接入点支持 OpenAI 格式即可。
 
-```bash
-export MODEL_AGENT_NAME=
-export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
-export MODEL_AGENT_API_KEY=
+如果需要将生成的产物部署到 AgentKit Runtime，则将对应平台的账号配置写入 `.env`。
+
+火山引擎国内版：
+
+```text
+VOLCENGINE_ACCESS_KEY=<access-key>
+VOLCENGINE_SECRET_KEY=<secret-key>
 ```
 
-当前代码使用 `langchain_openai.ChatOpenAI` 创建模型，provider 已由 `ChatOpenAI` 类决定，因此不需要 `MODEL_AGENT_PROVIDER`。`MODEL_AGENT_API_BASE` 可以使用 Ark Responses endpoint，样例传给 `ChatOpenAI` 前会归一化为 OpenAI-compatible API root `https://ark.cn-beijing.volces.com/api/v3`。
+BytePlus 海外版 AgentKit：
 
-如使用火山引擎国内版，将账号 AK/SK 导入环境变量：
-
-```bash
-export VOLCENGINE_ACCESS_KEY=
-export VOLCENGINE_SECRET_KEY=
+```text
+BYTEPLUS_ACCESS_KEY=<access-key>
+BYTEPLUS_SECRET_KEY=<secret-key>
+CLOUD_PROVIDER=byteplus
+BYTEPLUS_REGION=ap-southeast-1
 ```
 
-如使用 BytePlus 海外版 AgentKit，导入以下环境变量：
-
-```bash
-export BYTEPLUS_ACCESS_KEY=
-export BYTEPLUS_SECRET_KEY=
-export CLOUD_PROVIDER=byteplus
-export BYTEPLUS_REGION=ap-southeast-1
-```
-
-账号凭证不写入 `.env.example` 或 `.env`，也不被原生 LangChain agent 读取。
-
-运行原生 LangChain agent 前必须配置 `MODEL_AGENT_NAME` 和 `MODEL_AGENT_API_KEY`。
-
-### 调试方法
-
-直接运行原生 LangChain Agent：
+### pre-check
+在执行迁移之前，先确保原来的langchain项目是正常且可运行的：
 
 ```bash
 python agent.py
@@ -121,8 +110,8 @@ python agent.py
 
 该命令会调用 `agent.py:agent`，向 agent 发送固定旅行问题，并使用配置的 OpenAI-compatible 模型完成一次真实对话。
 
-也可以使用迁移后的 Runtime 应用进行调试。先执行迁移命令：
-
+### 执行Migration命令：
+在确保原项目是可执行的以后，就可以执行migration命令，进行Agentkit项目的适配。
 ```bash
 agentkit migrate . \
   --framework langchain \
@@ -141,23 +130,18 @@ agentkit migrate . \
 - `--compat langserve`：生成 LangServe 兼容路由。
 - `--verify`：生成后执行基础校验。
 
+执行成功后的产物即可直接部署到Agentkit Runtime上。
+全过程对原本的Langchain agent.py无侵入，无改造。
+
 ## AgentKit 部署
 
-确认 `.agentkit/agentkit.yaml` 后执行：
+如果要执行 `agentkit deploy`，可以先关注 `.agentkit/agentkit.yaml` 当中的配置。确认后执行：
 
 ```bash
 agentkit deploy
 ```
 
-部署后，Runtime 入口是 `agentkit_app.py`，业务逻辑仍由 `agent.py:agent` 和原有 LangChain tools 执行。
-
-部署时需要在部署环境中提供模型相关环境变量；账号凭证继续按上面火山引擎或 BytePlus 版本导入环境变量：
-
-```bash
-export MODEL_AGENT_NAME=
-export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
-export MODEL_AGENT_API_KEY=
-```
+部署后，即可在Agentkit Runtime中找到对应的Agent。
 
 ## 示例提示词
 
@@ -176,10 +160,6 @@ export MODEL_AGENT_API_KEY=
 ```
 
 ## 常见问题
-
-- 没有模型环境变量怎么办？
-
-  需要先配置 `MODEL_AGENT_NAME` 和 `MODEL_AGENT_API_KEY`。`MODEL_AGENT_API_BASE` 可选，配置为 Ark Responses endpoint 时会自动归一化为 OpenAI-compatible API root。
 
 - 迁移命令会改写原有 `agent.py` 吗？
 

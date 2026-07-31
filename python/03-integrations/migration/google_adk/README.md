@@ -10,13 +10,14 @@
 
 ## 核心功能
 
-- 展示原生 Google ADK agent 入口如何被 AgentKit Runtime 包装。
-- 保留原生业务代码，通过 `agentkit migrate` 生成 `agentkit_app.py` 和 `.agentkit/` 配置，进行Google ADK项目的Agentkit适配。
-- 展示如何通过Agentkit Deploy，将迁移后的产物部署到Agentkit Runtime中。
+- 展示 Google ADK agent 入口如何被 AgentKit Runtime 调用。
+- 使用 Google ADK `Agent` 组织模型、提示词和工具。
+- 使用本地函数声明旅行资料检索、预算估算和交通建议工具。
+- 保留原生 Google ADK 业务代码，并通过 `agentkit migrate` 生成 Runtime 适配层。
 
 ## Agent 能力
 
-为了更好的模拟用户使用场景，本示例的Google ADK Agent包含以下工具：
+本示例包含以下本地工具：
 
 - `search_travel_notes`：检索内置城市旅行资料。
 - `estimate_trip_budget`：按城市、天数和总预算估算预算是否宽松。
@@ -33,22 +34,24 @@ agentkit_app.py
     ↓
 AgentkitAgentServerApp
     ↓
-agent.py:root_agent  # Google ADK Agent
+agent.py:root_agent
+    ├── Agent
     ├── search_travel_notes
     ├── estimate_trip_budget
-    └── recommend_transport
+    ├── recommend_transport
+    └── OpenAILlm
 ```
 
 ## 目录结构说明
 
 ```bash
 google_adk/
-├── .env.example       # 方舟模型配置环境变量示例
+├── .env.example       # 模型配置环境变量示例
 ├── README.md          # 中文说明文档
 ├── README_en.md       # 英文说明文档
-├── agent.py           # 原生 Google ADK Agent 和本地 tools
+├── agent.py           # 原生 Google ADK Agent 和 tools
 ├── project.yaml       # 项目信息元数据
-└── requirements.txt   # Python 依赖列表，分为原生 ADK 和 AgentKit 迁移运行时两段
+└── requirements.txt   # Python 依赖列表
 ```
 
 `agentkit migrate` 执行后会在当前目录生成 `agentkit_app.py` 和 `.agentkit/` 目录。生成文件不需要提前提交到样例源码中。
@@ -71,46 +74,45 @@ uv pip install -r requirements.txt
 
 ### 环境准备
 
-通过环境变量，进行下列相关参数的配置：
+复制 `.env.example` 为 `.env`，并在 `.env` 中填写需要的模型配置：
 
-```bash
-export MODEL_AGENT_NAME=
-export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3
-export MODEL_AGENT_API_KEY=
+```text
+MODEL_AGENT_NAME=<model-name>
+MODEL_AGENT_API_BASE=
+MODEL_AGENT_API_KEY=<api-key>
 ```
 
-当前代码使用原生 Google ADK `Agent`，并通过 ADK `OpenAILlm` 接入 OpenAI-compatible 方舟模型。`MODEL_AGENT_API_BASE` 可以使用 Ark Responses endpoint，样例传给 OpenAI SDK 前会归一化为 OpenAI-compatible API root `https://ark.cn-beijing.volces.com/api/v3`。
+AgentKit CLI 在运行前会自动加载 `.env` 到 AgentKit CLI 的环境变量中。当前 demo 使用 Google ADK `OpenAILlm` 创建模型，因此不需要配置 `MODEL_AGENT_PROVIDER`，确保您的模型接入点支持 OpenAI 格式即可。
 
+如果需要将生成的产物部署到 AgentKit Runtime，则将对应平台的账号配置写入 `.env`。
 
-如使用火山引擎国内版，将账号 AK/SK 导入环境变量：
+火山引擎国内版：
 
-```bash
-export VOLCENGINE_ACCESS_KEY=
-export VOLCENGINE_SECRET_KEY=
+```text
+VOLCENGINE_ACCESS_KEY=<access-key>
+VOLCENGINE_SECRET_KEY=<secret-key>
 ```
 
-如使用 BytePlus 海外版 AgentKit，导入以下环境变量：
+BytePlus 海外版 AgentKit：
 
-```bash
-export BYTEPLUS_ACCESS_KEY=
-export BYTEPLUS_SECRET_KEY=
-export CLOUD_PROVIDER=byteplus
-export BYTEPLUS_REGION=ap-southeast-1
+```text
+BYTEPLUS_ACCESS_KEY=<access-key>
+BYTEPLUS_SECRET_KEY=<secret-key>
+CLOUD_PROVIDER=byteplus
+BYTEPLUS_REGION=ap-southeast-1
 ```
 
-
-### 调试方法
-
-直接运行原生项目：
+### pre-check
+在执行迁移之前，先确保原来的Google ADK项目是正常且可运行的：
 
 ```bash
 python agent.py
 ```
 
-该命令会通过 ADK `Runner` 调用 `agent.py:root_agent`，向 agent 发送固定问题 `我想去北京玩3天`，并使用配置的 Ark OpenAI-compatible 模型完成一次真实对话。
+该命令会通过 ADK `Runner` 调用 `agent.py:root_agent`，向 agent 发送固定旅行问题，并使用配置的 OpenAI-compatible 模型完成一次真实对话。
 
-也可以使用迁移后的 Runtime 应用进行调试。先执行迁移命令：
-
+### 执行Migration命令：
+在确保原项目是可执行的以后，就可以执行migration命令，进行Agentkit项目的适配了
 ```bash
 agentkit migrate . \
   --framework adk \
@@ -128,23 +130,18 @@ agentkit migrate . \
 
 Google ADK 迁移不需要 `--input-key`。迁移命令会生成 `AgentkitAgentServerApp` 包装原生 `root_agent`，不会改写 `agent.py`。
 
+执行成功后的产物即可直接部署到Agentkit Runtime上。
+全过程对原本的Google ADK agent.py无侵入，无改造。
+
 ## AgentKit 部署
 
-确认 `.agentkit/agentkit.yaml` 后执行：
+如果要执行 `agentkit deploy`，可以先关注 `.agentkit/agentkit.yaml` 当中的配置。确认后执行：
 
 ```bash
 agentkit deploy
 ```
 
-部署后，Runtime 入口是 `agentkit_app.py`，业务逻辑仍由原始 `agent.py:root_agent` 和本地 tools 执行。
-
-部署时需要在部署环境中提供原生 Google ADK 模型运行所需变量；账号凭证继续按上面火山引擎或 BytePlus 版本导入环境变量：
-
-```bash
-export MODEL_AGENT_NAME=
-export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
-export MODEL_AGENT_API_KEY=
-```
+部署后，即可在Agentkit平台的Runtime当中找到部署的项目。
 
 ## 示例提示词
 
@@ -153,21 +150,16 @@ export MODEL_AGENT_API_KEY=
 
 ## 效果展示
 
-运行 `python agent.py` 后会调用 `root_agent` 并输出模型返回的旅行规划结果。示例问题固定为：
+运行示例提示词后，Agent 会通过 Google ADK 调用本地旅行资料、预算和交通工具，并输出按天拆分的旅行规划，内容包含景点安排、餐饮建议、预算判断和交通建议。
 
 ```text
-我想去北京玩3天
+北京3天旅行规划（示例模型输出）
+
+需求摘要：偏好历史文化, 胡同街区, 当地美食, 轻松慢游。
+预算建议：北京3天总预算3000元，人均每日约1000元，预算判断：比较宽松。
 ```
 
 ## 常见问题
-
-- 为什么没有 `MODEL_AGENT_PROVIDER`？
-
-  本示例使用原生 Google ADK `Agent` 和 ADK `OpenAILlm`。provider 已由 `OpenAILlm` 以及 `MODEL_AGENT_API_BASE` 指向的 Ark OpenAI-compatible endpoint 决定，不需要单独配置 provider。
-
-- 账号凭证要放在哪里？
-
-  不写入 `.env.example` 或 `.env`。执行 `agentkit migrate` 或 `agentkit deploy` 前，按火山引擎或 BytePlus 版本导入对应环境变量即可。
 
 - 迁移命令会改写原有 `agent.py` 吗？
 

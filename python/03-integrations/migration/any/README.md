@@ -2,9 +2,9 @@
 
 ## 概述
 
-AgentKit Runtime 原生支持主流智能体框架，已兼容 LangChain、LangGraph、Strands、Google ADK，以及基于 Bedrock AgentCore Runtime 构建的项目。对于暂未显式适配、结构不固定的项目，可以使用 agentkit migration命令，结合codex sandbox的能力，发起通用迁移。
+AgentKit Runtime 原生支持主流智能体框架，已兼容 LangChain、LangGraph、Strands、Google ADK，以及基于 Bedrock AgentCore Runtime 构建的项目。对于暂未显式适配、结构不固定的项目，可以使用 `agentkit migrate` 命令，结合 Codex Sandbox 的能力，发起通用迁移。
 
-本目录展示 `--framework any` 的迁移链路：将已有 Python agent 项目提交给远端 Codex 沙箱分析，生成可在 AgentKit Runtime 上运行的 VeADK / AgentKit Runtime 工程。
+本目录展示 `--framework any` 的迁移链路：将已有 Python agent 项目提交给远端 Codex Sandbox 分析，生成可在 AgentKit Runtime 上运行的 VeADK / AgentKit Runtime 工程。
 
 本示例的源项目是一个 Strands 旅行规划 agent。这里使用 `--framework any`，目的是展示通用迁移能力如何自动理解项目结构，而不是要求用户手动声明具体框架。
 
@@ -15,7 +15,7 @@ AgentKit Runtime 原生支持主流智能体框架，已兼容 LangChain、LangG
 - 入口代码：`any_input/agent.py`
 - 框架：Strands `Agent`
 - 工具：城市资料检索、预算估算、交通建议
-- 迁移目标：让 Codex 沙箱自动理解项目结构，并生成 VeADK / AgentKit Runtime 输出工程
+- 迁移目标：让 Codex Sandbox 自动理解项目结构，并生成 VeADK / AgentKit Runtime 输出工程
 
 ## 安装依赖
 
