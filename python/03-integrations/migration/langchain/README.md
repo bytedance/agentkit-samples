@@ -4,7 +4,7 @@
 
 本项目演示如何将已有 LangChain 项目适配到 AgentKit Runtime。
 
-示例模拟一个用户已有的 LangChain 旅行规划项目。原项目入口是 `agent.py:agent`，由 LangChain `create_agent` 直接创建。它注册模型、系统提示词和本地旅行工具，接收 OpenAI messages 格式输入后由 LangChain agent 调用工具并生成每天的景点、美食和交通建议。
+示例模拟一个用户已有的 LangChain 旅行规划项目。原项目入口是 `agent.py:agent`，由 LangChain `create_agent` 直接创建。它注册模型、系统提示词和本地旅行工具，接收 OpenAI messages 格式输入后，由 LangChain agent 调用工具并生成景点、美食、预算和交通建议。
 
 迁移时不需要改写原有业务逻辑。`agentkit migrate` 会生成 `agentkit_app.py` 和 `.agentkit/` 配置，生成后的 Runtime 应用通过 `LangChainAgentkitBridge` 调用原始 `agent.py:agent`。
 
@@ -17,12 +17,11 @@
 
 ## Agent 能力
 
-本示例包含以下 Agent 能力：
+本示例包含以下本地工具：
 
-- LangChain `create_agent` 应用入口。
-- LangChain tools 工具调用。
-- OpenAI-compatible ChatModel 节点。
-- 本地旅行资料、预算估算和交通建议业务工具。
+- `search_travel_notes`：检索内置城市旅行资料。
+- `estimate_trip_budget`：按城市、天数和总预算估算预算是否宽松。
+- `recommend_transport`：根据城市和同行人类型给出交通建议。
 
 迁移后的调用链路如下：
 
@@ -47,21 +46,16 @@ agent.py:agent
 
 ```bash
 langchain/
-├── .env.example       # 火山引擎访问凭证环境变量示例
+├── .env.example       # 模型配置环境变量示例
 ├── README.md          # 中文说明文档
 ├── README_en.md       # 英文说明文档
 ├── agent.py           # 原生 LangChain agent 和 tools
-├── project.yaml       # 项目信息元数据
 └── requirements.txt   # Python 依赖列表
 ```
 
 `agentkit migrate` 执行后会在当前目录生成 `agentkit_app.py` 和 `.agentkit/` 目录。生成文件不需要提前提交到样例源码中。
 
 ## 本地运行
-
-### 前置准备
-
-在本地或云端运行联网搜索能力前，请访问 [AgentKit 控制台授权页面](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) 完成依赖服务授权。
 
 ### 依赖安装
 
@@ -79,19 +73,41 @@ uv pip install -r requirements.txt
 
 ### 环境准备
 
-复制 `.env.example` 为 `.env`，并填写模型配置和 AgentKit 命令所需的火山引擎 AK/SK：
+复制 `.env.example` 为 `.env`，保留需要的模型变量 key，使用 dotenv 空值形式：
+
+```text
+MODEL_AGENT_NAME=
+MODEL_AGENT_API_BASE=
+MODEL_AGENT_API_KEY=
+```
+
+实际模型配置通过 shell 环境变量提供：
 
 ```bash
-MODEL_AGENT_NAME=<Your Model Name>
-MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
-MODEL_AGENT_API_KEY=<Your Ark API Key>
-VOLCENGINE_ACCESS_KEY=<Your Access Key>
-VOLCENGINE_SECRET_KEY=<Your Secret Key>
+export MODEL_AGENT_NAME=
+export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
+export MODEL_AGENT_API_KEY=
 ```
 
 当前代码使用 `langchain_openai.ChatOpenAI` 创建模型，provider 已由 `ChatOpenAI` 类决定，因此不需要 `MODEL_AGENT_PROVIDER`。`MODEL_AGENT_API_BASE` 可以使用 Ark Responses endpoint，样例传给 `ChatOpenAI` 前会归一化为 OpenAI-compatible API root `https://ark.cn-beijing.volces.com/api/v3`。
 
-`VOLCENGINE_ACCESS_KEY` 和 `VOLCENGINE_SECRET_KEY` 不被原生 LangChain agent 读取，但执行 `agentkit migrate` 和 `agentkit deploy` 时需要配置。
+如使用火山引擎国内版，将账号 AK/SK 导入环境变量：
+
+```bash
+export VOLCENGINE_ACCESS_KEY=
+export VOLCENGINE_SECRET_KEY=
+```
+
+如使用 BytePlus 海外版 AgentKit，导入以下环境变量：
+
+```bash
+export BYTEPLUS_ACCESS_KEY=
+export BYTEPLUS_SECRET_KEY=
+export CLOUD_PROVIDER=byteplus
+export BYTEPLUS_REGION=ap-southeast-1
+```
+
+账号凭证不写入 `.env.example` 或 `.env`，也不被原生 LangChain agent 读取。
 
 运行原生 LangChain agent 前必须配置 `MODEL_AGENT_NAME` 和 `MODEL_AGENT_API_KEY`。
 
@@ -103,6 +119,8 @@ VOLCENGINE_SECRET_KEY=<Your Secret Key>
 python agent.py
 ```
 
+该命令会调用 `agent.py:agent`，向 agent 发送固定旅行问题，并使用配置的 OpenAI-compatible 模型完成一次真实对话。
+
 也可以使用迁移后的 Runtime 应用进行调试。先执行迁移命令：
 
 ```bash
@@ -110,6 +128,7 @@ agentkit migrate . \
   --framework langchain \
   --entry agent.py:agent \
   --name migration-langchain-travel \
+  --input-key messages \
   --compat langserve \
   --verify
 ```
@@ -118,6 +137,7 @@ agentkit migrate . \
 
 - `--framework langchain`：按 LangChain Runnable 方式迁移。
 - `--entry agent.py:agent`：指定原生 Agent 入口。
+- `--input-key messages`：把 Runtime 输入写入 `messages` 字段。
 - `--compat langserve`：生成 LangServe 兼容路由。
 - `--verify`：生成后执行基础校验。
 
@@ -131,14 +151,12 @@ agentkit deploy
 
 部署后，Runtime 入口是 `agentkit_app.py`，业务逻辑仍由 `agent.py:agent` 和原有 LangChain tools 执行。
 
-部署时需要提供模型相关环境变量和 AgentKit 部署所需的火山引擎 AK/SK：
+部署时需要在部署环境中提供模型相关环境变量；账号凭证继续按上面火山引擎或 BytePlus 版本导入环境变量：
 
 ```bash
-MODEL_AGENT_NAME=<Your Model Name>
-MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
-MODEL_AGENT_API_KEY=<Your Ark API Key>
-VOLCENGINE_ACCESS_KEY=<Your Access Key>
-VOLCENGINE_SECRET_KEY=<Your Secret Key>
+export MODEL_AGENT_NAME=
+export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
+export MODEL_AGENT_API_KEY=
 ```
 
 ## 示例提示词

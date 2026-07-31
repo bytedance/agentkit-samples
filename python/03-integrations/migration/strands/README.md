@@ -4,7 +4,7 @@
 
 本项目演示如何将已有 Strands 项目适配到 AgentKit Runtime。
 
-示例模拟一个用户已有的 Strands 旅行规划项目。原项目入口是 `agent.py:agent`，类型为零参 Strands `Agent` factory。它使用 Strands `Agent` 注册模型、系统提示词和本地旅行工具，接收旅行问题后由 agent 结合城市资料、预算判断和交通建议，生成每天的景点、美食和交通安排。
+示例模拟一个用户已有的 Strands 旅行规划项目。原项目入口是 `agent.py:agent`，类型为零参 Strands `Agent` factory。它使用 Strands `Agent` 注册模型、系统提示词和本地旅行工具，接收旅行问题后由 agent 结合城市资料、预算判断和交通建议，生成景点、美食、预算和交通安排。
 
 迁移时不需要改写原有业务逻辑。`agentkit migrate` 会生成 `agentkit_app.py` 和 `.agentkit/` 配置，生成后的 Runtime 应用通过 `StrandsAgentkitBridge` 调用原始 `agent.py:agent`。
 
@@ -17,12 +17,11 @@
 
 ## Agent 能力
 
-本示例包含以下 Agent 能力：
+本示例包含以下本地工具：
 
-- Strands `Agent` factory 应用入口。
-- Strands tools 工具调用。
-- OpenAI-compatible 模型节点，未配置模型时使用本地 demo model。
-- 本地旅行资料、预算估算和交通建议业务工具。
+- `search_travel_notes`：检索内置城市旅行资料。
+- `estimate_trip_budget`：按城市、天数和总预算估算预算是否宽松。
+- `recommend_transport`：根据城市和同行人类型给出交通建议。
 
 迁移后的调用链路如下：
 
@@ -46,11 +45,10 @@ agent.py:agent  # zero-argument factory that creates a Strands Agent
 
 ```bash
 strands/
-├── .env.example       # 模型配置和 AgentKit 命令凭证环境变量示例
+├── .env.example       # 模型配置环境变量示例
 ├── README.md          # 中文说明文档
 ├── README_en.md       # 英文说明文档
 ├── agent.py           # 原生 Strands Agent factory、tools 和模型配置
-├── project.yaml       # 项目信息元数据
 └── requirements.txt   # Python 依赖列表，分为原生 agent 和 AgentKit 运行时两段
 ```
 
@@ -74,19 +72,41 @@ uv pip install -r requirements.txt
 
 ### 环境准备
 
-复制 `.env.example` 为 `.env`，并填写模型配置和 AgentKit 命令所需的火山引擎 AK/SK：
+复制 `.env.example` 为 `.env`，保留需要的模型变量 key，使用 dotenv 空值形式：
+
+```text
+MODEL_AGENT_NAME=
+MODEL_AGENT_API_BASE=
+MODEL_AGENT_API_KEY=
+```
+
+实际模型配置通过 shell 环境变量提供：
 
 ```bash
-MODEL_AGENT_NAME=<Your Model Name>
-MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
-MODEL_AGENT_API_KEY=<Your Ark API Key>
-VOLCENGINE_ACCESS_KEY=<Your Access Key>
-VOLCENGINE_SECRET_KEY=<Your Secret Key>
+export MODEL_AGENT_NAME=
+export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
+export MODEL_AGENT_API_KEY=
 ```
 
 当前代码在配置 `MODEL_AGENT_NAME` 和 `MODEL_AGENT_API_KEY` 后使用 Strands `OpenAIModel` 创建模型，provider 已由 `OpenAIModel` 类决定，因此不需要 `MODEL_AGENT_PROVIDER`。`MODEL_AGENT_API_BASE` 可以使用 Ark Responses endpoint，样例传给 `OpenAIModel` 前会归一化为 OpenAI-compatible API root `https://ark.cn-beijing.volces.com/api/v3`。
 
-`VOLCENGINE_ACCESS_KEY` 和 `VOLCENGINE_SECRET_KEY` 不被原生 Strands agent 业务代码读取，但执行 `agentkit migrate` 和 `agentkit deploy` 时需要配置。
+如使用火山引擎国内版，将账号 AK/SK 导入环境变量：
+
+```bash
+export VOLCENGINE_ACCESS_KEY=
+export VOLCENGINE_SECRET_KEY=
+```
+
+如使用 BytePlus 海外版 AgentKit，导入以下环境变量：
+
+```bash
+export BYTEPLUS_ACCESS_KEY=
+export BYTEPLUS_SECRET_KEY=
+export CLOUD_PROVIDER=byteplus
+export BYTEPLUS_REGION=ap-southeast-1
+```
+
+账号凭证不写入 `.env.example` 或 `.env`，也不被原生 Strands agent 业务代码读取。
 
 如果没有配置模型环境变量，样例会使用本地 demo model，便于直接查看迁移前后的调用链路。
 
@@ -97,6 +117,8 @@ VOLCENGINE_SECRET_KEY=<Your Secret Key>
 ```bash
 python agent.py
 ```
+
+该命令会创建 `agent.py:agent` 返回的 Strands Agent，向 agent 发送固定旅行问题，并输出可读的旅行规划结果。
 
 也可以使用迁移后的 Runtime 应用进行调试。先执行迁移命令：
 
@@ -124,14 +146,12 @@ agentkit deploy
 
 部署后，Runtime 入口是 `agentkit_app.py`，业务逻辑仍由 `agent.py:agent` 创建的 Strands Agent 和原有 tools 执行。
 
-部署时需要提供模型相关环境变量和 AgentKit 部署所需的火山引擎 AK/SK：
+部署时需要在部署环境中提供模型相关环境变量；账号凭证继续按上面火山引擎或 BytePlus 版本导入环境变量：
 
 ```bash
-MODEL_AGENT_NAME=<Your Model Name>
-MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
-MODEL_AGENT_API_KEY=<Your Ark API Key>
-VOLCENGINE_ACCESS_KEY=<Your Access Key>
-VOLCENGINE_SECRET_KEY=<Your Secret Key>
+export MODEL_AGENT_NAME=
+export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
+export MODEL_AGENT_API_KEY=
 ```
 
 ## 示例提示词
@@ -156,9 +176,9 @@ VOLCENGINE_SECRET_KEY=<Your Secret Key>
 
   样例会使用本地 demo model 返回可读结果；配置 `MODEL_AGENT_NAME`、`MODEL_AGENT_API_BASE` 和 `MODEL_AGENT_API_KEY` 后，会改用真实 Strands `OpenAIModel`。
 
-- 为什么保留 `VOLCENGINE_ACCESS_KEY` 和 `VOLCENGINE_SECRET_KEY`？
+- 账号凭证要放在哪里？
 
-  它们不是原生 Strands agent 业务代码读取的变量，但 `agentkit migrate` 和 `agentkit deploy` 命令需要它们。
+  不写入 `.env.example` 或 `.env`。执行 `agentkit migrate` 或 `agentkit deploy` 前，按火山引擎或 BytePlus 版本导入对应环境变量即可。
 
 - 迁移命令会改写原有 `agent.py` 吗？
 

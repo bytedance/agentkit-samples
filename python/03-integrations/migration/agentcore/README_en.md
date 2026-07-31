@@ -18,13 +18,10 @@ You do not need to rewrite the original AgentCore entry point during adaptation.
 
 ## Agent Capabilities
 
-This sample includes:
+This sample includes the following local tools:
 
-- A Bedrock AgentCore Runtime app entry.
-- A Strands Agent behind the AgentCore entrypoint.
-- Strands tools.
-- An OpenAI-compatible model node.
-- Local business tools for product data and return policies.
+- `get_product_info`: looks up built-in product data by product ID.
+- `get_return_policy`: looks up built-in return policy by product category.
 
 After adaptation, the call flow is:
 
@@ -51,11 +48,10 @@ Strands Agent
 
 ```bash
 agentcore/
-├── .env.example       # Example model config and AgentKit command credentials
+├── .env.example       # Model config variable names
 ├── README.md          # Chinese documentation
 ├── README_en.md       # English documentation
 ├── agent.py           # Native Bedrock AgentCore app, Strands Agent, and tools
-├── project.yaml       # Project metadata
 └── requirements.txt   # Dependencies split into native AgentCore agent and AgentKit runtime sections
 ```
 
@@ -79,19 +75,41 @@ uv pip install -r requirements.txt
 
 ### Configure Environment
 
-Copy `.env.example` to `.env`, then fill in model config and the Volcengine AK/SK needed by AgentKit commands:
+Copy `.env.example` to `.env` and keep the required model variable names in dotenv empty-value form:
+
+```text
+MODEL_AGENT_NAME=
+MODEL_AGENT_API_BASE=
+MODEL_AGENT_API_KEY=
+```
+
+Provide actual model values through shell environment variables:
 
 ```bash
-MODEL_AGENT_NAME=<Your Model Name>
-MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
-MODEL_AGENT_API_KEY=<Your Ark API Key>
-VOLCENGINE_ACCESS_KEY=<Your Access Key>
-VOLCENGINE_SECRET_KEY=<Your Secret Key>
+export MODEL_AGENT_NAME=
+export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
+export MODEL_AGENT_API_KEY=
 ```
 
 When `MODEL_AGENT_NAME` and `MODEL_AGENT_API_KEY` are configured, the code creates a model with Strands `OpenAIModel`. The provider is determined by that class, so `MODEL_AGENT_PROVIDER` is not required. `MODEL_AGENT_API_BASE` may point to the Ark Responses endpoint; the sample normalizes it to the OpenAI-compatible API root before passing it to `OpenAIModel`.
 
-`VOLCENGINE_ACCESS_KEY` and `VOLCENGINE_SECRET_KEY` are not read by the native AgentCore business agent. They are kept because `agentkit migrate` and `agentkit deploy` need them.
+For Volcengine, export the account AK/SK credentials as environment variables:
+
+```bash
+export VOLCENGINE_ACCESS_KEY=
+export VOLCENGINE_SECRET_KEY=
+```
+
+For BytePlus AgentKit, export these environment variables:
+
+```bash
+export BYTEPLUS_ACCESS_KEY=
+export BYTEPLUS_SECRET_KEY=
+export CLOUD_PROVIDER=byteplus
+export BYTEPLUS_REGION=ap-southeast-1
+```
+
+Account credentials are not written to `.env.example` or `.env`, and are not read by the native AgentCore business agent.
 
 Set `MODEL_AGENT_NAME` and `MODEL_AGENT_API_KEY` before running `python agent.py` or migration with `--verify`. If they are missing, the sample raises a clear error instead of mixing a fake local model with the real Strands call path.
 
@@ -127,6 +145,7 @@ Arguments:
 - `--framework agentcore`: migrate as a Bedrock AgentCore Runtime entrypoint.
 - `--entry agent.py:app`: specify the native `BedrockAgentCoreApp` entry.
 - `--verify`: run basic checks after generation.
+- `--force`: overwrite old generated files if they already exist.
 
 This is intentionally not `--framework strands`. The business agent is implemented with Strands, but the project entry being migrated is `BedrockAgentCoreApp`.
 
@@ -142,14 +161,12 @@ agentkit deploy
 
 After deployment, the Runtime entry point is `agentkit_app.py`. The business logic is still handled by the original `agent.py:app`, the AgentCore entrypoint, the Strands Agent, and the original tools.
 
-Deployment needs model env vars and the Volcengine AK/SK required by AgentKit:
+Deployment needs model env vars in the deployment environment. Export account credentials with the Volcengine or BytePlus block above:
 
 ```bash
-MODEL_AGENT_NAME=<Your Model Name>
-MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
-MODEL_AGENT_API_KEY=<Your Ark API Key>
-VOLCENGINE_ACCESS_KEY=<Your Access Key>
-VOLCENGINE_SECRET_KEY=<Your Secret Key>
+export MODEL_AGENT_NAME=
+export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
+export MODEL_AGENT_API_KEY=
 ```
 
 ## Example Prompts
@@ -179,3 +196,7 @@ The electronics return policy has a 30-day return window and requires original p
 - Does the migration command rewrite `agent.py`?
 
   No. The migration command adds Runtime adaptation files, while the original AgentCore business entry remains unchanged.
+
+## License
+
+This project is licensed under the Apache 2.0 License.

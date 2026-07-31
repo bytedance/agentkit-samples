@@ -43,7 +43,7 @@ google_adk/
 ├── README.md
 ├── README_en.md
 ├── agent.py               # Native Google ADK Agent and local tools
-├── .env.example           # Ark model settings and AgentKit CLI credentials
+├── .env.example           # Ark model variable names
 ├── project.yaml           # Sample metadata
 └── requirements.txt       # Split into native ADK and AgentKit migration runtime dependencies
 ```
@@ -64,19 +64,43 @@ Run the native project file directly:
 python agent.py
 ```
 
-This command calls `agent.py:root_agent` through the ADK `Runner`, sends the fixed prompt `我想去北京玩3天`, and uses the configured OpenAI-compatible Ark model for one real agent turn. Configure these variables before running it:
+Copy `.env.example` to `.env` and keep the required model variable names in dotenv empty-value form:
+
+```text
+MODEL_AGENT_NAME=
+MODEL_AGENT_API_BASE=
+MODEL_AGENT_API_KEY=
+```
+
+Provide actual model values through shell environment variables:
 
 ```bash
-export MODEL_AGENT_NAME=<Your Model Name>
+export MODEL_AGENT_NAME=
 export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
-export MODEL_AGENT_API_KEY=<Your Ark API Key>
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
+export MODEL_AGENT_API_KEY=
 ```
+
+This command calls `agent.py:root_agent` through the ADK `Runner`, sends the fixed prompt `我想去北京玩3天`, and uses the configured OpenAI-compatible Ark model for one real agent turn.
 
 The native code uses Google ADK `Agent` and ADK `OpenAILlm`. `MODEL_AGENT_API_BASE` may point to the Ark Responses endpoint; the sample normalizes it to the OpenAI-compatible API root before passing it to the OpenAI SDK. `MODEL_AGENT_PROVIDER` is not required by this sample.
 
-`VOLCENGINE_ACCESS_KEY` and `VOLCENGINE_SECRET_KEY` are not read by the native Google ADK business agent, but they are required when running `agentkit migrate` and `agentkit deploy`.
+For Volcengine, export the account AK/SK credentials as environment variables:
+
+```bash
+export VOLCENGINE_ACCESS_KEY=
+export VOLCENGINE_SECRET_KEY=
+```
+
+For BytePlus AgentKit, export these environment variables:
+
+```bash
+export BYTEPLUS_ACCESS_KEY=
+export BYTEPLUS_SECRET_KEY=
+export CLOUD_PROVIDER=byteplus
+export BYTEPLUS_REGION=ap-southeast-1
+```
+
+Account credentials are not written to `.env.example` or `.env`, and are not read by the native Google ADK business agent.
 
 ## Run Migration
 
@@ -108,6 +132,14 @@ agentkit deploy
 ```
 
 After deployment, the Runtime entry point is `agentkit_app.py`. The business logic is still handled by the original `agent.py:root_agent` and local tools.
+
+Deployment needs model env vars in the deployment environment. Export account credentials with the Volcengine or BytePlus block above:
+
+```bash
+export MODEL_AGENT_NAME=
+export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
+export MODEL_AGENT_API_KEY=
+```
 
 ## Example Prompt
 

@@ -1,0 +1,563 @@
+app:
+  description: ''
+  icon: 🤖
+  icon_background: '#D1E9FF'
+  icon_type: emoji
+  mode: advanced-chat
+  name: 专属智能客服
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/volcengine_maas:0.0.52@6d9b51f151cc65105b1498a0a01ab4acca85cab1944b4fd84551f485a6dd6771
+    version: null
+kind: app
+version: 0.6.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        attachment_image_file_size_limit: 2
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        file_upload_limit: 50
+        image_file_batch_limit: 10
+        image_file_size_limit: 10
+        single_chunk_attachment_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: '👋 你好！你可以向我了解以下关于 Dify 的内容：
+
+      - Dify 是什么，能做什么
+
+      - 适合哪些使用场景
+
+      - 定价与套餐方案
+
+      - 如何快速上手'
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInLoop: false
+        sourceType: start
+        targetType: if-else
+      id: 1711528914102-source-1783931129086-target
+      selected: false
+      source: '1711528914102'
+      sourceHandle: source
+      target: '1783931129086'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: agent
+      id: 1783931129086-true-1783931083406-target
+      selected: false
+      source: '1783931129086'
+      sourceHandle: 'true'
+      target: '1783931083406'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: agent
+        targetType: llm
+      id: 1783931083406-source-1711528917469-target
+      selected: false
+      source: '1783931083406'
+      sourceHandle: source
+      target: '1711528917469'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: question-classifier
+        targetType: answer
+      id: 1783932862802-1-1711528919501-target
+      selected: false
+      source: '1783932862802'
+      sourceHandle: '1'
+      target: '1711528919501'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: question-classifier
+      id: 1711528917469-source-1783932862802-target
+      selected: false
+      source: '1711528917469'
+      sourceHandle: source
+      target: '1783932862802'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: agent
+      id: 1783931129086-false-1784169205246-target
+      source: '1783931129086'
+      sourceHandle: 'false'
+      target: '1784169205246'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: agent
+        targetType: llm
+      id: 1784169205246-source-1711528917469-target
+      source: '1784169205246'
+      sourceHandle: source
+      target: '1711528917469'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: 用户的提问从这里进入，作为整个流程的起点。
+        selected: false
+        title: 开始
+        type: start
+        variables: []
+      height: 117
+      id: '1711528914102'
+      position:
+        x: -378.7066671965566
+        y: 2613.5
+      positionAbsolute:
+        x: -378.7066671965566
+        y: 2613.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '17839311566260'
+          - text
+        desc: AI 基于检索到的知识库内容结合用户问题，生成清晰、有帮助的回答。
+        memory:
+          role_prefix:
+            assistant: ''
+            user: ''
+          window:
+            enabled: false
+            size: 50
+        model:
+          completion_params:
+            frequency_penalty: 0
+            max_tokens: 512
+            presence_penalty: 0
+            temperature: 0.7
+            top_p: 1
+          mode: chat
+          name: doubao2-0
+          provider: langgenius/volcengine_maas/volcengine_maas
+        prompt_template:
+        - id: 943448fa-b145-4ae7-a485-d77e4a2cc77b
+          role: system
+          text: '角色：你是一位知识渊博的智能助手。
+
+
+            任务：根据{{#context#}}，准确回答用户的问题。
+
+
+            回答规范：
+
+            - 使用与用户提问相同的语言作答。
+
+            - 如果参考内容中没有相关信息，请回复："这个问题我暂时没有把握，能否换个方式描述一下？"
+
+            - 保持回答简洁、实用。
+
+            - 不要在回复中出现"根据参考内容"或"资料显示"等表述。'
+        selected: false
+        title: LLM
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 132
+      id: '1711528917469'
+      position:
+        x: 646.1943454167666
+        y: 2634.5
+      positionAbsolute:
+        x: 646.1943454167666
+        y: 2634.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        answer: '{{#1711528917469.text#}}'
+        desc: 将 AI 生成的最终回复展示给用户。
+        selected: false
+        title: Answer
+        type: answer
+        variables: []
+      height: 131
+      id: '1711528919501'
+      position:
+        x: 1330.7436654707967
+        y: 2640.7389387822523
+      positionAbsolute:
+        x: 1330.7436654707967
+        y: 2640.7389387822523
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        author: Anne
+        desc: ''
+        height: 207
+        selected: false
+        showAuthor: false
+        text: '{"root":{"children":[{"children":[{"detail":0,"format":1,"mode":"normal","style":"font-size:
+          16px;","text":"👋 基于知识库的智能客服","type":"text","version":1}],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textFormat":1,"textStyle":"font-size:
+          16px;"},{"children":[],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textStyle":"font-size:
+          16px;","textFormat":0},{"children":[{"detail":0,"format":0,"mode":"normal","style":"font-size:
+          14px;","text":"这是一个基础的 RAG（检索增强生成）对话流。它会先搜索你自己的知识库，找到相关内容，再让 LLM 根据这些内容生成准确的回答。","type":"text","version":1}],"direction":null,"format":"start","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":"font-size:
+          14px;"},{"children":[],"direction":null,"format":"start","indent":0,"type":"paragraph","version":1,"textStyle":"font-size:
+          14px;","textFormat":0},{"children":[{"detail":0,"format":0,"mode":"normal","style":"font-size:
+          14px;","text":"🗂️ 随时换上你自己的文档、切换不同的模型，来体验一下效果吧！","type":"text","version":1}],"direction":null,"format":"start","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":"font-size:
+          14px;"}],"direction":null,"format":"","indent":0,"type":"root","version":1}}'
+        theme: yellow
+        title: ''
+        type: ''
+        width: 596
+      height: 207
+      id: '1776409425757'
+      position:
+        x: -1061.7704851883886
+        y: 2578.5835012660527
+      positionAbsolute:
+        x: -1061.7704851883886
+        y: 2578.5835012660527
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom-note
+      width: 596
+    - data:
+        author: Anne
+        desc: ''
+        height: 290
+        selected: false
+        showAuthor: false
+        text: '{"root":{"children":[{"children":[{"detail":0,"format":1,"mode":"normal","style":"font-size:
+          16px;","text":"📖  知识检索","type":"text","version":1}],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textFormat":1,"textStyle":"font-size:
+          16px;"},{"children":[],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textFormat":1,"textStyle":"font-size:
+          16px;"},{"children":[{"detail":0,"format":0,"mode":"normal","style":"font-size:
+          14px;","text":"这个节点会在你的知识库中搜索与用户问题相关的内容，并将结果传递给 LLM，让它基于真实资料来回答问题。","type":"text","version":1}],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":"font-size:
+          14px;"},{"children":[],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textStyle":"font-size:
+          14px;","textFormat":0},{"children":[{"detail":0,"format":1,"mode":"normal","style":"font-size:
+          14px;","text":"如何连接知识库","type":"text","version":1}],"direction":null,"format":"start","indent":0,"type":"paragraph","version":1,"textFormat":1,"textStyle":"font-size:
+          14px;"},{"children":[{"detail":0,"format":0,"mode":"normal","style":"font-size:
+          14px;","text":"1.点击该节点，在右侧面板找到「知识库」设置区。","type":"text","version":1}],"direction":null,"format":"start","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":"font-size:
+          14px;"},{"children":[{"detail":0,"format":0,"mode":"normal","style":"font-size:
+          14px;","text":"2.点击「+」，为这个对话流添加知识库。","type":"text","version":1}],"direction":null,"format":"start","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":"font-size:
+          14px;"},{"children":[],"direction":null,"format":"start","indent":0,"type":"paragraph","version":1,"textStyle":"font-size:
+          14px;","textFormat":0},{"children":[{"detail":0,"format":0,"mode":"normal","style":"font-size:
+          14px;","text":"还没有知识库？没关系，这里有快速入门指南：","type":"text","version":1}],"direction":null,"format":"start","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":"font-size:
+          14px;"},{"children":[{"detail":0,"format":0,"mode":"normal","style":"font-size:
+          14px;","text":"📖 ","type":"text","version":1},{"children":[{"detail":0,"format":0,"mode":"normal","style":"font-size:
+          14px;","text":"https://docs.dify.ai/zh/use-dify/knowledge/create-knowledge/introduction","type":"text","version":1}],"direction":null,"format":"","indent":0,"type":"link","version":1,"rel":"noreferrer","target":null,"title":null,"url":"https://docs.dify.ai/zh/use-dify/knowledge/create-knowledge/introduction"}],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":"font-size:
+          14px;"},{"children":[],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textStyle":"font-size:
+          14px;","textFormat":0}],"direction":null,"format":"","indent":0,"type":"root","version":1}}'
+        theme: blue
+        title: ''
+        type: ''
+        width: 695
+      height: 290
+      id: '1776409658189'
+      position:
+        x: -65.67231926912211
+        y: 2235.0032347243387
+      positionAbsolute:
+        x: -65.67231926912211
+        y: 2235.0032347243387
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom-note
+      width: 695
+    - data:
+        author: Anne
+        desc: ''
+        height: 208
+        selected: false
+        showAuthor: false
+        text: '{"root":{"children":[{"children":[{"detail":0,"format":1,"mode":"normal","style":"font-size:
+          16px;","text":"接下来可以做什么","type":"text","version":1}],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textFormat":1,"textStyle":"font-size:
+          16px;"},{"children":[],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textFormat":1,"textStyle":"font-size:
+          14px;"},{"children":[{"detail":0,"format":0,"mode":"normal","style":"font-size:
+          14px;","text":"点击「预览」进行多轮测试，看看聊天机器人能否给出正确的回答。除此之外，你还可以：","type":"text","version":1}],"direction":null,"format":"start","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":"font-size:
+          14px;"},{"children":[{"children":[{"detail":0,"format":0,"mode":"normal","style":"font-size:
+          14px;","text":"添加 ","type":"text","version":1},{"detail":0,"format":1,"mode":"normal","style":"font-size:
+          14px;","text":"If/Else 节点","type":"text","version":1},{"detail":0,"format":0,"mode":"normal","style":"font-size:
+          14px;","text":"，快速处理与知识库无关的问题","type":"text","version":1}],"direction":null,"format":"start","indent":0,"type":"listitem","version":1,"value":1},{"children":[{"detail":0,"format":0,"mode":"normal","style":"font-size:
+          14px;","text":"接入","type":"text","version":1},{"detail":0,"format":1,"mode":"normal","style":"font-size:
+          14px;","text":"更多知识库","type":"text","version":1},{"detail":0,"format":0,"mode":"normal","style":"font-size:
+          14px;","text":"，覆盖更广泛的问题范围","type":"text","version":1}],"direction":null,"format":"start","indent":0,"type":"listitem","version":1,"value":2},{"children":[{"detail":0,"format":0,"mode":"normal","style":"font-size:
+          14px;","text":"根据你的使用场景，自定义 ","type":"text","version":1},{"detail":0,"format":1,"mode":"normal","style":"font-size:
+          14px;","text":"LLM 的系统提示词","type":"text","version":1}],"direction":null,"format":"start","indent":0,"type":"listitem","version":1,"value":3}],"direction":null,"format":"","indent":0,"type":"list","version":1,"textStyle":"font-size:
+          14px;","listType":"bullet","start":1,"tag":"ul"}],"direction":null,"format":"","indent":0,"type":"root","version":1}}'
+        theme: green
+        title: ''
+        type: ''
+        width: 566
+      height: 208
+      id: '1776409997347'
+      position:
+        x: 1762.4794025611425
+        y: 2567.3534114579984
+      positionAbsolute:
+        x: 1762.4794025611425
+        y: 2567.3534114579984
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom-note
+      width: 566
+    - data:
+        author: Anne
+        desc: ''
+        height: 302
+        selected: false
+        showAuthor: false
+        text: '{"root":{"children":[{"children":[{"detail":0,"format":1,"mode":"normal","style":"font-size:
+          16px;","text":"重要提示：别忘了把知识库接入 LLM 节点","type":"text","version":1}],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textFormat":1,"textStyle":"font-size:
+          16px;"},{"children":[],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textFormat":1,"textStyle":"font-size:
+          16px;"},{"children":[{"detail":0,"format":0,"mode":"normal","style":"font-size:
+          14px;","text":"在匹配到对应内容前，我们需要确保 LLM 节点能正确读取知识库内容。请检查以下两个地方：","type":"text","version":1}],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":"font-size:
+          14px;"},{"children":[],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textFormat":1,"textStyle":"font-size:
+          14px;"},{"children":[{"detail":0,"format":0,"mode":"normal","style":"font-size:
+          14px;","text":"1.","type":"text","version":1},{"detail":0,"format":1,"mode":"normal","style":"font-size:
+          14px;","text":" 上下文字段","type":"text","version":1}],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":"font-size:
+          14px;"},{"children":[{"detail":0,"format":0,"mode":"normal","style":"font-size:
+          14px;","text":"2. ","type":"text","version":1},{"detail":0,"format":1,"mode":"normal","style":"font-size:
+          14px;","text":"系统提示词","type":"text","version":1},{"detail":0,"format":0,"mode":"normal","style":"font-size:
+          14px;","text":" — 确保 System 内，包含了上下文。","type":"text","version":1}],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":"font-size:
+          14px;"},{"children":[],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textStyle":"font-size:
+          14px;","textFormat":0},{"children":[{"detail":0,"format":0,"mode":"normal","style":"font-size:
+          14px;","text":"这两步缺一不可。不然，LLM 都无法读取你的知识库内容来回答问题。","type":"text","version":1}],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":"font-size:
+          14px;"},{"children":[],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textFormat":1,"textStyle":"font-size:
+          16px;"}],"direction":null,"format":"","indent":0,"type":"root","version":1}}'
+        theme: blue
+        title: ''
+        type: ''
+        width: 641
+      height: 302
+      id: '1776410462798'
+      position:
+        x: 721.6143958360649
+        y: 2199.8987157309116
+      positionAbsolute:
+        x: 721.6143958360649
+        y: 2199.8987157309116
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom-note
+      width: 641
+    - data:
+        agent_parameters:
+          model:
+            type: constant
+            value:
+              completion_params: {}
+              mode: chat
+              model: doubao2-0
+              model_type: llm
+              provider: langgenius/volcengine_maas/volcengine_maas
+              type: model-selector
+          query:
+            type: constant
+            value: 查询“客户投诉”skill
+        agent_strategy_label: Skill技能代理
+        agent_strategy_name: skill_agent
+        agent_strategy_provider_name: xun404/agent-skill-plugin/agent_skill_provider
+        meta:
+          minimum_dify_version: null
+          version: 1.0.0
+        output_schema: {}
+        plugin_unique_identifier: xun404/agent-skill-plugin:1.0.0@c67f0ef69d008cc0eeff36f4fa507c1e45e432aa79f18c1a965e9b95860be0b0
+        selected: false
+        title: Agent
+        tool_node_version: '2'
+        type: agent
+      height: 136
+      id: '1783931083406'
+      position:
+        x: 255.94980251930912
+        y: 2895.324880600007
+      positionAbsolute:
+        x: 255.94980251930912
+        y: 2895.324880600007
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: contains
+            id: 9461943c-fc31-4442-99ed-32cad2ffe7ec
+            value: '1'
+            varType: string
+            variable_selector:
+            - sys
+            - query
+          id: 'true'
+          logical_operator: and
+        selected: false
+        title: 条件分支
+        type: if-else
+      height: 124
+      id: '1783931129086'
+      position:
+        x: -89.67080017523466
+        y: 2871.613190857243
+      positionAbsolute:
+        x: -89.67080017523466
+        y: 2871.613190857243
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        classes:
+        - id: '1'
+          label: CLASS 1
+          name: 客户问题已经得到解答。
+        - id: '2'
+          label: CLASS 2
+          name: 客户问题还未得到解答
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: doubao2-0
+          provider: langgenius/volcengine_maas/volcengine_maas
+        query_variable_selector:
+        - '1711528914102'
+        - sys.query
+        selected: false
+        title: 问题分类器
+        type: question-classifier
+        vision:
+          enabled: false
+      height: 178
+      id: '1783932862802'
+      position:
+        x: 1007.8095758306163
+        y: 2664.533997466821
+      positionAbsolute:
+        x: 1007.8095758306163
+        y: 2664.533997466821
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        agent_parameters:
+          instruction:
+            type: constant
+            value: allan_20260716
+          model:
+            type: constant
+            value:
+              completion_params: {}
+              mode: chat
+              model: doubao2-0
+              model_type: llm
+              provider: langgenius/volcengine_maas/volcengine_maas
+              type: model-selector
+          query:
+            type: constant
+            value: allan_20260716
+        agent_strategy_label: EnhanceFunctionCalling
+        agent_strategy_name: enhancing_function_agent
+        agent_strategy_provider_name: allenyzx/enhancing_function_agent/enhancing_function_agent
+        meta:
+          minimum_dify_version: null
+          version: 0.0.2
+        output_schema: {}
+        plugin_unique_identifier: allenyzx/enhancing_function_agent:0.0.2@bdbcf7d9d7b307aece84c5b810286bc975be3cd713324bd642b5d6f26496c169
+        selected: true
+        title: Agent 3
+        tool_node_version: '2'
+        type: agent
+      height: 136
+      id: '1784169205246'
+      position:
+        x: 255.94980251930912
+        y: 3123.5025425681256
+      positionAbsolute:
+        x: 255.94980251930912
+        y: 3123.5025425681256
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    viewport:
+      x: 378.693854422334
+      y: -1969.7895756148573
+      zoom: 0.8616255434202705
+  rag_pipeline_variables: []

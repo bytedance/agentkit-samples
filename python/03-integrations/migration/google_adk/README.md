@@ -11,14 +11,12 @@
 ## 核心功能
 
 - 展示原生 Google ADK agent 入口如何被 AgentKit Runtime 包装。
-- 使用本地普通 Python 函数作为 Google ADK tools。
-- 保留原生业务代码，通过 `agentkit migrate` 生成 `agentkit_app.py` 和 `.agentkit/` 配置。
-- 使用 Google ADK `Agent` 加 ADK `OpenAILlm` 接入 OpenAI-compatible 方舟模型。
-- 不需要 `MODEL_AGENT_PROVIDER`。
+- 保留原生业务代码，通过 `agentkit migrate` 生成 `agentkit_app.py` 和 `.agentkit/` 配置，进行Google ADK项目的Agentkit适配。
+- 展示如何通过Agentkit Deploy，将迁移后的产物部署到Agentkit Runtime中。
 
 ## Agent 能力
 
-本示例包含以下本地工具：
+为了更好的模拟用户使用场景，本示例的Google ADK Agent包含以下工具：
 
 - `search_travel_notes`：检索内置城市旅行资料。
 - `estimate_trip_budget`：按城市、天数和总预算估算预算是否宽松。
@@ -45,7 +43,7 @@ agent.py:root_agent  # Google ADK Agent
 
 ```bash
 google_adk/
-├── .env.example       # 方舟模型配置和 AgentKit CLI 凭证示例
+├── .env.example       # 方舟模型配置环境变量示例
 ├── README.md          # 中文说明文档
 ├── README_en.md       # 英文说明文档
 ├── agent.py           # 原生 Google ADK Agent 和本地 tools
@@ -59,7 +57,7 @@ google_adk/
 
 ### 依赖安装
 
-请确保 Python 版本不低于 3.10。进入当前样例目录后执行：
+请确保 Python 版本不低于 3.12。进入当前样例目录后执行：
 
 ```bash
 pip install -r requirements.txt
@@ -73,21 +71,33 @@ uv pip install -r requirements.txt
 
 ### 环境准备
 
-复制 `.env.example` 为 `.env`，并填写需要的环境变量：
+通过环境变量，进行下列相关参数的配置：
 
 ```bash
-MODEL_AGENT_NAME=<Your Model Name>
-MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
-MODEL_AGENT_API_KEY=<Your Ark API Key>
-VOLCENGINE_ACCESS_KEY=<Your Access Key>
-VOLCENGINE_SECRET_KEY=<Your Secret Key>
+export MODEL_AGENT_NAME=
+export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3
+export MODEL_AGENT_API_KEY=
 ```
 
 当前代码使用原生 Google ADK `Agent`，并通过 ADK `OpenAILlm` 接入 OpenAI-compatible 方舟模型。`MODEL_AGENT_API_BASE` 可以使用 Ark Responses endpoint，样例传给 OpenAI SDK 前会归一化为 OpenAI-compatible API root `https://ark.cn-beijing.volces.com/api/v3`。
 
-Google ADK 在本示例中不需要 `MODEL_AGENT_PROVIDER`，因此 `.env.example` 和代码都不包含该变量；模型提供方由 `OpenAILlm` 和 Ark endpoint 决定。
 
-`VOLCENGINE_ACCESS_KEY` 和 `VOLCENGINE_SECRET_KEY` 不被原生 Google ADK 业务 agent 读取，但执行 `agentkit migrate` 和 `agentkit deploy` 时需要配置。
+如使用火山引擎国内版，将账号 AK/SK 导入环境变量：
+
+```bash
+export VOLCENGINE_ACCESS_KEY=
+export VOLCENGINE_SECRET_KEY=
+```
+
+如使用 BytePlus 海外版 AgentKit，导入以下环境变量：
+
+```bash
+export BYTEPLUS_ACCESS_KEY=
+export BYTEPLUS_SECRET_KEY=
+export CLOUD_PROVIDER=byteplus
+export BYTEPLUS_REGION=ap-southeast-1
+```
+
 
 ### 调试方法
 
@@ -128,14 +138,12 @@ agentkit deploy
 
 部署后，Runtime 入口是 `agentkit_app.py`，业务逻辑仍由原始 `agent.py:root_agent` 和本地 tools 执行。
 
-部署时需要提供原生 Google ADK 模型运行所需变量，以及 AgentKit 命令所需的火山引擎 AK/SK：
+部署时需要在部署环境中提供原生 Google ADK 模型运行所需变量；账号凭证继续按上面火山引擎或 BytePlus 版本导入环境变量：
 
 ```bash
-MODEL_AGENT_NAME=<Your Model Name>
-MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
-MODEL_AGENT_API_KEY=<Your Ark API Key>
-VOLCENGINE_ACCESS_KEY=<Your Access Key>
-VOLCENGINE_SECRET_KEY=<Your Secret Key>
+export MODEL_AGENT_NAME=
+export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
+export MODEL_AGENT_API_KEY=
 ```
 
 ## 示例提示词
@@ -157,9 +165,9 @@ VOLCENGINE_SECRET_KEY=<Your Secret Key>
 
   本示例使用原生 Google ADK `Agent` 和 ADK `OpenAILlm`。provider 已由 `OpenAILlm` 以及 `MODEL_AGENT_API_BASE` 指向的 Ark OpenAI-compatible endpoint 决定，不需要单独配置 provider。
 
-- 为什么保留 `VOLCENGINE_ACCESS_KEY` 和 `VOLCENGINE_SECRET_KEY`？
+- 账号凭证要放在哪里？
 
-  它们不是原生 Google ADK 业务 agent 读取的变量，但 `agentkit migrate` 和 `agentkit deploy` 命令需要它们。
+  不写入 `.env.example` 或 `.env`。执行 `agentkit migrate` 或 `agentkit deploy` 前，按火山引擎或 BytePlus 版本导入对应环境变量即可。
 
 - 迁移命令会改写原有 `agent.py` 吗？
 

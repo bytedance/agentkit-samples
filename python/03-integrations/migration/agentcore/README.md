@@ -18,13 +18,10 @@
 
 ## Agent 能力
 
-本示例包含以下 Agent 能力：
+本示例包含以下本地工具：
 
-- Bedrock AgentCore Runtime 应用入口。
-- AgentCore entrypoint 内的 Strands Agent。
-- Strands tools 工具调用。
-- OpenAI-compatible 模型节点。
-- 本地商品资料和退货政策业务工具。
+- `get_product_info`：按商品 ID 查询内置商品资料。
+- `get_return_policy`：按商品分类查询内置退货政策。
 
 迁移后的调用链路如下：
 
@@ -51,11 +48,10 @@ Strands Agent
 
 ```bash
 agentcore/
-├── .env.example       # 模型配置和 AgentKit 命令凭证环境变量示例
+├── .env.example       # 模型配置环境变量示例
 ├── README.md          # 中文说明文档
 ├── README_en.md       # 英文说明文档
 ├── agent.py           # 原生 Bedrock AgentCore app、Strands Agent 和 tools
-├── project.yaml       # 项目信息元数据
 └── requirements.txt   # Python 依赖列表，分为原生 AgentCore agent 和 AgentKit 运行时两段
 ```
 
@@ -79,19 +75,41 @@ uv pip install -r requirements.txt
 
 ### 环境准备
 
-复制 `.env.example` 为 `.env`，并填写模型配置和 AgentKit 命令所需的火山引擎 AK/SK：
+复制 `.env.example` 为 `.env`，保留需要的模型变量 key，使用 dotenv 空值形式：
+
+```text
+MODEL_AGENT_NAME=
+MODEL_AGENT_API_BASE=
+MODEL_AGENT_API_KEY=
+```
+
+实际模型配置通过 shell 环境变量提供：
 
 ```bash
-MODEL_AGENT_NAME=<Your Model Name>
-MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
-MODEL_AGENT_API_KEY=<Your Ark API Key>
-VOLCENGINE_ACCESS_KEY=<Your Access Key>
-VOLCENGINE_SECRET_KEY=<Your Secret Key>
+export MODEL_AGENT_NAME=
+export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
+export MODEL_AGENT_API_KEY=
 ```
 
 当前代码在配置 `MODEL_AGENT_NAME` 和 `MODEL_AGENT_API_KEY` 后使用 Strands `OpenAIModel` 创建模型，provider 已由 `OpenAIModel` 类决定，因此不需要 `MODEL_AGENT_PROVIDER`。`MODEL_AGENT_API_BASE` 可以使用 Ark Responses endpoint，样例传给 `OpenAIModel` 前会归一化为 OpenAI-compatible API root `https://ark.cn-beijing.volces.com/api/v3`。
 
-`VOLCENGINE_ACCESS_KEY` 和 `VOLCENGINE_SECRET_KEY` 不被原生 AgentCore 业务 agent 读取，但执行 `agentkit migrate` 和 `agentkit deploy` 时需要配置。
+如使用火山引擎国内版，将账号 AK/SK 导入环境变量：
+
+```bash
+export VOLCENGINE_ACCESS_KEY=
+export VOLCENGINE_SECRET_KEY=
+```
+
+如使用 BytePlus 海外版 AgentKit，导入以下环境变量：
+
+```bash
+export BYTEPLUS_ACCESS_KEY=
+export BYTEPLUS_SECRET_KEY=
+export CLOUD_PROVIDER=byteplus
+export BYTEPLUS_REGION=ap-southeast-1
+```
+
+账号凭证不写入 `.env.example` 或 `.env`，也不被原生 AgentCore 业务 agent 读取。
 
 运行 `python agent.py` 或执行带 `--verify` 的迁移校验前，需要配置 `MODEL_AGENT_NAME` 和 `MODEL_AGENT_API_KEY`。未配置时，样例会抛出清晰错误，避免把本地假模型和真实 Strands 调用链路混在一起。
 
@@ -127,6 +145,7 @@ agentkit migrate . \
 - `--framework agentcore`：按 Bedrock AgentCore Runtime entrypoint 方式迁移。
 - `--entry agent.py:app`：指定原生 `BedrockAgentCoreApp` 入口。
 - `--verify`：生成后执行基础校验。
+- `--force`：如已存在生成文件，则覆盖旧的生成结果。
 
 注意这里不是 `--framework strands`。虽然业务 agent 使用 Strands 编写，但待迁移的项目入口是 `BedrockAgentCoreApp`。
 
@@ -142,14 +161,12 @@ agentkit deploy
 
 部署后，Runtime 入口是 `agentkit_app.py`，业务逻辑仍由 `agent.py:app` 后面的 AgentCore entrypoint、Strands Agent 和原有 tools 执行。
 
-部署时需要提供模型相关环境变量和 AgentKit 部署所需的火山引擎 AK/SK：
+部署时需要在部署环境中提供模型相关环境变量；账号凭证继续按上面火山引擎或 BytePlus 版本导入环境变量：
 
 ```bash
-MODEL_AGENT_NAME=<Your Model Name>
-MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
-MODEL_AGENT_API_KEY=<Your Ark API Key>
-VOLCENGINE_ACCESS_KEY=<Your Access Key>
-VOLCENGINE_SECRET_KEY=<Your Secret Key>
+export MODEL_AGENT_NAME=
+export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
+export MODEL_AGENT_API_KEY=
 ```
 
 ## 示例提示词

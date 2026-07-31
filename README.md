@@ -52,6 +52,7 @@ AgentKit 代码工坊为让您快速上手 AgentKit 平台，提供了不同入�
 
 AgentKit Runtime 原生支持主流智能体框架，已兼容 LangChain、LangGraph、Strands、Google ADK，以及基于 Bedrock AgentCore Runtime 构建的项目。无需重写现有业务逻辑，只需通过 agentkit migrate 生成 AgentKit Runtime 入口，即可完成运行与部署。
 
+对于尚未适配、项目结构不固定的 Python 应用，以及低代码平台生成的 Workflow 项目，也可结合 AgentKit Migration命令与 AgentKit Codex Sandbox的能力，完成自动化迁移，并将您的项目转换为可部署的veadk项目。
 查看示例：[`python/03-integrations/migration`](python/03-integrations/migration)。
 
 ## ➤ 贡献
