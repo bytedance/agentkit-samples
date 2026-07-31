@@ -1,0 +1,14 @@
+[project]
+name = "reflect-retry"
+version = "0.1.0"
+description = "Tool failure self-healing (reflect and retry) sample using AgentKit"
+requires-python = ">=3.10"
+dependencies = [
+    "veadk-python[extensions]==0.5.20",
+    "agentkit-sdk-python==0.5.1",
+    "google-adk==1.21.0",
+    # AgentKit imports the A2A 0.x Starlette application path (a2a.server.apps).
+    # Without an upper bound, resolution picks a2a-sdk 1.x and fails at startup
+    # with ModuleNotFoundError: No module named 'a2a.server.apps'.
+    "a2a-sdk>=0.3.7,<1.0",
+]
