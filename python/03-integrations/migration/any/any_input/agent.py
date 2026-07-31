@@ -1,7 +1,9 @@
 import os
 import re
+from pathlib import Path
 from typing import Any
 
+from dotenv import load_dotenv
 from strands import Agent, tool
 from strands.models import Model
 
@@ -10,6 +12,13 @@ SYSTEM_PROMPT = (
     "你是中国本地旅行规划助手。根据用户需求选择合适工具，结合城市信息、"
     "预算判断和交通建议，输出可执行的每日景点、美食和交通安排。"
 )
+
+_ENV_FILE = Path(__file__).with_name(".env")
+load_dotenv(_ENV_FILE)
+
+
+def _env(name: str, default: str = "") -> str:
+    return os.environ.get(name, "").strip() or default
 
 
 CITY_NOTES = {
@@ -35,6 +44,17 @@ CITY_NOTES = {
     },
 }
 
+DAY_PATTERN = re.compile(r"(?P<days>\d+)\s*天")
+BUDGET_PATTERNS = (
+    re.compile(r"(?:总预算|预算)\s*(?P<budget>\d{3,6})\s*元"),
+    re.compile(r"(?P<budget>\d{3,6})\s*元"),
+)
+TRAVELER_RULES = (
+    (("父母", "长辈"), "带父母/长辈"),
+    (("孩子", "亲子"), "亲子"),
+    (("朋友", "同学"), "朋友同行"),
+)
+
 
 def _find_city(text: str, default: str = "北京") -> str:
     for city in CITY_NOTES:
@@ -44,22 +64,24 @@ def _find_city(text: str, default: str = "北京") -> str:
 
 
 def _extract_days(text: str, default: int = 3) -> int:
-    match = re.search(r"(\d+)\s*天", text)
-    return int(match.group(1)) if match else default
+    match = DAY_PATTERN.search(text)
+    if not match:
+        return default
+    return int(match.group("days"))
 
 
 def _extract_budget(text: str, default: int = 3000) -> int:
-    match = re.search(r"(?:预算|总预算)?\s*(\d{3,5})\s*元", text)
-    return int(match.group(1)) if match else default
+    for pattern in BUDGET_PATTERNS:
+        match = pattern.search(text)
+        if match:
+            return int(match.group("budget"))
+    return default
 
 
 def _extract_travelers(text: str, default: str = "普通出行") -> str:
-    if "父母" in text or "长辈" in text:
-        return "带父母/长辈"
-    if "孩子" in text or "亲子" in text:
-        return "亲子"
-    if "朋友" in text or "同学" in text:
-        return "朋友同行"
+    for keywords, label in TRAVELER_RULES:
+        if any(keyword in text for keyword in keywords):
+            return label
     return default
 
 
@@ -202,13 +224,13 @@ class LocalTravelModel(Model):
 
 
 def _build_model() -> Any:
-    model_name = os.environ.get("MODEL_AGENT_NAME", "").strip()
-    api_key = os.environ.get("MODEL_AGENT_API_KEY", "").strip()
+    model_name = _env("MODEL_AGENT_NAME")
+    api_key = _env("MODEL_AGENT_API_KEY")
     if model_name and api_key:
         from strands.models.openai import OpenAIModel
 
         client_args: dict[str, str] = {"api_key": api_key}
-        api_base = os.environ.get("MODEL_AGENT_API_BASE", "").strip()
+        api_base = _env("MODEL_AGENT_API_BASE")
         if api_base:
             client_args["base_url"] = _openai_base_url(api_base)
         return OpenAIModel(
@@ -216,7 +238,7 @@ def _build_model() -> Any:
             stream=False,
             client_args=client_args,
             params={
-                "temperature": float(os.environ.get("MODEL_AGENT_TEMPERATURE", "0.2")),
+                "temperature": float(_env("MODEL_AGENT_TEMPERATURE", "0.2")),
             },
         )
     return LocalTravelModel()
