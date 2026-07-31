@@ -1,11 +1,16 @@
 import asyncio
 import os
+from pathlib import Path
 
+from dotenv import load_dotenv
 from google.adk.agents import Agent
 from google.adk.models import OpenAILlm
 from google.adk.runners import InMemoryRunner
 from google.genai import types
 
+
+_ENV_FILE = Path(__file__).with_name(".env")
+load_dotenv(_ENV_FILE, override=False)
 
 SYSTEM_PROMPT = (
     "你是中国本地旅行规划助手。根据用户需求选择合适工具，结合城市信息、"
@@ -34,6 +39,10 @@ CITY_NOTES = {
 }
 
 
+def _env(name: str) -> str:
+    return os.environ[name].strip()
+
+
 def _find_city(text: str, default: str = "北京") -> str:
     for city in CITY_NOTES:
         if city in text:
@@ -42,18 +51,15 @@ def _find_city(text: str, default: str = "北京") -> str:
 
 
 def _model_name() -> str:
-    return os.environ.get("MODEL_AGENT_NAME", "").strip() or "ep-xxxxxxxx"
+    return _env("MODEL_AGENT_NAME")
 
 
 def _model_api_base() -> str:
-    return os.environ.get(
-        "MODEL_AGENT_API_BASE",
-        "https://ark.cn-beijing.volces.com/api/v3/responses",
-    ).strip()
+    return _env("MODEL_AGENT_API_BASE")
 
 
 def _model_api_key() -> str:
-    return os.environ.get("MODEL_AGENT_API_KEY", "").strip()
+    return _env("MODEL_AGENT_API_KEY")
 
 
 def _openai_base_url(api_base: str) -> str:
@@ -65,9 +71,7 @@ def _openai_base_url(api_base: str) -> str:
 
 
 def _configure_openai_compatible_env() -> None:
-    api_key = _model_api_key()
-    if api_key:
-        os.environ["OPENAI_API_KEY"] = api_key
+    os.environ["OPENAI_API_KEY"] = _model_api_key()
     os.environ["OPENAI_BASE_URL"] = _openai_base_url(_model_api_base())
 
 
@@ -110,10 +114,49 @@ def recommend_transport(city: str, travelers: str) -> str:
     return base
 
 
+def build_daily_itinerary(city: str, days: int, pace: str) -> str:
+    """按城市、天数和节奏偏好生成简短的每日游玩安排。"""
+    notes = CITY_NOTES.get(city, CITY_NOTES["北京"])
+    daily_count = 1 if "轻松" in pace or "慢" in pace else 2
+    lines = []
+    for day in range(1, max(days, 1) + 1):
+        start = (day - 1) * daily_count
+        attractions = [
+            notes["attractions"][(start + index) % len(notes["attractions"])]
+            for index in range(daily_count)
+        ]
+        food = notes["foods"][(day - 1) % len(notes["foods"])]
+        lines.append(f"第{day}天：{' + '.join(attractions)}，餐饮建议安排{food}。")
+    return "\n".join(lines)
+
+
+def suggest_food_stops(city: str, meal_count: int) -> str:
+    """根据城市和餐次数量推荐本地特色餐饮安排。"""
+    foods = CITY_NOTES.get(city, CITY_NOTES["北京"])["foods"]
+    stops = [foods[index % len(foods)] for index in range(max(meal_count, 1))]
+    return f"{city}{meal_count}餐建议：{'、'.join(stops)}。"
+
+
+def check_itinerary_pace(city: str, days: int, travelers: str) -> str:
+    """检查行程节奏是否适合同行人类型，并给出压缩或放松建议。"""
+    notes = CITY_NOTES.get(city, CITY_NOTES["北京"])
+    attractions_per_day = len(notes["attractions"]) / max(days, 1)
+    if "父母" in travelers or "长辈" in travelers or "亲子" in travelers:
+        limit = 1.5
+    else:
+        limit = 2.0
+    if attractions_per_day > limit:
+        return f"{city}{days}天节奏偏满，建议删减到每天1到2个重点，并保留休息时间。"
+    return f"{city}{days}天节奏可控，可以按兴趣加入餐饮或街区体验。"
+
+
 TRAVEL_TOOLS = [
     search_travel_notes,
     estimate_trip_budget,
     recommend_transport,
+    build_daily_itinerary,
+    suggest_food_stops,
+    check_itinerary_pace,
 ]
 
 
