@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Situla</title>
+  <defs>
+    <linearGradient id="bg" x1="7" y1="5" x2="57" y2="59" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#18251f"/>
+      <stop offset="0.52" stop-color="#111c24"/>
+      <stop offset="1" stop-color="#0b101a"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(45 15) rotate(130) scale(34)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#b7f462" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#b7f462" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="17" fill="url(#bg)" stroke="#668847" stroke-width="2"/>
+  <rect x="3" y="3" width="58" height="58" rx="16" fill="url(#glow)"/>
+  <g transform="scale(2)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="16" cy="16" rx="13.2" ry="6.1" stroke="#b7f462" stroke-opacity=".42" stroke-width="1.15"/>
+    <ellipse cx="16" cy="16" rx="5.8" ry="13" transform="rotate(-34 16 16)" stroke="#b7f462" stroke-opacity=".24" stroke-width="1.15"/>
+    <circle cx="7.2" cy="8" r="2.45" fill="#162018" stroke="#b7f462" stroke-width="1.2"/>
+    <circle cx="24.7" cy="23.6" r="2.05" fill="#162018" stroke="#b7f462" stroke-width="1.2"/>
+    <circle cx="25.1" cy="7.4" r=".85" fill="#b7f462" fill-opacity=".72"/>
+    <path d="M16 2.7 18.3 11l5.9-4.2-3.3 6.6 8.4 2.6-8.4 2.6 3.3 6.6-5.9-4.2-2.3 8.3-2.3-8.3-5.9 4.2 3.3-6.6L2.7 16l8.4-2.6-3.3-6.6 5.9 4.2L16 2.7Z" fill="#b7f462" stroke="#263515" stroke-width=".75"/>
+    <path d="M16 10.2c.6 3.4 2.4 5.2 5.8 5.8-3.4.6-5.2 2.4-5.8 5.8-.6-3.4-2.4-5.2-5.8-5.8 3.4-.6 5.2-2.4 5.8-5.8Z" fill="#d2f99b" fill-opacity=".86"/>
+  </g>
+</svg>

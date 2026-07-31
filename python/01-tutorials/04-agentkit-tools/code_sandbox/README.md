@@ -5,6 +5,11 @@ available for a given `tool-id` and `session-id`.
 
 It also includes a terminal WebSocket client for talking to Codex from a TUI.
 
+For a full local workbench that manages AgentKit Tools and Sessions and opens
+Codex, Hermes, or OpenClaw workspaces, see [Situla](../situla/README.md). Situla is
+a standalone TypeScript project included under this tutorial category because
+it connects directly to AgentKit Tool Sandbox.
+
 The script follows this order:
 
 1. Query whether a remote session exists for the provided `session-id`.

@@ -1,0 +1,48 @@
+{
+  "name": "situla",
+  "version": "0.1.0",
+  "description": "A TypeScript web and terminal client for Codex app-server in an AgentKit sandbox",
+  "license": "Apache-2.0",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "situla": "./src/situla.ts"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning --experimental-strip-types src/situla.ts",
+    "chat": "node --disable-warning=ExperimentalWarning --experimental-strip-types src/situla.ts chat",
+    "web": "node --disable-warning=ExperimentalWarning --experimental-strip-types src/server.ts",
+    "dev": "vite --config vite.config.ts",
+    "dev:server": "node --disable-warning=ExperimentalWarning --experimental-strip-types --watch src/server.ts",
+    "build": "vite build --config vite.config.ts",
+    "build:binary": "node scripts/build-binary.mjs",
+    "licenses": "node scripts/generate-third-party-notices.mjs",
+    "preview": "npm run build && npm start -- start",
+    "test": "node --disable-warning=ExperimentalWarning --experimental-strip-types --test test/*.test.ts",
+    "typecheck": "tsc --noEmit && tsc --project web/tsconfig.json --noEmit"
+  },
+  "engines": {
+    "node": ">=22.6.0"
+  },
+  "volta": {
+    "node": "24.18.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@types/ws": "^8.18.1",
+    "@vitejs/plugin-react": "^6.0.3",
+    "esbuild": "^0.28.1",
+    "postject": "^1.0.0-alpha.6",
+    "typescript": "^5.9.0",
+    "vite": "^8.1.5"
+  },
+  "dependencies": {
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "ws": "^8.21.1"
+  }
+}

@@ -5,6 +5,10 @@
 - `ensure_session.py`：确保指定 `tool-id` 和 `session-id` 对应的 AgentKit sandbox session 可用。
 - `codex_ws_tui.py`：通过终端 TUI 连接 Codex app-server，并与 Codex 对话。
 
+如需完整的本地工作台来管理 AgentKit Tool 与 Session，并进入 Codex、Hermes 或 OpenClaw
+工作区，请参阅 [Situla](../situla/README.md)。Situla 是独立的 TypeScript 项目；由于它直接连接
+AgentKit Tool Sandbox，因此收录在本教程分类下。
+
 `ensure_session.py` 的处理顺序：
 
 1. 查询指定 `session-id` 对应的远端 session 是否存在。
