@@ -1,5 +1,6 @@
 # Part 1: native Strands agent dependencies
 strands-agents[openai]
+python-dotenv>=1.0.0
 
 # Part 2: AgentKit migration runtime dependencies
 a2a-sdk>=0.3.7,<0.4
