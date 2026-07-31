@@ -103,10 +103,6 @@ macOS arm64。
 curl -fsSL https://public-reading.tos-cn-beijing.volces.com/agentkit/situla/install.sh | sh
 ```
 
-仓库还随附了可离线校验的 Linux x64 压缩二进制包；文件、双层 SHA-256
-校验方式和解压命令见 [`releases/`](releases/README.md)。安装脚本会根据本机平台从发布站点
-下载未压缩产物，并执行独立校验。
-
 安装完成后，**新开一个终端**，然后启动：
 
 ```bash
