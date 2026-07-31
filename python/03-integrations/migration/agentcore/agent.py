@@ -1,9 +1,14 @@
 import os
+from pathlib import Path
 from typing import Any
 
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
+from dotenv import load_dotenv
 from strands import Agent, tool
 
+
+_ENV_FILE = Path(__file__).with_name(".env")
+load_dotenv(_ENV_FILE, override=False)
 
 SYSTEM_PROMPT = (
     "你是电商客服助手。需要查询商品或退货规则时使用工具。"
@@ -17,12 +22,16 @@ PRODUCTS = {
         "category": "audio",
         "price": "$79.99",
         "warranty": "12 months",
+        "shipping": "Ships in 2 business days",
+        "stock": 18,
     },
     "PROD-002": {
         "name": "Smart Watch",
         "category": "electronics",
         "price": "$249.99",
         "warranty": "24 months",
+        "shipping": "Ships in 3 business days",
+        "stock": 7,
     },
 }
 
@@ -37,6 +46,10 @@ log = app.logger
 _agent: Agent | None = None
 
 
+def _env(name: str) -> str:
+    return os.environ[name].strip()
+
+
 @tool
 def get_product_info(product_id: str) -> str:
     """Get mock product information by product ID, for example PROD-001 or PROD-002."""
@@ -46,7 +59,8 @@ def get_product_info(product_id: str) -> str:
         return f"Unknown product ID: {product_id}."
     return (
         f"{normalized}: {product['name']}, category={product['category']}, "
-        f"price={product['price']}, warranty={product['warranty']}."
+        f"price={product['price']}, warranty={product['warranty']}, "
+        f"stock={product['stock']}, shipping={product['shipping']}."
     )
 
 
@@ -60,6 +74,50 @@ def get_return_policy(category: str) -> str:
     return f"Return policy for {normalized}: {policy}"
 
 
+@tool
+def check_product_stock(product_id: str) -> str:
+    """Check mock inventory status for a product ID."""
+    normalized = product_id.strip().upper()
+    product = PRODUCTS.get(normalized)
+    if product is None:
+        return f"Unknown product ID: {product_id}."
+    stock = int(product["stock"])
+    if stock <= 0:
+        status = "out of stock"
+    elif stock < 10:
+        status = "low stock"
+    else:
+        status = "in stock"
+    return f"{normalized}: {product['name']} is {status}, stock={stock}."
+
+
+@tool
+def get_shipping_estimate(product_id: str) -> str:
+    """Get mock shipping estimate for a product ID."""
+    normalized = product_id.strip().upper()
+    product = PRODUCTS.get(normalized)
+    if product is None:
+        return f"Unknown product ID: {product_id}."
+    return f"{normalized}: {product['name']} {product['shipping']}."
+
+
+@tool
+def estimate_refund(product_id: str, days_since_purchase: int) -> str:
+    """Estimate simple refund handling based on product category and purchase age."""
+    normalized = product_id.strip().upper()
+    product = PRODUCTS.get(normalized)
+    if product is None:
+        return f"Unknown product ID: {product_id}."
+    days = max(days_since_purchase, 0)
+    if days <= 15:
+        action = "eligible for full refund"
+    elif days <= 30:
+        action = "eligible for return review or replacement"
+    else:
+        action = "outside the standard return window"
+    return f"{normalized}: {product['name']} purchased {days} days ago is {action}."
+
+
 def _openai_base_url(api_base: str) -> str:
     base_url = api_base.strip().rstrip("/")
     for suffix in ("/responses", "/chat/completions"):
@@ -69,19 +127,15 @@ def _openai_base_url(api_base: str) -> str:
 
 
 def build_model() -> Any:
-    model_name = os.environ.get("MODEL_AGENT_NAME", "").strip()
-    api_key = os.environ.get("MODEL_AGENT_API_KEY", "").strip()
-    if not model_name or not api_key:
-        raise RuntimeError(
-            "Set MODEL_AGENT_NAME and MODEL_AGENT_API_KEY before running this AgentCore sample."
-        )
+    model_name = _env("MODEL_AGENT_NAME")
+    api_key = _env("MODEL_AGENT_API_KEY")
 
     from strands.models.openai import OpenAIModel
 
-    client_args: dict[str, str] = {"api_key": api_key}
-    api_base = os.environ.get("MODEL_AGENT_API_BASE", "").strip()
-    if api_base:
-        client_args["base_url"] = _openai_base_url(api_base)
+    client_args: dict[str, str] = {
+        "api_key": api_key,
+        "base_url": _openai_base_url(_env("MODEL_AGENT_API_BASE")),
+    }
 
     return OpenAIModel(
         model_id=model_name,
@@ -97,7 +151,13 @@ def get_agent() -> Agent:
         _agent = Agent(
             name="agentcore_support_assistant",
             model=build_model(),
-            tools=[get_product_info, get_return_policy],
+            tools=[
+                get_product_info,
+                get_return_policy,
+                check_product_stock,
+                get_shipping_estimate,
+                estimate_refund,
+            ],
             system_prompt=SYSTEM_PROMPT,
             callback_handler=None,
         )

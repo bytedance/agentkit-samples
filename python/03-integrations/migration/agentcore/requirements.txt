@@ -1,6 +1,7 @@
 # Part 1: native Bedrock AgentCore + Strands agent dependencies
 bedrock-agentcore>=0.1.0
 strands-agents[openai]
+python-dotenv>=1.0
 
 # Part 2: AgentKit migration runtime dependencies
 a2a-sdk>=0.3.7,<0.4
