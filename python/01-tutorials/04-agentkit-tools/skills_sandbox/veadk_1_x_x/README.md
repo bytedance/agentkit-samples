@@ -199,6 +199,22 @@ agentkit invoke '请运行以下工作流程：1. 帮我写一个pdf处理的ski
 uv run client.py
 ```
 
+## 内置 skills 列表
+
+- 记得修改一下 {YOUR_TOS_BUCKET_NAME}，这是 AgentKit 默认为用户创建的 tos 存储桶，格式为 `agentkit-platform-{your_account_id}`，`如果没有这个 tos 存储桶，需要自己创建`
+
+| skills | 描述 | 示例提示词 |
+| ------ | --- | --------- |
+| tos-file-access | 将文件或目录上传至火山引擎TOS ，从URL下载文件。在以下情况使用此技能：（1）将智能体生成的文件或目录（如视频、图像、报告、输出文件夹）上传至TOS以便共享；（2）在智能体处理前从URL下载文件。 | 请运行以下工作流程：1. 使用 tos-file-access 从 `https://agentkit-skills.tos-cn-beijing.volces.com/upload/topk_benchmark.cpp` 下载一个 topk_benchmark.cpp 代码文件。2. 使用 code-optimization 完善这个代码，把my_topk_inplace函数写好，要求性能要非常好，要比代码里面的标准库还要好。3. 使用 tos-file-access 将最终输出目录（包括最终代码和报告）上传到存储桶 {YOUR_TOS_BUCKET_NAME}。 |
+| code-optimization | 通过迭代改进（最多2轮）优化代码性能。对执行时间和内存使用情况进行基准测试，与基准实现进行比较，并生成详细的优化报告。支持C++、Python、Java、Rust等语言 | 参考上一行 tos-file-access 的提示词。 |
+| veadk-python | 基于VeADK框架实现一个可运行Agent | 请运行以下工作流程：1. 使用 veadk-python skill ，写一个 VeADK Agent，能够通过提问 "hello" 来回复。2. 将写好的代码写入本地一个新的代码文件，然后使用 tos-file-access skill 把这个代码文件上传到存储桶 {YOUR_TOS_BUCKET_NAME}，最后把上传后的代码文件链接发给我。 |
+| docx | 详见 [docx](https://github.com/anthropics/skills/tree/main/skills/docx) | |
+| internal-comms | 详见 [internal-comms](https://github.com/anthropics/skills/tree/main/skills/internal-comms) | |
+| pdf | 详见 [pdf](https://github.com/anthropics/skills/tree/main/skills/pdf) | |
+| pptx | 详见 [pptx](https://github.com/anthropics/skills/tree/main/skills/pptx) | |
+| skill-creator | 详见 [skill-creator](https://github.com/anthropics/skills/tree/main/skills/skill-creator) | |
+| xlsx | 详见 [xlsx](https://github.com/anthropics/skills/tree/main/skills/xlsx) | |
+
 ## 示例提示词
 
 - TODO
