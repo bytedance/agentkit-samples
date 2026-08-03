@@ -1,0 +1,4 @@
+interface:
+  display_name: "火山引擎短信"
+  short_description: "国内短信与短信营销：签名模板、验证码通知、单发群发、回执和数据分析"
+  default_prompt: "使用 $byted-sms-sender 管理火山引擎国内短信和短信营销，包括签名模板、单条发送、群发任务、回执及客户可见数据分析。"

@@ -1,240 +1,110 @@
 ---
 name: byted-sms-sender
-version: 1.2.0
-author: volcengine-sms-team
-description: 火山引擎短信服务管理工具。在需要使用云通信能力，包括发送短信，查询消息组，模板信息，发送详情，状态以及整体发送统计时，可以使用这个能力。
-homepage: https://www.volcengine.com/docs/6361/66704?lang=zh
+version: 1.3.0
+metadata:
+  author: volcengine-sms-team
+description: 火山引擎国内短信（SMS）与短信营销全流程服务，面向外部客户提供短信开通后的运营、发送和分析能力。用户只要提到“短信”“短信服务”“短信营销”“营销短信”“短信群发”“群发短信”“批量短信”“验证码短信”“通知短信”“短信签名”“短信模板”“短信发送”“群发任务”“发送记录”“短信回执”“送达率”“成功率”“失败原因”或“短信数据分析”，或者希望通过火山引擎发送、管理、查询、排查和分析国内短信时，应优先使用。支持已审核资质和消息组查询、签名与模板申请、单条短信发送与回执查询、群发任务创建与明确授权后的启动、任务取消，以及客户可见的数据分析。不要用于资质申请、国际短信、WhatsApp 或非客户可见的技术诊断。
 ---
 
-# Byted SMS Sender
+# 火山引擎短信
 
-火山引擎短信服务 API,版本 2026-01-01
+先定位本 Skill 目录，再将
+`python3 <skill目录>/scripts/sms_cli.py` 作为唯一命令入口。
+脚本可从任意当前目录运行。脚本优先通过 `ve volcsms` 执行 Action，并继续负责
+预检、授权摘要、脱敏与对账；不要绕过脚本直接执行写 Action。不要手写 HTTP 请求
+或臆造 Action 名，构造不熟悉的参数前先查看对应命令的 `--help`。
 
-## 何时使用
+## 鉴权边界
 
-当用户有以下需求时,使用本 skill:
+- 第一优先级：使用 `ve >= 1.1.0` 的 `ve volcsms <Action>` 命令。由官方 CLI
+  复用 `ve login`、当前 Profile 或 `VOLCENGINE_PROFILE` 指定的 Profile，并
+  负责凭证刷新、签名与请求发送。Skill 不读取 CLI 配置文件。
+- 第二优先级：只有 CLI 不存在、不支持 `volcsms`，或在请求发出前明确无法使用
+  时，才使用兼容直连路径。该路径先通过官方 `CLIConfigCredentialProvider`
+  复用 `ve` Profile；无法解析时再使用完整的
+  `VOLCENGINE_ACCESS_KEY` 与 `VOLCENGINE_SECRET_KEY`。临时凭证同时使用
+  `VOLCENGINE_SESSION_TOKEN`。
+- 第三优先级：如果 CLI 和兼容直连路径都不可用，并且宿主同时注入
+  `ARK_SKILL_API_BASE` 与 `ARK_SKILL_API_KEY`，则使用 ArkClaw 网关。
+  按 Action 契约使用 GET 或 POST，请求头携带
+  `Authorization: Bearer <token>` 与 `ServiceName: volcSMS`，不要进行 V4
+  签名。
+- 只有前两个高优先级路径都不可用时，ArkClaw 变量缺失一项才视为配置错误。
+  不要打印 Token，不要检查 `/root/.openclaw/.env`，也不要读取 shell
+  启动文件寻找 Token。
+- 如果 `ve` 不存在或低于 `1.1.0`，先通过官方 npm 包
+  `@volcengine/cli` 安装或升级。`requirements.txt` 中的 Python SDK 只用于
+  兼容直连路径；不要自行读取 CLI 配置文件。
+- 不要直接读取或解析 Volcengine CLI 配置、SSO 缓存或控制台登录缓存；
+  凭证加载与刷新必须交给官方 CLI 或 Provider。
+- 不要索要、展示、记录 ArkClaw Token 或 AK/SK，也不要通过命令行参数传递。
+- 官方 Provider 返回的 Session Token 属于客户直连 V4 凭证，必须作为已签名的
+  `X-Security-Token` 发送。
+- 调用身份由最终选中的鉴权路径确定，不接受账号 ID 覆盖。
 
-**发送短信场景:**
+## 选择工作流
 
-- 需要发送验证码短信
-- 需要发送通知类短信
-- 需要发送营销类短信
-- 用户说"发短信""发送验证码""发通知"时
+- 查询 Action 名、参数、版本、响应字段和重试分类时，读取
+  [references/actions.md](references/actions.md)。
+- 申请签名或模板、发送短信、管理群发任务前，读取
+  [references/workflows.md](references/workflows.md)。
+- 执行任何写操作或处理客户数据前，读取
+  [references/rules.md](references/rules.md)。
 
-**查询场景:**
+## 命令导航
 
-- 需要查询可用的消息组(子账号)
-- 需要查询已审核通过的短信签名
-- 需要查询已审核通过的短信模板
-- 需要查询短信发送记录
-- 需要查询发送统计(成功率等)
+- 资源查询：`list-message-groups`、`message-group-detail`、
+  `list-qualifications`、`list-signatures`、`list-templates`。
+- 申请：先执行 `signature-preview`，再执行 `signature-submit`；
+  先执行 `template-preview`，再执行 `template-submit`。
+- 单条发送：使用完整客户短信内容、签名、消息组和短信类型调用
+  `match-template`，查找内容完全一致且已审核通过的模板。随后用明确选定的模板
+  ID 执行 `send-preview`，取得当前会话中的明确授权后执行 `send-submit`；
+  使用 `send-status` 查询回执。
+- 群发：`batch-template-demo`、`batch-precheck`、`batch-create`、
+  `batch-detail`、`batch-list`、`batch-launch-preview`、
+  `batch-launch-submit`、`batch-cancel`。
+- 客户数据分析：使用 `analytics`。聚合统计是提交级数据；只有显式传入
+  `--include-logs` 才查询消息级证据。分析账号全量发送日志时，先枚举客户可见的
+  消息组，再逐个查询。`--channel-type` 只限定聚合统计；
+  `--mobile` 只作为发送日志请求过滤条件，必须与 `--include-logs` 同时使用，
+  不得返回，也不会限定同一报告中的聚合趋势。
 
-## 使用前检查
+## 强制安全门禁
 
-检查是否已配置以下凭证:
+- 不支持资质申请，只查询已审核资质。如果客户没有可用资质，停止签名申请流程，
+  明确引导客户登录火山引擎控制台，在“国内短信 > 资质管理”完成资质申请；待资质
+  审核通过后再继续。不要代替客户提交资质申请。
+- 签名和模板申请必须先生成预览；只有执行摘要仍与预览一致时才能提交。
+- 签名申请必须遵循客户明确指定的消息组子集。客户不确定或未指定时，绑定当前
+  可见的全部消息组。默认全选时，提交前立即重新查询；可见集合变化后必须重新
+  生成预览。
+- 签名来源 `source` 必须为整数：`1 = 公司`、`2 = App`、
+  `3 = 商标`。消息组行业不是签名申请门禁；只有客户主动询问时才使用
+  `message-group-detail`。
+- 单条发送必须针对当前脱敏发送摘要取得明确授权。只有取得授权后，才能把预览
+  摘要作为授权摘要传入；泛化的“继续”或“是”不构成授权。
+- 单条发送前，根据完整短信内容判断短信类型，再匹配模板。只检查本次发送需要的
+  消息组、签名、模板及变量关系；不要查询资质或消息组行业。签名缺少
+  `usable`、资质 ID 或短信类型字段不视为失败，但明确
+  `usable=false` 必须拒绝。
+- 创建群发任务不等于授权发送。展示最新任务摘要并在当前会话收到
+  `确认启动任务 <taskId>` 后，才能启动。
+- 保留群发创建交接信息：`taskId`、`subAccount`、文件 SHA-256 和号码统计。
+  任务详情缺少这些值时，在启动预览中补入交接信息。
+- 发送或启动前立即重新查询可变资源；任何摘要变化都会使原授权失效。
+- 群发任务禁止使用验证码模板。
+- 保留公开短信错误码，只能通过 `actions.md` 中的官方文档链接解释；
+  不要硬编码、推断或输出非公开实现原因。
+- 除非 `actions.md` 明确声明服务端幂等字段与对账方式，否则不要自动重试写
+  Action。
+- CLI 写调用只有在能够确认子进程未发出请求时才允许进入兼容路径。CLI 超时、
+  响应丢失或无法判断是否已发送时，必须返回 `outcome_unknown`，不得换后端重放。
+- 如果写请求可能已到达服务端但响应丢失，返回 `outcome_unknown`，并使用查询
+  Action 对账；不要盲目重复提交。
 
-- `ARK_SKILL_API_KEY` - API 密钥
-- `ARK_SKILL_API_BASE` - API 基础地址
+## 输出边界
 
-这些凭证由 **ArkClaw** 预先配置在终端环境中，配置文件位置: `/root/.openclaw/.env`
-
-检查方式:
-```bash
-echo $ARK_SKILL_API_KEY
-echo $ARK_SKILL_API_BASE
-```
-
-如果缺少凭证:
-1. 检查配置文件 `/root/.openclaw/.env` 是否存在
-2. 如果仍然找不到，请联系 **oncall** 获取帮助
-
-## 6个接口说明
-
-### 1. send\_sms - 发送短信
-
-**场景:** 用户需要发送验证码、通知、营销短信
-
-**使用方式:**
-
-```bash
-python3 scripts/volc_sms.py send_sms \
-  --sub-account "消息组ID" \
-  --signature "签名" \
-  --template-id "模板ID" \
-  --mobiles "手机号" \
-  --template-param '{"code":"123456"}'
-```
-
-**参数说明:**
-
-- `--sub-account`: 消息组ID(必填),从 list\_sub\_account 获取
-- `--signature`: 短信签名(必填),从 list\_signature 获取
-- `--template-id`: 模板ID(必填),从 list\_sms\_template 获取
-- `--mobiles`: 手机号(必填),多个用逗号分隔
-- `--template-param`: 模板参数(可选),JSON格式
-
-### 2. list\_sub\_account - 查询消息组
-
-**场景:** 需要知道可以用哪个消息组发送短信
-
-**使用方式:**
-
-```bash
-python3 scripts/volc_sms.py list_sub_account
-```
-
-**参数说明:**
-
-- `--sub-account-name`: 可选,按名称模糊搜索
-
-### 3. list\_signature - 查询签名
-
-**场景:** 需要知道可以用哪个签名,或者查询签名是否审核通过
-
-**使用方式:**
-
-```bash
-python3 scripts/volc_sms.py list_signature --signature "火山引擎"
-```
-
-**参数说明:**
-
-- `--signature`: 可选,按签名模糊搜索
-- `--sub-accounts`: 可选,按子账号过滤
-- `--page`: 页码,默认1
-- `--page-size`: 每页数量,默认20
-
-### 4. list\_sms\_template - 查询模板
-
-**场景:** 需要知道可以用哪个模板,或者查询模板参数
-
-**使用方式:**
-
-```bash
-python3 scripts/volc_sms.py list_sms_template --signatures "火山引擎"
-```
-
-**参数说明:**
-
-- `--template-id`: 可选,按模板ID模糊搜索
-- `--signatures`: 可选,按签名过滤
-- `--sub-accounts`: 可选,按子账号过滤
-- `--page`: 页码,默认1
-- `--page-size`: 每页数量,默认20
-
-### 5. list\_sms\_send\_log - 查询发送记录
-
-**场景:** 需要查看某条短信的发送状态,或批量查询发送历史
-
-**使用方式:**
-
-```bash
-python3 scripts/volc_sms.py list_sms_send_log \
-  --sub-account "消息组ID" \
-  --from-time 1773113285 \
-  --to-time 1773213285
-```
-
-**参数说明:**
-
-- `--sub-account`: 必填,消息组ID
-- `--from-time`: 开始时间戳(秒)
-- `--to-time`: 结束时间戳(秒)
-- `--mobile`: 可选,按手机号过滤
-- `--template-id`: 可选,按模板ID过滤
-- `--signature`: 可选,按签名过滤
-- `--message-id`: 可选,按消息ID精确查询
-- `--page`: 页码,默认1
-- `--page-size`: 每页数量,默认100
-
-### 6. list\_total\_send\_count\_stat - 查询发送统计
-
-**场景:** 需要查看发送成功率、接收成功率等统计信息
-
-**使用方式:**
-
-```bash
-python3 scripts/volc_sms.py list_total_send_count_stat \
-  --start-time 1773113285 \
-  --end-time 1773213285
-```
-
-**参数说明:**
-
-- `--start-time`: 必填,开始时间戳(秒)
-- `--end-time`: 必填,结束时间戳(秒)
-- `--sub-account`: 可选,按消息组过滤
-- `--channel-type`: 可选,通道类型
-- `--signature`: 可选,按签名过滤
-- `--template-id`: 可选,按模板ID过滤
-
-**返回字段:**
-
-- TotalSendCount: 总发送数
-- TotalSendSuccessCount: 发送成功数
-- TotalSendSuccessRate: 发送成功率
-- TotalReceiptSuccessCount: 接收成功数
-- TotalReceiptSuccessRate: 接收成功率
-
-## 典型使用流程
-
-### 第一次发送短信
-
-1. **查询可用的消息组**
-   ```bash
-   python3 scripts/volc_sms.py list_sub_account
-   ```
-2. **查询可用的签名**
-   ```bash
-   python3 scripts/volc_sms.py list_signature
-   ```
-3. **查询可用的模板**
-   ```bash
-   python3 scripts/volc_sms.py list_sms_template --signatures "火山引擎"
-   ```
-4. **发送短信**
-   ```bash
-   python3 scripts/volc_sms.py send_sms \
-     --sub-account "xxxx" \
-     --signature "xxx" \
-     --template-id "ST_xxxx" \
-     --mobiles "188xxxxxxx8" \
-     --template-param '{"code":"888888"}'
-   ```
-
-### 查询发送状态
-
-```bash
-python3 scripts/volc_sms.py list_sms_send_log \
-  --sub-account "77da1acf" \
-  --from-time 1773113285 \
-  --to-time 1773213285
-```
-
-## 常见错误码
-
-- `RE:0001`: 账号短信服务未开通
-- `RE:0003`: 子账号不存在(消息组ID错误)
-- `RE:0004`: 签名错误(签名不存在或未审核通过)
-- `RE:0005`: 模板错误(模板不存在或未审核通过)
-- `RE:0006`: 手机号格式错误
-- `RE:0010`: 账号欠费
-- `ZJ10200`: 请求参数错误
-
-## 注意事项
-
-1. **签名和模板**: 必须使用已审核通过的签名和模板
-2. **手机号格式**:
-   - 国内短信: 11位手机号或 +86开头
-   - 国际短信: 必须包含国际区号,符合 E.164 标准
-3. **批量限制**: 单次最多200个手机号
-4. **签名子账号匹配**: 签名和消息组需要匹配,可从 list\_signature 的 SubAccounts 字段确认
-5. **模板签名匹配**: 模板和签名需要匹配,可从 list\_sms\_template 的 Signature 字段确认
-
-## 故障排查
-
-- 缺少凭证: 检查 `/root/.openclaw/.env` 文件，如仍找不到请联系 oncall
-- 发送失败: 先用 list\_sub\_account、list\_signature、list\_sms\_template 确认参数正确
-- 鉴权失败: 检查自己配置的 AK/SK 是否开通正确
-- 权限错误: 检查凭证是否正确，如问题持续请联系 oncall
-- 欠费错误: 请联系 oncall 处理
+返回 CLI JSON 信封，但不要暴露完整手机号、可能含敏感信息的短信内容、凭证、
+Authorization 请求头、签名 URL 查询参数，以及任何非客户可见字段。
+保留公开 Request ID 与公开错误码，供客户支持排查。
