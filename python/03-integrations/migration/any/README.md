@@ -6,7 +6,7 @@
 
 AgentKit Runtime 原生支持 LangChain、LangGraph、Strands、Google ADK，以及基于 Bedrock AgentCore Runtime 构建的项目。对于暂未显式适配的 Python agent 项目，可以使用 `agentkit migrate --framework any create` 将源项目提交给远端 Codex Sandbox，由沙箱分析项目结构并生成 AgentKit Runtime 可运行的工程。
 
-本示例使用一个 Strands 旅行规划 agent 作为输入。这里使用 `--framework any`，目的是展示通用迁移能力如何自动理解项目结构，而不是要求用户手动声明具体框架。
+本示例使用一个 Strands 旅行规划 agent 作为输入。这里使用 `--framework any`，目的是展示通用迁移能力如何自动理解项目结构.
 
 ## 核心功能
 
@@ -47,93 +47,109 @@ any/
 ├── README.md          # 中文说明文档
 ├── README_EN.md       # 英文说明文档
 ├── requirements.txt   # Python 依赖列表
-└── any_input/
-    └── agent.py       # 原生 Strands 旅行规划 agent
+├── any_input/
+│   └── agent.py       # 原生 Strands 旅行规划 agent
+└── any_output/        # 迁移完成后写入的输出目录，与 any_input 同级
 ```
 
-`agentkit migrate` 执行后会在输入目录下记录本地迁移任务，并将最终工程写入 `--output` 指定目录。生成文件不需要提前提交到样例源码中。
+以下命令均在 `any/` 目录下执行。`any_input/` 是源项目输入目录；`--output ../any_output` 以 `any_input/` 为基准解析，迁移产物会写入与 `any_input/` 同级的 `any_output/` 目录。
 
-## 本地运行
+## 发起远端迁移
 
-### 依赖安装
+### 检查 AgentKit CLI 版本
 
-由于迁移的实际执行在云端的codex沙箱，在执行migrate命令的过程中，您并不需要安装特定的python环境。
+请先确认本机安装的是 TypeScript 版本的 AgentKit CLI，且版本不低于 `0.50.4`：
 
+```bash
+agentkit -v
+```
+
+如未安装，或版本低于 `0.50.4`，可以使用以下命令安装 TypeScript 版本 AgentKit CLI：
+
+```bash
+curl https://agentkit-cli.tos-cn-beijing.volces.com/install.sh | sh
+```
 
 ### 环境准备
 
-迁移任务需要准备 AgentKit 账号凭证、目标应用模型配置，以及远端 Codex Sandbox 使用的模型 key。
+在 `any/` 目录下复制 `.env.example` 为 `.env`，并在 `.env` 中填写迁移和部署需要的环境变量。
 
-可以复制 `.env.example` 为 `.env`，并在 `.env` 或当前 shell 中填写需要的环境变量。
+AgentKit CLI 在运行前会自动加载当前执行目录下的 `.env`，不需要手动执行 `source .env`。因此可以直接将环境变量写入 `.env` 中，避免每次手动导入环境变量。其中，`CODEX_MIGRATE_MODEL_API_KEY` 用于远端 Codex Sandbox 迁移任务，`MODEL_AGENT_API_KEY` 用于迁移后应用运行时调用模型。
 
-火山引擎国内版：
+注意：`--codex-api-key-env` 和 `--model-api-key-env` 传的是环境变量 key 名，CLI 会从 `.env` 中读取对应的真实 key；`--codex-model`、`--model-id`、`--model-base-url` 参数则需要填写实际值。
 
-```text
-VOLCENGINE_ACCESS_KEY=<access-key>
-VOLCENGINE_SECRET_KEY=<secret-key>
+火山引擎：
 
-MODEL_AGENT_NAME=<model-name>
-MODEL_AGENT_PROVIDER=openai
-MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
-MODEL_AGENT_API_KEY=<api-key>
+```bash
+VOLCENGINE_ACCESS_KEY=""
+VOLCENGINE_SECRET_KEY=""
 
-AGENTKIT_MIGRATE_MODEL_API_KEY=<codex-model-api-key>
+CODEX_MODEL_AGENT_NAME=""
+CODEX_MIGRATE_MODEL_API_KEY=""
+
+MODEL_AGENT_NAME=""
+MODEL_AGENT_API_BASE=""
+MODEL_AGENT_API_KEY=""
 ```
 
-BytePlus 海外版 AgentKit：
+BytePlus 平台：
 
-```text
-BYTEPLUS_ACCESS_KEY=<access-key>
-BYTEPLUS_SECRET_KEY=<secret-key>
+如果使用 BytePlus 平台，需要填写 BytePlus 的 AK/SK 和模型接入配置。使用 BytePlus 时，在 `.env` 中将火山引擎账号变量替换为 `BYTEPLUS_ACCESS_KEY` / `BYTEPLUS_SECRET_KEY`，并设置 `CLOUD_PROVIDER=byteplus` 和 `BYTEPLUS_REGION`。
+
+```bash
+BYTEPLUS_ACCESS_KEY=""
+BYTEPLUS_SECRET_KEY=""
 CLOUD_PROVIDER=byteplus
 BYTEPLUS_REGION=ap-southeast-1
 
-MODEL_AGENT_NAME=<model-name>
-MODEL_AGENT_PROVIDER=openai
-MODEL_AGENT_API_BASE=https://ark.ap-southeast.bytepluses.com/api/v3/
-MODEL_AGENT_API_KEY=<api-key>
+CODEX_MODEL_AGENT_NAME=""
+CODEX_MIGRATE_MODEL_API_KEY=""
 
-AGENTKIT_MIGRATE_MODEL_API_KEY=<codex-model-api-key>
+MODEL_AGENT_NAME=""
+MODEL_AGENT_API_BASE=""
+MODEL_AGENT_API_KEY=""
 ```
-
-`MODEL_AGENT_API_KEY` 用于迁移后项目运行时调用业务模型，`AGENTKIT_MIGRATE_MODEL_API_KEY` 用于远端 Codex Sandbox 执行迁移分析。执行迁移命令前，请确保这些变量已经在当前 shell 中生效。
 
 ### 创建迁移任务
 
-`create` 会真实发起远端迁移任务。确认环境变量和输入目录后执行：
+`create` 会把 `any_input/` 提交到远端 Codex Sandbox 执行迁移。`--output ../any_output` 以 `any_input/` 为基准解析，最终产物会写入 `any/any_output/`。
 
 ```bash
-cd <project_dir>/any/any_input
+cd <project_dir>/any
 
-agentkit migrate . --framework any create --name any-test --output ../any_output \
-  --codex-model <codex_model> \
-  --codex-api-key-env AGENTKIT_MIGRATE_MODEL_API_KEY \
-  --model-id <model_name> \
-  --model-base-url https://ark.cn-beijing.volces.com/api/v3 \
+agentkit migrate any_input --framework any create --name any-test --output ../any_output \
+  --codex-model <codex模型名> \
+  --codex-api-key-env CODEX_MIGRATE_MODEL_API_KEY \
+  --model-id <VeADK模型名> \
+  --model-base-url <VeADK依赖的模型base_url> \
   --model-api-key-env MODEL_AGENT_API_KEY
 ```
 
-该命令会把 `any_input/` 作为源项目提交给迁移任务，并将最终产物写入 `../any_output`。
+迁移完成后，`any_output/` 会包含完整的 VeADK / AgentKit Runtime 工程，可进入该目录执行 `agentkit deploy`。
 
 ## 查询和下载结果
 
 查询任务状态并下载终态产物：
 
 ```bash
-agentkit migrate . --framework any status --job-id <job_id>
+agentkit migrate any_input --framework any status --job-id <job_id>
 ```
 
 也可以使用位置参数形式：
 
 ```bash
-agentkit migrate . --framework any status <job_id>
+agentkit migrate any_input --framework any status <job_id>
 ```
 
 查看本地迁移任务记录：
 
 ```bash
-agentkit migrate . --framework any list
+agentkit migrate any_input --framework any list
 ```
+
+## 可选：VeADK项目本地调试
+
+在部署到AgentKit Runtime之前，您可以先本地调试migration迁移后的产物，确保可以运行后再部署到AgentKit Runtime上。
 
 ## AgentKit 部署
 
@@ -142,8 +158,6 @@ agentkit migrate . --framework any list
 ```bash
 agentkit deploy
 ```
-
-部署环境中继续使用上面的 AgentKit 账号凭证和模型环境变量。
 
 ## 输出结果
 
@@ -176,19 +190,14 @@ agentkit deploy
 - `--framework any`：使用通用 agentic migration。
 - `create`：创建远端迁移任务。
 - `status`：查询任务并下载结果。
-- `list`：查看本地 `.agentkit/migrate/jobs` 记录。
-- `--codex-model`：指定远端 Codex Sandbox 使用的模型。
+- `list`：查看本地 `any_input/.agentkit/migrate/jobs/` 记录。
+- `--codex-model`：指定远端 Codex Sandbox 使用的模型，传模型名实际值。
 - `--codex-api-key-env`：指定远端 Codex Sandbox 读取模型 key 的环境变量名。
-- `--model-id`：指定迁移后项目运行时使用的业务模型。
-- `--model-base-url`：指定业务模型的 OpenAI-compatible 接入点。
+- `--model-id`：指定迁移后项目运行时使用的业务模型，传模型名实际值。
+- `--model-base-url`：指定业务模型的 OpenAI-compatible 接入点，传 base URL 实际值。
 - `--model-api-key-env`：指定业务模型 key 的环境变量名；不写时默认使用 `MODEL_AGENT_API_KEY`。
 
 ## 常见问题
-
-- 为什么示例源项目是 Strands，却使用 `--framework any`？
-
-  本示例用于展示通用迁移链路。已知是 Strands 项目时，也可以参考 `migration/strands` 使用框架专项迁移；当项目结构不固定、入口不明确，或希望由 Codex Sandbox 自动分析时，可以使用 `--framework any`。
-
 - 迁移命令会改写 `any_input/agent.py` 吗？
 
   不会。迁移任务会把源项目作为输入上传分析，并将生成的 AgentKit Runtime 工程写入 `--output` 指定目录。

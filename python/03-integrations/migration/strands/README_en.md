@@ -1,19 +1,19 @@
-# Strands Project Adaptation to AgentKit Runtime Sample
+# Strands Migration to AgentKit Runtime Sample
 
 ## Overview
 
-This sample shows how to adapt an existing Strands project to AgentKit Runtime.
+This sample shows how to connect an existing Strands project to AgentKit Runtime.
 
-The sample project represents a user-owned Strands travel-planning agent. Its original business entry point is `agent.py:agent`, implemented as a zero-argument Strands `Agent` factory. The code registers a model, a system prompt, and simple local travel tools with Strands, then uses them to answer travel-planning questions with city notes, budget evaluation, and transportation suggestions.
+This sample uses `agent.py` to simulate an existing Strands travel-planning project and shows how to migrate it to AgentKit Runtime.
 
-You do not need to rewrite the original business logic during adaptation. `agentkit migrate` generates `agentkit_app.py` and `.agentkit/` configuration, and the generated Runtime app calls the original `agent.py:agent` through `StrandsAgentkitBridge`.
+This demo guides you through adapting the Strands project, generating artifacts that can be deployed to AgentKit Runtime, and completing the deployment.
 
 ## Key Features
 
-- Shows how a Strands `Agent` factory entry is called by AgentKit Runtime.
+- Shows how an existing Strands Agent connects to AgentKit Runtime.
+- Uses Strands `Agent` to organize the model, prompt, and tools.
 - Uses `@tool` to declare local travel-note search, budget estimation, and transportation recommendation tools.
-- Uses Strands `OpenAIModel` for real model calls; the provider is determined by the `OpenAIModel` class, so `MODEL_AGENT_PROVIDER` is not required.
-- Preserves the native Strands business code and adds the AgentKit Runtime adaptation through `agentkit migrate`.
+- Preserves the native Strands business code and generates Runtime entry files and configuration through `agentkit migrate`.
 
 ## Agent Capabilities
 
@@ -23,168 +23,157 @@ This sample includes the following local tools:
 - `estimate_trip_budget`: estimates whether the budget is sufficient by city, days, and total budget.
 - `recommend_transport`: recommends transportation by city and traveler type.
 
-After adaptation, the call flow is:
+After migration, the call flow is:
 
 ```text
 User question
-    |
+    ↓
 AgentKit Runtime
-    |
+    ↓
 agentkit_app.py
-    |
+    ↓
 StrandsAgentkitBridge
-    |
-agent.py:agent  # zero-argument factory that creates a Strands Agent
-    |-- OpenAIModel / local demo model
-    |-- search_travel_notes
-    |-- estimate_trip_budget
-    `-- recommend_transport
+    ↓
+agent.py:agent
+    ├── Agent
+    ├── search_travel_notes
+    ├── estimate_trip_budget
+    └── recommend_transport
 ```
 
-## Directory Layout
+## Directory Structure
 
 ```bash
 strands/
-├── .env.example       # Model config variable names
-├── README.md          # Chinese documentation
-├── README_en.md       # English documentation
-├── agent.py           # Native Strands Agent factory, tools, and model config
-└── requirements.txt   # Dependencies split into native agent and AgentKit runtime sections
+├── .env.example       # Model configuration environment variable example
+├── README.md          # Chinese README
+├── README_en.md       # English README
+├── agent.py           # Native Strands Agent and local tools
+└── requirements.txt   # Python dependencies
 ```
-
-Running `agentkit migrate` in this directory generates `agentkit_app.py` and `.agentkit/`. Generated files do not need to be committed as part of the sample source.
 
 ## Local Run
 
+### Check AgentKit CLI Version
+
+First make sure the TypeScript version of AgentKit CLI is installed and the version is not lower than `0.50.4`:
+
+```bash
+agentkit -v
+```
+
+If it is not installed, or the version is lower than `0.50.4`, install the TypeScript version of AgentKit CLI with:
+
+```bash
+curl https://agentkit-cli.tos-cn-beijing.volces.com/install.sh | sh
+```
+
 ### Install Dependencies
 
-Use Python 3.10 or later. From this sample directory, run:
+Make sure the Python version is 3.10 or later. From this sample directory, run:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-You can also use `uv`:
+You can also use `uv` to install dependencies:
 
 ```bash
 uv pip install -r requirements.txt
 ```
 
-### Configure Environment
+### Environment Preparation
 
-Copy `.env.example` to `.env` and keep the required model variable names in dotenv empty-value form:
+Copy `.env.example` to `.env`, then fill in the required model configuration in `.env`:
 
 ```text
-MODEL_AGENT_NAME=
+MODEL_AGENT_NAME=<model-name>
 MODEL_AGENT_API_BASE=
-MODEL_AGENT_API_KEY=
+MODEL_AGENT_API_KEY=<api-key>
 ```
 
-Provide actual model values through shell environment variables:
+This sample first uses Strands `OpenAIModel` to create the model, so `MODEL_AGENT_PROVIDER` is not required. Make sure your model endpoint supports the OpenAI format. If model configuration is not provided, `python agent.py` uses the built-in local sample model so you can verify that the native Strands entry is runnable.
 
-```bash
-export MODEL_AGENT_NAME=
-export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
-export MODEL_AGENT_API_KEY=
+If you need to deploy the generated artifacts to AgentKit Runtime, write the corresponding platform account configuration into `.env`.
+
+Volcengine China:
+
+```text
+VOLCENGINE_ACCESS_KEY=<access-key>
+VOLCENGINE_SECRET_KEY=<secret-key>
 ```
 
-When `MODEL_AGENT_NAME` and `MODEL_AGENT_API_KEY` are configured, the code creates a model with Strands `OpenAIModel`. The provider is determined by that class, so `MODEL_AGENT_PROVIDER` is not required. `MODEL_AGENT_API_BASE` may point to the Ark Responses endpoint; the sample normalizes it to the OpenAI-compatible API root `https://ark.cn-beijing.volces.com/api/v3` before passing it to `OpenAIModel`.
+BytePlus overseas AgentKit:
 
-For Volcengine, export the account AK/SK credentials as environment variables:
-
-```bash
-export VOLCENGINE_ACCESS_KEY=
-export VOLCENGINE_SECRET_KEY=
+```text
+BYTEPLUS_ACCESS_KEY=<access-key>
+BYTEPLUS_SECRET_KEY=<secret-key>
+CLOUD_PROVIDER=byteplus
+BYTEPLUS_REGION=ap-southeast-1
 ```
 
-For BytePlus AgentKit, export these environment variables:
+### Pre-check
 
-```bash
-export BYTEPLUS_ACCESS_KEY=
-export BYTEPLUS_SECRET_KEY=
-export CLOUD_PROVIDER=byteplus
-export BYTEPLUS_REGION=ap-southeast-1
-```
-
-Account credentials are not written to `.env.example` or `.env`, and are not read by the native Strands agent business code.
-
-If model env vars are not configured, the sample uses a local demo model so you can inspect the call flow before and after migration.
-
-### Debug Locally
-
-Run the native Strands Agent directly:
+Before migration, first make sure the original Strands project is healthy and runnable:
 
 ```bash
 python agent.py
 ```
 
-This command creates the Strands Agent returned by `agent.py:agent`, sends a fixed travel question to the agent, and prints a readable travel-planning result.
+This command calls `agent.py:agent` to create a Strands Agent, sends a fixed travel question to the agent, and outputs a readable travel-planning result.
 
-You can also debug the migrated Runtime app. First run:
+### Run The Migration Command
+
+After confirming that the original project is executable, run the migration command to generate Runtime entry files and configuration:
 
 ```bash
 agentkit migrate . \
   --framework strands \
   --entry agent.py:agent \
   --name migration-strands-travel \
-  --verify \
-  --force
+  --verify
 ```
 
 Arguments:
 
 - `--framework strands`: migrate as a Strands Agent.
-- `--entry agent.py:agent`: specify the native zero-argument Strands Agent factory entry.
+- `--entry agent.py:agent`: specify the native Strands Agent creation function.
 - `--verify`: run basic checks after generation.
-- `--force`: overwrite old generated files if they already exist.
 
-## Deploy To AgentKit Runtime
+After the command succeeds, it generates entry files and configuration that can be deployed to AgentKit Runtime.
+The migration process does not rewrite the original Strands `agent.py`.
 
-After reviewing `.agentkit/agentkit.yaml`, run:
+## AgentKit Deployment
+
+If you want to deploy the generated artifacts to AgentKit Runtime, run:
 
 ```bash
 agentkit deploy
 ```
 
-After deployment, the Runtime entry point is `agentkit_app.py`. The business logic is still handled by the Strands Agent created from `agent.py:agent` and the original tools.
-
-Deployment needs model env vars in the deployment environment. Export account credentials with the Volcengine or BytePlus block above:
-
-```bash
-export MODEL_AGENT_NAME=
-export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
-export MODEL_AGENT_API_KEY=
-```
+After deployment, you can find the deployed project in AgentKit Runtime on the AgentKit platform.
 
 ## Example Prompts
 
 - I want to take my parents to Beijing for 3 days with a total budget of 3000 RMB. We like history and culture, hutongs, and old Beijing food. Please keep the itinerary relaxed and plan attractions, food, and transportation for each day.
-- I want to visit Xi'an for 2 days with a budget of 1800 RMB. I like historical sites and local snacks. Please arrange a relaxed route.
+- I want to visit Xi'an for 2 days with a budget of 1800 RMB. I like historical sites and local snacks. Please arrange a route that is not too tiring.
 
-## Expected Output
+## Example Output
 
-Running an example prompt makes the agent use local travel notes, budget, and transportation tools, then return a day-by-day itinerary with attractions, food, budget judgment, and transportation suggestions.
+After running an example prompt, the Agent calls local travel notes, budget, and transportation tools through Strands, then outputs a day-by-day travel plan including attraction arrangements, dining suggestions, budget judgment, and transportation suggestions.
 
 ```text
-北京3天旅行规划（示例模型输出）
+Beijing 3-day travel plan (sample model output)
 
-第1天：故宫博物院，餐饮可安排北京烤鸭，节奏保持轻松。
-第2天：天坛公园，餐饮可安排炸酱面，节奏保持轻松。
+Day 1: Palace Museum, with Peking duck for dining, keeping the pace relaxed.
+Day 2: Temple of Heaven Park, with zhajiangmian for dining, keeping the pace relaxed.
 ```
 
 ## FAQ
 
-- What if model env vars are not configured?
+- Does the migration command rewrite the original `agent.py`?
 
-  The sample uses a local demo model and returns readable output. After you configure `MODEL_AGENT_NAME`, `MODEL_AGENT_API_BASE`, and `MODEL_AGENT_API_KEY`, it switches to the real Strands `OpenAIModel`.
-
-- Where should account credentials go?
-
-  Do not write them to `.env.example` or `.env`. Before running `agentkit migrate` or `agentkit deploy`, export the matching Volcengine or BytePlus variables.
-
-- Does the migration command rewrite `agent.py`?
-
-  No. The migration command adds Runtime adaptation files, while the original Strands business entry remains unchanged.
+  No. The migration command adds Runtime entry files, while the original Strands business entry remains unchanged.
 
 ## License
 

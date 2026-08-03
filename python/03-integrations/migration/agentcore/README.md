@@ -2,11 +2,11 @@
 
 ## 概述
 
-本项目演示如何将已有 Bedrock AgentCore Runtime 项目适配到 AgentKit Runtime。
+本项目演示如何将已有 Bedrock AgentCore Runtime 项目接入 AgentKit Runtime。
 
-示例模拟一个用户已有的 AgentCore Runtime 客服 agent。原项目入口是 `agent.py:app`，类型为 `BedrockAgentCoreApp`。它保留 `@app.entrypoint` 入口，在入口后运行一个 Strands Agent，并注册模型、系统提示词、商品查询和退货政策两个本地工具。
+本示例用 `agent.py` 模拟一个已有的 Bedrock AgentCore Runtime 客服项目，展示如何将它迁移到 AgentKit Runtime。
 
-迁移时不需要改写原有 AgentCore 入口。`agentkit migrate` 会生成 `agentkit_app.py` 和 `.agentkit/` 配置，生成后的 Runtime 应用通过 `BedrockAgentCoreAgentkitBridge` 调用原始 `agent.py:app`。
+本 demo 会引导您完成 Bedrock AgentCore Runtime 项目的适配，生成可部署到 AgentKit Runtime 的产物，并最终完成部署。
 
 ## 核心功能
 
@@ -40,8 +40,7 @@ agent.py:app
     ↓
 Strands Agent
     ├── get_product_info
-    ├── get_return_policy
-    └── OpenAIModel
+    └── get_return_policy
 ```
 
 ## 目录结构说明
@@ -55,7 +54,6 @@ agentcore/
 └── requirements.txt   # Python 依赖列表
 ```
 
-`agentkit migrate` 执行后会在当前目录生成 `agentkit_app.py` 和 `.agentkit/` 目录。生成文件不需要提前提交到样例源码中。
 
 ## 本地运行
 
@@ -143,7 +141,7 @@ agentkit migrate . \
 
 ## AgentKit 部署
 
-如果要执行 `agentkit deploy`，可以先关注 `.agentkit/agentkit.yaml` 当中的配置。确认后执行：
+如果您想将生成的产物部署到 AgentKit Runtime 上，可以执行：
 
 ```bash
 agentkit deploy

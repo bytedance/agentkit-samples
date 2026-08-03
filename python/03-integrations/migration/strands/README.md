@@ -2,18 +2,18 @@
 
 ## 概述
 
-本项目演示如何将已有 Strands 项目适配到 AgentKit Runtime。
+本项目演示如何将已有 Strands 项目接入 AgentKit Runtime。
 
-示例模拟一个用户已有的 Strands 旅行规划项目。原项目入口是 `agent.py:agent`，类型为零参 Strands `Agent` factory。它使用 Strands `Agent` 注册模型、系统提示词和本地旅行工具，接收旅行问题后由 agent 结合城市资料、预算判断和交通建议，生成景点、美食、预算和交通安排。
+本示例用 `agent.py` 模拟一个已有的 Strands 旅行规划项目，展示如何将它迁移到 AgentKit Runtime。
 
-迁移时不需要改写原有业务逻辑。`agentkit migrate` 会生成 `agentkit_app.py` 和 `.agentkit/` 配置，生成后的 Runtime 应用通过 `StrandsAgentkitBridge` 调用原始 `agent.py:agent`。
+本 demo 会引导您完成 Strands 项目的适配，生成可部署到 AgentKit Runtime 的产物，并最终完成部署。
 
 ## 核心功能
 
-- 展示 Strands `Agent` factory 入口如何被 AgentKit Runtime 调用。
+- 展示已有 Strands Agent 如何接入 AgentKit Runtime。
 - 使用 Strands `Agent` 组织模型、提示词和工具。
 - 使用 `@tool` 声明本地旅行资料检索、预算估算和交通建议工具。
-- 保留原生 Strands 业务代码，并通过 `agentkit migrate` 生成 Runtime 适配层。
+- 保留原生 Strands 业务代码，并通过 `agentkit migrate` 生成 Runtime 接入文件和配置。
 
 ## Agent 能力
 
@@ -38,8 +38,7 @@ agent.py:agent
     ├── Agent
     ├── search_travel_notes
     ├── estimate_trip_budget
-    ├── recommend_transport
-    └── OpenAIModel
+    └── recommend_transport
 ```
 
 ## 目录结构说明
@@ -49,13 +48,26 @@ strands/
 ├── .env.example       # 模型配置环境变量示例
 ├── README.md          # 中文说明文档
 ├── README_en.md       # 英文说明文档
-├── agent.py           # 原生 Strands Agent factory 和 tools
+├── agent.py           # 原生 Strands Agent 和本地工具
 └── requirements.txt   # Python 依赖列表
 ```
 
-`agentkit migrate` 执行后会在当前目录生成 `agentkit_app.py` 和 `.agentkit/` 目录。生成文件不需要提前提交到样例源码中。
 
 ## 本地运行
+
+### 检查 AgentKit CLI 版本
+
+请先确认本机安装的是 TypeScript 版本的 AgentKit CLI，且版本不低于 `0.50.4`：
+
+```bash
+agentkit -v
+```
+
+如未安装，或版本低于 `0.50.4`，可以使用以下命令安装 TypeScript 版本 AgentKit CLI：
+
+```bash
+curl https://agentkit-cli.tos-cn-beijing.volces.com/install.sh | sh
+```
 
 ### 依赖安装
 
@@ -81,7 +93,7 @@ MODEL_AGENT_API_BASE=
 MODEL_AGENT_API_KEY=<api-key>
 ```
 
-AgentKit CLI 在运行前会自动加载 `.env` 到 AgentKit CLI 的环境变量中。当前 demo 使用 Strands `OpenAIModel` 创建模型，因此不需要配置 `MODEL_AGENT_PROVIDER`，确保您的模型接入点支持 OpenAI 格式即可。
+当前示例会优先使用 Strands `OpenAIModel` 创建模型，因此不需要配置 `MODEL_AGENT_PROVIDER`，确保您的模型接入点支持 OpenAI 格式即可。如果未填写模型配置，`python agent.py` 会使用内置的本地示例模型，便于先验证原生 Strands 入口是否可运行。
 
 如果需要将生成的产物部署到 AgentKit Runtime，则将对应平台的账号配置写入 `.env`。
 
@@ -101,17 +113,17 @@ CLOUD_PROVIDER=byteplus
 BYTEPLUS_REGION=ap-southeast-1
 ```
 
-### pre-check
-在执行迁移之前，先确保原来的Strands项目是正常且可运行的：
+### 迁移前检查
+在执行迁移之前，先确保原来的 Strands 项目正常且可运行：
 
 ```bash
 python agent.py
 ```
 
-该命令会调用 `agent.py:agent` 创建 Strands Agent，向 agent 发送固定旅行问题，并输出可读的旅行规划结果。
+该命令会调用 `agent.py:agent` 创建 Strands Agent，向该 Agent 发送固定旅行问题，并输出可读的旅行规划结果。
 
-### 执行Migration命令：
-在确保原项目是可执行的以后，就可以执行migration命令，进行Agentkit项目的适配了
+### 执行迁移命令
+确认原项目可执行后，运行迁移命令生成 AgentKit Runtime 接入文件和配置：
 ```bash
 agentkit migrate . \
   --framework strands \
@@ -123,21 +135,21 @@ agentkit migrate . \
 参数含义如下：
 
 - `--framework strands`：按 Strands Agent 方式迁移。
-- `--entry agent.py:agent`：指定原生 Strands Agent 零参 factory 入口。
+- `--entry agent.py:agent`：指定原生 Strands Agent 的创建函数。
 - `--verify`：生成后执行基础校验。
 
-执行成功后的产物即可直接部署到Agentkit Runtime上。
-全过程对原本的Strands agent.py无侵入，无改造。
+执行成功后，会生成可部署到 AgentKit Runtime 的入口文件和配置。
+迁移过程不会改写原有的 Strands `agent.py`。
 
 ## AgentKit 部署
 
-如果要执行 `agentkit deploy`，可以先关注 `.agentkit/agentkit.yaml` 当中的配置。确认后执行：
+如果您想将生成的产物部署到 AgentKit Runtime 上，可以执行：
 
 ```bash
 agentkit deploy
 ```
 
-部署后，即可在Agentkit平台的Runtime当中找到部署的项目。
+部署后，即可在 AgentKit 平台的 Runtime 中找到部署的项目。
 
 ## 示例提示词
 
@@ -159,7 +171,7 @@ agentkit deploy
 
 - 迁移命令会改写原有 `agent.py` 吗？
 
-  不会。迁移命令会新增 Runtime 适配文件，原有 Strands 业务入口保持不变。
+  不会。迁移命令会新增 Runtime 接入文件，原有 Strands 业务入口保持不变。
 
 ## 代码许可
 

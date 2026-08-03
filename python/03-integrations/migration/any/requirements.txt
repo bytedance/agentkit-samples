@@ -1,3 +1,0 @@
-a2a-sdk>=0.3.7,<0.4
-agentkit-sdk-python>=0.7.12
-google-adk>=1.32

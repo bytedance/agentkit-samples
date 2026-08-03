@@ -2,18 +2,18 @@
 
 ## 概述
 
-本项目演示如何将已有 Google ADK 项目适配到 AgentKit Runtime。
+本项目演示如何将已有 Google ADK 项目接入 AgentKit Runtime。
 
-示例模拟一个用户已有的 Google ADK 旅行规划项目。原项目入口是 `agent.py:root_agent`，类型为 `google.adk.agents.Agent`。它使用 Google ADK `Agent` 注册模型、系统提示词和本地旅行工具，接收旅行问题后由 ADK agent 调用工具并生成景点、美食、预算和交通建议。
+本示例用 `agent.py` 模拟一个已有的 Google ADK 旅行规划项目，展示如何将它迁移到 AgentKit Runtime。
 
-为兼容更直观的入口写法，代码也提供了 `agent.py:agent` 作为 `root_agent` 的别名。README 中迁移命令使用 Google ADK 常见的 `root_agent` 入口。
+本 demo 会引导您完成 Google ADK 项目的适配，生成可部署到 AgentKit Runtime 的产物，并最终完成部署。
 
 ## 核心功能
 
-- 展示 Google ADK agent 入口如何被 AgentKit Runtime 调用。
+- 展示已有 Google ADK Agent 如何接入 AgentKit Runtime。
 - 使用 Google ADK `Agent` 组织模型、提示词和工具。
 - 使用本地函数声明旅行资料检索、预算估算和交通建议工具。
-- 保留原生 Google ADK 业务代码，并通过 `agentkit migrate` 生成 Runtime 适配层。
+- 保留原生 Google ADK 业务代码，并通过 `agentkit migrate` 生成 Runtime 接入文件和配置。
 
 ## Agent 能力
 
@@ -38,8 +38,7 @@ agent.py:root_agent
     ├── Agent
     ├── search_travel_notes
     ├── estimate_trip_budget
-    ├── recommend_transport
-    └── OpenAILlm
+    └── recommend_transport
 ```
 
 ## 目录结构说明
@@ -49,14 +48,27 @@ google_adk/
 ├── .env.example       # 模型配置环境变量示例
 ├── README.md          # 中文说明文档
 ├── README_en.md       # 英文说明文档
-├── agent.py           # 原生 Google ADK Agent 和 tools
-├── project.yaml       # 项目信息元数据
+├── agent.py           # 原生 Google ADK Agent 和本地工具
 └── requirements.txt   # Python 依赖列表
 ```
 
 `agentkit migrate` 执行后会在当前目录生成 `agentkit_app.py` 和 `.agentkit/` 目录。生成文件不需要提前提交到样例源码中。
 
 ## 本地运行
+
+### 检查 AgentKit CLI 版本
+
+请先确认本机安装的是 TypeScript 版本的 AgentKit CLI，且版本不低于 `0.50.4`：
+
+```bash
+agentkit -v
+```
+
+如未安装，或版本低于 `0.50.4`，可以使用以下命令安装 TypeScript 版本 AgentKit CLI：
+
+```bash
+curl https://agentkit-cli.tos-cn-beijing.volces.com/install.sh | sh
+```
 
 ### 依赖安装
 
@@ -82,7 +94,7 @@ MODEL_AGENT_API_BASE=
 MODEL_AGENT_API_KEY=<api-key>
 ```
 
-AgentKit CLI 在运行前会自动加载 `.env` 到 AgentKit CLI 的环境变量中。当前 demo 使用 Google ADK `OpenAILlm` 创建模型，因此不需要配置 `MODEL_AGENT_PROVIDER`，确保您的模型接入点支持 OpenAI 格式即可。
+当前示例使用 Google ADK `OpenAILlm` 创建模型，因此不需要配置 `MODEL_AGENT_PROVIDER`，确保您的模型接入点支持 OpenAI 格式即可。
 
 如果需要将生成的产物部署到 AgentKit Runtime，则将对应平台的账号配置写入 `.env`。
 
@@ -102,17 +114,17 @@ CLOUD_PROVIDER=byteplus
 BYTEPLUS_REGION=ap-southeast-1
 ```
 
-### pre-check
-在执行迁移之前，先确保原来的Google ADK项目是正常且可运行的：
+### 迁移前检查
+在执行迁移之前，先确保原来的 Google ADK 项目正常且可运行：
 
 ```bash
 python agent.py
 ```
 
-该命令会通过 ADK `Runner` 调用 `agent.py:root_agent`，向 agent 发送固定旅行问题，并使用配置的 OpenAI-compatible 模型完成一次真实对话。
+该命令会通过 ADK `Runner` 调用 `agent.py:root_agent`，向 Agent 发送固定旅行问题，并使用配置的 OpenAI-compatible 模型完成一次真实对话。
 
-### 执行Migration命令：
-在确保原项目是可执行的以后，就可以执行migration命令，进行Agentkit项目的适配了
+### 执行迁移命令
+确认原项目可执行后，运行迁移命令生成 AgentKit Runtime 接入文件和配置：
 ```bash
 agentkit migrate . \
   --framework adk \
@@ -124,24 +136,24 @@ agentkit migrate . \
 参数含义如下：
 
 - `--framework adk`：按 Google ADK Agent 方式迁移。
-- `--entry agent.py:root_agent`：指定原生 Google ADK agent 入口。
+- `--entry agent.py:root_agent`：指定原生 Google ADK Agent 入口。
 - `--name migration-google-adk-travel`：指定生成的 AgentKit 应用名称。
 - `--verify`：生成后执行基础校验。
 
-Google ADK 迁移不需要 `--input-key`。迁移命令会生成 `AgentkitAgentServerApp` 包装原生 `root_agent`，不会改写 `agent.py`。
+Google ADK 迁移不需要 `--input-key`。迁移命令会生成 Runtime 接入文件，继续调用原生 `root_agent`，不会改写 `agent.py`。
 
-执行成功后的产物即可直接部署到Agentkit Runtime上。
-全过程对原本的Google ADK agent.py无侵入，无改造。
+执行成功后，会生成可部署到 AgentKit Runtime 的入口文件和配置。
+迁移过程不会改写原有的 Google ADK `agent.py`。
 
 ## AgentKit 部署
 
-如果要执行 `agentkit deploy`，可以先关注 `.agentkit/agentkit.yaml` 当中的配置。确认后执行：
+如果您想将生成的产物部署到 AgentKit Runtime 上，可以执行：
 
 ```bash
 agentkit deploy
 ```
 
-部署后，即可在Agentkit平台的Runtime当中找到部署的项目。
+部署后，即可在 AgentKit 平台的 Runtime 中找到部署的项目。
 
 ## 示例提示词
 
@@ -163,7 +175,7 @@ agentkit deploy
 
 - 迁移命令会改写原有 `agent.py` 吗？
 
-  不会。迁移命令会新增 Runtime 适配文件，原有 Google ADK 业务入口保持不变。
+  不会。迁移命令会新增 Runtime 接入文件，原有 Google ADK 业务入口保持不变。
 
 ## 代码许可
 

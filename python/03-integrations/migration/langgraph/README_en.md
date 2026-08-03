@@ -1,21 +1,18 @@
-# LangGraph Project Adaptation to AgentKit Runtime Sample
+# LangGraph Migration to AgentKit Runtime Sample
 
 ## Overview
 
-This sample shows how to adapt an existing LangGraph project to AgentKit Runtime.
+This sample shows how to connect an existing LangGraph project to AgentKit Runtime.
 
-The sample represents a user-owned LangGraph travel-planning project. Its original entry point is `agent.py:agent`, implemented as a compiled `StateGraph`. A graph node uses LangChain `create_agent` to register the model, system prompt, and local LangChain tools. After receiving a travel question, the agent calls tools and generates attraction, food, budget, and transportation suggestions.
+This sample uses `agent.py` to simulate an existing LangGraph travel-planning project and shows how to migrate it to AgentKit Runtime.
 
-You do not need to rewrite the original business logic during migration. `agentkit migrate` generates `agentkit_app.py` and `.agentkit/` configuration, and the generated Runtime app calls the original `agent.py:agent` through `LangGraphAgentkitBridge(input_key="question")`.
+This demo guides you through adapting the LangGraph project, generating artifacts that can be deployed to AgentKit Runtime, and completing the deployment.
 
 ## Key Features
 
-- Shows how a LangGraph compiled graph entry point is called by AgentKit Runtime.
-- Uses an outer LangGraph `StateGraph` to keep the `question` input entry.
-- Uses LangChain `create_agent` inside a LangGraph node to orchestrate the model, prompt, and tools.
+- Shows how an existing LangGraph project connects to AgentKit Runtime.
 - Uses `@tool` to declare local travel-note search, budget estimation, and transportation recommendation tools.
-- Uses `langchain_openai.ChatOpenAI` for real model calls; the provider is determined by the `ChatOpenAI` class, so `MODEL_AGENT_PROVIDER` is not required.
-- Preserves the native LangGraph business code and adds the AgentKit Runtime adaptation through `agentkit migrate`.
+- Preserves the native LangGraph business code and generates Runtime entry files and configuration through `agentkit migrate`.
 
 ## Agent Capabilities
 
@@ -29,100 +26,104 @@ After migration, the call flow is:
 
 ```text
 User question
-    |
+    ↓
 AgentKit Runtime
-    |
+    ↓
 agentkit_app.py
-    |
-LangGraphAgentkitBridge(input_key="question")
-    |
-agent.py:agent  # compiled StateGraph
-    `-- call_react_agent
-        `-- create_agent
-            |-- ChatOpenAI / local demo model
-            |-- search_travel_notes
-            |-- estimate_trip_budget
-            `-- recommend_transport
+    ↓
+LangGraphAgentkitBridge
+    ↓
+agent.py:agent
+    ├── LangGraph graph
+    ├── search_travel_notes
+    ├── estimate_trip_budget
+    └── recommend_transport
 ```
 
-## Directory Layout
+## Directory Structure
 
 ```bash
 langgraph/
-├── .env.example       # Model config variable names
-├── README.md          # Chinese documentation
-├── README_en.md       # English documentation
-├── agent.py           # Native LangGraph graph, ReAct agent, tools, and LLM calls
-└── requirements.txt   # Dependencies split into native agent and AgentKit runtime sections
+├── .env.example       # Model configuration environment variable example
+├── README.md          # Chinese README
+├── README_en.md       # English README
+├── agent.py           # Native LangGraph graph, ReAct Agent, and local tools
+└── requirements.txt   # Python dependencies
 ```
-
-Running `agentkit migrate` in this directory generates `agentkit_app.py` and `.agentkit/`. Generated files do not need to be committed as part of the sample source.
 
 ## Local Run
 
+### Check AgentKit CLI Version
+
+First make sure the TypeScript version of AgentKit CLI is installed and the version is not lower than `0.50.4`:
+
+```bash
+agentkit -v
+```
+
+If it is not installed, or the version is lower than `0.50.4`, install the TypeScript version of AgentKit CLI with:
+
+```bash
+curl https://agentkit-cli.tos-cn-beijing.volces.com/install.sh | sh
+```
+
 ### Install Dependencies
 
-Use Python 3.10 or later. From this sample directory, run:
+Make sure the Python version is 3.10 or later. From this sample directory, run:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-You can also use `uv`:
+You can also use `uv` to install dependencies:
 
 ```bash
 uv pip install -r requirements.txt
 ```
 
-### Configure Environment
+### Environment Preparation
 
-Copy `.env.example` to `.env` and keep the required model variable names in dotenv empty-value form:
+Copy `.env.example` to `.env`, then fill in the required model configuration in `.env`:
 
 ```text
-MODEL_AGENT_NAME=
+MODEL_AGENT_NAME=<model-name>
 MODEL_AGENT_API_BASE=
-MODEL_AGENT_API_KEY=
+MODEL_AGENT_API_KEY=<api-key>
 ```
 
-Provide actual model values through shell environment variables. The model configuration is consistent with the other migration demos and uses an OpenAI-compatible Ark endpoint. This sample does not use separate Gemini configuration and does not require `GOOGLE_API_KEY`:
+This sample first uses `langchain_openai.ChatOpenAI` to create the model, so `MODEL_AGENT_PROVIDER` is not required. Make sure your model endpoint supports the OpenAI format. If model configuration is not provided, `python agent.py` uses the built-in local sample model so you can verify that the native LangGraph entry is runnable.
 
-```bash
-export MODEL_AGENT_NAME=
-export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
-export MODEL_AGENT_API_KEY=
+If you need to deploy the generated artifacts to AgentKit Runtime, write the corresponding platform account configuration into `.env`.
+
+Volcengine China:
+
+```text
+VOLCENGINE_ACCESS_KEY=<access-key>
+VOLCENGINE_SECRET_KEY=<secret-key>
 ```
 
-The code uses `langchain_openai.ChatOpenAI` to create an OpenAI-compatible model, so the provider is determined by that class and `MODEL_AGENT_PROVIDER` is not required. `MODEL_AGENT_API_BASE` uses the Ark Responses endpoint. The sample normalizes it to the OpenAI-compatible API root `https://ark.cn-beijing.volces.com/api/v3` before passing it to `ChatOpenAI`.
+BytePlus overseas AgentKit:
 
-For Volcengine, export the account AK/SK credentials as environment variables:
-
-```bash
-export VOLCENGINE_ACCESS_KEY=
-export VOLCENGINE_SECRET_KEY=
+```text
+BYTEPLUS_ACCESS_KEY=<access-key>
+BYTEPLUS_SECRET_KEY=<secret-key>
+CLOUD_PROVIDER=byteplus
+BYTEPLUS_REGION=ap-southeast-1
 ```
 
-For BytePlus AgentKit, export these environment variables:
+### Pre-check
 
-```bash
-export BYTEPLUS_ACCESS_KEY=
-export BYTEPLUS_SECRET_KEY=
-export CLOUD_PROVIDER=byteplus
-export BYTEPLUS_REGION=ap-southeast-1
-```
-
-Account credentials are not written to `.env.example` or `.env`, and are not read by the native LangGraph agent business code.
-
-If model env vars are not configured, the sample uses a local demo model so you can inspect the call flow before and after migration.
-
-### Debug Locally
-
-Run the native LangGraph Agent directly:
+Before migration, first make sure the original LangGraph project is healthy and runnable:
 
 ```bash
 python agent.py
 ```
 
-You can also debug the migrated Runtime app. First run:
+This command calls `agent.py:agent`, sends a fixed travel question to the LangGraph graph, and outputs a readable travel-planning result.
+
+### Run The Migration Command
+
+After confirming that the original project is executable, run the migration command to generate Runtime entry files and configuration:
 
 ```bash
 agentkit migrate . \
@@ -130,65 +131,50 @@ agentkit migrate . \
   --entry agent.py:agent \
   --name migration-langgraph-travel \
   --input-key question \
-  --verify \
-  --force
+  --verify
 ```
 
 Arguments:
 
-- `--framework langgraph`: migrate as a LangGraph compiled graph.
-- `--entry agent.py:agent`: specify the native Graph entry.
+- `--framework langgraph`: migrate as a LangGraph graph.
+- `--entry agent.py:agent`: specify the native LangGraph entry.
 - `--input-key question`: write Runtime input into the `question` field.
 - `--verify`: run basic checks after generation.
-- `--force`: overwrite old generated files if they already exist.
 
-## Deploy To AgentKit Runtime
+After the command succeeds, it generates entry files and configuration that can be deployed to AgentKit Runtime.
+The migration process does not rewrite the original LangGraph `agent.py`.
 
-After reviewing `.agentkit/agentkit.yaml`, run:
+## AgentKit Deployment
+
+If you want to deploy the generated artifacts to AgentKit Runtime, run:
 
 ```bash
 agentkit deploy
 ```
 
-After deployment, the Runtime entry point is `agentkit_app.py`. The business logic is still handled by `agent.py:agent` and the original LangGraph nodes.
-
-Deployment needs the same model env vars in the deployment environment. Export account credentials with the Volcengine or BytePlus block above:
-
-```bash
-export MODEL_AGENT_NAME=
-export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
-export MODEL_AGENT_API_KEY=
-```
+After deployment, you can find the deployed project in AgentKit Runtime on the AgentKit platform.
 
 ## Example Prompts
 
 - I want to take my parents to Beijing for 3 days with a total budget of 3000 RMB. We like history and culture, hutongs, and old Beijing food. Please keep the itinerary relaxed and plan attractions, food, and transportation for each day.
 - I want to visit Chengdu for 2 days with a budget of 2000 RMB. I like food and city neighborhoods. Please arrange a relaxed route.
 
-## Expected Output
+## Example Output
 
-Running an example prompt makes the agent use local travel-note, budget, and transportation tools, then return a day-by-day itinerary with attractions, food, budget judgment, and transportation suggestions.
+After running an example prompt, the Agent calls local travel notes, budget, and transportation tools through LangGraph nodes, then outputs a day-by-day travel plan including attraction arrangements, dining suggestions, budget judgment, and transportation suggestions.
 
 ```text
-北京3天旅行规划（示例模型输出）
+Beijing 3-day travel plan (sample model output)
 
-第1天：故宫博物院 + 什刹海胡同
-第2天：天坛公园 + 前门周边
+Day 1: Palace Museum + Shichahai hutongs
+Day 2: Temple of Heaven Park + Qianmen area
 ```
 
 ## FAQ
 
-- What if model env vars are not configured?
+- Does the migration command rewrite the original `agent.py`?
 
-  The sample uses a local demo model and returns readable output. After you configure `MODEL_AGENT_NAME`, `MODEL_AGENT_API_BASE`, and `MODEL_AGENT_API_KEY`, it switches to a real OpenAI-compatible ChatModel.
-
-- Where should account credentials go?
-
-  Do not write them to `.env.example` or `.env`. Before running `agentkit migrate` or `agentkit deploy`, export the matching Volcengine or BytePlus variables.
-
-- Does the migration command rewrite `agent.py`?
-
-  No. The migration command adds Runtime adaptation files, while the original LangGraph business entry remains unchanged.
+  No. The migration command adds Runtime entry files, while the original LangGraph business entry remains unchanged.
 
 ## License
 

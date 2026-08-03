@@ -1,110 +1,132 @@
-# Google ADK Project Adaptation to AgentKit Runtime Sample
+# Google ADK Migration to AgentKit Runtime Sample
 
-This sample shows how to adapt an existing Google ADK project to AgentKit Runtime.
+## Overview
 
-The sample represents a user-owned Google ADK travel-planning project. Its native business entry point is `agent.py:root_agent`, implemented as a `google.adk.agents.Agent`. The code registers an OpenAI-compatible Ark model, instructions, and simple local tools with the native Google ADK `Agent`.
+This sample shows how to connect an existing Google ADK project to AgentKit Runtime.
 
-The code also exposes `agent.py:agent` as an alias for `root_agent`, but the migration command below uses the common Google ADK `root_agent` entry point.
+This sample uses `agent.py` to simulate an existing Google ADK travel-planning project and shows how to migrate it to AgentKit Runtime.
 
-## What This Sample Demonstrates
+This demo guides you through adapting the Google ADK project, generating artifacts that can be deployed to AgentKit Runtime, and completing the deployment.
 
-- A native Google ADK `Agent` entry point that can be wrapped by AgentKit Runtime.
-- Local user-defined Python function tools:
-  - `search_travel_notes`: returns sample city attractions, food, and route notes.
-  - `estimate_trip_budget`: evaluates the trip budget by city, days, and total budget.
-  - `recommend_transport`: suggests a simple transport strategy.
-- Migration to AgentKit Runtime without rewriting the original business entry point.
-- OpenAI-compatible Ark model settings shared with the other migration samples.
-- No `MODEL_AGENT_PROVIDER` setting.
+## Key Features
 
-## Adapted Call Flow
+- Shows how an existing Google ADK Agent connects to AgentKit Runtime.
+- Uses Google ADK `Agent` to organize the model, prompt, and tools.
+- Uses local functions to declare travel-note search, budget estimation, and transportation recommendation tools.
+- Preserves the native Google ADK business code and generates Runtime entry files and configuration through `agentkit migrate`.
 
-Before adaptation, users can reference `agent.py:root_agent` directly. After adaptation, AgentKit Runtime calls the same entry point through the generated `agentkit_app.py`:
+## Agent Capabilities
+
+This sample includes the following local tools:
+
+- `search_travel_notes`: searches built-in city travel notes.
+- `estimate_trip_budget`: estimates whether the budget is sufficient by city, days, and total budget.
+- `recommend_transport`: recommends transportation by city and traveler type.
+
+After migration, the call flow is:
 
 ```text
 User question
-    |
+    ↓
 AgentKit Runtime
-    |
+    ↓
 agentkit_app.py
-    |
+    ↓
 AgentkitAgentServerApp
-    |
+    ↓
 agent.py:root_agent
-    |-- search_travel_notes
-    |-- estimate_trip_budget
-    `-- recommend_transport
+    ├── Agent
+    ├── search_travel_notes
+    ├── estimate_trip_budget
+    └── recommend_transport
 ```
 
-## Directory Layout
+## Directory Structure
 
 ```bash
 google_adk/
-├── README.md
-├── README_en.md
-├── agent.py               # Native Google ADK Agent and local tools
-├── .env.example           # Ark model variable names
-├── project.yaml           # Sample metadata
-└── requirements.txt       # Split into native ADK and AgentKit migration runtime dependencies
+├── .env.example       # Model configuration environment variable example
+├── README.md          # Chinese README
+├── README_en.md       # English README
+├── agent.py           # Native Google ADK Agent and local tools
+└── requirements.txt   # Python dependencies
 ```
 
-`agentkit migrate` generates `agentkit_app.py` and `.agentkit/` in this directory. Those generated files are intentionally not committed in the sample source.
+After `agentkit migrate` runs, it generates `agentkit_app.py` and the `.agentkit/` directory in the current directory. Generated files do not need to be committed to the sample source in advance.
 
 ## Local Run
 
-Install dependencies:
+### Check AgentKit CLI Version
+
+First make sure the TypeScript version of AgentKit CLI is installed and the version is not lower than `0.50.4`:
+
+```bash
+agentkit -v
+```
+
+If it is not installed, or the version is lower than `0.50.4`, install the TypeScript version of AgentKit CLI with:
+
+```bash
+curl https://agentkit-cli.tos-cn-beijing.volces.com/install.sh | sh
+```
+
+### Install Dependencies
+
+Make sure the Python version is 3.12 or later. From this sample directory, run:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Run the native project file directly:
+You can also use `uv` to install dependencies:
+
+```bash
+uv pip install -r requirements.txt
+```
+
+### Environment Preparation
+
+Copy `.env.example` to `.env`, then fill in the required model configuration in `.env`:
+
+```text
+MODEL_AGENT_NAME=<model-name>
+MODEL_AGENT_API_BASE=
+MODEL_AGENT_API_KEY=<api-key>
+```
+
+This sample uses Google ADK `OpenAILlm` to create the model, so `MODEL_AGENT_PROVIDER` is not required. Make sure your model endpoint supports the OpenAI format.
+
+If you need to deploy the generated artifacts to AgentKit Runtime, write the corresponding platform account configuration into `.env`.
+
+Volcengine China:
+
+```text
+VOLCENGINE_ACCESS_KEY=<access-key>
+VOLCENGINE_SECRET_KEY=<secret-key>
+```
+
+BytePlus overseas AgentKit:
+
+```text
+BYTEPLUS_ACCESS_KEY=<access-key>
+BYTEPLUS_SECRET_KEY=<secret-key>
+CLOUD_PROVIDER=byteplus
+BYTEPLUS_REGION=ap-southeast-1
+```
+
+### Pre-check
+
+Before migration, first make sure the original Google ADK project is healthy and runnable:
 
 ```bash
 python agent.py
 ```
 
-Copy `.env.example` to `.env` and keep the required model variable names in dotenv empty-value form:
+This command calls `agent.py:root_agent` through the ADK `Runner`, sends a fixed travel question to the Agent, and uses the configured OpenAI-compatible model to complete one real conversation.
 
-```text
-MODEL_AGENT_NAME=
-MODEL_AGENT_API_BASE=
-MODEL_AGENT_API_KEY=
-```
+### Run The Migration Command
 
-Provide actual model values through shell environment variables:
-
-```bash
-export MODEL_AGENT_NAME=
-export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
-export MODEL_AGENT_API_KEY=
-```
-
-This command calls `agent.py:root_agent` through the ADK `Runner`, sends the fixed prompt `我想去北京玩3天`, and uses the configured OpenAI-compatible Ark model for one real agent turn.
-
-The native code uses Google ADK `Agent` and ADK `OpenAILlm`. `MODEL_AGENT_API_BASE` may point to the Ark Responses endpoint; the sample normalizes it to the OpenAI-compatible API root before passing it to the OpenAI SDK. `MODEL_AGENT_PROVIDER` is not required by this sample.
-
-For Volcengine, export the account AK/SK credentials as environment variables:
-
-```bash
-export VOLCENGINE_ACCESS_KEY=
-export VOLCENGINE_SECRET_KEY=
-```
-
-For BytePlus AgentKit, export these environment variables:
-
-```bash
-export BYTEPLUS_ACCESS_KEY=
-export BYTEPLUS_SECRET_KEY=
-export CLOUD_PROVIDER=byteplus
-export BYTEPLUS_REGION=ap-southeast-1
-```
-
-Account credentials are not written to `.env.example` or `.env`, and are not read by the native Google ADK business agent.
-
-## Run Migration
-
-Run this command in the current directory:
+After confirming that the original project is executable, run the migration command to generate Runtime entry files and configuration:
 
 ```bash
 agentkit migrate . \
@@ -116,33 +138,48 @@ agentkit migrate . \
 
 Arguments:
 
-- `--framework adk`: migrate as a Google ADK Agent entry.
-- `--entry agent.py:root_agent`: specify the native Google ADK agent entry.
-- `--name migration-google-adk-travel`: set the generated AgentKit app name.
+- `--framework adk`: migrate as a Google ADK Agent.
+- `--entry agent.py:root_agent`: specify the native Google ADK Agent entry.
+- `--name migration-google-adk-travel`: specify the generated AgentKit app name.
 - `--verify`: run basic checks after generation.
 
-Google ADK migration does not need `--input-key`. The generated wrapper uses `AgentkitAgentServerApp` and preserves the original `agent.py`.
+Google ADK migration does not need `--input-key`. The migration command generates Runtime entry files, continues to call the native `root_agent`, and does not rewrite `agent.py`.
 
-## Deploy To AgentKit Runtime
+After the command succeeds, it generates entry files and configuration that can be deployed to AgentKit Runtime.
+The migration process does not rewrite the original Google ADK `agent.py`.
 
-After reviewing `.agentkit/agentkit.yaml`, run:
+## AgentKit Deployment
+
+If you want to deploy the generated artifacts to AgentKit Runtime, run:
 
 ```bash
 agentkit deploy
 ```
 
-After deployment, the Runtime entry point is `agentkit_app.py`. The business logic is still handled by the original `agent.py:root_agent` and local tools.
+After deployment, you can find the deployed project in AgentKit Runtime on the AgentKit platform.
 
-Deployment needs model env vars in the deployment environment. Export account credentials with the Volcengine or BytePlus block above:
+## Example Prompts
 
-```bash
-export MODEL_AGENT_NAME=
-export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/responses
-export MODEL_AGENT_API_KEY=
-```
+- I want to take my parents to Beijing for 3 days with a total budget of 3000 RMB. We like history and culture, hutongs, and old Beijing food. Please keep the itinerary relaxed and plan attractions, food, and transportation for each day.
+- I want to visit Chengdu for 2 days with a budget of 2000 RMB. I like food and city neighborhoods. Please arrange a relaxed route.
 
-## Example Prompt
+## Example Output
+
+After running an example prompt, the Agent calls local travel notes, budget, and transportation tools through Google ADK, then outputs a day-by-day travel plan including attraction arrangements, dining suggestions, budget judgment, and transportation suggestions.
 
 ```text
-I want to take my parents to Beijing for 3 days with a total budget of 3000 RMB. We like history and culture, hutongs, and old Beijing food. Please keep the itinerary relaxed and plan attractions, food, and transportation for each day.
+Beijing 3-day travel plan (sample model output)
+
+Requirement summary: prefers history and culture, hutong neighborhoods, local food, and relaxed slow travel.
+Budget suggestion: with a total budget of 3000 RMB for 3 days in Beijing, the average is about 1000 RMB per person per day; the budget is relatively comfortable.
 ```
+
+## FAQ
+
+- Does the migration command rewrite the original `agent.py`?
+
+  No. The migration command adds Runtime entry files, while the original Google ADK business entry remains unchanged.
+
+## License
+
+This project is licensed under the Apache 2.0 License.
