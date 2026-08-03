@@ -53,6 +53,6 @@ if __name__ == "__main__":
                 print(line)
 
     async def send_request_parallel():
-        await send_request("帮我通过蒙特卡洛模拟算一下圆周率 PI 的值")
+        await send_request("帮我跑一下ls命令，返回结果给我看看")
 
     asyncio.run(send_request_parallel())
