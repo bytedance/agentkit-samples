@@ -1,31 +1,23 @@
-# MIT License
-# 
-# Copyright (c) 2026 ByteDance
-# 
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-# 
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-# 
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# Copyright (c) 2026 ByteDance Ltd. and/or its affiliates
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import time
 import json
 import click
 from core import Result
 from core.api.iccp.service import IccpService
- 
+
 
 @click.command()
 def main() -> None:
@@ -35,25 +27,27 @@ def main() -> None:
         body = json.dumps({"name": "byted-kickart-video-analyzer"}, ensure_ascii=False)
         submit_res = iccp_service.submit(175169026, body)
         click.echo(submit_res.model_dump_json())
-        if submit_res.code != "0": exit(1)
+        if submit_res.code != "0":
+            exit(1)
         click.echo(f"提交任务成功，任务ID: {submit_res.data}")
 
         for _ in range(2 * 2):
             time.sleep(30)
-            poll_res = iccp_service.query(submit_res.data) # type: ignore
+            poll_res = iccp_service.query(submit_res.data)  # type: ignore
 
-            if poll_res.code == "1000": 
+            if poll_res.code == "1000":
                 continue
-            if poll_res.code != "0": 
+            if poll_res.code != "0":
                 click.echo(poll_res.model_dump_json(), err=True)
                 exit(1)
-            
+
             click.echo(poll_res.model_dump_json())
             return
-        
+
         click.echo(f"任务正在执行中，请通过任务ID:{submit_res.data}查询任务状态")
     except Exception as e:
         click.echo(Result(code="-1", message=str(e)), err=True)
+
 
 if __name__ == "__main__":
     main()

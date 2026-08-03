@@ -1,9 +1,24 @@
+# Copyright (c) 2026 ByteDance Ltd. and/or its affiliates
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 import hmac
 import time
 import logging
 import hashlib
 import requests
+from collections import defaultdict
 from urllib.parse import urlencode, urlparse
 
 
@@ -110,15 +125,21 @@ def _do_request(
     )
 
     # 4. 构建完整请求头
-    headers = {
-        "X-Date": date,
-        "X-Content-Sha256": payload,
-        "Content-Type": "application/json",
-        "Authorization": authorization,
-    }
+    headers = defaultdict(str)
+    headers["X-Date"] = date
+    headers["X-Content-Sha256"] = payload
+    headers["Content-Type"] = "application/json"
+    headers["Authorization"] = authorization
+
+    # 5. 添加PPE环境头
+    ppe_env = os.getenv("X-Volc-Env")
+    if ppe_env:
+        headers["X-TT-Env"] = "ppe_volcengine"
+        headers["X-Volc-Env"] = ppe_env
+        headers["X-Use-Ppe"] = "1"
 
     # 6. 发起请求并处理响应
-    logging.info(f">>> {method.upper()} {url} {headers} {body}")
+    logging.info(f">>> {method.upper()} {url} {body}")
     response = requests.request(
         method=method.upper(), url=url, headers=headers, data=body, timeout=30
     )

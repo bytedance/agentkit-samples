@@ -1,4 +1,4 @@
-# Copyright 2026 ByteDance
+# Copyright (c) 2026 ByteDance Ltd. and/or its affiliates
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 
 from abc import ABC, abstractmethod
 import sys
@@ -127,47 +126,9 @@ class V1IccpClient(IccpClient):
         return response.json()
 
 
-class V2IccpClient(IccpClient):
-    """基于 Ark Token 的请求客户端 (Strategy 实现)"""
-
-    SERVICE = "iccloud_muse"
-    REGION = "cn-north"
-    VERSION = "2025-11-25"
-
-    def __init__(self):
-        self.addr = os.getenv("ARK_SKILL_API_BASE")
-        self.token = os.getenv("ARK_SKILL_API_KEY") or ""
-
-    def do_request(self, method: str, queries: dict, body: bytes, action: str) -> dict:
-        queries["Action"] = action
-        queries["Version"] = V2IccpClient.VERSION
-
-        query_string = urlencode(queries).replace("+", "%20")
-        url = f"{self.addr}?{query_string}"
-
-        headers = defaultdict(str)
-        headers["Authorization"] = f"Bearer {self.token}"
-        headers["Content-Type"] = "application/json"
-        headers["ServiceName"] = V2IccpClient.SERVICE
-
-        if ppe_env := os.getenv("X_VOLC_ENV"):
-            headers.update(
-                {"X-TT-Env": "ppe_volcengine", "X-Volc-Env": ppe_env, "X-Use-Ppe": "1"}
-            )
-
-        logging.info(f">>> {method.upper()} {url} {body}")
-        response = requests.request(
-            method=method.upper(), url=url, headers=headers, data=body, timeout=30
-        )
-        logging.info(f"<<< {response.headers} {response.text}")
-        return response.json()
-
-
 class IccpClientFactory:
     @staticmethod
     def create(strategy: AuthStrategy) -> IccpClient:
-        if strategy.strategy == AuthType.API_KEY:
-            return V2IccpClient()
         if strategy.strategy == AuthType.AK_SK:
             return V1IccpClient()
         raise ValueError(f"不支持的认证策略类型: {strategy.strategy}")

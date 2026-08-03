@@ -1,24 +1,16 @@
-# MIT License
+# Copyright (c) 2026 ByteDance Ltd. and/or its affiliates
 #
-# Copyright (c) 2026 ByteDance
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import os
 from abc import ABC, abstractmethod
@@ -28,7 +20,6 @@ from enum import Enum
 
 class AuthType(Enum):
     AK_SK = "ak_sk"
-    API_KEY = "api_key"
 
 
 class AuthStrategy(ABC):
@@ -54,24 +45,7 @@ class AkSkAuthStrategy(AuthStrategy):
 
         if not self.ak or not self.sk:
             raise ValueError(
-                "AK/SK未提供，且环境变量中未找到 ACCESS_KEY_ID/SECRET_ACCESS_KEY"
-            )
-
-
-class ApiKeyAuthStrategy(AuthStrategy):
-    """API Key 鉴权策略"""
-
-    @property
-    def strategy(self) -> AuthType:
-        return AuthType.API_KEY
-
-    def __init__(self):
-        self.api_key = os.getenv("ARK_SKILL_API_KEY")
-        self.base_url = os.getenv("ARK_SKILL_API_BASE")
-
-        if not self.api_key or not self.base_url:
-            raise ValueError(
-                "API Key/Base URL 未提供，且环境变量中未找到 ARK_SKILL_API_KEY/ARK_SKILL_API_BASE"
+                "AK/SK 未提供，且环境变量中未找到 ACCESS_KEY_ID/SECRET_ACCESS_KEY"
             )
 
 
@@ -81,8 +55,6 @@ class AuthStrategyFactory:
     @staticmethod
     @cache
     def create() -> AuthStrategy:
-        if os.getenv("ARK_SKILL_API_BASE") and os.getenv("ARK_SKILL_API_KEY"):
-            return ApiKeyAuthStrategy()
         if os.getenv("ACCESS_KEY_ID") and os.getenv("SECRET_ACCESS_KEY"):
             return AkSkAuthStrategy()
-        raise Exception("鉴权凭证未配置(缺少 AK/SK 或 Token)")
+        raise Exception("鉴权凭证未配置 (缺少 AK/SK)")

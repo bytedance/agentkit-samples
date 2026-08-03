@@ -1,7 +1,7 @@
 ---
-name: byted-kickart-ai-beauty
-description: 分析用户输入的图片，对画面中的人智能美颜，输出美颜后的图片，支持单张JPG、PNG格式，也支持多张图片URL或批量处理压缩包中的图片文件。当用户提及美颜、美化、美白、磨皮、瘦脸、人像美化、照片美颜、自动美颜、AI美颜时触发使用
-version: 1.2.1
+name: "byted-kickart-ai-beauty"
+description: "智能美颜SKILL：分析用户输入的图片，对画面中的人智能美颜，输出美颜后的图片，支持单张JPG、PNG格式，也支持多张图片URL或批量处理压缩包中的图片文件。当用户提及美颜、美化、美白、磨皮、瘦脸、人像美化、照片美颜、自动美颜、AI美颜时触发使用"
+version: "1.2.2"
 ---
 
 # 智能美颜SKILL
@@ -32,11 +32,10 @@ version: 1.2.1
 ### 1. 火山鉴权校验
 - 执行环境变量检查命令：
   ```bash
-  echo "ARK_SKILL_API_BASE: $ARK_SKILL_API_BASE" && echo "ARK_SKILL_API_KEY: $ARK_SKILL_API_KEY" && echo "ACCESS_KEY_ID: $ACCESS_KEY_ID" && echo "SECRET_ACCESS_KEY: $SECRET_ACCESS_KEY"
+  echo "ACCESS_KEY_ID: $ACCESS_KEY_ID" && echo "SECRET_ACCESS_KEY: $SECRET_ACCESS_KEY"
   ```
-- 判断鉴权结果（按优先级）：
-  - **第一优先级（Bearer Token）**：`ARK_SKILL_API_BASE` 和 `ARK_SKILL_API_KEY` 均为非空值 → 鉴权通过
-  - **第二优先级（AK/SK签名）**：`ACCESS_KEY_ID` 和 `SECRET_ACCESS_KEY` 均为非空值 → 鉴权通过
+- 判断鉴权结果：
+  - **鉴权通过**：`ACCESS_KEY_ID` 和 `SECRET_ACCESS_KEY` 均为非空值 → 鉴权通过
   - **鉴权不通过**：执行以下引导方案
 
 #### ❌ 鉴权未配置时的引导方案

@@ -1,7 +1,7 @@
 ---
-name: byted-kickart-video-analyzer
-description: 视频解析SKILL：提供视频解析、视频分析、视频反解、视频分镜提取、视频元数据提取等功能。适用于需要对本地或网络视频文件进行内容解析、分镜提取和元数据分析的场景，支持MP4、MOV等主流视频格式。当用户提及'视频解析、视频分析、视频反解、视频分镜、视频元数据提取、本地视频分析'或表达等价意图时触发
-version: 1.0.7
+name: "byted-kickart-video-analyzer"
+description: "视频解析SKILL：提供视频解析、视频分析、视频反解、视频分镜提取、视频元数据提取等功能。适用于需要对本地或网络视频文件进行内容解析、分镜提取和元数据分析的场景，支持MP4、MOV等主流视频格式。当用户提及'视频解析、视频分析、视频反解、视频分镜、视频元数据提取、本地视频分析'或表达等价意图时触发"
+version: "1.0.8"
 ---
 
 # 视频解析SKILL
@@ -33,11 +33,10 @@ version: 1.0.7
 ### 1. 火山鉴权校验
 - 执行环境变量检查命令：
   ```bash
-  echo "ARK_SKILL_API_BASE: $ARK_SKILL_API_BASE" && echo "ARK_SKILL_API_KEY: $ARK_SKILL_API_KEY" && echo "ACCESS_KEY_ID: $ACCESS_KEY_ID" && echo "SECRET_ACCESS_KEY: $SECRET_ACCESS_KEY"
+  echo "ACCESS_KEY_ID: $ACCESS_KEY_ID" && echo "SECRET_ACCESS_KEY: $SECRET_ACCESS_KEY"
   ```
-- 判断鉴权结果（按优先级）：
-  - **第一优先级（Bearer Token）**：`ARK_SKILL_API_BASE` 和 `ARK_SKILL_API_KEY` 均为非空值 → 鉴权通过
-  - **第二优先级（AK/SK签名）**：`ACCESS_KEY_ID` 和 `SECRET_ACCESS_KEY` 均为非空值 → 鉴权通过
+- 判断鉴权结果：
+  - **鉴权通过**：`ACCESS_KEY_ID` 和 `SECRET_ACCESS_KEY` 均为非空值 → 鉴权通过
   - **鉴权不通过**：执行以下引导方案
 
 #### ❌ 鉴权未配置时的引导方案

@@ -1,14 +1,27 @@
+# Copyright (c) 2026 ByteDance Ltd. and/or its affiliates
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 import sys
 import json
+import click
 import qrcode
 import logging
 import jsonpath
-import subprocess
 import urllib.parse
-import click
 from copy import deepcopy
-from base import Result
+from .base import Result
 
 # 数据模版
 TEMPLATE = {
@@ -20,7 +33,13 @@ TEMPLATE = {
 }
 
 
-def upload(url, body, output, conversation, metadata):
+@click.command()
+@click.option("--url", required=True, help="视频链接")
+@click.option("--body", required=True, help="发布页正文")
+@click.option("--output", "-o", required=True, help="二维码PNG图片本地保存路径")
+def main(url, body, output):
+    """抖音营销视频发布工具，参考[视频发布指南](references/视频发布指南.md)"""
+    logging.info(f"[tool] >>> {' '.join(sys.argv)}")
     payload = deepcopy(TEMPLATE)
     resource = jsonpath.jsonpath(payload, "$.infini_editor.instances.0.resource")
     if resource:
@@ -38,24 +57,6 @@ def upload(url, body, output, conversation, metadata):
     os.makedirs(os.path.dirname(os.path.abspath(output)), exist_ok=True)
     img.save(output, format="PNG")  # type: ignore
 
-    # 通过工具将二维码发送给用户
-    metadata = json.loads(metadata)
-    conversation = json.loads(conversation)
-    cmd = [
-        "openclaw",
-        "message",
-        "send",
-        "--media",
-        output,
-        "-t",
-        metadata["chat_id"],
-        "--reply-to",
-        conversation["message_id"],
-    ]
-    logging.info(f"[openclaw] >>> {' '.join(cmd)}")
-    retcode = subprocess.call(cmd)
-    logging.info(f"[openclaw] >>> return code = {retcode}")
-
     # 这里必须开启ensure_ascii，否则无法跳转
     encoded_url = urllib.parse.quote(url)
     encoded_body = urllib.parse.quote(body)
@@ -65,24 +66,8 @@ def upload(url, body, output, conversation, metadata):
         + "&body="
         + encoded_body
     )
-    return Result(code="0", message="", data={"qrcode": output, "jump": jump})
-
-
-@click.command()
-@click.option("--url", required=True, help="视频链接")
-@click.option("--body", required=True, help="发布页正文")
-@click.option("--output", "-o", required=True, help="二维码PNG图片本地保存路径")
-@click.option(
-    "--conversation", required=True, type=str, help="当前消息的完整未修改上下文元数据"
-)
-@click.option("--metadata", required=True, type=str, help="当前消息的完整未修改元信息")
-def main(url, body, output, conversation, metadata):
-    """视频发布到抖音平台"""
-    logging.info(f"[tool] >>> python3 {' '.join(sys.argv)}")
-    result = upload(
-        url=url, body=body, output=output, conversation=conversation, metadata=metadata
-    )
-    print(result)
+    result = Result(code="0", message="", data={"qrcode": output, "jump": jump})
+    click.echo(result.model_dump_json())
 
 
 if __name__ == "__main__":

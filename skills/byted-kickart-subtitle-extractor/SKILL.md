@@ -1,7 +1,7 @@
 ---
 name: byted-kickart-subtitle-extractor
 description: 视频字幕提取SKILL：从视频文件自动提取、识别视频中已有的字幕并导出，支持导出为标准SRT格式字幕文件。适用于视频提取字幕、提取视频内已有的字幕、视频字幕识别、字幕导出、视频转字幕等场景。触发时机：当用户提及或表达等价意图（帮我从视频中提取字幕、提取视频里的字幕、从视频里抠字幕、视频字幕提取、导出视频自带字幕、视频字幕识别、字幕导出、视频转字幕）时，调用此SKILL执行字幕提取任务。
-version: 1.0.2
+version: 1.0.3
 ---
 
 # 视频字幕提取SKILL
@@ -27,11 +27,10 @@ version: 1.0.2
 ### 1. 火山鉴权校验
 - 执行环境变量检查命令：
   ```bash
-  echo "ARK_SKILL_API_BASE: $ARK_SKILL_API_BASE" && echo "ARK_SKILL_API_KEY: $ARK_SKILL_API_KEY" && echo "ACCESS_KEY_ID: $ACCESS_KEY_ID" && echo "SECRET_ACCESS_KEY: $SECRET_ACCESS_KEY"
+  echo "ACCESS_KEY_ID: $ACCESS_KEY_ID" && echo "SECRET_ACCESS_KEY: $SECRET_ACCESS_KEY"
   ```
-- 判断鉴权结果（按优先级）：
-  - **第一优先级（Bearer Token）**：`ARK_SKILL_API_BASE` 和 `ARK_SKILL_API_KEY` 均为非空值 → 鉴权通过
-  - **第二优先级（AK/SK签名）**：`ACCESS_KEY_ID` 和 `SECRET_ACCESS_KEY` 均为非空值 → 鉴权通过
+- 判断鉴权结果：
+  - **鉴权通过**：`ACCESS_KEY_ID` 和 `SECRET_ACCESS_KEY` 均为非空值 → 鉴权通过
   - **鉴权不通过**：执行以下引导方案
 
 #### ❌ 鉴权未配置时的引导方案

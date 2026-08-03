@@ -1,29 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-智能创作云 aPaaS 媒资上传完整流程脚本 (含 ListUsers 获取 Admin ID)
-
-流程：
-  0. ListUsers        — 查找角色为 admin 的用户，获取其 Uid 作为 owner-id
-  1. GetUploadState   — 查询文件是否已上传（支持断点续传）
-  2. StreamUploadData — 分片上传文件（支持并发、幂等）
-  3. CreateMaterial   — 创建媒资，获取 MediaId
-  4. GetMediaInfo     — 轮询媒资详情，获取处理状态
-  5. 提取下载链接
-
-用法：
-  pip install requests
-  # 使用 ArkClaw Token
-  export ARKCLAW_TOKEN="your-token"
-  python upload_material.py --host <host> --file /path/to/file.mp4 \
-      --owner-type user --title "我的视频" --category video
-  
-  # 使用 AK/SK
-  export ACCESS_KEY_ID="your-ak"
-  export SECRET_ACCESS_KEY="your-sk"
-  python upload_material.py --host <host> --file /path/to/file.mp4 \
-      --owner-type user --title "我的视频" --category video
-"""
+# Copyright (c) 2026 ByteDance Ltd. and/or its affiliates
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import argparse
 import hashlib
@@ -32,15 +21,16 @@ import os
 import sys
 import time
 import hmac
+import logging
 import jsonpath
 import requests
 from pydantic import BaseModel
-
 from urllib.parse import urlencode, urlparse
 from typing import List, TypedDict
-from base import Result
+from dotenv import load_dotenv
 
-__all__ = ["Matriel", "upload"]
+load_dotenv()
+
 # ─── 类型定义 ──────────────────────────────────────────
 
 
@@ -57,6 +47,7 @@ class UploadStateResult(TypedDict):
 
 ### 素材
 class Matriel(BaseModel):
+    id: str
     type: str
     url: str
     width: int
@@ -76,10 +67,10 @@ class VideoMatriel(Matriel):
 # 从环境变量读取配置
 ACCESS_KEY_ID = os.getenv("ACCESS_KEY_ID") or ""
 SECRET_ACCESS_KEY = os.getenv("SECRET_ACCESS_KEY") or ""
-ARKCLAW_TOKEN = os.getenv("ARK_SKILL_API_KEY") or ""
+ARKCLAW_TOKEN = ""
 
 # 默认域名（ArkClaw 方式）
-DEFAULT_HOST = os.getenv("ARK_SKILL_API_BASE") or ""
+DEFAULT_HOST = ""
 # AK/SK 方式的默认域名
 DEFAULT_ICP_HOST = "https://icp.volcengineapi.com"
 
@@ -205,17 +196,17 @@ def _request_with_aksk(
     }
 
     debug_print(f"result is {url}")
-    debug_print(f"headers is {headers}")
     debug_print(f"url is {url}, body is {body_bytes}")
     debug_print(f"canonical_string: {repr(canonical_string)}")
     debug_print(f"sign_string: {repr(sign_string)}")
 
+    logging.info(f"[http] <<< {json.dumps(body or {}, ensure_ascii=False)}")
     resp = requests.post(url, data=body_bytes, headers=headers, timeout=30)
-
+    logging.info(f"[http] <<< {resp.headers} {resp.text}")
     try:
         result = resp.json()
-    except Exception as e:
-        print(f"json parse error, resp is {resp.text}, error is {e}")
+    except:
+        print(f"json parse error, resp is {resp.text}")
         sys.exit(1)
 
     _check_resp(result, action)
@@ -243,14 +234,13 @@ def _request_with_arkclaw(
     if extra_query:
         url += "&" + urlencode(extra_query)
     debug_print(f"result is {url}")
-    debug_print(f"headers is {headers}")
     debug_print(f"url is {url}, body is {body_bytes}")
     resp = requests.post(url, data=body_bytes, headers=headers, timeout=30)
 
     try:
         result = resp.json()
-    except Exception as e:
-        print(f"json parse error, resp is {resp.text}, error is {e}")
+    except:
+        print(f"json parse error, resp is {resp.text}")
         sys.exit(1)
 
     _check_resp(result, action)
@@ -281,8 +271,8 @@ def _request_binary_with_arkclaw(
 
     try:
         result = resp.json()
-    except Exception as e:
-        print(f"json parse error, resp is {resp.text}, error is {e}")
+    except:
+        print(f"json parse error, resp is {resp.text}")
         sys.exit(1)
 
     _check_resp(result, action)
@@ -360,8 +350,8 @@ def _request_binary_with_aksk(
 
     try:
         result = resp.json()
-    except Exception as e:
-        print(f"json parse error, resp is {resp.text}, error is {e}")
+    except:
+        print(f"json parse error, resp is {resp.text}")
         sys.exit(1)
 
     _check_resp(result, action)
@@ -555,7 +545,7 @@ def stream_upload_data(
         debug_print(
             f"[2/5] StreamUploadData — 上传第 {chunk_count + 1} 个分片，offset={offset}, size={chunk_size}"
         )
-        upload_part(owner_id, chunk, offset, chunk_size, file_md5)
+        resp = upload_part(owner_id, chunk, offset, chunk_size, file_md5)
 
         chunk_count += 1
         offset += chunk_size
@@ -642,6 +632,7 @@ def get_media_info(media_id: str, owner_id: int, owner_type: str) -> dict:
             service=SERVICE_MUSE,
             body={"MediaIds": [media_id], "MediaType": 1},
         )
+
         _check_resp(result, "GetMediaInfo")
         media_infos = result.get("Result", {}).get("MediaInfos", [])
         if not media_infos:
@@ -720,28 +711,12 @@ def _check_resp(resp: dict, action: str):
     error_obj = meta.get("Error")
     if error_obj:
         code = error_obj.get("Code") or error_obj.get("CodeN")
-        if code == 500 or code == "500":
-            print(
-                Result(
-                    code="x01010",
-                    message="阅读SKILL.md中的「错误处理规范」，向用户推荐处理意见～",
-                ).model_dump_json()
-            )
-            sys.exit(1)
         msg = error_obj.get("Message", "")
         print(f"❌ {action} 失败: code={code}, msg={msg}")
         sys.exit(1)
 
     code = meta.get("Code")
     if code is not None and str(code) not in ("0", "Success", "200"):
-        if code == 500 or code == "500":
-            print(
-                Result(
-                    code="x01010",
-                    message="阅读SKILL.md中的「错误处理规范」，向用户推荐处理意见～",
-                ).model_dump_json()
-            )
-            sys.exit(1)
         msg = meta.get("Message") or ""
         print(f"❌ {action} 失败: code={code}, msg={msg}")
         sys.exit(1)
@@ -926,7 +901,10 @@ def simplify(media_info: dict):
 def format(media_info: dict) -> Matriel:
     image_media = jsonpath.jsonpath(media_info, "$.ImageMedia")
     if image_media:
-        matriel = ImageMatriel(type="image", url="", height=0, width=0)
+        matriel = ImageMatriel(id="", type="image", url="", height=0, width=0)
+        id = jsonpath.jsonpath(media_info, "$.BasicInfo.MediaId")
+        matriel.id = id[0] if id else ""
+
         url = jsonpath.jsonpath(media_info, "$.ImageMedia.DownloadUrl")
         matriel.url = url[0] if url else ""
 
@@ -939,7 +917,12 @@ def format(media_info: dict) -> Matriel:
 
     video_media = jsonpath.jsonpath(media_info, "$.VideoMedia")
     if video_media:
-        matriel = VideoMatriel(type="video", url="", height=0, width=0, duration=0)
+        matriel = VideoMatriel(
+            id="", type="video", url="", height=0, width=0, duration=0
+        )
+        id = jsonpath.jsonpath(media_info, "$.BasicInfo.MediaId")
+        matriel.id = id[0] if id else ""
+
         url = jsonpath.jsonpath(media_info, "$.VideoMedia.DownloadUrl")
         matriel.url = url[0] if url else ""
 
@@ -952,7 +935,7 @@ def format(media_info: dict) -> Matriel:
         duration = jsonpath.jsonpath(media_info, "$.VideoMedia.MediaMetaInfo.Duration")
         matriel.duration = duration[0] / 1000 if duration else 0.0
         return matriel
-    return Matriel(type="", url="", height=0, width=0)
+    return Matriel(id="", type="", url="", height=0, width=0)
 
 
 def upload(args: dict) -> Matriel:

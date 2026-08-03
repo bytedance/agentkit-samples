@@ -1,24 +1,16 @@
-# MIT License
+# Copyright (c) 2026 ByteDance Ltd. and/or its affiliates
 #
-# Copyright (c) 2026 ByteDance
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import os
 import click
@@ -33,12 +25,13 @@ from core import Result
 from core.api.iccp.service import IccpService
 from core.api.meida.media import SimpleMediaService
 
+
 def download_image(url: str, save_path: str):
     """下载图片并保存为PNG格式"""
     response = requests.get(url, stream=True)
     response.raise_for_status()
-    
-    with open(save_path, 'wb') as f:
+
+    with open(save_path, "wb") as f:
         for chunk in response.iter_content(chunk_size=8192):
             f.write(chunk)
 
@@ -82,16 +75,23 @@ def process_single_image(media_id: str) -> dict:
             os.makedirs(output_dir, exist_ok=True)
 
             # 下载subject图片
-            subject_url = result_data["subject"] # type: ignore
+            subject_url = result_data["subject"]  # type: ignore
             subject_path = os.path.join(output_dir, "subject.png")
             download_image(subject_url, subject_path)
 
             # 下载mask图片
-            mask_url = result_data["mask"] # type: ignore
+            mask_url = result_data["mask"]  # type: ignore
             mask_path = os.path.join(output_dir, "mask.png")
             download_image(mask_url, mask_path)
 
-            return {"media_id": media_id, "success": True, "subject_path": subject_path, "mask_path": mask_path, "subject_url": subject_url, "mask_url": mask_url}  # type: ignore
+            return {
+                "media_id": media_id,
+                "success": True,
+                "subject_path": subject_path,
+                "mask_path": mask_path,
+                "subject_url": subject_url,
+                "mask_url": mask_url,
+            }  # type: ignore
 
         return {
             "media_id": media_id,

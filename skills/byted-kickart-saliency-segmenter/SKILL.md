@@ -1,7 +1,7 @@
 ---
 name: byted-kickart-saliency-segmenter
 description: 智能抠图SKILL：从图片文件自动抠图。触发条件：当用户提及智能抠图、图片抠图、抠图、主体分割、去背景、背景剔除、商品抠图等关键词，或识别到用户表达等价意图时，调用此SKILL执行抠图任务。
-version: 1.0.2
+version: 1.0.3
 ---
 
 # 智能抠图SKILL
@@ -26,11 +26,10 @@ version: 1.0.2
 ### 1. 火山鉴权校验
 - 执行环境变量检查命令：
   ```bash
-  echo "ARK_SKILL_API_BASE: $ARK_SKILL_API_BASE" && echo "ARK_SKILL_API_KEY: $ARK_SKILL_API_KEY" && echo "ACCESS_KEY_ID: $ACCESS_KEY_ID" && echo "SECRET_ACCESS_KEY: $SECRET_ACCESS_KEY"
+  echo "ACCESS_KEY_ID: $ACCESS_KEY_ID" && echo "SECRET_ACCESS_KEY: $SECRET_ACCESS_KEY"
   ```
-- 判断鉴权结果（按优先级）：
-  - **第一优先级（Bearer Token）**：`ARK_SKILL_API_BASE` 和 `ARK_SKILL_API_KEY` 均为非空值 → 鉴权通过
-  - **第二优先级（AK/SK签名）**：`ACCESS_KEY_ID` 和 `SECRET_ACCESS_KEY` 均为非空值 → 鉴权通过
+- 判断鉴权结果：
+  - **鉴权通过**：`ACCESS_KEY_ID` 和 `SECRET_ACCESS_KEY` 均为非空值 → 鉴权通过
   - **鉴权不通过**：执行以下引导方案
 
 #### ❌ 鉴权未配置时的引导方案

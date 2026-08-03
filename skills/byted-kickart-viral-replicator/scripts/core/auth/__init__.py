@@ -1,4 +1,4 @@
-# Copyright 2026 ByteDance
+# Copyright (c) 2026 ByteDance Ltd. and/or its affiliates
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,11 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from .strategy import (
     AuthStrategy,
     AkSkAuthStrategy,
-    ApiKeyAuthStrategy,
     AuthStrategyFactory,
     AuthType,
 )
@@ -24,7 +22,6 @@ from .strategy import (
 __all__ = [
     "AuthStrategy",
     "AkSkAuthStrategy",
-    "ApiKeyAuthStrategy",
     "AuthStrategyFactory",
     "AuthType",
 ]

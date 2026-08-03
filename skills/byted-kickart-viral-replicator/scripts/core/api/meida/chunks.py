@@ -1,4 +1,4 @@
-# Copyright 2026 ByteDance
+# Copyright (c) 2026 ByteDance Ltd. and/or its affiliates
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 
 import json
 import logging
@@ -161,39 +160,6 @@ class ApiClient(ABC):
         pass
 
 
-class ArkClawApiClient(ApiClient):
-    def __init__(self):
-        super().__init__(os.getenv("ARK_SKILL_API_BASE", ""))
-        self.token = os.getenv("ARK_SKILL_API_KEY", "")
-
-    def build_headers(
-        self,
-        service: str,
-        host: str,
-        query_string: str,
-        payload_hash: str,
-        is_binary: bool,
-    ) -> Dict[str, str]:
-        headers = collections.defaultdict(str)
-        headers["ServiceName"] = service
-        headers["Authorization"] = f"Bearer {self.token}"
-        headers["Content-Type"] = (
-            "application/octet-stream" if is_binary else "application/json"
-        )
-
-        if ppe_env := os.getenv("X_VOLC_ENV"):
-            headers.update(
-                {"X-TT-Env": "ppe_volcengine", "X-Volc-Env": ppe_env, "X-Use-Ppe": "1"}
-            )
-        return headers
-
-    def build_url(self, host: str, action: str, extra_query: dict) -> str:
-        url = f"{host}/?Action={action}&Version={AppConfig.VERSION}"
-        if extra_query:
-            url += "&" + urlencode(extra_query)
-        return url
-
-
 class AkSkApiClient(ApiClient):
     def __init__(self):
         super().__init__("https://icp.volcengineapi.com")
@@ -278,8 +244,6 @@ class AkSkApiClient(ApiClient):
 class ApiClientFactory:
     @staticmethod
     def create(strategy: AuthStrategy) -> ApiClient:
-        if strategy.strategy == AuthType.API_KEY:
-            return ArkClawApiClient()
         if strategy.strategy == AuthType.AK_SK:
             return AkSkApiClient()
         raise ValueError(f"不支持的认证策略类型: {strategy.strategy}")

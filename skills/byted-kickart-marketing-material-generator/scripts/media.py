@@ -1,19 +1,35 @@
+# Copyright (c) 2026 ByteDance Ltd. and/or its affiliates
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import json
 import os
 import sys
+import time
+import logging
 import collections
+import click
 from typing import Dict, Any
 from pathlib import Path
 import pandas as pd
 from PIL import Image
-import logging
-import time
-import click
-from chunks import upload
+
+from .base import Result
+from .chunks import upload
 
 __all__ = ["media_list"]
 
-COLUMNS = ["session_id", "path", "material", "timestamp"]
+COLUMNS = ["group", "channel", "account", "path", "id", "material", "timestamp"]
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 VIDEO_EXTENSIONS = {".mp4", ".avi", ".mov"}
 
@@ -89,28 +105,18 @@ def validate(file_path: str) -> Dict[str, Any]:
     return result
 
 
-def load(session_id: str) -> pd.DataFrame:
-    path = Path(f"/tmp/kickart/material_state_{session_id}.csv")
+def load(group: str) -> pd.DataFrame:
+    path = Path(f"/tmp/openclaw/highlightvideo/media/{group}.csv")
     if not path.exists():
         return pd.DataFrame(columns=COLUMNS)
     return pd.read_csv(path, header=None, names=COLUMNS)
 
 
-def save(session_id: str, df: pd.DataFrame):
-    path = Path(f"/tmp/kickart/material_state_{session_id}.csv")
+def save(group: str, df: pd.DataFrame):
+    path = Path(f"/tmp/openclaw/highlightvideo/media/{group}.csv")
     os.makedirs(path.parent, exist_ok=True)
     df.to_csv(path, index=False, header=False)
 
-
-def remove(session_id: str):
-    path = Path(f"/tmp/kickart/material_state_{session_id}.csv")
-    os.remove(path)
-
-def media_list(session_id):
-    """列出所有已上传的抖音营销素材"""
-    df = load(session_id)
-    df = df["material"].map(lambda x: json.loads(x))
-    return df.to_list()
 
 @click.group()
 def main():
@@ -120,9 +126,13 @@ def main():
 
 @main.command()
 @click.argument("file")
-@click.option("--session-id", "-s", required=True, help="会话ID")
-def add(file, session_id):
-    """上传抖音营销素材到远程服务器，返还上传后的素材URL"""
+@click.option("--group", required=True, type=str, help="素材所属的素材组，全局唯一")
+@click.option(
+    "--metadata", required=True, type=str, help="当前消息的完整未修改元信息，json格式"
+)
+def add(file, group, metadata):
+    """上传抖音营销素材到远程服务器，返还上传后的素材ID"""
+    metadata = json.loads(metadata)
     # 文件校验 图片8M，视频50M
     result = validate(file)
     if not result["valid"]:
@@ -132,32 +142,51 @@ def add(file, session_id):
     matriel = upload({"file": file})
 
     row = collections.defaultdict()
-    row["session_id"] = session_id
+    row["group"] = group
+    row["channel"] = metadata["channel"]
+    row["account"] = metadata["chat_id"]
     row["path"] = file
+    row["id"] = matriel.id  # type: ignore
     row["material"] = matriel.model_dump_json()
     row["timestamp"] = str(time.time())
 
-    df = load(session_id)
+    df = load(group=group)
     df.loc[len(df)] = row
-    save(session_id, df)
+    save(group, df)
     click.echo(matriel)
 
 
-@main.command()
-@click.option("--session-id", "-s", required=True, help="会话ID")
-def list(session_id):
-    """列出所有已上传的抖音营销素材"""
-    df = load(session_id)
-    df = df["material"].map(lambda x: json.loads(x))
-    click.echo(df.to_list())
+def media_list(group: str) -> list[Result]:
+    """列出当前分组中所有已上传的抖音营销素材"""
+    df = load(group=group)
+    df = df["material"].map(lambda x: json.loads(x))  # type: ignore
     return df.to_list()
 
 
 @main.command()
-@click.option("--session-id", "-s", required=True, help="会话ID")
-def clear(session_id):
-    """清空当前会话中的所有已上传的抖音营销素材"""
-    remove(session_id)
+@click.option("--group", required=True, type=str, help="素材所属的素材组，全局唯一")
+def list(group):
+    """列出当前分组中所有已上传的抖音营销素材"""
+    click.echo(media_list(group))
+
+
+@main.command()
+@click.option("--group", required=True, type=str, help="素材所属的素材组，全局唯一")
+def clear(group):
+    """清空当前分组中所有已上传的抖音营销素材"""
+    path = Path(f"/tmp/openclaw/highlightvideo/media/{group}.csv")
+    os.remove(path)
+
+
+@main.command()
+@click.option("--id", required=True, type=str, help="素材ID")
+@click.option("--group", required=True, type=str, help="素材所属的素材组，全局唯一")
+def remove(id, group):
+    """移除指定的素材"""
+    df = load(group=group)
+    df.drop(df[df["id"].eq(id)].index, inplace=True)
+    path = Path(f"/tmp/openclaw/highlightvideo/media/{group}.csv")
+    df.to_csv(path, index=False, header=False)
 
 
 if __name__ == "__main__":
