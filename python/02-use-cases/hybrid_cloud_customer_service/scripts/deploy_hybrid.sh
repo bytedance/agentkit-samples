@@ -11,6 +11,7 @@ LAUNCH_LOG_FILE=""
 RUNTIME_LIST_FILE=""
 PING_RESPONSE_FILE=""
 CLI_STDERR_FILE=""
+CLI_STDOUT_FILE=""
 
 cleanup() {
   if [[ -n "${DEPLOY_CONFIG_FILE}" && -f "${DEPLOY_CONFIG_FILE}" ]]; then
@@ -28,6 +29,9 @@ cleanup() {
   if [[ -n "${CLI_STDERR_FILE}" && -f "${CLI_STDERR_FILE}" ]]; then
     rm -f -- "${CLI_STDERR_FILE}"
   fi
+  if [[ -n "${CLI_STDOUT_FILE}" && -f "${CLI_STDOUT_FILE}" ]]; then
+    rm -f -- "${CLI_STDOUT_FILE}"
+  fi
 }
 trap cleanup EXIT
 
@@ -41,20 +45,32 @@ for command_name in uv docker curl; do
 done
 
 # Print a CLI error to stderr with credentials scrubbed. AgentKit CLI errors are
-# valuable for diagnosis (e.g. SignatureDoesNotMatch), but the raw text may echo
-# the Access/Secret Key or a request signature. We redact the concrete secret
-# values (sourced from both the environment and ~/.agentkit/config.yaml, since the
-# CLI signs from the persisted config) plus any Credential=/Signature= tokens,
-# then surface the rest so the operator can see the real failure.
+# valuable for diagnosis (e.g. InvalidAccessKey / SignatureDoesNotMatch), but the
+# CLI writes them to stdout (not stderr) and the raw text may echo the Access/
+# Secret Key or a request signature. Callers pass the captured stdout file first
+# and the stderr file as a fallback; we concatenate whatever is non-empty, redact
+# the concrete secret values (sourced from both the environment and
+# ~/.agentkit/config.yaml, since the CLI signs from the persisted config) plus any
+# Credential=/Signature= tokens, then surface the rest so the operator can see the
+# real failure.
 print_redacted_cli_error() {
-  local error_file="$1"
-  local label="$2"
-  if [[ ! -s "${error_file}" ]]; then
+  local label="$1"
+  shift
+  local combined error_file
+  combined="$(mktemp "${TMPDIR:-/tmp}/agentkit-cli-error-combined.XXXXXX")"
+  chmod 600 "${combined}"
+  for error_file in "$@"; do
+    if [[ -n "${error_file}" && -s "${error_file}" ]]; then
+      cat -- "${error_file}" >>"${combined}"
+    fi
+  done
+  if [[ ! -s "${combined}" ]]; then
     echo "${label}（CLI 未输出可显示的错误信息）。" >&2
+    rm -f -- "${combined}"
     return
   fi
   echo "${label} CLI 报错如下（凭据已脱敏）：" >&2
-  AGENTKIT_ERR_FILE="${error_file}" python - <<'PY' >&2
+  AGENTKIT_ERR_FILE="${combined}" python - <<'PY' >&2
 import os
 import re
 from pathlib import Path
@@ -89,6 +105,7 @@ text = re.sub(r"(Credential=)[^,\s]+", r"\1<redacted>", text)
 text = re.sub(r"(Signature=)[0-9a-fA-F]+", r"\1<redacted>", text)
 print(text.rstrip())
 PY
+  rm -f -- "${combined}"
 }
 
 case "${DEPLOY_MODE}" in
@@ -225,11 +242,13 @@ PY
     echo "当前全局 AgentKit OpenAPI /ping 响应不符合预期。" >&2
     exit 1
   fi
+  CLI_STDOUT_FILE="$(mktemp "${TMPDIR:-/tmp}/agentkit-cli-out.XXXXXX")"
+  chmod 600 "${CLI_STDOUT_FILE}"
   CLI_STDERR_FILE="$(mktemp "${TMPDIR:-/tmp}/agentkit-cli-error.XXXXXX")"
   chmod 600 "${CLI_STDERR_FILE}"
-  if ! agentkit runtime list >/dev/null 2>"${CLI_STDERR_FILE}"; then
+  if ! agentkit runtime list >"${CLI_STDOUT_FILE}" 2>"${CLI_STDERR_FILE}"; then
     echo "AgentKit 控制面鉴权验证失败。" >&2
-    print_redacted_cli_error "${CLI_STDERR_FILE}" "控制面鉴权验证"
+    print_redacted_cli_error "控制面鉴权验证" "${CLI_STDOUT_FILE}" "${CLI_STDERR_FILE}"
     echo "请在当前终端安全设置完整控制面变量，重新运行脚本以刷新全局配置。" >&2
     exit 1
   fi
@@ -300,7 +319,7 @@ if [[ -z "${RESOLVED_RUNTIME_ID}" ]]; then
     --all \
     --quiet >"${RUNTIME_LIST_FILE}" 2>"${CLI_STDERR_FILE}"; then
     echo "同名 Runtime 预检失败。" >&2
-    print_redacted_cli_error "${CLI_STDERR_FILE}" "同名 Runtime 预检"
+    print_redacted_cli_error "同名 Runtime 预检" "${RUNTIME_LIST_FILE}" "${CLI_STDERR_FILE}"
     exit 1
   fi
 
@@ -349,7 +368,7 @@ if [[ -z "${RESOLVED_RUNTIME_ID}" ]]; then
               --all \
               --quiet >"${RUNTIME_LIST_FILE}" 2>"${CLI_STDERR_FILE}"; then
               echo "新名称查重失败。" >&2
-              print_redacted_cli_error "${CLI_STDERR_FILE}" "新名称查重"
+              print_redacted_cli_error "新名称查重" "${RUNTIME_LIST_FILE}" "${CLI_STDERR_FILE}"
               exit 1
             fi
             if [[ -s "${RUNTIME_LIST_FILE}" ]]; then

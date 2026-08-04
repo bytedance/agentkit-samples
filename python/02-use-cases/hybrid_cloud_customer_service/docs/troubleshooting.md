@@ -15,6 +15,10 @@
   匹配域名的正式证书。
 - **`/ping` 成功但 `runtime list` 返回 `InvalidAccessKey`**：网络已通，AK/SK
   无效、过期或属于其他环境；从目标环境重新获取并轮换已暴露 Key。
+- **`/invoke` 返回 401 `Consumer authentication failed`**：Runtime 调用信息页可能
+  展示一个自定义 API-Key 头名（形如 `API-KEY-<id>`）。直接用该头名传 Runtime API Key
+  会 401。本 Demo 统一使用 `Authorization: Bearer <runtime-api-key>` 调用 `/invoke`，
+  这也是所有步骤示例采用的方式。
 
 ## Docker、镜像与 Registry
 
