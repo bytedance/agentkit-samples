@@ -17,10 +17,14 @@
 """Create/reuse a sandbox session and invoke its A2A endpoint.
 
 Example:
-    python scripts/sandbox_a2a_invoke.py \
-        --tool-id t-example \
-        --session-id demo-session \
-        --prompt "hello"
+    python3 scripts/sandbox_a2a_invoke.py \
+    --tool-id t-yes0m2osg0k6ee1en4ke \
+    --session-id demo-session \
+    --prompt "你有哪些技能" \
+    --model-api-key "$MODEL_API_KEY" \
+    --model-provider openai \
+    --model-name doubao-seed-2-0-lite-260428 \
+    --model-base-url https://ark.cn-beijing.volces.com/api/v3
 """
 
 from __future__ import annotations
@@ -52,13 +56,17 @@ from agentkit.toolkit.cli.sandbox.tool_resolve import SandboxToolType
 SOURCE = "sandbox-invoke"
 
 
-def _model_envs_from_config():
+def _model_envs_from_args(args: argparse.Namespace):
     config_defaults = configured_sandbox_config()
     return build_invoke_session_envs(
-        model_name=config_default_str("model-name", data=config_defaults),
-        model_provider=config_default_str("model-provider", data=config_defaults),
-        model_base_url=config_default_str("model-base-url", data=config_defaults),
-        model_api_key=config_default_str("model-api-key", data=config_defaults),
+        model_name=args.model_name
+        or config_default_str("model-name", data=config_defaults),
+        model_provider=args.model_provider
+        or config_default_str("model-provider", data=config_defaults),
+        model_base_url=args.model_base_url
+        or config_default_str("model-base-url", data=config_defaults),
+        model_api_key=args.model_api_key
+        or config_default_str("model-api-key", data=config_defaults),
     )
 
 
@@ -77,6 +85,22 @@ def _build_parser() -> argparse.ArgumentParser:
         required=True,
         help="Prompt to send to the sandbox A2A agent.",
     )
+    parser.add_argument(
+        "--model-name",
+        help="Model name to inject as MODEL_AGENT_NAME when creating a session.",
+    )
+    parser.add_argument(
+        "--model-provider",
+        help="Model provider to inject as MODEL_AGENT_PROVIDER.",
+    )
+    parser.add_argument(
+        "--model-base-url",
+        help="Model API base URL to inject as MODEL_AGENT_API_BASE.",
+    )
+    parser.add_argument(
+        "--model-api-key",
+        help="Model API key to inject as MODEL_AGENT_API_KEY.",
+    )
     return parser
 
 
@@ -92,7 +116,7 @@ def main(argv: list[str] | None = None) -> int:
             session_id=args.session_id,
             tool_id=args.tool_id,
             tool_type=SandboxToolType.SKILL_ENV.value,
-            envs=_model_envs_from_config(),
+            envs=_model_envs_from_args(args),
             resolve_tool=False,
             include_tos_mount_points=False,
         )
