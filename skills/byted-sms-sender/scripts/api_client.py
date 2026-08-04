@@ -15,9 +15,9 @@
 
 The complete API contract lives in ``references/actions.md``.  This module
 prefers the official ``ve volcsms`` command surface, then falls back to the
-existing customer credential and ArkClaw paths when the CLI is unavailable
-before dispatch. It never accepts credentials as command-line arguments or
-parses Volcengine CLI configuration files directly.
+customer's V4 AK/SK credentials when the CLI is unavailable before dispatch.
+It never accepts credentials as command-line arguments or parses Volcengine
+CLI configuration files directly.
 """
 
 from __future__ import annotations
@@ -58,6 +58,7 @@ DEFAULT_REGION = "cn-north-1"
 SMS_API_VERSION = "2026-01-01"
 VE_CLI_SERVICE = "volcsms"
 DEFAULT_TIMEOUT = 15.0
+DEFAULT_ENV_PATH = "~/.openclaw/.env"
 MAX_READ_RETRIES = 2
 RETRYABLE_BUSINESS_ERROR_CODES = frozenset({"1015", "1999"})
 LIVE_VALIDATION_ACTIONS = frozenset(
@@ -547,20 +548,80 @@ class VolcengineCredentialResolver:
         )
 
 
-def _resolve_environment_credentials(
+def _resolve_credential_group(
     env: Mapping[str, str],
+    access_key_name: str,
+    secret_key_name: str,
+    session_token_name: str,
 ) -> Optional[ResolvedCredentials]:
-    access_key = _validated_credential_value(env.get("VOLCENGINE_ACCESS_KEY"))
-    secret_key = _validated_credential_value(env.get("VOLCENGINE_SECRET_KEY"))
-    if not access_key or not secret_key:
+    access_key = _validated_credential_value(env.get(access_key_name))
+    secret_key = _validated_credential_value(env.get(secret_key_name))
+    session_token = _validated_credential_value(env.get(session_token_name))
+    if not access_key and not secret_key and not session_token:
         return None
+    if not access_key or not secret_key:
+        raise CredentialResolutionError(
+            "Incomplete Volcengine credentials. Configure "
+            "VOLCENGINE_ACCESS_KEY and VOLCENGINE_SECRET_KEY together."
+        )
     return ResolvedCredentials(
         access_key=access_key,
         secret_key=secret_key,
-        session_token=_validated_credential_value(
-            env.get("VOLCENGINE_SESSION_TOKEN")
-        ),
+        session_token=session_token,
     )
+
+
+def _resolve_environment_credentials(
+    env: Mapping[str, str],
+) -> Optional[ResolvedCredentials]:
+    credentials = _resolve_credential_group(
+        env,
+        "VOLCENGINE_ACCESS_KEY",
+        "VOLCENGINE_SECRET_KEY",
+        "VOLCENGINE_SESSION_TOKEN",
+    )
+    if credentials is not None:
+        return credentials
+    return _resolve_credential_group(
+        env,
+        "VOLC_ACCESS_KEY",
+        "VOLC_SECRET_KEY",
+        "VOLC_SESSION_TOKEN",
+    )
+
+
+def _read_env_file(env_path: str) -> Dict[str, str]:
+    resolved_path = os.path.expanduser(env_path)
+    if not os.path.isfile(resolved_path):
+        return {}
+
+    values: Dict[str, str] = {}
+    try:
+        with open(resolved_path, "r", encoding="utf-8-sig") as env_file:
+            for raw_line in env_file:
+                line = raw_line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if line.startswith("export "):
+                    line = line[len("export ") :].lstrip()
+
+                key, separator, value = line.partition("=")
+                if not separator:
+                    continue
+                key = key.strip()
+                value = value.strip()
+                if (
+                    len(value) >= 2
+                    and value[0] == value[-1]
+                    and value[0] in ("'", '"')
+                ):
+                    value = value[1:-1]
+                values[key] = value
+    except OSError as exc:
+        raise CredentialResolutionError(
+            "Unable to read Volcengine credential file: {}".format(resolved_path)
+        ) from exc
+    return values
 
 
 def _sha256(value: bytes) -> str:
@@ -651,74 +712,6 @@ def _subprocess_cli_runner(
         stderr=subprocess.PIPE,
         timeout=timeout,
         check=False,
-    )
-
-
-def build_arkclaw_request(
-    spec: ActionSpec,
-    params: Params,
-    api_base: str,
-    api_key: str,
-    *,
-    action: Optional[str] = None,
-    service: str = DEFAULT_SERVICE,
-) -> SignedRequest:
-    """Build an unsigned SkillHub request authenticated by ArkClaw Bearer."""
-    if action is None:
-        matches = [name for name, value in ACTION_REGISTRY.items() if value is spec]
-        if len(matches) != 1:
-            raise ValueError("action is required for an unregistered ActionSpec")
-        action = matches[0]
-
-    normalized_base = _validated_credential_value(api_base)
-    normalized_key = _validated_credential_value(api_key)
-    if not normalized_base or not normalized_key:
-        raise CredentialResolutionError(
-            "ARK_SKILL_API_BASE and ARK_SKILL_API_KEY must both be set."
-        )
-    if "://" not in normalized_base:
-        normalized_base = "https://{}".format(normalized_base)
-    parsed_base = parse.urlsplit(normalized_base.rstrip("/"))
-    if (
-        parsed_base.scheme not in {"http", "https"}
-        or not parsed_base.netloc
-        or parsed_base.username is not None
-        or parsed_base.password is not None
-        or parsed_base.query
-        or parsed_base.fragment
-    ):
-        raise CredentialResolutionError(
-            "ARK_SKILL_API_BASE must be an absolute HTTP(S) gateway URL "
-            "without credentials, query parameters, or fragments."
-        )
-
-    method = spec.method.upper()
-    query_items = [("Action", action), ("Version", spec.version)]
-    if method == "GET":
-        query_items.extend(_query_items(params))
-        body = b""
-    else:
-        body = _compact_json(params)
-    canonical_query = _encode_query(query_items)
-    path = parsed_base.path or "/"
-    base_url = parse.urlunsplit(
-        (parsed_base.scheme, parsed_base.netloc, path, "", "")
-    )
-    authorization = "Bearer {}".format(normalized_key)
-    headers = {
-        "Authorization": authorization,
-        "Content-Type": "application/json; charset=utf-8",
-        "ServiceName": service,
-    }
-    return SignedRequest(
-        url="{}?{}".format(base_url, canonical_query),
-        method=method,
-        headers=headers,
-        body=body,
-        canonical_query=canonical_query,
-        canonical_request="",
-        string_to_sign="",
-        authorization=authorization,
     )
 
 
@@ -1253,6 +1246,7 @@ class SmsApiClient:
         timeout: float = DEFAULT_TIMEOUT,
     ) -> None:
         self._env = dict(os.environ if env is None else env)
+        self._env_path = DEFAULT_ENV_PATH if env is None else None
         self._clock = clock or (lambda: datetime.datetime.now(datetime.timezone.utc))
         self._transport = transport or _urllib_transport
         self._sleeper = sleeper or time.sleep
@@ -1431,13 +1425,12 @@ class SmsApiClient:
                 self._env.get("VOLCENGINE_ACCESS_KEY"),
                 self._env.get("VOLCENGINE_SECRET_KEY"),
                 self._env.get("VOLCENGINE_SESSION_TOKEN"),
+                self._env.get("VOLC_ACCESS_KEY"),
+                self._env.get("VOLC_SECRET_KEY"),
+                self._env.get("VOLC_SESSION_TOKEN"),
             )
             if isinstance(value, str) and value
         )
-        raw_ark_base = self._env.get("ARK_SKILL_API_BASE")
-        raw_ark_key = self._env.get("ARK_SKILL_API_KEY")
-        ark_base = ""
-        ark_key = ""
 
         if idempotency_key is not None:
             if spec.idempotency_field is None:
@@ -1474,20 +1467,16 @@ class SmsApiClient:
                 credentials = self._credential_resolver.resolve()
             except CredentialResolutionError:
                 credentials = _resolve_environment_credentials(self._env)
+                if credentials is None and self._env_path is not None:
+                    credentials = _resolve_environment_credentials(
+                        _read_env_file(self._env_path)
+                    )
                 if credentials is None:
-                    ark_base = _validated_credential_value(raw_ark_base)
-                    ark_key = _validated_credential_value(raw_ark_key)
-                    if bool(ark_base) != bool(ark_key):
-                        raise CredentialResolutionError(
-                            "ARK_SKILL_API_BASE and ARK_SKILL_API_KEY must both be set."
-                        )
-                    if not ark_base:
-                        raise CredentialResolutionError(
-                            "No usable authentication configuration. Run ve login, "
-                            "set a complete VOLCENGINE_ACCESS_KEY and "
-                            "VOLCENGINE_SECRET_KEY pair, or inject both "
-                            "ARK_SKILL_API_BASE and ARK_SKILL_API_KEY."
-                        )
+                    raise CredentialResolutionError(
+                        "No usable Volcengine credentials. Configure "
+                        "VOLCENGINE_ACCESS_KEY and VOLCENGINE_SECRET_KEY in the "
+                        "process environment or ~/.openclaw/.env."
+                    )
         except CredentialResolutionError as exc:
             return _error_envelope(
                 action,
@@ -1496,39 +1485,25 @@ class SmsApiClient:
                 secrets=environment_secrets,
             )
         resolved_secrets = (
-            ()
-            if credentials is None
-            else (
-                credentials.access_key,
-                credentials.secret_key,
-                credentials.session_token,
-            )
+            credentials.access_key,
+            credentials.secret_key,
+            credentials.session_token,
         )
         secrets = environment_secrets + tuple(
             value for value in resolved_secrets if value
         )
 
         try:
-            if ark_base and ark_key:
-                outbound_request = build_arkclaw_request(
-                    spec,
-                    params,
-                    ark_base,
-                    ark_key,
-                    action=action,
-                )
-            else:
-                assert credentials is not None
-                outbound_request = build_signed_request(
-                    spec,
-                    params,
-                    credentials.access_key,
-                    credentials.secret_key,
-                    self._clock(),
-                    action=action,
-                    endpoint=DEFAULT_ENDPOINT,
-                    session_token=credentials.session_token,
-                )
+            outbound_request = build_signed_request(
+                spec,
+                params,
+                credentials.access_key,
+                credentials.secret_key,
+                self._clock(),
+                action=action,
+                endpoint=DEFAULT_ENDPOINT,
+                session_token=credentials.session_token,
+            )
         except CredentialResolutionError as exc:
             return _error_envelope(
                 action,

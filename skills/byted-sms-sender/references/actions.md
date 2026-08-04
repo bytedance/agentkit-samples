@@ -5,8 +5,7 @@
 
 调用身份由本次选中的鉴权路径确定。优先通过官方 CLI 的
 `ve volcsms <Action>` 执行；CLI 不可用且确认请求尚未发出时，兼容直连模式使用
-火山引擎 V4 AK/SK；ArkClaw 模式使用代理后的 Bearer 鉴权。所有 Action 的公共
-配置为：
+火山引擎 V4 AK/SK。所有 Action 的公共配置为：
 
 - CLI service：`volcsms`
 - CLI 最低版本：`1.1.0`
@@ -18,13 +17,13 @@
 
 所有 Action 使用已发布的 `2026-01-01` 版本。签名、模板、资质、上传及群发
 Action 按要求复用现有控制台/OpenAPI Handler。执行任何线上写操作前，必须使用
-专用客户测试身份验证可达性。公开代理不可达属于上游契约阻塞，不得绕过公开接口
+专用客户测试身份验证可达性。公开 API 不可达属于上游契约阻塞，不得绕过公开接口
 或调用未发布能力。
 
 POST Action 通过 `ve volcsms <Action> --body <JSON>` 调用，GET Action 使用
 对应 `--<参数名> <值>` 旗标。Profile 只通过 `VOLCENGINE_PROFILE` 或 CLI
-`---profile` 选择；AK/SK、Session Token 和 ArkClaw Token 绝不能出现在命令行
-参数中。Python 入口继续统一执行字段白名单、脱敏、预检与写操作授权门禁。
+`---profile` 选择；AK/SK 和 Session Token 绝不能出现在命令行参数中。Python
+入口继续统一执行字段白名单、脱敏、预检与写操作授权门禁。
 
 每个 Action 的 API 总限流为 50 QPS，单客户默认限制为 5 QPS。查询流程必须限制
 分页数量，并仅对公开瞬时错误执行有界退避。限流额度绝不代表可以自动重试写操作。

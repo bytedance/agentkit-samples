@@ -16,28 +16,25 @@ description: 火山引擎国内短信（SMS）与短信营销全流程服务，�
 
 ## 鉴权边界
 
+- 对短信 API 的请求只使用火山引擎 V4 AK/SK 鉴权；临时凭证同时签入
+  SessionToken。
 - 第一优先级：使用 `ve >= 1.1.0` 的 `ve volcsms <Action>` 命令。由官方 CLI
   复用 `ve login`、当前 Profile 或 `VOLCENGINE_PROFILE` 指定的 Profile，并
   负责凭证刷新、签名与请求发送。Skill 不读取 CLI 配置文件。
 - 第二优先级：只有 CLI 不存在、不支持 `volcsms`，或在请求发出前明确无法使用
   时，才使用兼容直连路径。该路径先通过官方 `CLIConfigCredentialProvider`
-  复用 `ve` Profile；无法解析时再使用完整的
-  `VOLCENGINE_ACCESS_KEY` 与 `VOLCENGINE_SECRET_KEY`。临时凭证同时使用
-  `VOLCENGINE_SESSION_TOKEN`。
-- 第三优先级：如果 CLI 和兼容直连路径都不可用，并且宿主同时注入
-  `ARK_SKILL_API_BASE` 与 `ARK_SKILL_API_KEY`，则使用 ArkClaw 网关。
-  按 Action 契约使用 GET 或 POST，请求头携带
-  `Authorization: Bearer <token>` 与 `ServiceName: volcSMS`，不要进行 V4
-  签名。
-- 只有前两个高优先级路径都不可用时，ArkClaw 变量缺失一项才视为配置错误。
-  不要打印 Token，不要检查 `/root/.openclaw/.env`，也不要读取 shell
-  启动文件寻找 Token。
+  复用 `ve` Profile；无法解析时按顺序读取进程环境变量和
+  `~/.openclaw/.env` 中完整的 `VOLCENGINE_ACCESS_KEY` 与
+  `VOLCENGINE_SECRET_KEY`。临时凭证同时使用 `VOLCENGINE_SESSION_TOKEN`。
+- 兼容直连路径内，任一凭证来源或变量组不完整时直接报错，不跨来源或跨变量组
+  拼接。没有可用凭证时，只提示配置 `VOLCENGINE_ACCESS_KEY`、
+  `VOLCENGINE_SECRET_KEY`，以及临时凭证所需的 `VOLCENGINE_SESSION_TOKEN`。
 - 如果 `ve` 不存在或低于 `1.1.0`，先通过官方 npm 包
   `@volcengine/cli` 安装或升级。`requirements.txt` 中的 Python SDK 只用于
   兼容直连路径；不要自行读取 CLI 配置文件。
 - 不要直接读取或解析 Volcengine CLI 配置、SSO 缓存或控制台登录缓存；
   凭证加载与刷新必须交给官方 CLI 或 Provider。
-- 不要索要、展示、记录 ArkClaw Token 或 AK/SK，也不要通过命令行参数传递。
+- 不要通过命令行参数传递 AK/SK 或 SessionToken。
 - 官方 Provider 返回的 Session Token 属于客户直连 V4 凭证，必须作为已签名的
   `X-Security-Token` 发送。
 - 调用身份由最终选中的鉴权路径确定，不接受账号 ID 覆盖。
