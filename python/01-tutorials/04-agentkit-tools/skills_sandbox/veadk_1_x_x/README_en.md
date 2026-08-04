@@ -200,6 +200,11 @@ agentkit invoke 'Please run the following workflow: 1. Write a PDF-processing sk
 uv run client.py
 ```
 
+### Invoke a Sandbox directly over A2A
+
+To create or reuse a Sandbox Session and invoke its A2A endpoint directly, see
+the [A2A invocation guide](advanced/a2a/README_en.md).
+
 ## Built-in Skills
 
 - Remember to replace `{YOUR_TOS_BUCKET_NAME}`. This is the TOS bucket that AgentKit creates for users by default, in the format `agentkit-platform-{your_account_id}`. If this TOS bucket does not exist, you need to create it yourself.

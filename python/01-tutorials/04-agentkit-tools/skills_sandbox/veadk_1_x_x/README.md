@@ -199,6 +199,11 @@ agentkit invoke '请运行以下工作流程：1. 帮我写一个pdf处理的ski
 uv run client.py
 ```
 
+### 通过 A2A 直接调用 Sandbox
+
+如需创建或复用 Sandbox Session，并直接调用其 A2A 接口，请参见
+[A2A 调用说明](advanced/a2a/README.md)。
+
 ## 内置 skills 列表
 
 - 记得修改一下 {YOUR_TOS_BUCKET_NAME}，这是 AgentKit 默认为用户创建的 tos 存储桶，格式为 `agentkit-platform-{your_account_id}`，`如果没有这个 tos 存储桶，需要自己创建`

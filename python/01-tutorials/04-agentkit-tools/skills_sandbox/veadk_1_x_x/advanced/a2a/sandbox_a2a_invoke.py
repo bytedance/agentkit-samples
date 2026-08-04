@@ -14,10 +14,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Create/reuse a sandbox session and invoke its A2A endpoint.
+"""Create/reuse a Skill or SkillEnv sandbox session and invoke its A2A endpoint.
 
-Example:
-    python3 scripts/sandbox_a2a_invoke.py \
+Skill example (CreateSession does not inject environment variables):
+    python3 advanced/a2a/sandbox_a2a_invoke.py \
+    --sandbox-profile skill \
+    --tool-id t-yes0m2osg0k6ee1en4ke \
+    --session-id demo-session \
+    --prompt "你有哪些技能"
+
+SkillEnv example (CreateSession injects MODEL_AGENT_* variables):
+    python3 advanced/a2a/sandbox_a2a_invoke.py \
+    --sandbox-profile skill-env \
     --tool-id t-yes0m2osg0k6ee1en4ke \
     --session-id demo-session \
     --prompt "你有哪些技能" \
@@ -54,6 +62,15 @@ from agentkit.toolkit.cli.sandbox.session_create import ensure_sandbox_session
 from agentkit.toolkit.cli.sandbox.tool_resolve import SandboxToolType
 
 SOURCE = "sandbox-invoke"
+SKILL_SANDBOX_PROFILE = "skill"
+SKILL_ENV_SANDBOX_PROFILE = "skill-env"
+SANDBOX_PROFILES = (SKILL_SANDBOX_PROFILE, SKILL_ENV_SANDBOX_PROFILE)
+MODEL_ARGUMENTS = (
+    ("model_name", "--model-name"),
+    ("model_provider", "--model-provider"),
+    ("model_base_url", "--model-base-url"),
+    ("model_api_key", "--model-api-key"),
+)
 
 
 def _model_envs_from_args(args: argparse.Namespace):
@@ -70,9 +87,38 @@ def _model_envs_from_args(args: argparse.Namespace):
     )
 
 
+def _session_envs_from_args(args: argparse.Namespace):
+    if args.sandbox_profile == SKILL_ENV_SANDBOX_PROFILE:
+        return _model_envs_from_args(args)
+
+    model_arguments = [
+        option
+        for attribute, option in MODEL_ARGUMENTS
+        if getattr(args, attribute, None) is not None
+    ]
+    if model_arguments:
+        raise ValueError(
+            f"{', '.join(model_arguments)} can only be used with "
+            f"--sandbox-profile {SKILL_ENV_SANDBOX_PROFILE}"
+        )
+
+    # The Skill image owns its model configuration. Passing None ensures the
+    # CreateSession request does not contain session-level environment variables.
+    return None
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Create/reuse an AgentKit sandbox session and invoke A2A synchronously."
+    )
+    parser.add_argument(
+        "--sandbox-profile",
+        choices=SANDBOX_PROFILES,
+        default=SKILL_SANDBOX_PROFILE,
+        help=(
+            "Sandbox runtime profile. 'skill' (default) injects no CreateSession "
+            "environment variables; 'skill-env' injects MODEL_AGENT_* variables."
+        ),
     )
     parser.add_argument("--tool-id", required=True, help="Sandbox tool ID.")
     parser.add_argument(
@@ -116,7 +162,7 @@ def main(argv: list[str] | None = None) -> int:
             session_id=args.session_id,
             tool_id=args.tool_id,
             tool_type=SandboxToolType.SKILL_ENV.value,
-            envs=_model_envs_from_args(args),
+            envs=_session_envs_from_args(args),
             resolve_tool=False,
             include_tos_mount_points=False,
         )
