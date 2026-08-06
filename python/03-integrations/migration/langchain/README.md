@@ -57,17 +57,25 @@ langchain/
 
 ### 检查 AgentKit CLI 版本
 
-请先确认本机安装的是 TypeScript 版本的 AgentKit CLI，且版本不低于 `0.50.4`：
+请先确认本机安装的是 TypeScript 版本的 AgentKit CLI，且版本不低于 `0.51.1`：
 
 ```bash
 agentkit -v
 ```
 
-如未安装，或版本低于 `0.50.4`，可以使用以下命令安装 TypeScript 版本 AgentKit CLI：
+或者
+
+```bash
+ak -v
+```
+
+如未安装，或版本低于 `0.51.1`，可以使用以下命令安装 TypeScript 版本 AgentKit CLI：
 
 ```bash
 curl https://agentkit-cli.tos-cn-beijing.volces.com/install.sh | sh
 ```
+
+> 迁移命令建议使用 TypeScript AgentKit CLI 的 `ak` 入口，以避免 Python `uv` 环境或 `agentkit-python-sdk` 带来的同名 `agentkit` 命令冲突。`ak` 由安装脚本自动配置，无需额外操作。
 
 ### 依赖安装
 
@@ -134,6 +142,18 @@ agentkit migrate . \
   --verify
 ```
 
+等价的 `ak` 命令：
+
+```bash
+ak migrate . \
+  --framework langchain \
+  --entry agent.py:agent \
+  --name migration-langchain-travel \
+  --input-key messages \
+  --compat langserve \
+  --verify
+```
+
 参数含义如下：
 
 - `--framework langchain`：按 LangChain Runnable 方式迁移。
@@ -150,7 +170,13 @@ agentkit migrate . \
 如果您想将生成的产物部署到 AgentKit Runtime 上，可以执行：
 
 ```bash
-agentkit deploy
+agentkit release
+```
+
+等价的 `ak` 命令：
+
+```bash
+ak release
 ```
 
 部署后，即可在 AgentKit Runtime 中找到对应的 Agent。

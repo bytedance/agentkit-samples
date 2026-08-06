@@ -12,7 +12,7 @@ AgentKit Runtime 原生支持 LangChain、LangGraph、Strands、Google ADK，以
 
 - 将已有 Python agent 项目目录提交给远端 Codex Sandbox 进行迁移。
 - 将源项目转换为 VeADK / AgentKit Runtime 工程。
-- 生成可部署配置和运行代码，迁移完成后可继续执行 `agentkit deploy`。
+- 生成可部署配置和运行代码，迁移完成后可继续执行 `agentkit release`。
 - 对无法自动还原的外部依赖或运行配置，在迁移产物中保留说明，不伪造外部调用成功。
 
 ## 原输入
@@ -58,17 +58,25 @@ any/
 
 ### 检查 AgentKit CLI 版本
 
-请先确认本机安装的是 TypeScript 版本的 AgentKit CLI，且版本不低于 `0.50.4`：
+请先确认本机安装的是 TypeScript 版本的 AgentKit CLI，且版本不低于 `0.51.1`：
 
 ```bash
 agentkit -v
 ```
 
-如未安装，或版本低于 `0.50.4`，可以使用以下命令安装 TypeScript 版本 AgentKit CLI：
+或者
+
+```bash
+ak -v
+```
+
+如未安装，或版本低于 `0.51.1`，可以使用以下命令安装 TypeScript 版本 AgentKit CLI：
 
 ```bash
 curl https://agentkit-cli.tos-cn-beijing.volces.com/install.sh | sh
 ```
+
+> 迁移命令建议使用 TypeScript AgentKit CLI 的 `ak` 入口，以避免 Python `uv` 环境或 `agentkit-python-sdk` 带来的同名 `agentkit` 命令冲突。`ak` 由安装脚本自动配置，无需额外操作。
 
 ### 环境准备
 
@@ -125,7 +133,20 @@ agentkit migrate any_input --framework any create --name any-test --output ../an
   --model-api-key-env MODEL_AGENT_API_KEY
 ```
 
-迁移完成后，`any_output/` 会包含完整的 VeADK / AgentKit Runtime 工程，可进入该目录执行 `agentkit deploy`。
+等价的 `ak` 命令：
+
+```bash
+cd <project_dir>/any
+
+ak migrate any_input --framework any create --name any-test --output ../any_output \
+  --codex-model <codex模型名> \
+  --codex-api-key-env CODEX_MIGRATE_MODEL_API_KEY \
+  --model-id <VeADK模型名> \
+  --model-base-url <VeADK依赖的模型base_url> \
+  --model-api-key-env MODEL_AGENT_API_KEY
+```
+
+迁移完成后，`any_output/` 会包含完整的 VeADK / AgentKit Runtime 工程，可进入该目录执行 `agentkit release`。
 
 ## 查询和下载结果
 
@@ -135,10 +156,22 @@ agentkit migrate any_input --framework any create --name any-test --output ../an
 agentkit migrate any_input --framework any status --job-id <job_id>
 ```
 
+等价的 `ak` 命令：
+
+```bash
+ak migrate any_input --framework any status --job-id <job_id>
+```
+
 也可以使用位置参数形式：
 
 ```bash
 agentkit migrate any_input --framework any status <job_id>
+```
+
+等价的 `ak` 命令：
+
+```bash
+ak migrate any_input --framework any status <job_id>
 ```
 
 查看本地迁移任务记录：
@@ -147,23 +180,35 @@ agentkit migrate any_input --framework any status <job_id>
 agentkit migrate any_input --framework any list
 ```
 
-## 可选：VeADK项目本地调试
+等价的 `ak` 命令：
 
-在部署到AgentKit Runtime之前，您可以先本地调试migration迁移后的产物，确保可以运行后再部署到AgentKit Runtime上。
+```bash
+ak migrate any_input --framework any list
+```
+
+## 可选：VeADK 项目本地调试
+
+在部署到 AgentKit Runtime 之前，您可以先本地调试迁移后的产物，确保可以运行后再部署到 AgentKit Runtime 上。
 
 ## AgentKit 部署
 
 迁移完成后进入输出目录，确认 `.agentkit/agentkit.yaml`，然后执行：
 
 ```bash
-agentkit deploy
+agentkit release
+```
+
+等价的 `ak` 命令：
+
+```bash
+ak release
 ```
 
 ## 输出结果
 
 迁移完成后，输出目录通常包含：
 
-- 可直接执行 `agentkit deploy` 的 VeADK / AgentKit Runtime 工程。
+- 可直接执行 `agentkit release` 的 VeADK / AgentKit Runtime 工程。
 - `.agentkit/agentkit.yaml` 部署配置。
 - 迁移说明、运行代码和必要的依赖文件。
 
@@ -198,6 +243,7 @@ agentkit deploy
 - `--model-api-key-env`：指定业务模型 key 的环境变量名；不写时默认使用 `MODEL_AGENT_API_KEY`。
 
 ## 常见问题
+
 - 迁移命令会改写 `any_input/agent.py` 吗？
 
   不会。迁移任务会把源项目作为输入上传分析，并将生成的 AgentKit Runtime 工程写入 `--output` 指定目录。

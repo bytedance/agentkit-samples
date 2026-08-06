@@ -58,17 +58,25 @@ After `agentkit migrate` runs, it generates `agentkit_app.py` and the `.agentkit
 
 ### Check AgentKit CLI Version
 
-First make sure the TypeScript version of AgentKit CLI is installed and the version is not lower than `0.50.4`:
+First make sure the TypeScript version of AgentKit CLI is installed and the version is not lower than `0.51.1`:
 
 ```bash
 agentkit -v
 ```
 
-If it is not installed, or the version is lower than `0.50.4`, install the TypeScript version of AgentKit CLI with:
+or
+
+```bash
+ak -v
+```
+
+If it is not installed, or the version is lower than `0.51.1`, install the TypeScript version of AgentKit CLI with:
 
 ```bash
 curl https://agentkit-cli.tos-cn-beijing.volces.com/install.sh | sh
 ```
+
+> Use the TypeScript AgentKit CLI entrypoint `ak` for migration commands to avoid possible `agentkit` command conflicts from Python `uv` environments or the `agentkit-python-sdk` package. `ak` is configured automatically by the installer; no extra setup is required.
 
 ### Install Dependencies
 
@@ -136,6 +144,16 @@ agentkit migrate . \
   --verify
 ```
 
+Equivalent `ak` command:
+
+```bash
+ak migrate . \
+  --framework adk \
+  --entry agent.py:root_agent \
+  --name migration-google-adk-travel \
+  --verify
+```
+
 Arguments:
 
 - `--framework adk`: migrate as a Google ADK Agent.
@@ -148,12 +166,18 @@ Google ADK migration does not need `--input-key`. The migration command generate
 After the command succeeds, it generates entry files and configuration that can be deployed to AgentKit Runtime.
 The migration process does not rewrite the original Google ADK `agent.py`.
 
-## AgentKit Deployment
+## deploy to Agentkit
 
 If you want to deploy the generated artifacts to AgentKit Runtime, run:
 
 ```bash
-agentkit deploy
+agentkit release
+```
+
+Equivalent `ak` command:
+
+```bash
+ak release
 ```
 
 After deployment, you can find the deployed project in AgentKit Runtime on the AgentKit platform.

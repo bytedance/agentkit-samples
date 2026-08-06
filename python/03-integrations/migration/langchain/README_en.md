@@ -56,17 +56,25 @@ langchain/
 
 ### Check AgentKit CLI Version
 
-First make sure the TypeScript version of AgentKit CLI is installed and the version is not lower than `0.50.4`:
+First make sure the TypeScript version of AgentKit CLI is installed and the version is not lower than `0.51.1`:
 
 ```bash
 agentkit -v
 ```
 
-If it is not installed, or the version is lower than `0.50.4`, install the TypeScript version of AgentKit CLI with:
+or
+
+```bash
+ak -v
+```
+
+If it is not installed, or the version is lower than `0.51.1`, install the TypeScript version of AgentKit CLI with:
 
 ```bash
 curl https://agentkit-cli.tos-cn-beijing.volces.com/install.sh | sh
 ```
+
+> Use the TypeScript AgentKit CLI entrypoint `ak` for migration commands to avoid possible `agentkit` command conflicts from Python `uv` environments or the `agentkit-python-sdk` package. `ak` is configured automatically by the installer; no extra setup is required.
 
 ### Install Dependencies
 
@@ -136,6 +144,18 @@ agentkit migrate . \
   --verify
 ```
 
+Equivalent `ak` command:
+
+```bash
+ak migrate . \
+  --framework langchain \
+  --entry agent.py:agent \
+  --name migration-langchain-travel \
+  --input-key messages \
+  --compat langserve \
+  --verify
+```
+
 Arguments:
 
 - `--framework langchain`: migrate as a LangChain Runnable.
@@ -147,12 +167,18 @@ Arguments:
 After the command succeeds, it generates entry files and configuration that can be deployed to AgentKit Runtime.
 The migration process does not rewrite the original LangChain `agent.py`.
 
-## AgentKit Deployment
+## deploy to Agentkit
 
 If you want to deploy the generated artifacts to AgentKit Runtime, run:
 
 ```bash
-agentkit deploy
+agentkit release
+```
+
+Equivalent `ak` command:
+
+```bash
+ak release
 ```
 
 After deployment, you can find the corresponding Agent in AgentKit Runtime.

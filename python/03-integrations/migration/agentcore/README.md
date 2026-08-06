@@ -57,6 +57,28 @@ agentcore/
 
 ## 本地运行
 
+### 检查 AgentKit CLI 版本
+
+请先确认本机安装的是 TypeScript 版本的 AgentKit CLI，且版本不低于 `0.51.1`：
+
+```bash
+agentkit -v
+```
+
+或者
+
+```bash
+ak -v
+```
+
+如未安装，或版本低于 `0.51.1`，可以使用以下命令安装 TypeScript 版本 AgentKit CLI：
+
+```bash
+curl https://agentkit-cli.tos-cn-beijing.volces.com/install.sh | sh
+```
+
+> 迁移命令建议使用 TypeScript AgentKit CLI 的 `ak` 入口，以避免 Python `uv` 环境或 `agentkit-python-sdk` 带来的同名 `agentkit` 命令冲突。`ak` 由安装脚本自动配置，无需额外操作。
+
 ### 依赖安装
 
 请确保 Python 版本不低于 3.10。进入当前样例目录后执行：
@@ -101,8 +123,8 @@ CLOUD_PROVIDER=byteplus
 BYTEPLUS_REGION=ap-southeast-1
 ```
 
-### pre-check
-在执行迁移之前，先确保原来的AgentCore项目是正常且可运行的：
+### 迁移前检查
+在执行迁移之前，先确保原来的 AgentCore 项目正常且可运行：
 
 ```bash
 python agent.py
@@ -118,10 +140,20 @@ curl -X POST http://localhost:8080/invocations \
 
 该命令会调用 `agent.py:app` 后面的 AgentCore entrypoint，向 Strands Agent 发送固定客服问题，并使用配置的 OpenAI-compatible 模型完成一次真实对话。
 
-### 执行Migration命令：
-在确保原项目是可执行的以后，就可以执行migration命令，进行Agentkit项目的适配了
+### 执行迁移命令
+确认原项目可执行后，运行迁移命令生成 AgentKit Runtime 接入文件和配置：
 ```bash
 agentkit migrate . \
+  --framework agentcore \
+  --entry agent.py:app \
+  --name migration-agentcore-strands \
+  --verify
+```
+
+等价的 `ak` 命令：
+
+```bash
+ak migrate . \
   --framework agentcore \
   --entry agent.py:app \
   --name migration-agentcore-strands \
@@ -136,18 +168,24 @@ agentkit migrate . \
 
 注意这里不是 `--framework strands`。虽然业务 agent 使用 Strands 编写，但待迁移的项目入口是 `BedrockAgentCoreApp`。
 
-执行成功后的产物即可直接部署到Agentkit Runtime上。
-全过程对原本的AgentCore agent.py无侵入，无改造。
+执行成功后的产物即可直接部署到 AgentKit Runtime 上。
+全过程对原本的 AgentCore `agent.py` 无侵入、无改造。
 
 ## AgentKit 部署
 
 如果您想将生成的产物部署到 AgentKit Runtime 上，可以执行：
 
 ```bash
-agentkit deploy
+agentkit release
 ```
 
-部署后，即可在Agentkit平台的Runtime当中找到部署的项目。
+等价的 `ak` 命令：
+
+```bash
+ak release
+```
+
+部署后，即可在 AgentKit 平台的 Runtime 中找到部署的项目。
 
 ## 示例提示词
 

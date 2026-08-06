@@ -52,17 +52,25 @@ dify/
 
 ### 检查 AgentKit CLI 版本
 
-请先确认本机安装的是 TypeScript 版本的 AgentKit CLI，且版本不低于 `0.50.4`：
+请先确认本机安装的是 TypeScript 版本的 AgentKit CLI，且版本不低于 `0.51.1`：
 
 ```bash
 agentkit -v
 ```
 
-如未安装，或版本低于 `0.50.4`，可以使用以下命令安装 TypeScript 版本 AgentKit CLI：
+或者
+
+```bash
+ak -v
+```
+
+如未安装，或版本低于 `0.51.1`，可以使用以下命令安装 TypeScript 版本 AgentKit CLI：
 
 ```bash
 curl https://agentkit-cli.tos-cn-beijing.volces.com/install.sh | sh
 ```
+
+> 迁移命令建议使用 TypeScript AgentKit CLI 的 `ak` 入口，以避免 Python `uv` 环境或 `agentkit-python-sdk` 带来的同名 `agentkit` 命令冲突。`ak` 由安装脚本自动配置，无需额外操作。
 
 ### 环境准备
 
@@ -119,7 +127,20 @@ agentkit migrate dify_input --framework dify create --name dify-migrate --output
   --model-api-key-env MODEL_AGENT_API_KEY
 ```
 
-迁移完成后，`dify_output/` 会包含可部署的 VeADK / AgentKit Runtime 工程。进入该目录后，可以执行 `agentkit deploy`。
+等价的 `ak` 命令：
+
+```bash
+cd <project_dir>/dify
+
+ak migrate dify_input --framework dify create --name dify-migrate --output ../dify_output \
+  --codex-model <codex模型名> \
+  --codex-api-key-env CODEX_MIGRATE_MODEL_API_KEY \
+  --model-id <VeADK模型名> \
+  --model-base-url <VeADK依赖的模型base_url> \
+  --model-api-key-env MODEL_AGENT_API_KEY
+```
+
+迁移完成后，`dify_output/` 会包含可部署的 VeADK / AgentKit Runtime 工程。进入该目录后，可以执行 `agentkit release`。
 
 ## 查询和下载结果
 
@@ -129,10 +150,22 @@ agentkit migrate dify_input --framework dify create --name dify-migrate --output
 agentkit migrate dify_input --framework dify status --job-id <job_id>
 ```
 
+等价的 `ak` 命令：
+
+```bash
+ak migrate dify_input --framework dify status --job-id <job_id>
+```
+
 也可以使用位置参数形式：
 
 ```bash
 agentkit migrate dify_input --framework dify status <job_id>
+```
+
+等价的 `ak` 命令：
+
+```bash
+ak migrate dify_input --framework dify status <job_id>
 ```
 
 查看本地迁移任务记录：
@@ -141,24 +174,35 @@ agentkit migrate dify_input --framework dify status <job_id>
 agentkit migrate dify_input --framework dify list
 ```
 
-## 可选：VeADK项目本地调试
+等价的 `ak` 命令：
 
-在部署到AgentKit Runtime之前，您可以先本地调试migration迁移后的产物，确保可以运行后再部署到AgentKit Runtime上。
+```bash
+ak migrate dify_input --framework dify list
+```
+
+## 可选：VeADK 项目本地调试
+
+在部署到 AgentKit Runtime 之前，您可以先本地调试迁移后的产物，确保可以运行后再部署到 AgentKit Runtime 上。
 
 ## AgentKit 部署
 
 迁移完成后进入输出目录，确认 `.agentkit/agentkit.yaml`，然后执行：
 
 ```bash
-agentkit deploy
+agentkit release
 ```
 
+等价的 `ak` 命令：
+
+```bash
+ak release
+```
 
 ## 输出结果
 
 迁移完成后，输出目录通常包含：
 
-- 可执行 `agentkit deploy` 的 VeADK / AgentKit Runtime 工程。
+- 可执行 `agentkit release` 的 VeADK / AgentKit Runtime 工程。
 - `.agentkit/agentkit.yaml` 部署配置。
 - `convert_report.md` 迁移报告。
 - `migration_plan.md` 迁移计划。
@@ -166,11 +210,11 @@ agentkit deploy
 
 如果源 Dify workflow 依赖未配置的知识库、Dify marketplace 插件或其他外部服务，迁移结果会保留工作流结构，并在报告中说明降级点。
 
-
 ## 常见问题
+
 - `node_config.yml` 必须提供吗？
 
-  不是必须。它用于补充节点运行配置；如果您的dify节点依赖外部配置（例如RAG, 知识库, Memory）,可以在node_config.yml中直接提供，也可以后续在VeADK项目中加入这些配置
+  不是必须。它用于补充节点运行配置；如果您的 Dify 节点依赖外部配置（例如 RAG、知识库、Memory），可以在 `node_config.yml` 中直接提供，也可以后续在 VeADK 项目中加入这些配置。
 
 - 外部依赖无法还原怎么办？
 
