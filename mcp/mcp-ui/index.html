@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCP UI Demo · 多类型 HTML 渲染</title>
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --card: #ffffff;
+      --text: #1a202c;
+      --muted: #718096;
+      --brand: #4f46e5;
+      --border: #e2e8f0;
+      --ok: #16a34a;
+      --err: #dc2626;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    header {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      color: #fff;
+      padding: 18px 26px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    header h1 { font-size: 19px; letter-spacing: .2px; }
+    header .pill {
+      background: rgba(255,255,255,.18);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+    }
+    main {
+      display: grid;
+      grid-template-columns: 330px 1fr;
+      gap: 20px;
+      padding: 24px;
+      max-width: 1180px;
+      margin: 0 auto;
+      align-items: start;
+    }
+    @media (max-width: 880px) { main { grid-template-columns: 1fr; } }
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    }
+    .panel h2 {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .tool {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+      background: #fbfcfe;
+    }
+    .tool h3 { font-size: 14px; display: flex; align-items: center; gap: 8px; }
+    .tool p { font-size: 12px; color: var(--muted); margin: 4px 0 10px; }
+    .tool label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+    .tool input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 10px;
+      background: #fff;
+    }
+    .tool input:focus { outline: 2px solid rgba(79,70,229,.25); border-color: var(--brand); }
+    .tool button {
+      width: 100%;
+      padding: 9px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--brand);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+    .tool button:hover { opacity: .85; }
+    .tool button:disabled { opacity: .5; cursor: not-allowed; }
+    #render { min-height: 200px; }
+    #status { font-size: 12px; color: var(--muted); margin-top: 12px; min-height: 18px; }
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: -3px;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .empty { color: var(--muted); font-size: 13px; text-align: center; padding: 40px 0; }
+    .error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: var(--err);
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 13px;
+    }
+    /* ---------- renderers ---------- */
+    .card { border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: #fff; }
+    .w-head { display: flex; align-items: center; gap: 14px; padding: 18px 18px 4px; }
+    .w-icon { font-size: 44px; }
+    .w-city { font-size: 18px; font-weight: 700; }
+    .w-status { font-size: 13px; color: var(--muted); }
+    .w-temp { font-size: 52px; font-weight: 800; padding: 6px 18px 2px; }
+    .w-meta {
+      display: flex;
+      gap: 10px;
+      padding: 14px 18px 18px;
+      font-size: 13px;
+      color: var(--muted);
+      flex-wrap: wrap;
+    }
+    .w-meta span { background: #f4f6fb; border-radius: 999px; padding: 4px 12px; }
+    .search-list { display: flex; flex-direction: column; gap: 12px; }
+    .s-item {
+      display: block;
+      text-decoration: none;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      transition: border-color .15s, box-shadow .15s;
+      background: #fff;
+    }
+    .s-item:hover { border-color: var(--brand); box-shadow: 0 2px 8px rgba(79,70,229,.12); }
+    .s-src {
+      display: inline-block;
+      font-size: 11px;
+      color: var(--brand);
+      background: #eef2ff;
+      border-radius: 999px;
+      padding: 2px 10px;
+      margin-bottom: 8px;
+    }
+    .s-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .s-snippet { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    .s-url { font-size: 12px; color: var(--brand); word-break: break-all; }
+    .p-top { display: flex; align-items: center; gap: 16px; padding: 20px; background: linear-gradient(135deg, #eef2ff, #faf5ff); }
+    .p-avatar {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: var(--brand);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .p-name { font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .p-id { font-size: 13px; color: var(--muted); margin: 2px 0 8px; }
+    .badge {
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 2px 10px;
+      text-transform: uppercase;
+    }
+    .badge.free { background: #f1f5f9; color: #475569; }
+    .badge.pro { background: #eef2ff; color: var(--brand); }
+    .badge.enterprise { background: #fef3c7; color: #b45309; }
+    .badge.ok { background: #dcfce7; color: var(--ok); }
+    .p-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 18px 20px; }
+    .p-stats div { text-align: center; background: #f8fafc; border-radius: 10px; padding: 12px 6px; }
+    .p-stats b { display: block; font-size: 17px; }
+    .p-stats span { font-size: 12px; color: var(--muted); }
+    .p-joined { padding: 0 20px 18px; font-size: 13px; color: var(--muted); }
+    /* history */
+    .hist {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      padding: 8px 0;
+      border-bottom: 1px dashed var(--border);
+    }
+    .hist:last-child { border-bottom: 0; }
+    .hist time { color: var(--muted); font-size: 12px; margin-left: auto; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🚀 MCP UI Demo · 不同调用渲染不同 HTML UI</h1>
+    <span class="pill">Streamable HTTP · FastMCP</span>
+  </header>
+
+  <main>
+    <!-- 左侧：工具面板 -->
+    <section class="panel">
+      <h2>MCP Apps（工具）</h2>
+
+      <div class="tool">
+        <h3>🌤 Weather</h3>
+        <p>查询城市实时天气，渲染天气卡片。</p>
+        <label for="in-city">城市</label>
+        <input id="in-city" value="Tokyo" placeholder="输入城市，如 Beijing">
+        <button id="btn-weather" onclick="callWeather()">调用 weather</button>
+      </div>
+
+      <div class="tool">
+        <h3>🔍 Search</h3>
+        <p>搜索内容，渲染结果列表。</p>
+        <label for="in-query">关键词</label>
+        <input id="in-query" value="MCP protocol" placeholder="输入关键词">
+        <button id="btn-search" onclick="callSearch()">调用 search</button>
+      </div>
+
+      <div class="tool">
+        <h3>👤 User Profile</h3>
+        <p>查询用户资料，渲染用户名片。</p>
+        <label for="in-uid">User ID</label>
+        <input id="in-uid" value="u123" placeholder="输入 user_id">
+        <button id="btn-user_profile" onclick="callUser()">调用 user_profile</button>
+      </div>
+    </section>
+
+    <!-- 右侧：渲染结果 -->
+    <section class="panel">
+      <h2>渲染结果</h2>
+      <div id="render">
+        <div class="empty">👈 选择一个工具并调用，结果会在这里渲染成对应的 HTML UI</div>
+      </div>
+      <div id="status"></div>
+    </section>
+
+    <!-- 历史记录 -->
+    <section class="panel">
+      <h2>调用历史</h2>
+      <div id="history">
+        <div class="empty">暂无调用记录</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const MCP_URL = "/mcp"; // 由 server.py 同源服务，也可改为 http://127.0.0.1:8000/mcp
+    const HISTORY_MAX = 12;
+
+    const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+
+    // 兼容两种响应：dict -> structuredContent；list -> content[0].text(JSON)
+    function extractResult(data) {
+      if (!data || data.result == null) return null;
+      const r = data.result;
+      if (r.structuredContent != null) return r.structuredContent;
+      const text = Array.isArray(r.content) && r.content[0] && r.content[0].text;
+      if (text) { try { return JSON.parse(text); } catch (_) { return text; } }
+      return r;
+    }
+
+    function setBusy(tool, busy) {
+      const btn = document.getElementById("btn-" + tool);
+      if (btn) {
+        btn.disabled = busy;
+        btn.innerHTML = busy ? '<span class="spinner"></span>调用中…' : btn.dataset.label;
+      }
+    }
+
+    function setStatus(msg) {
+      document.getElementById("status").textContent = msg;
+    }
+
+    async function callMCP(tool, kind, args) {
+      setBusy(tool, true);
+      setStatus("正在调用 " + tool + " …");
+      try {
+        const res = await fetch(MCP_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: Date.now(),
+            method: "tools/call",
+            params: { name: tool, arguments: args }
+          })
+        });
+        const data = await res.json();
+        const payload = extractResult(data);
+        if (data.result && data.result.isError) throw new Error(payload ? JSON.stringify(payload) : "MCP 调用失败");
+        if (payload == null) throw new Error("空响应：" + JSON.stringify(data));
+        render(kind, payload);
+        pushHistory(kind, tool, args);
+        setStatus("✅ " + tool + " 调用成功");
+      } catch (e) {
+        document.getElementById("render").innerHTML =
+          '<div class="error">调用失败：' + esc(e.message || e) + "</div>";
+        setStatus("❌ 调用失败");
+      } finally {
+        setBusy(tool, false);
+      }
+    }
+
+    // ---------- 各工具专属渲染器 ----------
+
+    function render(kind, payload) {
+      const el = document.getElementById("render");
+      const fn = { weather: renderWeather, search: renderSearch, profile: renderProfile }[kind];
+      el.innerHTML = (fn ? fn(payload) : '<pre class="empty">' + esc(JSON.stringify(payload, null, 2)) + "</pre>");
+    }
+
+    function renderWeather(w) {
+      const icons = { sunny: "☀️", rainy: "🌧️", cloudy: "☁️", snowy: "❄️" };
+      const statusZh = { sunny: "晴", rainy: "雨", cloudy: "多云", snowy: "雪" };
+      return `
+        <div class="card">
+          <div class="w-head">
+            <div class="w-icon">${icons[w.status] || "🌤️"}</div>
+            <div>
+              <div class="w-city">${esc(w.city)}</div>
+              <div class="w-status">${statusZh[w.status] || esc(w.status)}</div>
+            </div>
+          </div>
+          <div class="w-temp">${esc(w.temp)}°C</div>
+          <div class="w-meta">
+            <span>体感 ${esc(w.feels_like)}°C</span>
+            <span>湿度 ${esc(w.humidity)}%</span>
+            <span>风速 ${esc(w.wind)} km/h</span>
+          </div>
+        </div>`;
+    }
+
+    function renderSearch(results) {
+      const srcLabel = { docs: "文档", github: "GitHub", blog: "博客" };
+      const items = (results || []).map((r) => `
+        <a class="s-item" href="${esc(r.url)}" target="_blank" rel="noopener">
+          <span class="s-src">${srcLabel[r.source] || esc(r.source)}</span>
+          <div class="s-title">${esc(r.title)}</div>
+          <div class="s-snippet">${esc(r.snippet)}</div>
+          <div class="s-url">${esc(r.url)}</div>
+        </a>`).join("");
+      return `<div class="search-list">${items || '<div class="empty">无结果</div>'}</div>`;
+    }
+
+    function renderProfile(p) {
+      const initials = (p.name || p.user_id)
+        .split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
+      const planBadge = `<span class="badge ${esc(p.plan)}">${esc(p.plan)}</span>`;
+      const verified = p.verified
+        ? '<span class="badge ok">已认证 ✓</span>'
+        : '<span class="badge free">未认证</span>';
+      return `
+        <div class="card">
+          <div class="p-top">
+            <div class="p-avatar">${esc(initials)}</div>
+            <div>
+              <div class="p-name">${esc(p.name)} ${verified}</div>
+              <div class="p-id">ID: ${esc(p.user_id)}</div>
+              <div>${planBadge}</div>
+            </div>
+          </div>
+          <div class="p-stats">
+            <div><b>¥${esc(p.balance)}</b><span>余额</span></div>
+            <div><b>${esc(p.stats.apps)}</b><span>应用</span></div>
+            <div><b>${esc(p.stats.tokens_used)}</b><span>Tokens</span></div>
+          </div>
+          <div class="p-joined">加入时间：${esc(p.joined)}</div>
+        </div>`;
+    }
+
+    // ---------- 调用历史 ----------
+
+    function pushHistory(kind, tool, args) {
+      const box = document.getElementById("history");
+      if (box.querySelector(".empty")) box.innerHTML = "";
+      const icons = { weather: "🌤", search: "🔍", profile: "👤" };
+      const now = new Date();
+      const line = document.createElement("div");
+      line.className = "hist";
+      line.innerHTML = `
+        <span>${icons[kind] || "🛠"}</span>
+        <b>${esc(tool)}</b>
+        <span>${esc(JSON.stringify(args))}</span>
+        <time>${now.toLocaleTimeString()}</time>`;
+      box.prepend(line);
+      while (box.children.length > HISTORY_MAX) box.lastChild.remove();
+    }
+
+    // ---------- 入口 ----------
+    document.querySelectorAll("button").forEach((b) => {
+      b.dataset.label = b.textContent;
+    });
+
+    function callWeather() {
+      callMCP("weather", "weather", { city: document.getElementById("in-city").value || "Tokyo" });
+    }
+    function callSearch() {
+      callMCP("search", "search", { query: document.getElementById("in-query").value || "MCP protocol" });
+    }
+    function callUser() {
+      callMCP("user_profile", "profile", { user_id: document.getElementById("in-uid").value || "u123" });
+    }
+  </script>
+</body>
+</html>
