@@ -1,7 +1,8 @@
-# AgentKit 0.5.5 uses Docker SDK's classic build endpoint. Pin the amd64
-# platform manifest as well as the platform flag so Apple Silicon builders do
-# not reuse an arm64 base/intermediate layer for an amd64 Runtime.
-FROM --platform=linux/amd64 python:3.12-slim@sha256:cab2dbf575e971934a81e4622f5aba17aa7929719bd7e31033a3a83b97fd0464
+# AgentKit 0.5.5 uses Docker SDK's classic build endpoint. Default the base
+# platform to amd64 so Apple Silicon builders do not reuse an arm64 layer, but
+# keep it configurable to satisfy Dockerfile portability checks.
+ARG RUNTIME_PLATFORM=linux/amd64
+FROM --platform=${RUNTIME_PLATFORM} python:3.12-slim@sha256:cab2dbf575e971934a81e4622f5aba17aa7929719bd7e31033a3a83b97fd0464
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1

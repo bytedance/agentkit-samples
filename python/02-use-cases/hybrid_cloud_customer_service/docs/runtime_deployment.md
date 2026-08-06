@@ -84,7 +84,10 @@ export VOLCENGINE_SECRET_KEY=<your-secret-key>
 export VOLCENGINE_REGION=<target-region>
 ```
 
-AK/SK 的人工获取路径为：使用主账号登录云管理平台，点击右上角头像，进入 **访问控制**，按平台安全规范创建或查看访问密钥。资源账号主要用于模型和算力资源管理，不一定显示访问控制菜单。不要把控制台登录密码、模型 API Key 或 Runtime API Key 当作 AK/SK。
+AK/SK 的人工获取路径为：使用主账号登录平台，点击右上角用户账号，进入
+**访问控制 → 密钥管理**，按平台安全规范创建或查看访问密钥。资源账号主要用于模型和算力
+资源管理，不一定显示访问控制菜单。不要把控制台登录密码、模型 API Key 或 Runtime API Key
+当作 AK/SK。
 
 关闭终端后这些导出值不会自动保留。如果通过其他安全凭据工具注入环境变量，也可以直接复用。
 
@@ -100,6 +103,9 @@ export AGENTKIT_OPENAPI_SCHEME='http'
 ```
 
 `AGENTKIT_OPENAPI_HOST` 只填写域名，不含 `http://`、`https://`、路径或尾部空格。不同环境的域名可能不同，不要复制其他用户或演示环境的实际域名。
+通常可按 `openapi.<environment-domain>` 组成 OpenAPI 域名。Runtime Region 可在运维端右上角
+账户菜单进入 **关于**，查看“地域”；如果平台已经创建过 Runtime，也可以查看该 Runtime 的
+环境变量 `REGION`。不要根据其他环境的 Region 猜测当前值。
 
 本 POC 默认 `http`，脚本会显示安全警告。正式环境必须显式设置 `AGENTKIT_OPENAPI_SCHEME=https`，并提供匹配域名的可信证书。
 
@@ -253,7 +259,9 @@ docker build --platform linux/amd64 -t hybrid-cloud-customer-service:latest .
 
 构建日志应显示安装 `requirements.lock` 中的固定版本。如果日志中 `pip` 长时间反复尝试同一依赖的多个版本，先确认 Dockerfile 和两份锁文件来自当前提交，不要靠手工预拉基础镜像规避依赖解析问题。
 
-若 Apple Silicon 构建机报本地层为 `linux/arm64/v8`、目标为 `linux/amd64`，确认没有删除 Dockerfile 中固定的 amd64 平台摘要，且脚本仍传递 `--platform linux/amd64`。这是 AgentKit 0.5.5 的 Docker SDK 经典构建接口对本地跨架构缓存的兼容要求，不需要手工预拉镜像。升级 Python 基础镜像时必须重新确认新摘要对应 `linux/amd64`。
+交互部署会实时输出 Docker 构建和镜像推送详情，并以 `[docker]` 标记，包括 Dockerfile 步骤、依赖下载、架构警告、构建错误和各层推送状态；同一份输出也会保留给脚本做失败诊断。该模式只打开 Docker 组件的详细日志，不会把控制面请求或凭证相关信息切换到全局 DEBUG。
+
+若 Apple Silicon 构建机报本地层为 `linux/arm64/v8`、目标为 `linux/amd64`，确认没有删除 Dockerfile 中默认值为 `linux/amd64` 的 `RUNTIME_PLATFORM`，且脚本仍传递 `--platform linux/amd64`。这是 AgentKit 0.5.5 的 Docker SDK 经典构建接口对本地跨架构缓存的兼容要求，不需要手工预拉镜像。升级 Python 基础镜像时必须重新确认新摘要对应 `linux/amd64`。
 
 ## 9. Live 模型数据面
 

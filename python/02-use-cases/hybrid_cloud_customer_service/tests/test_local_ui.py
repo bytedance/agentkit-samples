@@ -226,9 +226,15 @@ def test_runtime_deployment_guide_uses_environment_specific_openapi_host() -> No
     assert "scripts/deploy_a2a_interactive.sh" in readme
     assert "read -r -s -p" in interactive_deploy
     assert "OpenAPI 协议 [http]" in interactive_deploy
-    assert "OpenAPI 域名（不含协议和路径）" in interactive_deploy
+    assert (
+        "OpenAPI 域名（通常为 openapi.<environment-domain>，不含协议和路径）" in interactive_deploy
+    )
     assert "目标环境 Access Key（输入不可见）" in interactive_deploy
     assert "目标环境 Secret Key（输入不可见）" in interactive_deploy
+    assert "Access Key / Secret Key：平台右上角用户账号 → 访问控制 → 密钥管理" in interactive_deploy
+    assert "运维端 → 账户 → 关于 → 查看地域" in interactive_deploy
+    assert "平台已创建 Runtime 的环境变量 REGION" in interactive_deploy
+    assert "模型配置说明" in interactive_deploy
     assert "复用已有 CLI 配置" in interactive_deploy
     assert "仅供参考，不会自动采用" in interactive_deploy
     assert "MODEL_AGENT_API_KEY" in interactive_deploy
@@ -309,17 +315,27 @@ def test_runtime_deployment_guide_uses_environment_specific_openapi_host() -> No
     assert "missing_model_vars" in deploy_script
     assert "deepseek-v4-pro-260425" in deploy_script
     assert 'runtime_envs["MODEL_AGENT_API_BASE"]' in deploy_script
-    assert "agentkit runtime list >/dev/null 2>&1" in deploy_script
-    assert "详细 CLI 错误可能包含 Access Key，已隐藏" in deploy_script
+    assert "Checking AgentKit control-plane credentials" in deploy_script
+    assert 'run_project_agentkit runtime list >"${AUTH_CHECK_FILE}" 2>&1' in deploy_script
+    assert "控制面 AK/SK 鉴权失败" in deploy_script
+    assert "未进入镜像构建或 Runtime 创建阶段" in deploy_script
+    assert "TOP 详细错误（凭证与签名值已脱敏）" in deploy_script
+    assert "RequestId" in deploy_script
+    assert "凭证与签名值已脱敏" in deploy_script
+    assert '[[ "${1:-}" = "launch"' in deploy_script
+    assert "AGENTKIT_VERBOSE_DOCKER_LOGS=1 PYTHONUNBUFFERED=1" in deploy_script
+    assert "live lines are prefixed with [docker]" in deploy_script
     assert "mktemp" in deploy_script
     assert "AGENTKIT_DEPLOY_MODE=demo" in deploy_script
     assert ".agentkit-deploy.*" in (PROJECT_ROOT / ".dockerignore").read_text()
     assert "COPY requirements.lock ./" in dockerfile
+    assert "ARG RUNTIME_PLATFORM=linux/amd64" in dockerfile
     assert (
-        "FROM --platform=linux/amd64 python:3.12-slim@sha256:"
+        "FROM --platform=${RUNTIME_PLATFORM} python:3.12-slim@sha256:"
         "cab2dbf575e971934a81e4622f5aba17aa7929719bd7e31033a3a83b97fd0464" in dockerfile
     )
     assert "pip install --no-cache-dir -r requirements.lock" in dockerfile
+    assert "`[docker]`" in deployment
     assert "pip install --no-cache-dir -r requirements.txt" not in dockerfile
     assert "agentkit-sdk-python==0.5.5" in requirements_lock
     assert "google-adk==2.1.0" in requirements_lock

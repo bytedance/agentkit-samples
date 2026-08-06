@@ -1,7 +1,6 @@
 # AgentKit 混合云企业智能客服 Demo
 
-本样例从一个可调用真实模型的 Live Runtime 开始，再按路线图逐步接入 Knowledge、
-Memory、会话、业务工具、Sandbox、MCP、Skills、A2A、身份安全、评测和 Trace。
+本样例从一个可调用真实模型的 Live Runtime 开始，再按路线图逐步接入 Knowledge、Memory、会话、业务工具、Sandbox、MCP、Skills、A2A、身份安全、评测和 Trace。
 
 ## 第一步：交互部署 Live Runtime
 
@@ -11,6 +10,12 @@ Memory、会话、业务工具、Sandbox、MCP、Skills、A2A、身份安全、�
 ```bash
 ./scripts/deploy_interactive.sh
 ```
+
+脚本会逐项解释配置来源，不要求提前 `export`：OpenAPI 域名通常为 `openapi.<environment-domain>`；
+AK/SK 从平台右上角用户账号 → **访问控制** → **密钥管理**获取；Region 可在运维端 → 账户 →
+**关于**中查看“地域”，也可查看平台已创建 Runtime 的环境变量 `REGION`。模型配置从模型服务控制台获取。
+AK/SK 不是登录密码、模型 Key 或 Runtime Key；输入时不会回显明文。脚本会在构建镜像前执行只读 AK/SK 鉴权，
+错误时给出脱敏提示。完整字段表见 [Runtime 步骤](docs/steps/00-runtime.md)。
 
 脚本会依次完成：
 
@@ -52,6 +57,35 @@ docker info
 
 项目只使用 uv 管理的 `.venv`。不要另建 venv，也不要向该环境混装 pip 依赖。
 若企业 DNS 尚未配置，仍需按平台管理员提供的信息人工配置 hosts。
+
+### 可选：使用公有云托管 Python 基础镜像
+
+仓库默认 `Dockerfile` 使用官方 Python 3.12 slim 镜像并保持原样。如果部署环境要求改用
+`agentkit-prod-public-cn-beijing.cr.volces.com/base/py-simple:python3.12-bookworm-slim-latest`，
+需要在自己的 `Dockerfile` 中同时修改基础镜像和 Python 依赖源：
+
+```dockerfile
+ARG RUNTIME_PLATFORM=linux/amd64
+FROM --platform=${RUNTIME_PLATFORM} agentkit-prod-public-cn-beijing.cr.volces.com/base/py-simple:python3.12-bookworm-slim-latest
+
+WORKDIR /app
+COPY requirements.lock ./
+ARG AGENTKIT_PYPI_INDEX_URL=https://pypi.org/simple
+RUN python -m pip install --no-cache-dir \
+    --index-url "${AGENTKIT_PYPI_INDEX_URL}" \
+    -r requirements.lock
+```
+
+该基础镜像当前预设的软件源可能晚于本项目锁文件：例如项目需要
+`aiohappyeyeballs==2.7.1`，而该源目前只提供到 `2.6.2`，直接执行原来的
+`pip install -r requirements.lock` 会报 `No matching distribution found`。如果企业不允许访问
+公共 PyPI，请把 `AGENTKIT_PYPI_INDEX_URL` 替换为已批准且完整同步锁定版本的内部源；不要用
+`--extra-index-url` 混用多个源。
+
+`requirements.lock` 是生产运行依赖，不包含 pytest、ruff、JupyterLab 等开发工具。虽然核心
+SDK 是 `veadk-python` 和 `agentkit-sdk-python`，完整 Demo 还直接使用 A2A、FastAPI、HTTP
+客户端和 PostgreSQL 会话驱动；锁文件中的其余大部分包是这些组件的传递依赖。不要仅依赖
+基础镜像中预装的旧版 SDK，也不要为了绕过软件源缺包而逐项删除或降级锁定依赖。
 
 </details>
 

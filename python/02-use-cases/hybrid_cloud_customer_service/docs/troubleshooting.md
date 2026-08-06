@@ -45,6 +45,11 @@
   `scripts/deploy_interactive.sh`，核对显示的同名 Runtime ID 后选择更新。成功后
   脚本会把非敏感 Name/ID 保存到本地 `agentkit.yaml`。若确实需要独立实例，选择
   “输入新名称并创建”，接受建议名称或输入自定义名称；脚本会先查重。
+- **更新时报 `Runtime not found`**：通常是 `agentkit.yaml` 保存的
+  `launch_types.hybrid.runtime_id` 已失效，例如 Runtime 被删除、环境重置或 Region
+  已切换，并非镜像构建故障。交互部署会在 Docker 构建前验证绑定；选择“清除过期
+  绑定”后，脚本会按当前名称和 Region 重新查找或创建。若通过
+  `AGENTKIT_RUNTIME_ID` 显式指定 ID，脚本只会停止并提示核对，不会自动修改。
 
 ## Runtime 与组件
 

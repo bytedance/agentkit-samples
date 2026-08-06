@@ -78,6 +78,13 @@ else
 fi
 
 if [[ "${configure_new_target}" -eq 1 ]]; then
+  echo
+  echo "控制面配置说明："
+  echo "  - OpenAPI 协议：POC/内网环境通常为 http，正式环境使用 https。"
+  echo "  - OpenAPI 域名：通常为 openapi.<environment-domain>；只填写域名，不含协议和路径。"
+  echo "  - Access Key / Secret Key：平台右上角用户账号 → 访问控制 → 密钥管理。"
+  echo "    它们不是控制台登录密码、模型 API Key 或 Runtime API Key。"
+
   target_scheme=""
   while [[ "${target_scheme}" != "http" && "${target_scheme}" != "https" ]]; do
     read -r -p "OpenAPI 协议 [http]: " target_scheme
@@ -89,7 +96,7 @@ if [[ "${configure_new_target}" -eq 1 ]]; then
 
   target_host=""
   while [[ -z "${target_host}" ]]; do
-    read -r -p "OpenAPI 域名（不含协议和路径）: " target_host
+    read -r -p "OpenAPI 域名（通常为 openapi.<environment-domain>，不含协议和路径）: " target_host
     if [[ "${target_host}" =~ ^https?:// || "${target_host}" == */* ||
       "${target_host}" =~ [[:space:]] ]]; then
       echo "只填写域名，不要包含协议、路径或空白字符。" >&2
@@ -108,6 +115,10 @@ if [[ "${configure_new_target}" -eq 1 ]]; then
 fi
 
 detected_region="${VOLCENGINE_REGION:-${global_region}}"
+echo
+echo "Region 获取提示："
+echo "  - 运维端 → 账户 → 关于 → 查看地域。"
+echo "  - 或查看平台已创建 Runtime 的环境变量 REGION。"
 if [[ -n "${detected_region}" ]]; then
   echo "检测到已有 Region：${detected_region}（仅供参考，不会自动采用）。"
 fi
@@ -134,6 +145,11 @@ case "${MODEL_REQUIRED}" in
 esac
 
 if [[ "${DEPLOY_MODE}" = "live" && "${MODEL_REQUIRED}" = "1" ]]; then
+  echo
+  echo "模型配置说明："
+  echo "  - 默认方舟：项目提供 Model Name 和 API Base，只需输入模型服务控制台创建的 API Key。"
+  echo "  - 自定义模型：Model Name 填模型名或 Endpoint ID；API Base 填 OpenAI-compatible 接口根地址。"
+  echo "  - 模型 API Key 只用于 Runtime 调用模型，不参与 AgentKit OpenAPI 部署鉴权。"
   echo
   echo "选择模型配置："
   echo "  1) Demo 默认方舟配置（只需 API Key）"

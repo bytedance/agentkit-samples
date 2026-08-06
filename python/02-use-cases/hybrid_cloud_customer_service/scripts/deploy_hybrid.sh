@@ -9,7 +9,9 @@ POST_DEPLOY_INVOKE="${AGENTKIT_POST_DEPLOY_INVOKE:-1}"
 DEPLOY_CONFIG_FILE=""
 LAUNCH_LOG_FILE=""
 RUNTIME_LIST_FILE=""
+RUNTIME_GET_FILE=""
 PING_RESPONSE_FILE=""
+AUTH_CHECK_FILE=""
 CLI_STDERR_FILE=""
 CLI_STDOUT_FILE=""
 
@@ -23,9 +25,14 @@ cleanup() {
   if [[ -n "${RUNTIME_LIST_FILE}" && -f "${RUNTIME_LIST_FILE}" ]]; then
     rm -f -- "${RUNTIME_LIST_FILE}"
   fi
+  if [[ -n "${RUNTIME_GET_FILE}" && -f "${RUNTIME_GET_FILE}" ]]; then
+    rm -f -- "${RUNTIME_GET_FILE}"
+  fi
   if [[ -n "${PING_RESPONSE_FILE}" && -f "${PING_RESPONSE_FILE}" ]]; then
     rm -f -- "${PING_RESPONSE_FILE}"
   fi
+  if [[ -n "${AUTH_CHECK_FILE}" && -f "${AUTH_CHECK_FILE}" ]]; then
+    rm -f -- "${AUTH_CHECK_FILE}"
   if [[ -n "${CLI_STDERR_FILE}" && -f "${CLI_STDERR_FILE}" ]]; then
     rm -f -- "${CLI_STDERR_FILE}"
   fi
@@ -164,12 +171,107 @@ for command_name in agentkit python; do
 done
 
 run_project_agentkit() {
-  if [[ "${AGENTKIT_ALLOW_HTTP_OIDC:-0}" = "1" ]]; then
+  if [[ "${1:-}" = "launch" || "${AGENTKIT_ALLOW_HTTP_OIDC:-0}" = "1" ]]; then
     uv run --frozen python \
       "${PROJECT_ROOT}/scripts/agentkit_cli_poc.py" "$@"
   else
     agentkit "$@"
   fi
+}
+
+show_sanitized_control_plane_error() {
+  local error_file="$1"
+  python - "${error_file}" <<'PY'
+import ast
+import json
+import re
+import sys
+from pathlib import Path
+
+
+raw = Path(sys.argv[1]).read_text(errors="replace")
+raw = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", raw)
+
+
+def redact(value: object) -> str:
+    text = str(value)
+    substitutions = (
+        (r"(?i)(bearer\s+)[A-Za-z0-9._~+/=-]+", r"\1<redacted>"),
+        (r"AKLT[A-Za-z0-9_+/=-]+", "<redacted-access-key>"),
+        (
+            r"(?i)([?&](?:AccessKeyId|X-Amz-Credential|Signature|Token)=)"
+            r"[^&\s]+",
+            r"\1<redacted>",
+        ),
+        (
+            r"(?i)((?:access[_ -]?key(?:id)?|secret[_ -]?key|api[_ -]?key|"
+            r"client[_ -]?secret|password|authorization|token|signature)"
+            r"\s*[:=]\s*)(?:\"[^\"]*\"|'[^']*'|[^\s,}]+)",
+            r"\1<redacted>",
+        ),
+    )
+    for pattern, replacement in substitutions:
+        text = re.sub(pattern, replacement, text)
+    return text
+
+
+def load_top_response(text: str) -> dict[str, object] | None:
+    for line in reversed(text.splitlines()):
+        candidates = [line]
+        stripped = line.strip()
+        if stripped.startswith(("b'", 'b"')):
+            try:
+                decoded = ast.literal_eval(stripped)
+                if isinstance(decoded, bytes):
+                    candidates.insert(0, decoded.decode(errors="replace"))
+            except (SyntaxError, ValueError):
+                pass
+        start = line.find("{")
+        end = line.rfind("}")
+        if start >= 0 and end > start:
+            candidates.insert(0, line[start : end + 1])
+        for candidate in candidates:
+            try:
+                parsed = json.loads(candidate)
+            except (TypeError, ValueError):
+                try:
+                    parsed = ast.literal_eval(candidate)
+                except (SyntaxError, ValueError):
+                    continue
+            if isinstance(parsed, dict) and (
+                "ResponseMetadata" in parsed or "Error" in parsed
+            ):
+                return parsed
+    return None
+
+
+response = load_top_response(raw)
+if response is not None:
+    metadata = response.get("ResponseMetadata", response)
+    if not isinstance(metadata, dict):
+        metadata = response
+    error = metadata.get("Error", response.get("Error", {}))
+    if not isinstance(error, dict):
+        error = {"Message": error}
+    fields = (
+        ("RequestId", metadata.get("RequestId")),
+        ("Action", metadata.get("Action")),
+        ("Version", metadata.get("Version")),
+        ("Service", metadata.get("Service")),
+        ("Region", metadata.get("Region")),
+        ("Code", error.get("Code")),
+        ("Message", error.get("Message")),
+    )
+    print("TOP 详细错误（凭证与签名值已脱敏）：")
+    for name, value in fields:
+        if value not in (None, ""):
+            print(f"  {name}: {redact(value)}")
+else:
+    lines = [redact(line) for line in raw.splitlines() if line.strip()]
+    print("AgentKit CLI 详细错误（凭证与签名值已脱敏）：")
+    for line in lines[-20:]:
+        print(f"  {line}")
+PY
 }
 
 if [[ ! -f "${CONFIG_FILE}" ]]; then
@@ -227,6 +329,7 @@ PY
     echo "当前全局 AgentKit OpenAPI /ping 响应不符合预期。" >&2
     exit 1
   fi
+
   CLI_STDOUT_FILE="$(mktemp "${TMPDIR:-/tmp}/agentkit-cli-out.XXXXXX")"
   chmod 600 "${CLI_STDOUT_FILE}"
   CLI_STDERR_FILE="$(mktemp "${TMPDIR:-/tmp}/agentkit-cli-error.XXXXXX")"
@@ -238,6 +341,29 @@ PY
     exit 1
   fi
 fi
+
+# /ping 只验证网络入口。无论是刚写入的新配置还是复用全局配置，都必须立即执行一次
+# 只读 API 调用验证 AK/SK，避免错误凭证拖到镜像构建或 Runtime 创建阶段才暴露。
+AUTH_CHECK_FILE="$(mktemp "${TMPDIR:-/tmp}/agentkit-auth-check.XXXXXX")"
+chmod 600 "${AUTH_CHECK_FILE}"
+echo "Checking AgentKit control-plane credentials (secret values stay hidden) ..."
+# CLI 版本对错误响应的输出通道并不一致：部分版本把 TOP 响应体写到 stdout，
+# 只把概括性错误写到 stderr。两路都只落到权限为 0600 的临时文件；成功时不展示，
+# 失败时再由 show_sanitized_control_plane_error 解析和脱敏。
+if ! run_project_agentkit runtime list >"${AUTH_CHECK_FILE}" 2>&1; then
+  if grep -Eqi \
+    'InvalidAccessKey|invalid[^[:alnum:]]*(access[[:space:]_-]*key|ak|credential)|signature|unauthorized|authentication|access denied|expired' \
+    "${AUTH_CHECK_FILE}"; then
+    echo "控制面 AK/SK 鉴权失败：网络入口可达，但凭证无效、已过期或不属于当前目标环境。" >&2
+  else
+    echo "控制面 API 只读校验失败：未进入镜像构建或 Runtime 创建阶段。" >&2
+  fi
+  show_sanitized_control_plane_error "${AUTH_CHECK_FILE}" >&2 || \
+    echo "详细错误脱敏处理失败；请保留本次终端输出并联系平台管理员。" >&2
+  echo "请根据上方 TOP/CLI 错误码、RequestId 和 Message 排查；不要把 AK/SK 或签名值发到对话中。" >&2
+  exit 1
+fi
+echo "Control-plane network and AK/SK authentication verified."
 
 PROJECT_REGION="${VOLCENGINE_REGION:-}"
 if [[ -z "${PROJECT_REGION}" ]]; then
@@ -293,6 +419,76 @@ fi
 
 RESOLVED_RUNTIME_NAME="${PROJECT_RUNTIME_NAME}"
 RESOLVED_RUNTIME_ID="${AGENTKIT_RUNTIME_ID:-${CONFIGURED_RUNTIME_ID}}"
+
+# Runtime resources can be deleted or recreated while their old non-secret ID
+# remains in agentkit.yaml. Validate a bound ID before Docker build/push so a
+# stale local binding cannot fail only after the image has already been pushed.
+if [[ -n "${RESOLVED_RUNTIME_ID}" ]]; then
+  RUNTIME_GET_FILE="$(mktemp "${TMPDIR:-/tmp}/agentkit-runtime-get.XXXXXX")"
+  chmod 600 "${RUNTIME_GET_FILE}"
+  if ! run_project_agentkit runtime get \
+    --runtime-id "${RESOLVED_RUNTIME_ID}" \
+    --region "${PROJECT_REGION}" \
+    --output json >"${RUNTIME_GET_FILE}" 2>&1; then
+    if grep -Eqi \
+      'Runtime not found|ResourceNotFound|NotFound|does not exist|not exist' \
+      "${RUNTIME_GET_FILE}"; then
+      if [[ -n "${AGENTKIT_RUNTIME_ID:-}" ]]; then
+        echo "显式指定的 Runtime ID 在当前 Region 中不存在：${RESOLVED_RUNTIME_ID} (${PROJECT_REGION})。" >&2
+        echo "请核对 AGENTKIT_RUNTIME_ID 与 VOLCENGINE_REGION；镜像尚未构建或推送。" >&2
+        exit 1
+      fi
+
+      if [[ "${AGENTKIT_EXISTING_RUNTIME_ACTION:-fail}" = "prompt" && -t 0 ]]; then
+        echo
+        echo "检测到项目中的 Runtime 绑定已失效：${RESOLVED_RUNTIME_ID} (${PROJECT_REGION})。"
+        echo "  1) 清除过期绑定，按名称 ${PROJECT_RUNTIME_NAME} 重新查找或创建（推荐）"
+        echo "  2) 停止，由我先核对 Runtime 名称、ID 或 Region"
+        read -r -p "请选择 [1]: " stale_runtime_choice
+        stale_runtime_choice="${stale_runtime_choice:-1}"
+        case "${stale_runtime_choice}" in
+          1)
+            python - "${CONFIG_FILE}" <<'PY'
+import sys
+from pathlib import Path
+
+import yaml
+
+path = Path(sys.argv[1])
+config = yaml.safe_load(path.read_text()) or {}
+hybrid = (config.get("launch_types") or {}).get("hybrid") or {}
+hybrid.pop("runtime_id", None)
+path.write_text(yaml.safe_dump(config, allow_unicode=True, sort_keys=False))
+PY
+            chmod 600 "${CONFIG_FILE}"
+            CONFIGURED_RUNTIME_ID=""
+            RESOLVED_RUNTIME_ID=""
+            echo "已清除本地过期 Runtime ID；继续执行同名 Runtime 查重。"
+            ;;
+          2)
+            echo "已停止；镜像尚未构建或推送。" >&2
+            exit 2
+            ;;
+          *)
+            echo "无效选择：${stale_runtime_choice}。未创建或更新 Runtime。" >&2
+            exit 2
+            ;;
+        esac
+      else
+        echo "项目绑定的 Runtime ID 在当前 Region 中不存在：${RESOLVED_RUNTIME_ID} (${PROJECT_REGION})。" >&2
+        echo "请运行 ./scripts/deploy_interactive.sh 交互清理过期绑定；镜像尚未构建或推送。" >&2
+        exit 1
+      fi
+    else
+      echo "Runtime ID 预检失败；未进入镜像构建或推送阶段。" >&2
+      show_sanitized_control_plane_error "${RUNTIME_GET_FILE}" >&2 || true
+      exit 1
+    fi
+  else
+    echo "Existing Runtime binding verified: ${RESOLVED_RUNTIME_ID} (${PROJECT_REGION})."
+  fi
+fi
+
 if [[ -z "${RESOLVED_RUNTIME_ID}" ]]; then
   RUNTIME_LIST_FILE="$(mktemp "${TMPDIR:-/tmp}/agentkit-runtime-list.XXXXXX")"
   chmod 600 "${RUNTIME_LIST_FILE}"
@@ -425,10 +621,11 @@ if ! python -c 'import docker; client = docker.from_env(); client.ping()'; then
 fi
 
 echo "Launching hybrid Runtime in ${DEPLOY_MODE} mode ..."
+echo "Docker build/push detailed output is enabled; live lines are prefixed with [docker]."
 LAUNCH_LOG_FILE="$(mktemp "${TMPDIR:-/tmp}/agentkit-launch.XXXXXX")"
 chmod 600 "${LAUNCH_LOG_FILE}"
 set +e
-run_project_agentkit launch \
+AGENTKIT_VERBOSE_DOCKER_LOGS=1 PYTHONUNBUFFERED=1 run_project_agentkit launch \
   --config-file "${DEPLOY_CONFIG_FILE}" \
   --platform linux/amd64 \
   --preflight-mode skip 2>&1 | tee "${LAUNCH_LOG_FILE}"
