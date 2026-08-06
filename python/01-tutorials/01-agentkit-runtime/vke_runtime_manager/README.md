@@ -4,7 +4,7 @@
 
 脚本提供四个常用命令：
 
-- `create`：创建 Runtime，或复用本地 state 中已有的 RuntimeId。随后按间隔查询状态，直到 Runtime 变为 `Ready`、进入失败状态，或等待超时。
+- `create`：创建 Runtime，或复用本地 state 中已有的 RuntimeId。创建时会传入配置中的环境变量；随后按间隔查询状态，拿到 Endpoint 后自动追加 `A2A_EXTERNAL_BASE_URL=<Endpoint>`，并通过 `UpdateRuntime` 全量更新环境变量，最后继续查询到 `Ready`。
 - `get`：查询已有 Runtime 状态。默认读取本地 state 文件里的 `RuntimeId`，也可以通过 `--runtime-id` 手动传入。
 - `update`：更新已有 Runtime 的镜像地址。默认读取本地 state 文件里的 `RuntimeId`，更新后继续轮询状态。
 - `delete`：删除已有 Runtime。默认读取本地 state 文件里的 `RuntimeId`，删除后会更新 state。
@@ -50,6 +50,10 @@ cp config.example.json config.json
     {
       "Key": "LOG_LEVEL",
       "Value": "info"
+    },
+    {
+      "Key": "A2A_ENABLED",
+      "Value": "true"
     }
   ]
 }
@@ -75,7 +79,7 @@ cp config.example.json config.json
 | `workspace_id` | 否 | CP 服务工作区，未配置或为空时默认为 `default`。 |
 | `min_instance` | 否 | AgentKit Runtime 最小实例数，默认 `1`。 |
 | `max_instance` | 否 | AgentKit Runtime 最大实例数，默认 `2`。 |
-| `Envs` | 否 | Runtime 环境变量数组，会作为 CreateRuntime 顶层 `Envs` 字段传入。 |
+| `Envs` | 否 | Runtime 环境变量数组，会作为 CreateRuntime 顶层 `Envs` 字段传入。创建成功并拿到 Endpoint 后，脚本会自动追加或覆盖 `A2A_EXTERNAL_BASE_URL`，并通过 UpdateRuntime 全量更新环境变量。 |
 
 `name` 是 Runtime 名称前缀。创建时脚本会自动拼接时间戳，最终名称格式为：
 
@@ -115,12 +119,49 @@ cp config.example.json config.json
     {
       "Key": "HI_AGENT_CONFIG_FILE",
       "Value": "generalAgent_v3.zip"
+    },
+    {
+      "Key": "A2A_ENABLED",
+      "Value": "true"
     }
   ]
 }
 ```
 
 `Envs` 必须是数组，每个元素必须是包含 `Key` 和 `Value` 的对象；`Key` 需要是非空字符串，`Value` 需要是字符串。数据库密码、Redis 密码等敏感环境变量请只写在本地 `config.json`，不要提交到代码仓库。
+
+如需暴露 A2A，请在 `Envs` 中配置：
+
+| Key | 默认值 | 说明 |
+| --- | --- | --- |
+| `A2A_ENABLED` | `true` | 必须为 `true` 才暴露 A2A。默认开。 |
+
+脚本会托管这个 A2A 环境变量：
+
+| Key | 默认值 | 说明 |
+| --- | --- | --- |
+| `A2A_EXTERNAL_BASE_URL` | Runtime Endpoint | 创建完成并拿到 Endpoint 后自动设置。 |
+
+创建完成后，脚本会等待 `GetRuntime` 返回 Endpoint，并自动构造最终环境变量：
+
+```json
+[
+  {
+    "Key": "HI_AGENT_CONFIG_FILE",
+    "Value": "generalAgent_v3.zip"
+  },
+  {
+    "Key": "A2A_ENABLED",
+    "Value": "true"
+  },
+  {
+    "Key": "A2A_EXTERNAL_BASE_URL",
+    "Value": "https://example.apigateway-cn-beijing.volceapi.com"
+  }
+]
+```
+
+`UpdateRuntime` 的环境变量是全量覆盖逻辑，所以脚本会把 CreateRuntime 阶段使用的全部环境变量和自动生成的 `A2A_EXTERNAL_BASE_URL` 一起传入。`A2A_ENABLED` 请在配置中显式填写；`A2A_EXTERNAL_BASE_URL` 由脚本托管，如果用户在 `Envs` 中提前配置了这个 Key，脚本会用 Runtime Endpoint 覆盖它。
 
 ## 安装依赖
 
@@ -163,9 +204,15 @@ python3 create_vke_runtime.py delete -h
 | 参数 | 说明 |
 | --- | --- |
 | `--config CONFIG` | 必填，配置文件路径。 |
-| `--state STATE` | Runtime state JSON 路径。`create` 默认先复用最新且包含 `RuntimeId` 的 state 防重放；没有可复用 state 时才生成 `<config>.YYYYmmddHHMMSS.vke-runtime-state.json`。`get`、`update`、`delete` 默认读取最新的匹配 state 文件。 |
-| `--log LOG` | API 详细日志路径。默认是 `<state>.log`。 |
+| `--state STATE` | Runtime state JSON 路径。如果 `<config>.vke-runtimes/` 下只有一个 state，脚本会默认使用它；如果有多个 state，通常需要显式传 `--state`。`get`、`update`、`delete` 如果传了 `--runtime-id`，会优先使用 RuntimeId 匹配的 state；没有匹配 state 时会用 `<config>.vke-runtimes/<runtime-id>/state.json` 记录结果。`create` 在没有可复用 state 时会生成 `<config>.vke-runtimes/<runtime-name>/state.json`。 |
+| `--log LOG` | API 详细日志路径。默认和 state 放在同一 runtime 目录下，路径为 `api.log`。 |
 | `--quiet` | 隐藏非必要终端提示；状态摘要仍会输出。 |
+
+`create` 额外支持：
+
+| 参数 | 说明 |
+| --- | --- |
+| `--new` | 强制新建 Runtime，忽略已有 state，并自动生成新的 runtime 目录。 |
 
 ## 创建 Runtime
 
@@ -176,42 +223,48 @@ python3 create_vke_runtime.py create --config config.json
 创建流程：
 
 1. 读取并校验 `config.json`。
-2. 如果没有传 `--state`，读取当前 `config.json` 对应的最新 state 文件；如果 state 中已有 `runtime_id`，跳过 `CreateRuntime`，直接查询已有 Runtime 状态，避免重复创建。
+2. 如果没有传 `--state`，读取当前 `config.json` 对应的唯一 state 文件；如果存在多个 state，脚本会要求显式传 `--state`，避免误操作。
 3. 如果传了 `--state`，读取指定 state；如果里面已有 `runtime_id`，同样跳过创建。
-4. 如果没有可复用的 `runtime_id`，生成新的带时间戳 state 文件、构造 CreateRuntime body，并给 Runtime 名称追加时间戳。
+4. 如果没有可复用的 `runtime_id`，构造 CreateRuntime body，给 Runtime 名称追加时间戳，并为这个 Runtime 生成独立目录。
 5. 创建 `<state>.lock`，避免并发重复创建。
 6. 调用 `CreateRuntime`，把 RuntimeId、状态、元信息写入 state 文件。
-7. 按 `--interval` 轮询 `GetRuntime`，最多等待 `--timeout` 秒。
+7. 按 `--interval` 轮询 `GetRuntime`，最多等待 `--timeout` 秒，直到拿到 Endpoint。
+8. 使用 CreateRuntime 阶段的完整环境变量，追加或覆盖 `A2A_EXTERNAL_BASE_URL=<Endpoint>`。
+9. 调用 `UpdateRuntime` 全量更新环境变量，并开启发布。
+10. 再次按 `--interval` 轮询 `GetRuntime`，最多等待 `--timeout` 秒，直到 Runtime 变为 `Ready`。
 
-新建时默认 state 文件：
+新建时默认目录结构：
 
 ```bash
-config.json.20260729170112.vke-runtime-state.json
+config.vke-runtimes/
+└── sch-hia1-20260729170112/
+    ├── state.json
+    └── api.log
 ```
 
-注意：上面的文件只会在没有可复用 state 时创建。如果已存在最新 state 且里面有 `runtime_id`，脚本会复用它并跳过创建，控制台会提示：
+注意：上面的目录只会在没有可复用 state 时创建。如果只存在一个 state 且里面有 `runtime_id`，脚本会复用它并跳过创建，控制台会提示：
 
 ```text
 == CreateRuntime ==
 Status: Skipped
 RuntimeId: r-xxxx
-State: config.json.20260729170112.vke-runtime-state.json
+State: config.vke-runtimes/sch-hia1-20260729170112/state.json
 Reason: RuntimeId found in state; skip create to avoid replay
 Next: Use get/update/delete, or pass --state NEW_STATE to create a new runtime
 ```
 
-默认日志文件：
+目录名使用最终 Runtime 名称，时间戳格式为 `YYYYmmddHHMMSS`。如果同名目录已存在，脚本会追加 `.1`、`.2` 这样的序号。如果不传 `--state`，后续 `get`、`update`、`delete` 只会在当前 `config.json` 对应目录下存在唯一 state 时自动使用；如果存在多个 Runtime，必须显式指定 `--state`。
+
+如果你确认要新建一个 Runtime，而不是复用已有 state，请显式指定一个新的 state 路径：
 
 ```bash
-config.json.20260729170112.vke-runtime-state.json.log
+python3 create_vke_runtime.py create --config config.json --state config.vke-runtimes/manual-runtime/state.json
 ```
 
-时间戳为创建时刻，格式为 `YYYYmmddHHMMSS`。如果同一秒内生成的文件已存在，脚本会追加 `.1`、`.2` 这样的序号。如果不传 `--state`，后续 `get`、`update`、`delete` 会自动读取当前 `config.json` 对应的最新 state 文件。
-
-如果你确认要新建一个 Runtime，而不是复用最新 state，请显式指定一个新的 state 路径：
+也可以让脚本自动生成新的 runtime 目录：
 
 ```bash
-python3 create_vke_runtime.py create --config config.json --state config.json.20260729173000.vke-runtime-state.json
+python3 create_vke_runtime.py create --config config.json --new
 ```
 
 手动指定 state 和日志路径：
@@ -226,9 +279,9 @@ python3 create_vke_runtime.py create --config config.json --state runtime-state.
 python3 create_vke_runtime.py create --config config.json --timeout 600 --interval 15
 ```
 
-如果 Runtime 状态变为 `Ready`，脚本结束。若状态进入 `Failed`、`CreateFailed` 或 `Error`，脚本会报错退出。若超时仍未 `Ready`，脚本会提示稍后用 `get` 命令继续查询。
+如果 Runtime 状态变为 `Ready`，脚本会继续补齐 A2A 环境变量并等待更新完成。若状态进入 `Failed`、`CreateFailed` 或 `Error`，脚本会报错退出。若超时仍未拿到 Endpoint，脚本会提示稍后重新执行同一条 `create` 命令继续补齐环境变量，不会重复创建 Runtime。
 
-`CreateRuntime` 成功后会在控制台打印 `RequestId`，同时完整请求和响应会写入日志文件。
+`CreateRuntime` 和自动补齐环境变量的 `UpdateRuntime` 成功后都会在控制台打印 `RequestId`，同时完整请求和响应会写入日志文件。
 
 ## 查询 Runtime
 
@@ -337,7 +390,7 @@ python3 create_vke_runtime.py delete --config config.json --runtime-id r-xxxx
 }
 ```
 
-删除成功后，脚本会把 state 标记为 `Deleted`，把删除过的 ID 写入 `deleted_runtime_id`，并清空当前活跃的 `runtime_id`。这样后续再执行 `create` 时，不会被已删除的旧 RuntimeId 阻止重新创建。
+删除前脚本会尽量先查询一次 Runtime 状态，用于记录 `endpoint`。删除成功后，脚本会把 state 标记为 `Deleted`，把删除过的 ID 写入 `deleted_runtime_id`，保留 `endpoint` 并写入 `deleted_endpoint`，同时清空当前活跃的 `runtime_id`。这样后续再执行 `create` 时，不会被已删除的旧 RuntimeId 阻止重新创建。
 
 `DeleteRuntime` 成功后会在控制台打印 `RequestId`，同时完整请求和响应会写入日志文件。
 
@@ -352,7 +405,7 @@ python3 create_vke_runtime.py delete --config config.json --runtime-id r-xxxx
 终端默认只展示关键节点，例如：
 
 ```text
-Log: config.json.20260729170112.vke-runtime-state.json.log
+Log: config.vke-runtimes/sch-hia1-20260729170112/api.log
 
 == GetRuntime ==
 RuntimeId: r-xxxx
@@ -362,7 +415,7 @@ RuntimeId: r-xxxx
 Status: Ready
 Endpoint: https://example.runtime
 RequestId: req-xxxx
-State: config.json.20260729170112.vke-runtime-state.json
+State: config.vke-runtimes/sch-hia1-20260729170112/state.json
 ```
 
 创建、更新、删除成功时也会打印对应接口的 `RequestId`：
@@ -393,6 +446,34 @@ RequestId: req-delete-xxxx
 - 错误摘要
 
 日志里的 `Authorization` header 会被脱敏为 `<redacted>`。
+
+自动补齐 A2A 环境变量时，脚本会发送类似下面的 UpdateRuntime body。`envs` 会包含 CreateRuntime 阶段的完整环境变量，而不只是新增的 Key：
+
+```json
+{
+  "runtime_id": "r-xxxx",
+  "envs": [
+    {
+      "key": "LOG_LEVEL",
+      "value": "info"
+    },
+    {
+      "key": "A2A_ENABLED",
+      "value": "true"
+    },
+    {
+      "key": "A2A_EXTERNAL_BASE_URL",
+      "value": "https://example.apigateway-cn-beijing.volceapi.com"
+    }
+  ],
+  "release_enable": true,
+  "field_mask": {
+    "paths": [
+      "Patch.Envs"
+    ]
+  }
+}
+```
 
 ## 使用完整 Body
 

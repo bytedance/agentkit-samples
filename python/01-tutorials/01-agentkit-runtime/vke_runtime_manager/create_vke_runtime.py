@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import datetime
+import hashlib
 import json
 import os
 import sys
@@ -14,6 +15,8 @@ from agentkit_client import call_api, load_config
 STATE_SCHEMA_VERSION = 1
 READY_STATUS = "Ready"
 FAILED_STATUSES = {"Failed", "CreateFailed", "Error"}
+A2A_EXTERNAL_BASE_URL_ENV_KEY = "A2A_EXTERNAL_BASE_URL"
+A2A_ENV_UPDATE_FIELD_MASK = {"paths": ["Patch.Envs"]}
 
 
 def config_text(config, key):
@@ -94,6 +97,72 @@ def validate_envs(envs, source):
             raise ValueError(f"Envs.{index}.Value in {source} must be a string")
 
 
+def envs_from_create_body(body):
+    envs = body.get("Envs")
+    if envs in (None, ""):
+        return []
+    validate_envs(envs, "CreateRuntime body.Envs")
+    return [dict(item) for item in envs]
+
+
+def merge_managed_envs(envs, managed_envs):
+    managed_keys = {item["Key"] for item in managed_envs}
+    merged = [dict(item) for item in envs if item.get("Key") not in managed_keys]
+    merged.extend(dict(item) for item in managed_envs)
+    return merged
+
+
+def resolve_create_envs(config, config_path, body_file):
+    if body_file:
+        body = ensure_body_dict(read_json_file(body_file), body_file)
+        validate_envs(body.get("Envs"), body_file + ":Envs")
+        return envs_from_create_body(body), "body_file.Envs"
+
+    if "body" in config and config["body"] is not None:
+        source = config_path + ":body"
+        body = ensure_body_dict(config["body"], source)
+        validate_envs(body.get("Envs"), source + ".Envs")
+        return envs_from_create_body(body), "config.body.Envs"
+
+    envs = config.get("Envs")
+    validate_envs(envs, "config.Envs")
+    if envs in (None, ""):
+        return [], "config.Envs"
+    return [dict(item) for item in envs], "config.Envs"
+
+
+def merge_a2a_managed_envs(envs, endpoint):
+    return merge_managed_envs(
+        envs,
+        [
+            {
+                "Key": A2A_EXTERNAL_BASE_URL_ENV_KEY,
+                "Value": endpoint,
+            },
+        ],
+    )
+
+
+def update_envs_payload(envs):
+    return [{"key": item["Key"], "value": item["Value"]} for item in envs]
+
+
+def json_hash(value):
+    payload = json.dumps(
+        value, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    )
+    return "sha256:" + hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def build_a2a_env_update_body(runtime_id, envs):
+    return {
+        "runtime_id": runtime_id,
+        "envs": update_envs_payload(envs),
+        "release_enable": True,
+        "field_mask": A2A_ENV_UPDATE_FIELD_MASK,
+    }
+
+
 def validate_update_body(body, source):
     required_paths = [
         ("RuntimeId",),
@@ -138,57 +207,131 @@ def apply_runtime_name_timestamp(body):
     return body
 
 
-def default_state_path(config_path):
-    return config_path + ".vke-runtime-state.json"
+def safe_path_component(value):
+    text = str(value or "").strip() or "runtime"
+    safe = "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in text)
+    safe = safe.strip("._")
+    if not safe:
+        safe = "runtime"
+    return safe[:120]
 
 
-def timestamped_state_path(config_path):
-    timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-    base_path = config_path + f".{timestamp}.vke-runtime-state.json"
-    if not os.path.exists(base_path):
-        return base_path
+def runtime_state_root(config_path):
+    base, _ = os.path.splitext(config_path)
+    return (base or config_path) + ".vke-runtimes"
+
+
+def managed_state_path(config_path, runtime_name):
+    runtime_dir_name = safe_path_component(runtime_name)
+    root = runtime_state_root(config_path)
+    runtime_dir = os.path.join(root, runtime_dir_name)
+    if not os.path.exists(runtime_dir):
+        return os.path.join(runtime_dir, "state.json")
 
     suffix = 1
     while True:
-        path = config_path + f".{timestamp}.{suffix}.vke-runtime-state.json"
-        if not os.path.exists(path):
+        path = os.path.join(root, f"{runtime_dir_name}.{suffix}", "state.json")
+        if not os.path.exists(os.path.dirname(path)):
             return path
         suffix += 1
 
 
-def state_path_pattern(config_path):
-    return config_path + ".*.vke-runtime-state.json"
-
-
 def existing_state_paths(config_path):
-    candidates = glob(state_path_pattern(config_path))
-    if os.path.exists(default_state_path(config_path)):
-        candidates.append(default_state_path(config_path))
-    return candidates
+    return sorted(
+        glob(os.path.join(runtime_state_root(config_path), "*", "state.json"))
+    )
 
 
-def latest_state_path(config_path):
+def state_path_for_runtime_id(config_path, runtime_id):
+    return os.path.join(
+        runtime_state_root(config_path),
+        safe_path_component(runtime_id),
+        "state.json",
+    )
+
+
+def state_path_matching_runtime_id(config_path, runtime_id):
+    matches = []
+    for path in existing_state_paths(config_path):
+        state = read_state(path)
+        if state.get("runtime_id") == runtime_id:
+            matches.append(path)
+
+    if not matches:
+        return None
+    if len(matches) == 1:
+        return matches[0]
+    raise ValueError(
+        "Multiple state files contain RuntimeId "
+        + runtime_id
+        + ". Pass --state explicitly. Candidates: "
+        + ", ".join(matches)
+    )
+
+
+def resolve_state_path_for_runtime_id(config_path, explicit_state_path, runtime_id):
+    if explicit_state_path:
+        return explicit_state_path
+    if runtime_id:
+        return state_path_matching_runtime_id(
+            config_path,
+            runtime_id,
+        ) or state_path_for_runtime_id(config_path, runtime_id)
+    return default_existing_state_path_or_error(config_path)
+
+
+def default_existing_state_path(config_path):
     candidates = existing_state_paths(config_path)
     if not candidates:
-        return default_state_path(config_path)
-    return max(candidates, key=lambda path: os.path.getmtime(path))
+        return None
+    if len(candidates) == 1:
+        return candidates[0]
+    raise ValueError(
+        "Multiple runtime states found under "
+        + runtime_state_root(config_path)
+        + ". Pass --state explicitly. Candidates: "
+        + ", ".join(candidates)
+    )
 
 
-def resolve_create_state_path(config_path, explicit_state_path):
+def default_existing_state_path_or_error(config_path):
+    state_path = default_existing_state_path(config_path)
+    if state_path:
+        return state_path
+    raise ValueError(
+        "No runtime state found under "
+        + runtime_state_root(config_path)
+        + ". Run create first or pass --state explicitly."
+    )
+
+
+def resolve_create_state_path(
+    config_path,
+    explicit_state_path,
+    runtime_name=None,
+    force_new=False,
+):
     if explicit_state_path:
         state = read_state(explicit_state_path)
         return explicit_state_path, state
 
-    latest_path = latest_state_path(config_path)
-    latest_state = read_state(latest_path)
-    if latest_state.get("runtime_id"):
-        return latest_path, latest_state
+    if not force_new:
+        default_state_path = default_existing_state_path(config_path)
+        if default_state_path:
+            default_state = read_state(default_state_path)
+            if default_state.get("runtime_id"):
+                return default_state_path, default_state
 
-    return timestamped_state_path(config_path), {}
+    if runtime_name:
+        return managed_state_path(config_path, runtime_name), {}
+
+    return "", {}
 
 
 def default_log_path(state_path):
-    return state_path + ".log"
+    if os.path.basename(state_path) == "state.json":
+        return os.path.join(os.path.dirname(state_path), "api.log")
+    return os.path.join(os.path.dirname(state_path) or ".", "api.log")
 
 
 def read_json_file(path):
@@ -492,16 +635,33 @@ def update_state_from_get_runtime(state_path, state, result):
 
 
 def update_state_from_delete_runtime(state_path, state, runtime_id, result):
+    endpoint = state.get("endpoint", "")
     state["schema_version"] = state.get("schema_version") or STATE_SCHEMA_VERSION
     state["runtime_id"] = ""
     state["deleted_runtime_id"] = runtime_id
     state["status"] = "Deleted"
-    state["endpoint"] = ""
+    state["endpoint"] = endpoint
+    state["deleted_endpoint"] = endpoint
     state["updated_at"] = datetime.datetime.now().isoformat()
     state["deleted_at"] = state["updated_at"]
     state["last_delete_response_metadata"] = result.get("ResponseMetadata") or {}
     write_state(state_path, state)
     return state
+
+
+def hydrate_state_before_delete(
+    config_path, runtime_id, state_path, log_path, state, verbose
+):
+    try:
+        result = get_runtime(config_path, runtime_id, log_path, verbose)
+    except Exception as exc:
+        state["schema_version"] = state.get("schema_version") or STATE_SCHEMA_VERSION
+        state["runtime_id"] = runtime_id
+        state["pre_delete_get_error"] = str(exc)
+        state["updated_at"] = datetime.datetime.now().isoformat()
+        write_state(state_path, state)
+        return state
+    return update_state_from_get_runtime(state_path, state, result)
 
 
 def update_state_from_update_runtime(state_path, state, body, body_source, result):
@@ -512,6 +672,60 @@ def update_state_from_update_runtime(state_path, state, body, body_source, resul
     state["update_body_source"] = body_source
     state["updated_at"] = datetime.datetime.now().isoformat()
     state["last_update_response_metadata"] = result.get("ResponseMetadata") or {}
+    write_state(state_path, state)
+    return state
+
+
+def update_state_from_a2a_env_update_start(
+    state_path,
+    state,
+    endpoint,
+    base_envs_hash,
+    final_envs_hash,
+    final_envs_count,
+    envs_source,
+):
+    state["schema_version"] = state.get("schema_version") or STATE_SCHEMA_VERSION
+    state["a2a_env_update"] = {
+        "status": "Updating",
+        "managed_keys": [
+            A2A_EXTERNAL_BASE_URL_ENV_KEY,
+        ],
+        "endpoint": endpoint,
+        "base_envs_hash": base_envs_hash,
+        "final_envs_hash": final_envs_hash,
+        "final_envs_count": final_envs_count,
+        "envs_source": envs_source,
+        "updated_at": datetime.datetime.now().isoformat(),
+    }
+    state["status"] = "Updating"
+    state["updated_at"] = state["a2a_env_update"]["updated_at"]
+    write_state(state_path, state)
+    return state
+
+
+def update_state_from_a2a_env_update_success(
+    state_path,
+    state,
+    result,
+):
+    env_update = dict(state.get("a2a_env_update") or {})
+    env_update["status"] = "Succeeded"
+    env_update["applied_at"] = datetime.datetime.now().isoformat()
+    env_update["last_update_response_metadata"] = result.get("ResponseMetadata") or {}
+    state["a2a_env_update"] = env_update
+    state["updated_at"] = env_update["applied_at"]
+    write_state(state_path, state)
+    return state
+
+
+def update_state_from_a2a_env_update_failure(state_path, state, error):
+    env_update = dict(state.get("a2a_env_update") or {})
+    env_update["status"] = "Failed"
+    env_update["last_error"] = str(error)
+    env_update["failed_at"] = datetime.datetime.now().isoformat()
+    state["a2a_env_update"] = env_update
+    state["updated_at"] = env_update["failed_at"]
     write_state(state_path, state)
     return state
 
@@ -578,6 +792,89 @@ def wait_for_ready(
         time.sleep(interval_seconds)
 
 
+def is_a2a_env_update_applied(state, endpoint, final_envs_hash):
+    env_update = state.get("a2a_env_update") or {}
+    return (
+        env_update.get("status") == "Succeeded"
+        and env_update.get("endpoint") == endpoint
+        and env_update.get("final_envs_hash") == final_envs_hash
+    )
+
+
+def ensure_a2a_env_updated(
+    config_path,
+    runtime_id,
+    state_path,
+    log_path,
+    state,
+    base_envs,
+    envs_source,
+    timeout_seconds,
+    interval_seconds,
+    verbose,
+):
+    endpoint = state.get("endpoint")
+    if not endpoint:
+        print(
+            "A2A env update is waiting for runtime endpoint. "
+            "Please rerun the same create command later to continue."
+        )
+        return state
+
+    final_envs = merge_a2a_managed_envs(base_envs, endpoint)
+    base_envs_hash = json_hash(update_envs_payload(base_envs))
+    final_envs_hash = json_hash(update_envs_payload(final_envs))
+
+    if is_a2a_env_update_applied(state, endpoint, final_envs_hash):
+        if verbose:
+            print_block("UpdateRuntime Envs")
+            print_field("Status", "Skipped")
+            print_field("RuntimeId", runtime_id)
+            print_field("Reason", "A2A env update already applied")
+        return state
+
+    body = build_a2a_env_update_body(runtime_id, final_envs)
+
+    if verbose:
+        print_block("UpdateRuntime Envs")
+        print_field("RuntimeId", runtime_id)
+        print_field("Envs", str(len(final_envs)))
+        print_field(A2A_EXTERNAL_BASE_URL_ENV_KEY, endpoint)
+
+    state = update_state_from_a2a_env_update_start(
+        state_path,
+        state,
+        endpoint,
+        base_envs_hash,
+        final_envs_hash,
+        len(final_envs),
+        envs_source,
+    )
+
+    try:
+        result = update_runtime(config_path, body, log_path, verbose)
+    except Exception as exc:
+        update_state_from_a2a_env_update_failure(state_path, state, exc)
+        raise RuntimeError(
+            "Runtime was created, but A2A env update failed. "
+            "Rerun the same create command to retry. Original error: " + str(exc)
+        ) from exc
+
+    state = update_state_from_a2a_env_update_success(state_path, state, result)
+    print_api_success("UpdateRuntime Envs", api_request_id(result), runtime_id)
+
+    return wait_for_ready(
+        config_path,
+        runtime_id,
+        state_path,
+        log_path,
+        state,
+        timeout_seconds,
+        interval_seconds,
+        verbose,
+    )
+
+
 def runtime_id_from_args_or_state(args, state):
     if getattr(args, "runtime_id", None):
         return args.runtime_id
@@ -591,26 +888,47 @@ def runtime_id_from_args_or_state(args, state):
 
 def run_create(args):
     config = load_config(args.config)
-    state_path, state = resolve_create_state_path(args.config, args.state)
-    log_path = args.log or default_log_path(state_path)
+    state_path, state = resolve_create_state_path(
+        args.config,
+        args.state,
+        force_new=args.new,
+    )
     runtime_id = state.get("runtime_id")
-
-    if not args.quiet:
-        print_log_path(log_path)
+    base_envs = []
+    envs_source = "config.Envs"
 
     if runtime_id:
-        print_block("CreateRuntime")
-        print_field("Status", "Skipped")
-        print_field("RuntimeId", runtime_id)
-        print_field("State", state_path)
-        print_field("Reason", "RuntimeId found in state; skip create to avoid replay")
-        print_field(
-            "Next",
-            "Use get/update/delete, or pass --state NEW_STATE to create a new runtime",
+        log_path = args.log or default_log_path(state_path)
+        base_envs, envs_source = resolve_create_envs(
+            config, args.config, args.body_file
         )
+        if not args.quiet:
+            print_log_path(log_path)
+            print_block("CreateRuntime")
+            print_field("Status", "Skipped")
+            print_field("RuntimeId", runtime_id)
+            print_field("State", state_path)
+            print_field(
+                "Reason", "RuntimeId found in state; skip create to avoid replay"
+            )
+            print_field(
+                "Next",
+                "Use get/update/delete, or pass --state NEW_STATE to create a new runtime",
+            )
     else:
         body, body_source = resolve_create_body(config, args.config, args.body_file)
+        if not args.state:
+            state_path, state = resolve_create_state_path(
+                args.config,
+                args.state,
+                body.get("name"),
+                force_new=args.new,
+            )
+        log_path = args.log or default_log_path(state_path)
+        base_envs = envs_from_create_body(body)
+        envs_source = body_source + ".Envs"
         if not args.quiet:
+            print_log_path(log_path)
             print_block("CreateRuntime")
             print_field("RuntimeName", body.get("name"))
         lock_path = state_path + ".lock"
@@ -628,7 +946,7 @@ def run_create(args):
         finally:
             release_create_lock(lock_path)
 
-    wait_for_ready(
+    state = wait_for_ready(
         args.config,
         runtime_id,
         state_path,
@@ -639,9 +957,26 @@ def run_create(args):
         not args.quiet,
     )
 
+    ensure_a2a_env_updated(
+        args.config,
+        runtime_id,
+        state_path,
+        log_path,
+        state,
+        base_envs,
+        envs_source,
+        args.timeout,
+        args.interval,
+        not args.quiet,
+    )
+
 
 def run_get(args):
-    state_path = args.state or latest_state_path(args.config)
+    state_path = resolve_state_path_for_runtime_id(
+        args.config,
+        args.state,
+        args.runtime_id,
+    )
     log_path = args.log or default_log_path(state_path)
     state = read_state(state_path)
     runtime_id = runtime_id_from_args_or_state(args, state)
@@ -663,7 +998,11 @@ def run_get(args):
 
 
 def run_delete(args):
-    state_path = args.state or latest_state_path(args.config)
+    state_path = resolve_state_path_for_runtime_id(
+        args.config,
+        args.state,
+        args.runtime_id,
+    )
     log_path = args.log or default_log_path(state_path)
     state = read_state(state_path)
     runtime_id = runtime_id_from_args_or_state(args, state)
@@ -672,6 +1011,15 @@ def run_delete(args):
         print_log_path(log_path)
         print_block("DeleteRuntime")
         print_field("RuntimeId", runtime_id)
+
+    state = hydrate_state_before_delete(
+        args.config,
+        runtime_id,
+        state_path,
+        log_path,
+        state,
+        not args.quiet,
+    )
 
     result = delete_runtime(args.config, runtime_id, log_path, not args.quiet)
     state = update_state_from_delete_runtime(state_path, state, runtime_id, result)
@@ -685,7 +1033,11 @@ def run_delete(args):
 
 
 def run_update(args):
-    state_path = args.state or latest_state_path(args.config)
+    state_path = resolve_state_path_for_runtime_id(
+        args.config,
+        args.state,
+        args.runtime_id,
+    )
     log_path = args.log or default_log_path(state_path)
     state = read_state(state_path)
     body, body_source = resolve_update_body(args, state)
@@ -757,15 +1109,19 @@ def build_parser():
             "\n"
             "State file:\n"
             "  --state specifies the runtime state JSON path. The state file stores\n"
-            "  RuntimeId, status, endpoint, and timestamps. If --state is omitted,\n"
-            "  create reuses the latest state with RuntimeId to avoid replay; otherwise\n"
-            "  it creates <config>.YYYYmmddHHMMSS.vke-runtime-state.json. get/update/delete\n"
-            "  use the latest matching state file.\n"
+            "  RuntimeId, status, endpoint, and timestamps. If --state is omitted and\n"
+            "  exactly one state exists under <config>.vke-runtimes/, create reuses it\n"
+            "  to avoid replay. If no state exists, create writes\n"
+            "  <config>.vke-runtimes/<runtime-name>/state.json. If multiple states\n"
+            "  exist, pass --state explicitly, or pass create --new to create a new\n"
+            "  runtime directory automatically. get/update/delete may use --runtime-id\n"
+            "  without --state; matching state is used, or a <runtime-id> state dir is\n"
+            "  created for the operation record.\n"
             "\n"
             "Log file:\n"
             "  Terminal output only shows key steps and runtime status. Detailed\n"
             "  API request/response records are written to --log. If --log is omitted,\n"
-            "  the default path is <state>.log.\n"
+            "  the default path is api.log next to state.json.\n"
             "\n"
             "See README.md for full config.json and body.json examples."
         ),
@@ -776,16 +1132,13 @@ def build_parser():
     common.add_argument(
         "--state",
         help=(
-            "runtime state json path; create reuses the latest state with RuntimeId "
-            "or creates a timestamped state, get/update/delete use the latest state"
+            "runtime state json path; required when multiple runtime states exist "
+            "unless get/update/delete pass --runtime-id"
         ),
     )
     common.add_argument(
         "--log",
-        help=(
-            "API detail log path; defaults to <state>.log and stores request/response "
-            "records"
-        ),
+        help=("API detail log path; defaults to api.log next to state.json"),
     )
     common.add_argument(
         "--quiet", action="store_true", help="hide non-essential terminal messages"
@@ -801,6 +1154,11 @@ def build_parser():
     create_parser.add_argument(
         "--body-file",
         help="full CreateRuntime JSON body path; when set, config body fields are ignored",
+    )
+    create_parser.add_argument(
+        "--new",
+        action="store_true",
+        help="always create a new runtime and auto-generate a new runtime state directory",
     )
     create_parser.add_argument(
         "--timeout", type=int, default=300, help="seconds to wait for Ready"
