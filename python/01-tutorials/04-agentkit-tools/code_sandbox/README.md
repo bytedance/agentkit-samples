@@ -1,10 +1,11 @@
 # Code Sandbox Session
 
-本示例包含三个脚本：
+本示例包含四个脚本：
 
 - `ensure_session.py`：确保指定 `tool-id` 和 `session-id` 对应的 AgentKit sandbox session 可用。
 - `codex_ws_tui.py`：通过终端 TUI 连接 Codex app-server，并与 Codex 对话。
 - `list_snapshots.py`：列出指定 AgentKit sandbox tool 的所有 session 快照，支持按 UserSessionId、SessionId 和创建时间范围过滤，自动分页拉取全部结果。
+- `restore_from_snapshot.py`：根据指定的 `tool-id` 和 `snapshot-id` 从快照恢复 AgentKit sandbox session，输出恢复后的 session 详情（endpoint、status、TTL 等）。
 
 如需完整的本地工作台来管理 AgentKit Tool 与 Session，并进入 Codex、Hermes 或 OpenClaw
 工作区，请参阅 [Situla](../situla/README.md)。Situla 是独立的 TypeScript 项目；由于它直接连接
@@ -174,6 +175,48 @@ python3 python/01-tutorials/04-agentkit-tools/code_sandbox/list_snapshots.py \
   --tool-id <tool-id>
 ```
 
+### 从快照恢复 Session
+
+使用命名参数：
+
+```bash
+python3 restore_from_snapshot.py \
+  --tool-id <tool-id> \
+  --snapshot-id <snapshot-id>
+```
+
+使用位置参数：
+
+```bash
+python3 restore_from_snapshot.py <tool-id> <snapshot-id>
+```
+
+使用自定义 TTL 恢复：
+
+```bash
+python3 restore_from_snapshot.py \
+  --tool-id <tool-id> \
+  --snapshot-id <snapshot-id> \
+  --ttl 3600
+```
+
+从快照创建全新实例：
+
+```bash
+python3 restore_from_snapshot.py \
+  --tool-id <tool-id> \
+  --snapshot-id <snapshot-id> \
+  --create-new-instance
+```
+
+从仓库根目录运行：
+
+```bash
+python3 python/01-tutorials/04-agentkit-tools/code_sandbox/restore_from_snapshot.py \
+  --tool-id <tool-id> \
+  --snapshot-id <snapshot-id>
+```
+
 ## 参数说明
 
 `ensure_session.py`：
@@ -221,6 +264,19 @@ python3 python/01-tutorials/04-agentkit-tools/code_sandbox/list_snapshots.py \
 --session-token         STS 临时凭证 token。默认读取 VOLCENGINE_SESSION_TOKEN。
 --create-time-after     仅列出该时间之后创建的快照（RFC3339 字符串，如 2025-01-01T00:00:00Z）。
 --create-time-before    仅列出该时间之前创建的快照（RFC3339 字符串）。
+```
+
+`restore_from_snapshot.py`：
+
+```text
+--tool-id               AgentKit sandbox tool ID（必填）。
+--snapshot-id           要恢复的快照 ID（必填）。
+--ttl                   恢复后的 Session TTL，单位秒。默认值：28800。
+--create-new-instance   从快照创建全新实例，而非复用之前的实例 ID。
+--region                火山引擎地域。默认读取 VOLCENGINE_REGION 或 SDK 配置。
+--access-key            火山引擎 Access Key。默认读取 VOLCENGINE_ACCESS_KEY。
+--secret-key            火山引擎 Secret Key。默认读取 VOLCENGINE_SECRET_KEY。
+--session-token         STS 临时凭证 token。默认读取 VOLCENGINE_SESSION_TOKEN。
 ```
 
 ## 示例
@@ -305,6 +361,32 @@ python3 list_snapshots.py \
 python3 list_snapshots.py tl-xxxxxxxx demo-session
 ```
 
+### 从快照恢复 Session
+
+使用默认 TTL 恢复：
+
+```bash
+python3 restore_from_snapshot.py \
+  --tool-id tl-xxxxxxxx \
+  --snapshot-id snap-xxxxxxxx
+```
+
+使用自定义 TTL 恢复，并创建全新实例：
+
+```bash
+python3 restore_from_snapshot.py \
+  --tool-id tl-xxxxxxxx \
+  --snapshot-id snap-xxxxxxxx \
+  --ttl 3600 \
+  --create-new-instance
+```
+
+使用位置参数：
+
+```bash
+python3 restore_from_snapshot.py tl-xxxxxxxx snap-xxxxxxxx
+```
+
 ## 输出说明
 
 `ensure_session.py` 输出 JSON。`action` 字段表示实际执行的动作：
@@ -352,6 +434,29 @@ python3 list_snapshots.py tl-xxxxxxxx demo-session
       "Status": "success"
     }
   ]
+}
+```
+
+`restore_from_snapshot.py` 输出 JSON，包含 `action`、`tool_id`、`snapshot_id`、`session_id`（用户 session ID）、`instance_id`（sandbox 实例 ID）、`endpoint`、`internal_endpoint`、`status`、`expire_at`、`created_at` 以及 `raw`（原始响应数据）。
+
+示例：
+
+```json
+{
+  "action": "restored_from_snapshot",
+  "tool_id": "tl-xxxxxxxx",
+  "snapshot_id": "snap-xxxxxxxx",
+  "session_id": "demo-session",
+  "instance_id": "ss-yyyyyyyy",
+  "endpoint": "https://example.endpoint",
+  "internal_endpoint": null,
+  "status": "running",
+  "expire_at": "2025-06-15T18:30:00Z",
+  "created_at": "2025-06-15T10:30:00Z",
+  "raw": {
+    "resume_response": { "...": "..." },
+    "session": { "...": "..." }
+  }
 }
 ```
 

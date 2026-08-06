@@ -1,10 +1,11 @@
 # Code Sandbox Session
 
-This example provides three scripts:
+This example provides four scripts:
 
 - `ensure_session.py`: Ensures an AgentKit sandbox session is available for a given `tool-id` and `session-id`.
 - `codex_ws_tui.py`: A terminal WebSocket TUI client that connects to the Codex app-server and chats with Codex.
 - `list_snapshots.py`: Lists all session snapshots for a given AgentKit sandbox tool. Supports filtering by UserSessionId, SessionId, and creation time range. Automatically paginates through all results.
+- `restore_from_snapshot.py`: Restores an AgentKit sandbox session from a given `tool-id` and `snapshot-id`, printing the recovered session details (endpoint, status, TTL, etc.).
 
 For a full local workbench that manages AgentKit Tools and Sessions and opens
 Codex, Hermes, or OpenClaw workspaces, see [Situla](../situla/README.md). Situla is
@@ -176,6 +177,48 @@ python3 python/01-tutorials/04-agentkit-tools/code_sandbox/list_snapshots.py \
   --tool-id <tool-id>
 ```
 
+### Restore Session from Snapshot
+
+Run with named arguments:
+
+```bash
+python3 restore_from_snapshot.py \
+  --tool-id <tool-id> \
+  --snapshot-id <snapshot-id>
+```
+
+Run with positional arguments:
+
+```bash
+python3 restore_from_snapshot.py <tool-id> <snapshot-id>
+```
+
+Restore with a custom TTL:
+
+```bash
+python3 restore_from_snapshot.py \
+  --tool-id <tool-id> \
+  --snapshot-id <snapshot-id> \
+  --ttl 3600
+```
+
+Create a brand-new instance from the snapshot:
+
+```bash
+python3 restore_from_snapshot.py \
+  --tool-id <tool-id> \
+  --snapshot-id <snapshot-id> \
+  --create-new-instance
+```
+
+Run from the repository root:
+
+```bash
+python3 python/01-tutorials/04-agentkit-tools/code_sandbox/restore_from_snapshot.py \
+  --tool-id <tool-id> \
+  --snapshot-id <snapshot-id>
+```
+
 ## Options
 
 `ensure_session.py`:
@@ -224,6 +267,20 @@ python3 python/01-tutorials/04-agentkit-tools/code_sandbox/list_snapshots.py \
 --session-token         STS session token. Defaults to VOLCENGINE_SESSION_TOKEN.
 --create-time-after     Only list snapshots created after this time (RFC3339 string, e.g. 2025-01-01T00:00:00Z).
 --create-time-before    Only list snapshots created before this time (RFC3339 string).
+```
+
+`restore_from_snapshot.py`:
+
+```text
+--tool-id               AgentKit sandbox tool ID (required).
+--snapshot-id           Snapshot ID to restore from (required).
+--ttl                   Session TTL in seconds. Default: 28800.
+--create-new-instance   Create a brand-new sandbox instance from the snapshot
+                        instead of reusing the previous instance ID.
+--region                Volcano Engine region. Defaults to VOLCENGINE_REGION or SDK config.
+--access-key            Volcano Engine access key. Defaults to VOLCENGINE_ACCESS_KEY.
+--secret-key            Volcano Engine secret key. Defaults to VOLCENGINE_SECRET_KEY.
+--session-token         STS session token. Defaults to VOLCENGINE_SESSION_TOKEN.
 ```
 
 ## Examples
@@ -308,6 +365,32 @@ Run with positional arguments:
 python3 list_snapshots.py tl-xxxxxxxx demo-session
 ```
 
+### Restore Session from Snapshot
+
+Restore with the default TTL:
+
+```bash
+python3 restore_from_snapshot.py \
+  --tool-id tl-xxxxxxxx \
+  --snapshot-id snap-xxxxxxxx
+```
+
+Restore with a custom TTL and create a new instance:
+
+```bash
+python3 restore_from_snapshot.py \
+  --tool-id tl-xxxxxxxx \
+  --snapshot-id snap-xxxxxxxx \
+  --ttl 3600 \
+  --create-new-instance
+```
+
+Run with positional arguments:
+
+```bash
+python3 restore_from_snapshot.py tl-xxxxxxxx snap-xxxxxxxx
+```
+
 ## Output
 
 `ensure_session.py` prints JSON. The `action` field indicates what happened:
@@ -355,6 +438,29 @@ Example:
       "Status": "success"
     }
   ]
+}
+```
+
+`restore_from_snapshot.py` prints JSON containing `action`, `tool_id`, `snapshot_id`, `session_id` (user session ID), `instance_id` (sandbox instance ID), `endpoint`, `internal_endpoint`, `status`, `expire_at`, `created_at`, and `raw` (raw response data).
+
+Example:
+
+```json
+{
+  "action": "restored_from_snapshot",
+  "tool_id": "tl-xxxxxxxx",
+  "snapshot_id": "snap-xxxxxxxx",
+  "session_id": "demo-session",
+  "instance_id": "ss-yyyyyyyy",
+  "endpoint": "https://example.endpoint",
+  "internal_endpoint": null,
+  "status": "running",
+  "expire_at": "2025-06-15T18:30:00Z",
+  "created_at": "2025-06-15T10:30:00Z",
+  "raw": {
+    "resume_response": { "...": "..." },
+    "session": { "...": "..." }
+  }
 }
 ```
 
