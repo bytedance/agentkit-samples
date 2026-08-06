@@ -15,6 +15,16 @@
   匹配域名的正式证书。
 - **`/ping` 成功但 `runtime list` 返回 `InvalidAccessKey`**：网络已通，AK/SK
   无效、过期或属于其他环境；从目标环境重新获取并轮换已暴露 Key。
+- **`/invoke` 返回 401 `Consumer authentication failed`**：Runtime 调用信息页可能
+  展示一个自定义 API-Key 头名（形如 `API-KEY-<id>`）。直接用该头名传 Runtime API Key
+  会 401。本 Demo 统一使用 `Authorization: Bearer <runtime-api-key>` 调用 `/invoke`，
+  这也是所有步骤示例采用的方式。
+- **验证脚本返回 HTTP 404 `Not Found`**：`verify_knowledge_memory.py` 会自行在
+  Endpoint 后追加 `/invoke`。若在 `Runtime Endpoint` 提示处粘贴了控制台调用信息页
+  自带 `/invoke` 的完整 URL，请求会打到 `/invoke/invoke` 而 404（这是路径问题，不是
+  鉴权，鉴权失败为 401/403）。`scripts/verify_knowledge_memory_interactive.sh` 现已
+  自动剥除结尾的 `/invoke` 与斜杠；如仍手工拼 URL，请只填到 Runtime 基地址、不要带
+  `/invoke`。
 
 ## Docker、镜像与 Registry
 
