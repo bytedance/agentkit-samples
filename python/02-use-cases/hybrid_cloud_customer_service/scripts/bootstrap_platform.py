@@ -9,6 +9,34 @@ import subprocess
 import sys
 import time
 from collections.abc import Iterable
+from pathlib import Path
+
+# Fallback matches this Demo's launch region so a missing/unparseable
+# agentkit.yaml never silently targets the wrong region (previously cn-sh).
+DEFAULT_REGION = "cn-beijing"
+
+
+def default_region_from_agentkit_yaml() -> str:
+    """Resolve the launch region from the repo's agentkit.yaml.
+
+    Reads ``common.launch_type`` then ``launch_types[<type>].region`` so the
+    script defaults to the same region the Demo deploys to. Any error (missing
+    file, missing PyYAML, unexpected shape) falls back to ``DEFAULT_REGION``
+    instead of the old hard-coded ``cn-sh``.
+    """
+    try:
+        import yaml
+
+        config_path = Path(__file__).resolve().parent.parent / "agentkit.yaml"
+        config = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+        launch_type = (config.get("common") or {}).get("launch_type")
+        selected = (config.get("launch_types") or {}).get(launch_type) or {}
+        region = selected.get("region")
+        if isinstance(region, str) and region.strip():
+            return region.strip()
+    except Exception:
+        pass
+    return DEFAULT_REGION
 
 
 def merge_runtime_envs(
@@ -97,7 +125,11 @@ def run_json(*args: str) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--runtime-id", required=True)
-    parser.add_argument("--region", default="cn-sh")
+    parser.add_argument(
+        "--region",
+        default=default_region_from_agentkit_yaml(),
+        help="Target region; defaults to launch region in agentkit.yaml",
+    )
     parser.add_argument("--memory-name", default="hybrid_customer_service_memory")
     parser.add_argument("--memory-id", help="Existing/console-created AgentKit MemoryId")
     parser.add_argument(

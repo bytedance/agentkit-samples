@@ -19,6 +19,11 @@ if [[ ! "$endpoint" =~ ^https?:// ]]; then
   echo "Runtime Endpoint must start with http:// or https://." >&2
   exit 2
 fi
+# The console "调用信息" page shows the URL already ending in /invoke, while
+# verify_knowledge_memory.py appends /invoke itself. Strip a pasted trailing
+# /invoke (with optional slash) so the request is not sent to /invoke/invoke.
+endpoint="${endpoint%/}"
+endpoint="${endpoint%/invoke}"
 
 if [[ -n "$api_key" ]]; then
   read -r -p "Reuse Runtime API Key from this terminal? [Y/n] " reuse_key

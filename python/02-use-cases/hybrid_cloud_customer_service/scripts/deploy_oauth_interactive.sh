@@ -25,31 +25,87 @@ if [[ ! -f "${OAUTH_CONFIG_FILE}" ]]; then
   CREATED_OAUTH_CONFIG=1
 fi
 
+# On a re-run (e.g. after a CR temp-login expiry aborted the image push), the
+# OAuth identity fields were already persisted to agentkit.oauth.yaml before the
+# push happened.  Offer to reuse them instead of forcing full re-entry, mirroring
+# deploy_interactive.sh 的 "复用已有 CLI 配置"。Client Secret 从不落盘，不受影响。
 auth_scheme=""
-while [[ "${auth_scheme}" != "http" && "${auth_scheme}" != "https" ]]; do
-  read -r -p "用户池认证域名协议 [http]: " auth_scheme
-  auth_scheme="${auth_scheme:-http}"
-done
-
 auth_host=""
-while [[ -z "${auth_host}" ]]; do
-  read -r -p "用户池认证域名（例如 auth.<环境域名>）: " auth_host
-  if [[ "${auth_host}" =~ ^https?:// || "${auth_host}" == */* ||
-    "${auth_host}" =~ [[:space:]] ]]; then
-    echo "只填写域名，不要包含协议、路径或空白字符。" >&2
-    auth_host=""
-  fi
-done
-
 user_pool_id=""
-while [[ -z "${user_pool_id}" ]]; do
-  read -r -p "可访问用户池 ID: " user_pool_id
-done
-
 allowed_client_id=""
-while [[ -z "${allowed_client_id}" ]]; do
-  read -r -p "允许访问此 Runtime 的用户池 Client ID: " allowed_client_id
-done
+reuse_oauth=0
+
+if [[ "${CREATED_OAUTH_CONFIG}" -eq 0 ]]; then
+  saved_oauth="$(uv run --frozen python - "${OAUTH_CONFIG_FILE}" 2>/dev/null <<'PY'
+import sys
+from urllib.parse import urlparse
+
+import yaml
+
+cfg = yaml.safe_load(open(sys.argv[1])) or {}
+hybrid = ((cfg.get("launch_types") or {}).get("hybrid") or {})
+url = hybrid.get("runtime_jwt_discovery_url") or ""
+clients = hybrid.get("runtime_jwt_allowed_clients") or []
+client = clients[0] if clients else ""
+scheme = host = pool = ""
+if url:
+    parsed = urlparse(url)
+    scheme, host = parsed.scheme, parsed.netloc
+    parts = [p for p in parsed.path.split("/") if p]
+    if "userpool" in parts:
+        idx = parts.index("userpool")
+        if idx + 1 < len(parts):
+            pool = parts[idx + 1]
+if scheme and host and pool and client:
+    print(f"{scheme}\t{host}\t{pool}\t{client}")
+PY
+)"
+  if [[ -n "${saved_oauth}" ]]; then
+    IFS=$'\t' read -r saved_scheme saved_host saved_pool saved_client <<<"${saved_oauth}"
+    echo "检测到 agentkit.oauth.yaml 已保存的 OAuth 身份配置（非敏感）："
+    echo "  认证域名协议：${saved_scheme}"
+    echo "  认证域名：${saved_host}"
+    echo "  可访问用户池 ID：${saved_pool}"
+    echo "  允许的 Client ID：${saved_client}"
+    echo "  1) 复用以上配置"
+    echo "  2) 重新输入"
+    reuse_choice=""
+    read -r -p "请选择 [1]: " reuse_choice
+    reuse_choice="${reuse_choice:-1}"
+    if [[ "${reuse_choice}" == "1" ]]; then
+      reuse_oauth=1
+      auth_scheme="${saved_scheme}"
+      auth_host="${saved_host}"
+      user_pool_id="${saved_pool}"
+      allowed_client_id="${saved_client}"
+      echo "已复用已保存的 OAuth 身份配置；Client Secret 不落盘，验收时再输入。"
+    fi
+  fi
+fi
+
+if [[ "${reuse_oauth}" -eq 0 ]]; then
+  while [[ "${auth_scheme}" != "http" && "${auth_scheme}" != "https" ]]; do
+    read -r -p "用户池认证域名协议 [http]: " auth_scheme
+    auth_scheme="${auth_scheme:-http}"
+  done
+
+  while [[ -z "${auth_host}" ]]; do
+    read -r -p "用户池认证域名（例如 auth.<环境域名>）: " auth_host
+    if [[ "${auth_host}" =~ ^https?:// || "${auth_host}" == */* ||
+      "${auth_host}" =~ [[:space:]] ]]; then
+      echo "只填写域名，不要包含协议、路径或空白字符。" >&2
+      auth_host=""
+    fi
+  done
+
+  while [[ -z "${user_pool_id}" ]]; do
+    read -r -p "可访问用户池 ID: " user_pool_id
+  done
+
+  while [[ -z "${allowed_client_id}" ]]; do
+    read -r -p "允许访问此 Runtime 的用户池 Client ID: " allowed_client_id
+  done
+fi
 
 discovery_url="${auth_scheme}://${auth_host}/userpool/${user_pool_id}/.well-known/openid-configuration"
 discovery_file="$(mktemp "${TMPDIR:-/tmp}/agentkit-oidc-discovery.XXXXXX")"

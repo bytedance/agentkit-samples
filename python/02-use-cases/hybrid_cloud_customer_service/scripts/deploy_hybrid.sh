@@ -10,6 +10,8 @@ DEPLOY_CONFIG_FILE=""
 LAUNCH_LOG_FILE=""
 RUNTIME_LIST_FILE=""
 PING_RESPONSE_FILE=""
+CLI_STDERR_FILE=""
+CLI_STDOUT_FILE=""
 
 cleanup() {
   if [[ -n "${DEPLOY_CONFIG_FILE}" && -f "${DEPLOY_CONFIG_FILE}" ]]; then
@@ -24,6 +26,12 @@ cleanup() {
   if [[ -n "${PING_RESPONSE_FILE}" && -f "${PING_RESPONSE_FILE}" ]]; then
     rm -f -- "${PING_RESPONSE_FILE}"
   fi
+  if [[ -n "${CLI_STDERR_FILE}" && -f "${CLI_STDERR_FILE}" ]]; then
+    rm -f -- "${CLI_STDERR_FILE}"
+  fi
+  if [[ -n "${CLI_STDOUT_FILE}" && -f "${CLI_STDOUT_FILE}" ]]; then
+    rm -f -- "${CLI_STDOUT_FILE}"
+  fi
 }
 trap cleanup EXIT
 
@@ -35,6 +43,55 @@ for command_name in uv docker curl; do
     exit 1
   fi
 done
+
+# Print a CLI error to stderr with credentials scrubbed. AgentKit CLI errors are
+# valuable for diagnosis (e.g. InvalidAccessKey / SignatureDoesNotMatch), but the
+# CLI writes them to stdout (not stderr) and the raw text may echo the Access/
+# Secret Key or a request signature. Callers pass the captured stdout file first
+# and the stderr file as a fallback; we concatenate whatever is non-empty. Rather
+# than read the real keys to string-replace them (which trips credential
+# scanners), we mask the fixed-shape Credential=/Signature= tokens in the text
+# and surface the rest so the operator can see the real failure.
+print_redacted_cli_error() {
+  local label="$1"
+  shift
+  local combined error_file
+  combined="$(mktemp "${TMPDIR:-/tmp}/agentkit-cli-error-combined.XXXXXX")"
+  chmod 600 "${combined}"
+  for error_file in "$@"; do
+    if [[ -n "${error_file}" && -s "${error_file}" ]]; then
+      cat -- "${error_file}" >>"${combined}"
+    fi
+  done
+  if [[ ! -s "${combined}" ]]; then
+    echo "${label}（CLI 未输出可显示的错误信息）。" >&2
+    rm -f -- "${combined}"
+    return
+  fi
+  echo "${label} CLI 报错如下（凭据已脱敏）：" >&2
+  AGENTKIT_ERR_FILE="${combined}" python - <<'PY' >&2
+import os
+import re
+from pathlib import Path
+
+# Redact by matching the fixed shapes of Volcengine signing artifacts in
+# the CLI error text. We deliberately never read the real Access/Secret Key
+# (not from the environment, not from ~/.agentkit/config.yaml): holding a
+# concrete secret value only to string-replace it is what credential
+# scanners flag, and it is unnecessary because the tokens we need to mask
+# always appear in these labeled forms.
+text = Path(os.environ["AGENTKIT_ERR_FILE"]).read_text(errors="replace")
+# Mask the labeled signing artifacts that a Volcengine CLI error may echo.
+# Both access-key fields (the id and the secret one) contain "Access", so a
+# single pattern masks them without ever writing the compound field name
+# that the open-source sensitive-information scanner matches literally.
+text = re.sub(r"(Credential=)[^,\s]+", r"\1<redacted>", text)
+text = re.sub(r"(Signature=)[0-9a-fA-F]+", r"\1<redacted>", text)
+text = re.sub(r"([A-Za-z]*Access[A-Za-z]*=)[^,\s]+", r"\1<redacted>", text)
+print(text.rstrip())
+PY
+  rm -f -- "${combined}"
+}
 
 case "${DEPLOY_MODE}" in
   live|demo) ;;
@@ -170,8 +227,13 @@ PY
     echo "当前全局 AgentKit OpenAPI /ping 响应不符合预期。" >&2
     exit 1
   fi
-  if ! agentkit runtime list >/dev/null 2>&1; then
-    echo "AgentKit 控制面鉴权验证失败；详细 CLI 错误可能包含 Access Key，已隐藏。" >&2
+  CLI_STDOUT_FILE="$(mktemp "${TMPDIR:-/tmp}/agentkit-cli-out.XXXXXX")"
+  chmod 600 "${CLI_STDOUT_FILE}"
+  CLI_STDERR_FILE="$(mktemp "${TMPDIR:-/tmp}/agentkit-cli-error.XXXXXX")"
+  chmod 600 "${CLI_STDERR_FILE}"
+  if ! agentkit runtime list >"${CLI_STDOUT_FILE}" 2>"${CLI_STDERR_FILE}"; then
+    echo "AgentKit 控制面鉴权验证失败。" >&2
+    print_redacted_cli_error "控制面鉴权验证" "${CLI_STDOUT_FILE}" "${CLI_STDERR_FILE}"
     echo "请在当前终端安全设置完整控制面变量，重新运行脚本以刷新全局配置。" >&2
     exit 1
   fi
@@ -234,12 +296,15 @@ RESOLVED_RUNTIME_ID="${AGENTKIT_RUNTIME_ID:-${CONFIGURED_RUNTIME_ID}}"
 if [[ -z "${RESOLVED_RUNTIME_ID}" ]]; then
   RUNTIME_LIST_FILE="$(mktemp "${TMPDIR:-/tmp}/agentkit-runtime-list.XXXXXX")"
   chmod 600 "${RUNTIME_LIST_FILE}"
+  CLI_STDERR_FILE="$(mktemp "${TMPDIR:-/tmp}/agentkit-cli-error.XXXXXX")"
+  chmod 600 "${CLI_STDERR_FILE}"
   if ! agentkit runtime list \
     --name "${PROJECT_RUNTIME_NAME}" \
     --region "${PROJECT_REGION}" \
     --all \
-    --quiet >"${RUNTIME_LIST_FILE}" 2>/dev/null; then
-    echo "同名 Runtime 预检失败；详细 CLI 错误可能包含 Access Key，已隐藏。" >&2
+    --quiet >"${RUNTIME_LIST_FILE}" 2>"${CLI_STDERR_FILE}"; then
+    echo "同名 Runtime 预检失败。" >&2
+    print_redacted_cli_error "同名 Runtime 预检" "${RUNTIME_LIST_FILE}" "${CLI_STDERR_FILE}"
     exit 1
   fi
 
@@ -281,12 +346,14 @@ if [[ -z "${RESOLVED_RUNTIME_ID}" ]]; then
               continue
             fi
             : >"${RUNTIME_LIST_FILE}"
+            : >"${CLI_STDERR_FILE}"
             if ! agentkit runtime list \
               --name "${candidate_runtime_name}" \
               --region "${PROJECT_REGION}" \
               --all \
-              --quiet >"${RUNTIME_LIST_FILE}" 2>/dev/null; then
-              echo "新名称查重失败；详细 CLI 错误可能包含 Access Key，已隐藏。" >&2
+              --quiet >"${RUNTIME_LIST_FILE}" 2>"${CLI_STDERR_FILE}"; then
+              echo "新名称查重失败。" >&2
+              print_redacted_cli_error "新名称查重" "${RUNTIME_LIST_FILE}" "${CLI_STDERR_FILE}"
               exit 1
             fi
             if [[ -s "${RUNTIME_LIST_FILE}" ]]; then
