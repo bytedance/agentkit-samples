@@ -1,0 +1,14 @@
+{
+  "AppName": "travel-planner-example",
+  "AppVersion": "vexample",
+  "Modules": {
+    "Agent": {
+      "Items": [
+        {
+          "AgentId": "example-agent-id",
+          "Name": "travel-planner-main"
+        }
+      ]
+    }
+  }
+}

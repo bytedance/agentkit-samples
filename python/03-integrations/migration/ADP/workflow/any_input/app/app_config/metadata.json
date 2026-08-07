@@ -1,0 +1,11 @@
+{
+  "ReferenceIds": {
+    "AppVariables": [],
+    "Apps": [
+      "example-app-id-workflow"
+    ],
+    "Workflows": [
+      "example-workflow-id"
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "Workflows": [
+    {
+      "CanvasStructure": "workflow_example.json",
+      "WorkflowDescription": "当我需要预定酒店时，触发此agent",
+      "WorkflowId": "example-workflow-id",
+      "WorkflowName": "酒店预定agent",
+      "WorkflowUseType": "0"
+    }
+  ],
+  "Examples": [],
+  "Parameters": [],
+  "References": []
+}

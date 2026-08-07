@@ -1,0 +1,162 @@
+{
+    "AppId": "example-app-id-claw",
+    "Name": "travel-planner-example",
+    "Description": "TCADP run-through using TCADP/glm-5v-turbo.",
+    "Avatar": "asset/image/app-default-avatar.png",
+    "BasicConfig": {
+        "EnableAudit": true,
+        "Pattern": "ClawAgent",
+        "PatternFlag": 8,
+        "Greeting": {
+            "Greeting": "",
+            "OpeningQuestions": []
+        },
+        "RoleConfig": {
+            "RoleDescription": ""
+        }
+    },
+    "ModelConfig": {
+        "ThinkModel": {
+            "Model": {
+                "ModelAliasName": "youtu-intent-pro",
+                "PromptVersion": "v4",
+                "HistoryLimit": 5,
+                "ModelName": "Youtu/youtu-intent-pro",
+                "ModelParams": {
+                    "Temperature": 0,
+                    "TopP": 0.8,
+                    "MaxTokens": 4000
+                }
+            }
+        },
+        "GenerateModel": {
+            "Model": {
+                "ModelAliasName": "Auto",
+                "PromptVersion": "v16",
+                "HistoryLimit": 5,
+                "ModelName": "Auto/auto",
+                "ModelParams": {}
+            }
+        },
+        "LongMemory": {
+            "LongMemoryDays": 30,
+            "Enable": false,
+            "Model": {
+                "ModelAliasName": "DeepSeek-V4-Flash",
+                "PromptVersion": "",
+                "HistoryLimit": 5,
+                "ModelName": "Deepseek/deepseek-v4-flash",
+                "ModelParams": {
+                    "Temperature": 1,
+                    "TopP": 1,
+                    "MaxTokens": 128000,
+                    "DeepThinking": "disabled"
+                }
+            }
+        },
+        "MultiModalQA": {
+            "Model": {
+                "ModelAliasName": "HY-Vision-2.0-Instruct",
+                "PromptVersion": "",
+                "HistoryLimit": 5,
+                "ModelName": "Hunyuan/hy-vision-2.0-instruct",
+                "ModelParams": {
+                    "MaxTokens": 12000
+                }
+            }
+        },
+        "MultiModalUnderstanding": {
+            "Enable": false,
+            "Model": {
+                "ModelAliasName": "youtu-mllm",
+                "PromptVersion": "",
+                "HistoryLimit": 5,
+                "ModelName": "Youtu/youtu-mllm",
+                "ModelParams": {
+                    "Temperature": 0.7,
+                    "TopP": 0.6,
+                    "MaxTokens": 4000
+                }
+            }
+        },
+        "PromptRewrite": {
+            "Enable": true,
+            "Model": {
+                "ModelAliasName": "youtu-rewrite",
+                "PromptVersion": "",
+                "HistoryLimit": 5,
+                "ModelName": "Youtu/youtu-rewrite",
+                "ModelParams": {
+                    "Temperature": 0.6,
+                    "TopP": 0.9,
+                    "MaxTokens": 4000
+                }
+            }
+        },
+        "AIOptimizeModel": {
+            "Model": {
+                "ModelAliasName": "youtu-mrc-standard",
+                "PromptVersion": "",
+                "HistoryLimit": 0,
+                "ModelName": "Youtu/youtu-mrc-standard",
+                "ModelParams": {
+                    "Temperature": 0.7,
+                    "TopP": 0.6,
+                    "MaxTokens": 4000
+                }
+            }
+        },
+        "FileParseModel": {
+            "ModelName": "Youtu/youtu-parsing-sync",
+            "ModelAliasName": "youtu-parsing-sync"
+        }
+    },
+    "SingleWorkflowConfig": {
+        "WorkflowDescription": "",
+        "WorkflowId": "",
+        "WorkflowName": ""
+    },
+    "AgentConfig": {
+        "AgentCollaboration": null
+    },
+    "ClawAgentConfig": {
+        "CustomConfig": {
+            "Enabled": false
+        },
+        "LongMemoryConfig": {
+            "Enabled": false
+        },
+        "AgentTeamConfig": {
+            "Enabled": false,
+            "PromptContent": ""
+        }
+    },
+    "AdvancedConfig": {
+        "EnableImageTextRetrieval": false,
+        "IntentAchievements": null,
+        "EnableContextRewrite": true,
+        "ReplyFlexibility": "QAPriority",
+        "KnowledgeAdvanced": {
+            "RerankModel": "Youtu/youtu-reranker-llm",
+            "RetrievalFinalCount": 15
+        }
+    },
+    "ChatConfig": {
+        "BackgroundImage": {
+            "Brightness": 0,
+            "LandscapeImageUrl": "",
+            "OriginalImageUrl": "",
+            "PortraitImageUrl": "",
+            "ThemeColor": ""
+        },
+        "BareAnswer": "",
+        "InputBoxConfig": {
+            "InputBoxButtons": []
+        },
+        "Method": 1,
+        "RecommendedPromptMode": 0,
+        "EnableGeneralKnowledge": true,
+        "EnableRecommended": false,
+        "EnableWebSearch": false
+    }
+}

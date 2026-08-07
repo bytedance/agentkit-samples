@@ -1,0 +1,14 @@
+{
+  "AppName": "workflow_agent_example",
+  "AppVersion": "vexample",
+  "Modules": {
+    "Workflow": {
+      "Items": [
+        {
+          "WorkflowId": "example-workflow-id",
+          "Name": "酒店预定agent"
+        }
+      ]
+    }
+  }
+}

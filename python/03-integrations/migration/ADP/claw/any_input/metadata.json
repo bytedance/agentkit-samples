@@ -1,0 +1,15 @@
+{
+  "PackageId": "example-package-id-claw",
+  "PackageType": "ApplicationPackage",
+  "PackageVersion": "1.0.1",
+  "Components": {
+    "App": {
+      "Path": "app",
+      "Hash": "example-package-hash-claw"
+    }
+  },
+  "ExtraInfo": {
+    "ExportedTime": "2026-01-01T00:00:00+08:00",
+    "ExportedBy": "example_user"
+  }
+}

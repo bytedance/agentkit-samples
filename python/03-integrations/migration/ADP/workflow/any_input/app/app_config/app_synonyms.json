@@ -1,0 +1,10 @@
+{
+    "Categories": [
+        {
+            "CategoryId": "example-category-id-workflow",
+            "Name": "未分类",
+            "ParentId": ""
+        }
+    ],
+    "Synonyms": []
+}

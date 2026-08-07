@@ -1,0 +1,27 @@
+{
+  "ReferenceIds": {
+    "Agents": [
+      "example-agent-id"
+    ],
+    "Plugins": [
+      "example-plugin-id-1",
+      "example-plugin-id-2"
+    ],
+    "Tools": [
+      "example-tool-id-1",
+      "example-tool-id-2"
+    ],
+    "SkillIds": [
+      "example-skill-id-01",
+      "example-skill-id-02",
+      "example-skill-id-03",
+      "example-skill-id-04",
+      "example-skill-id-05",
+      "example-skill-id-06",
+      "example-skill-id-07",
+      "example-skill-id-08",
+      "example-skill-id-09",
+      "example-skill-id-10"
+    ]
+  }
+}
