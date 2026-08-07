@@ -23,8 +23,8 @@ provider = os.getenv("CLOUD_PROVIDER")
 if provider and provider.lower() == "byteplus":
     ROOT_AGENT_INSTRUCTION = ROOT_AGENT_INSTRUCTION_EN
 
-SKILL_DIR = "/Users/bytedance/work/wm_project/agentkit/volcengine-agentkit-samples/skills/byted-music-generate"
-SKILL_SPACE_ID = "ss-xxx"  # agentkit skills space id
+SKILL_DIR = str(Path(__file__).resolve().parents[5] / "skills" / "byted-music-generate")
+SKILL_SPACE_ID = os.getenv("SKILL_SPACE_ID")  # agentkit skills space id
 # SKILL_SPACE_ID = "sp-xxx"  # skillhub space id
 
 # load skill from local dir

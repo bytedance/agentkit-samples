@@ -109,13 +109,15 @@ source .venv/bin/activate
 # Configure the AgentKit tool ID (required for the AIO Sandbox)
 export AGENTKIT_TOOL_ID=<Your_Tool_ID>
 
-# Configure the Skill Space ID (optional, but recommended)
+# Configure the AgentKit Skill Space ID (required; use the ID beginning with ss-)
 export SKILL_SPACE_ID=<Your_Skill_Space_ID>
 
 # Volcengine access credentials (required)
 export VOLCENGINE_ACCESS_KEY=<Your Access Key>
 export VOLCENGINE_SECRET_KEY=<Your Secret Key>
 ```
+
+`agent.py` reads the remote Skill Space from `SKILL_SPACE_ID`. Set it before starting the local service; otherwise, the remote Skill Registry cannot be initialized.
 
 ### Debugging
 
@@ -169,6 +171,9 @@ uv run client.py
 **4. Set environment variables:**
 
 ```bash
+# AgentKit Skill Space ID (required; use the ID beginning with ss-)
+export SKILL_SPACE_ID=<Your_Skill_Space_ID>
+
 # Volcengine access credentials (required)
 export VOLCENGINE_ACCESS_KEY=<Your Access Key>
 export VOLCENGINE_SECRET_KEY=<Your Secret Key>

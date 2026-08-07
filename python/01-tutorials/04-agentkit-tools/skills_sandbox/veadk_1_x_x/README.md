@@ -109,13 +109,15 @@ source .venv/bin/activate
 # 配置 AgentKit 工具 ID（aio sandbo必需）
 export AGENTKIT_TOOL_ID=<Your_Tool_ID>
 
-# 配置 Skill Space ID（可选，但推荐）
+# 配置 AgentKit Skill Space ID（必需，填写 ss- 开头的技能空间 ID）
 export SKILL_SPACE_ID=<Your_Skill_Space_ID>
 
 # 火山引擎访问凭证（必需）
 export VOLCENGINE_ACCESS_KEY=<Your Access Key>
 export VOLCENGINE_SECRET_KEY=<Your Secret Key>
 ```
+
+`agent.py` 会通过 `SKILL_SPACE_ID` 读取远端 Skill Space。请在启动本地服务前完成配置，否则无法初始化远端 Skill Registry。
 
 ### 调试方法
 
@@ -169,6 +171,9 @@ uv run client.py
 **4. 设置环境变量：**
 
 ```bash
+# AgentKit Skill Space ID（必需，填写 ss- 开头的技能空间 ID）
+export SKILL_SPACE_ID=<Your_Skill_Space_ID>
+
 # 火山引擎访问凭证（必需）
 export VOLCENGINE_ACCESS_KEY=<Your Access Key>
 export VOLCENGINE_SECRET_KEY=<Your Secret Key>
