@@ -1,6 +1,9 @@
+import json
 import os
+from datetime import date, datetime, time
 from typing import Optional, Tuple
 
+import pandas as pd
 from rich.console import Console
 from volcenginesdkarkruntime import Ark
 
@@ -10,7 +13,7 @@ console = Console()
 MODEL_AGENT_API_KEY = os.getenv("MODEL_AGENT_API_KEY")
 ARK_BASE_URL = os.getenv("ARK_BASE_URL", "https://ark.cn-beijing.volces.com/api/v3")
 ARK_TEXT_EMBEDDING_MODEL = os.getenv(
-    "ARK_TEXT_EMBEDDING_MODEL", "doubao-embedding-vision-251215"
+    "ARK_TEXT_EMBEDDING_MODEL", "doubao-embedding-large-text-250515"
 )
 ARK_MULTIMODAL_EMBEDDING_MODEL = os.getenv(
     "ARK_MODEL_ID", "doubao-embedding-vision-251215"
@@ -18,6 +21,41 @@ ARK_MULTIMODAL_EMBEDDING_MODEL = os.getenv(
 
 # Cached clients
 _ark_client: Optional[Ark] = None
+
+
+def _json_default(value):
+    """将数据工具返回的扩展类型转换为 JSON 原生类型。
+
+    Function Purpose:
+        处理 NumPy、Pandas 和日期类型，避免工具响应在 json.dumps 阶段失败。
+
+    Implementation Logic:
+        数组转换为列表，NumPy 标量转换为 Python 标量，Pandas 空值转换为
+        None，日期时间转换为 ISO 8601 字符串；未知类型继续抛出 TypeError。
+    """
+    if value is pd.NA or value is pd.NaT:
+        return None
+    if type(value).__module__.split(".", 1)[0] == "numpy":
+        if hasattr(value, "tolist"):
+            return value.tolist()
+        if hasattr(value, "item"):
+            return value.item()
+    if isinstance(value, (datetime, date, time)):
+        return value.isoformat()
+    raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")
+
+
+def dumps_json(value) -> str:
+    """将工具响应安全地序列化为 JSON 字符串。
+
+    Function Purpose:
+        为所有数据查询工具提供一致的 JSON 序列化入口。
+
+    Implementation Logic:
+        使用标准 json.dumps 保持原有响应格式，并通过 _json_default 递归处理
+        DataFrame 单元格中无法由标准 JSON 编码器直接处理的扩展类型。
+    """
+    return json.dumps(value, ensure_ascii=False, default=_json_default)
 
 
 def get_ark_client() -> Tuple[Optional[Ark], Optional[str]]:

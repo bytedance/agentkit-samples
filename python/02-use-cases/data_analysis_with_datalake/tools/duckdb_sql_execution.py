@@ -1,9 +1,8 @@
-import json
-
 from rich.console import Console
 
 # Import the LanceDBManager singleton
 from .lancedb_manager import lancedb_manager
+from .utils import dumps_json
 
 console = Console()
 
@@ -18,12 +17,12 @@ def duckdb_sql_execution(sql: str, user_question: str = "") -> str:
         f"[duckdb_sql_execution] Inputs: sql={sql!r}, user_question={user_question!r}"
     )
     if not sql or not isinstance(sql, str):
-        return json.dumps({"error": "SQL 字符串缺失或类型错误"}, ensure_ascii=False)
+        return dumps_json({"error": "SQL 字符串缺失或类型错误"})
 
     # Open the table using the LanceDBManager
     tbl, err = lancedb_manager.open_table()
     if err:
-        return json.dumps({"error": err}, ensure_ascii=False)
+        return dumps_json({"error": err})
 
     view_name = "imdb_top_1000"
 
@@ -40,7 +39,7 @@ def duckdb_sql_execution(sql: str, user_question: str = "") -> str:
     try:
         out_df = conn.execute(sql).fetchdf()
     except Exception as e:
-        return json.dumps({"error": f"DuckDB 执行失败: {e}"}, ensure_ascii=False)
+        return dumps_json({"error": f"DuckDB 执行失败: {e}"})
 
     # 构造 records（对象数组），并提供结构化响应
     header = [str(c) for c in out_df.columns]
@@ -61,4 +60,4 @@ def duckdb_sql_execution(sql: str, user_question: str = "") -> str:
         },
     }
     console.print(f"[duckdb_sql_execution] Result: {result}")
-    return json.dumps(result, ensure_ascii=False)
+    return dumps_json(result)

@@ -1,4 +1,3 @@
-import json
 from typing import Optional
 
 from rich.console import Console
@@ -8,7 +7,7 @@ import pandas as pd
 from .lancedb_manager import lancedb_manager
 
 # Import utility functions
-from .utils import get_multimodal_text_vector as _get_text_vector
+from .utils import dumps_json, get_multimodal_text_vector as _get_text_vector
 
 console = Console()
 
@@ -23,7 +22,7 @@ def lancedb_hybrid_execution(
     # open table
     tbl, err = lancedb_manager.open_table()
     if err:
-        return json.dumps({"error": err}, ensure_ascii=False)
+        return dumps_json({"error": err})
 
     # parse params
     vector_col = "poster_embedding"
@@ -33,7 +32,7 @@ def lancedb_hybrid_execution(
     # embed
     vec, v_err = _get_text_vector(query_text)
     if v_err:
-        return json.dumps({"error": v_err}, ensure_ascii=False)
+        return dumps_json({"error": v_err})
 
     # build search
     try:
@@ -59,14 +58,13 @@ def lancedb_hybrid_execution(
                 for row in df.values.tolist()
             ]
         records = df.values.tolist()
-        return json.dumps(
+        return dumps_json(
             {
                 "status": "ok",
                 "data": [header] + records,
                 "records": records_obj,
                 "meta": {"row_count": len(records)},
-            },
-            ensure_ascii=False,
+            }
         )
     except Exception as e:
-        return json.dumps({"error": f"混合检索失败: {e}"}, ensure_ascii=False)
+        return dumps_json({"error": f"混合检索失败: {e}"})
