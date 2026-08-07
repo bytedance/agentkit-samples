@@ -3,12 +3,14 @@ name = "vikingdb"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.14"
 dependencies = [
-    "google-adk==1.32.0",
-    "veadk-python==0.5.37",
-    "veadk-python[extensions]==0.5.37",
-    "agentkit-sdk-python==0.5.10",
+    "google-adk==1.34.0",
+    "veadk-python==1.0.10",
+    "veadk-python[extensions]==1.0.10",
+    "agentkit-sdk-python==0.8.1",
+    "urllib3<2.0.0",
+    "volcengine-python-sdk>=4.0.33",
     "python-dotenv>=1.0.0",
     "litellm"
 ]

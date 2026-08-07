@@ -31,8 +31,13 @@ client = Ark(
 )
 
 attire_inspection_wearing_detection_tool_prompt = ""
-provider = os.getenv("CLOUD_PROVIDER")
-if provider and provider.lower() == "byteplus":
+provider = os.getenv("CLOUD_PROVIDER", "").strip().lower()
+DEFAULT_MODEL_NAME = (
+    "dola-seed-2-1-turbo-260628"
+    if provider == "byteplus"
+    else "doubao-seed-2-0-pro-260215"
+)
+if provider == "byteplus":
     attire_inspection_wearing_detection_tool_prompt = (
         attire_inspection_wearing_detection_tool_prompt_en
     )
@@ -54,7 +59,7 @@ def wearing_detection_tool(image_url: str) -> str:
     logger.debug(f"Running wearing_detection_tool with image_url: {image_url}")
     prompt = attire_inspection_wearing_detection_tool_prompt
     response = client.chat.completions.create(
-        model=os.getenv("MODEL_AGENT_NAME", "doubao-seed-2-0-pro-260215"),
+        model=os.getenv("MODEL_AGENT_NAME", DEFAULT_MODEL_NAME),
         messages=[
             {
                 "role": "user",

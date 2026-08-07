@@ -59,8 +59,6 @@ default_user_id = "CUST001"
 # 默认模型设置
 default_model_name = "doubao-seed-2-1-turbo-260628"
 
-model_name = os.getenv("MODEL_AGENT_NAME", default_model_name)
-
 # 根据 CLOUD_PROVIDER 环境变量选择语言
 provider = os.getenv("CLOUD_PROVIDER")
 if provider and provider.lower() == "byteplus":
@@ -75,6 +73,7 @@ if provider and provider.lower() == "byteplus":
     )
     knowledge_directory = "pre_build/knowledge_en"
     knowledge_probe = "Return & Exchange Policy"
+    default_model_name = "dola-seed-2-1-turbo-260628"
 else:
     AFTER_SALE_PROMPT = AFTER_SALE_PROMPT_CN
     SHOPPING_GUIDE_PROMPT = SHOPPING_GUIDE_PROMPT_CN
@@ -89,6 +88,8 @@ else:
     )
     knowledge_directory = "pre_build/knowledge"
     knowledge_probe = "商品退换策略"
+
+model_name = os.getenv("MODEL_AGENT_NAME", default_model_name)
 
 # 1. 配置短期记忆
 short_term_memory = ShortTermMemory(backend="local")
