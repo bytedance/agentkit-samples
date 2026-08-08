@@ -48,7 +48,7 @@ The system exposes one Root Agent and orchestrates the following sub-agents in s
 Before starting, make sure your environment meets these requirements:
 
 - Python 3.12 or later
-- veadk-python 0.5.5 (see `pyproject.toml`)
+- veadk-python 0.5.22 (see `pyproject.toml`)
 - `uv` is recommended for dependency management
 - `ffmpeg` available locally (used by `moviepy` for video composition)
 - <a target="_blank" href="https://console.byteplus.com/ark/region:ark+ap-southeast-1/apiKey">Get BytePlus ModelArk API key</a>

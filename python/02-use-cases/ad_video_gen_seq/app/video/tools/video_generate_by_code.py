@@ -18,6 +18,8 @@ from google.adk.tools import ToolContext
 from veadk.tools.builtin_tools.video_generate import (
     video_generate as video_generate_builtin,
 )
+from veadk.config import getenv
+from veadk.consts import DEFAULT_VIDEO_MODEL_NAME
 
 
 async def video_generate(
@@ -25,6 +27,7 @@ async def video_generate(
     tool_context: ToolContext,
     batch_size: int = 10,
     max_wait_seconds: int = 1200,
+    model_name: str = getenv("MODEL_VIDEO_NAME", DEFAULT_VIDEO_MODEL_NAME),
 ) -> Dict:
     """
     Generate videos in **batch** from text prompts, optionally guided by a first/last frame,
@@ -81,6 +84,13 @@ async def video_generate(
                 - Width/Height (px): 300–6000
                 - Size: < 30 MB
                 - Base64 data URL example: `data:image/png;base64,<BASE64>`
+
+        Optional model_name(str):
+                If the user does not specify, do not pass this parameter and use the default value.
+                If during execution, this tool encounters a model-related error (note that it must be a model-related error, otherwise do not perform this action), such as `ModelNotOpen`,
+                then after reminding about the relevant issue, you can execute this tool again and downgrade the model to the following models, passing this parameter:
+                `doubao-seedance-1-5-pro-251215`
+                `doubao-seedance-1-0-pro-250528`
 
     Model text commands (append after the prompt; unsupported keys are ignored by some models):
         --rs / --resolution <value>       Video resolution. Common values: 480p, 720p, 1080p.
@@ -148,5 +158,5 @@ async def video_generate(
                 f"（可以有极其轻度的动作音，但禁止任何人声，禁止背景音乐，禁止音效，禁止旁白，禁止解说）{item['prompt']}"
             )
     return await video_generate_builtin(
-        params, tool_context, batch_size, max_wait_seconds
+        params, tool_context, batch_size, max_wait_seconds, model_name
     )
