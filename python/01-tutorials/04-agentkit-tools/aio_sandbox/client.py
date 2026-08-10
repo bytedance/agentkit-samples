@@ -39,7 +39,7 @@ if __name__ == "__main__":
             user_id=user_id,
             session_id=create_session(),
             new_message=Content(parts=[Part(text=message)], role="user"),
-            stream=True,
+            streaming=True,
         )
 
         with httpx.stream(

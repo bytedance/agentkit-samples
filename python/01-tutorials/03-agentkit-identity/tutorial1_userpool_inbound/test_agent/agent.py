@@ -1,9 +1,14 @@
+import os
+
 from veadk import Runner, Agent
 from agentkit.apps import AgentkitSimpleApp
 from veadk.tools.demo_tools import get_city_weather
 
 app = AgentkitSimpleApp()
-agent = Agent(model_name="doubao-seed-1-6-251015", tools=[get_city_weather])
+agent = Agent(
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v4-pro-260425"),
+    tools=[get_city_weather],
+)
 runner = Runner(agent=agent)
 
 

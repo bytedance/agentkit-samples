@@ -2,12 +2,12 @@ import asyncio
 
 import httpx
 import requests
-from google.adk.cli.adk_web_server import CreateSessionRequest, RunAgentRequest
+from google.adk.cli.api_server import CreateSessionRequest, RunAgentRequest
 from google.genai.types import Content, Part
 
 if __name__ == "__main__":
     # Step 0: setup running configs
-    app_name = "agent_skills"
+    app_name = "skill_agent"
     user_id = "agent_skills_user"
     session_id = "agent_skills_session"
     base_url = "http://127.0.0.1:8000"
@@ -40,7 +40,7 @@ if __name__ == "__main__":
             user_id=user_id,
             session_id=create_session(),
             new_message=Content(parts=[Part(text=message)], role="user"),
-            stream=False,
+            streaming=False,
         )
 
         with httpx.stream(

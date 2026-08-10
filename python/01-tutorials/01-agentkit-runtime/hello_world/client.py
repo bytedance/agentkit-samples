@@ -2,7 +2,7 @@ import asyncio
 
 import httpx
 import requests
-from google.adk.cli.adk_web_server import CreateSessionRequest, RunAgentRequest
+from google.adk.cli.api_server import CreateSessionRequest, RunAgentRequest
 from google.genai.types import Content, Part
 
 if __name__ == "__main__":
@@ -42,7 +42,7 @@ if __name__ == "__main__":
             user_id=user_id,
             session_id=create_session(),
             new_message=Content(parts=[Part(text=message)], role="user"),
-            stream=True,
+            streaming=True,
         )
 
         with httpx.stream(
