@@ -2,14 +2,14 @@ import asyncio
 
 import httpx
 import requests
-from google.adk.cli.adk_web_server import CreateSessionRequest, RunAgentRequest
+from google.adk.cli.api_server import CreateSessionRequest, RunAgentRequest
 from google.genai.types import Content, Part
 
 if __name__ == "__main__":
     # Step 0: setup running configs
-    app_name = "agentkit_app"
-    user_id = "agentkit_user"
-    session_id = "agentkit_session"
+    app_name = "code_agent"
+    user_id = "code_user"
+    session_id = "code_session"
     base_url = "http://127.0.0.1:8000"
     api_key = "agentkit test key"
 
