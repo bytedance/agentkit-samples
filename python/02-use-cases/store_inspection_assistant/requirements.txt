@@ -1,5 +1,5 @@
 agentkit-sdk-python==0.8.1
-google-adk==1.34.0
+google-adk==2.2.0
 veadk-python==1.0.10
 volcengine-python-sdk>=4.0.33
 veadk-python[extensions]==1.0.10
