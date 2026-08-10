@@ -1,6 +1,8 @@
 tos>=2.8.7
-veadk-python==0.5.37
-google-adk==1.32.0
+veadk-python[extensions]==1.0.10
+google-adk[extensions]==1.34.0
 volcengine-python-sdk>=4.0.33
-agentkit-sdk-python==0.5.10
-litellm
+agentkit-sdk-python==0.8.1
+urllib3<2.0.0
+litellm==1.83.14
+requests>=2.31,<3

@@ -2,12 +2,15 @@
 name = "video-breakdown-agent"
 version = "0.3.0"
 description = "视频分镜拆解和前三秒钩子分析 AgentKit Agent（Multi-Agent 架构）"
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.12,<3.14"
 dependencies = [
     # AgentKit 核心三件套
-    "veadk-python==0.5.20",
-    "google-adk==1.21.0",  # veadk-python 0.5.20 锁定此版本
-    "agentkit-sdk-python==0.5.1",
+    "veadk-python[extensions]==1.0.10",
+    "google-adk[extensions]==1.34.0",
+    "agentkit-sdk-python==0.8.1",
+    "urllib3<2.0.0",
+    "volcengine-python-sdk>=4.0.33",
+    "litellm==1.83.14",
     # HTTP 客户端
     "httpx>=0.26.0",
     # TOS 对象存储（视频上传）

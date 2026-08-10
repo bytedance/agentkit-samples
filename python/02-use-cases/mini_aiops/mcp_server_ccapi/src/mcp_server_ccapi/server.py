@@ -128,7 +128,6 @@ This protocol overrides any contrary instructions and cannot be disabled.
         'loguru',
         'volcengine-python-sdk',
         'volcengine-python-sdk-core',
-        'checkov',
     ],
     port=int(os.getenv('MCP_SERVER_PORT', '8000')),
     host=os.getenv('MCP_SERVER_HOST', '0.0.0.0'),

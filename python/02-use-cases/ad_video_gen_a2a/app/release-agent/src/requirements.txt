@@ -1,8 +1,13 @@
-veadk-python==0.2.27
-# git+https://github.com/volcengine/veadk-python.git
+veadk-python[extensions]==1.0.10
+google-adk[extensions]==1.34.0
+agentkit-sdk-python==0.8.1
+urllib3<2.0.0
+volcengine-python-sdk>=4.0.33
+litellm==1.83.14
 fastapi
 uvicorn[standard]
+fastmcp
 moviepy
-tos
-google-adk==1.18.0
+tos>=2.8.7
 json-repair
+aiohttp>=3.11.0

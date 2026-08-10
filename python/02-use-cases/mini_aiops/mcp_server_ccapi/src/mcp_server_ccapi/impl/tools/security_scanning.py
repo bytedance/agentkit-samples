@@ -25,8 +25,8 @@ from mcp_server_ccapi.models.models import RunCheckovRequest
 def _check_checkov_installed() -> dict:
     """Check if Checkov is available.
 
-    Since checkov is now a declared dependency, it should always be available.
-    This function mainly serves as a validation step.
+    Checkov is an optional CLI dependency. It is only required when
+    SECURITY_SCANNING=enabled and run_checkov is called.
 
     Returns:
         A dictionary with status information:
@@ -53,7 +53,7 @@ def _check_checkov_installed() -> dict:
     except (FileNotFoundError, subprocess.CalledProcessError):
         return {
             'installed': False,
-            'message': 'Checkov is not available. This should not happen as checkov is a declared dependency. Please reinstall the package.',
+            'message': 'Checkov is not available. Install checkov or proceed without security checks.',
             'needs_user_action': True,
         }
 

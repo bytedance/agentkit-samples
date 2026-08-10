@@ -1,0 +1,10 @@
+langchain>=0.1.0
+langchain-openai>=0.1.0
+python-dotenv>=1.2.1
+veadk-python==1.0.10
+agentkit-sdk-python==0.8.1
+google-adk==2.2.0
+urllib3<2.0.0
+volcengine-python-sdk>=4.0.33
+google-genai
+litellm
