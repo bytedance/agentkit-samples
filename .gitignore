@@ -195,6 +195,7 @@ agentkit*.yaml
 Dockerfile
 Dockerfile-base
 !python/02-use-cases/hybrid_cloud_customer_service/Dockerfile
+!python/02-use-cases/mini_aiops/Dockerfile
 !python/02-use-cases/hybrid_cloud_customer_service/.dockerignore
 my_agent.py
 simple_agent_server_apm.py
