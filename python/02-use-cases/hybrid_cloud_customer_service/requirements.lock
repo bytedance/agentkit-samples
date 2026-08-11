@@ -7,7 +7,7 @@ a2a-sdk==0.3.7
     #   veadk-python
 agent-pilot-sdk==0.1.2
     # via veadk-python
-agentkit-sdk-python==0.5.5
+agentkit-sdk-python==0.8.1
     # via
     #   hybrid-cloud-customer-service
     #   veadk-python
@@ -16,13 +16,17 @@ aiohappyeyeballs==2.7.1
 aiohttp==3.13.4
     # via
     #   litellm
+    #   llama-index-core
+    #   opensearch-py
     #   vikingdb-python-sdk
 aiomysql==0.3.2
     # via veadk-python
 aiosignal==1.4.0
     # via aiohttp
 aiosqlite==0.22.1
-    # via google-adk
+    # via
+    #   google-adk
+    #   llama-index-core
 annotated-doc==0.0.4
     # via
     #   fastapi
@@ -40,12 +44,10 @@ anyio==4.14.1
     #   sse-starlette
     #   starlette
     #   volcengine-python-sdk
+apscheduler==3.11.3
+    # via cozeloop
 arrow==1.4.0
     # via cookiecutter
-async-timeout==5.0.1 ; python_full_version < '3.11'
-    # via
-    #   aiohttp
-    #   asyncpg
 asyncpg==0.31.0
     # via veadk-python
 attrs==26.1.0
@@ -57,8 +59,11 @@ attrs==26.1.0
     #   referencing
 authlib==1.7.2
     # via
+    #   cozeloop
     #   fastmcp
     #   google-adk
+banks==2.4.5
+    # via llama-index-core
 beartype==0.22.9
     # via
     #   py-key-value-aio
@@ -67,12 +72,16 @@ beautifulsoup4==4.15.0
     # via google
 binaryornot==0.6.0
     # via cookiecutter
-cachetools==7.1.4
-    # via py-key-value-aio
+cachetools==6.2.6
+    # via
+    #   cozeloop
+    #   py-key-value-aio
+    #   pymilvus
 certifi==2026.6.17
     # via
     #   httpcore
     #   httpx
+    #   opensearch-py
     #   requests
     #   volcengine-python-sdk
 cffi==2.1.0 ; platform_python_implementation != 'PyPy'
@@ -86,14 +95,20 @@ click==8.1.8
     #   cookiecutter
     #   google-adk
     #   litellm
+    #   nltk
     #   uvicorn
-colorama==0.4.6 ; sys_platform == 'win32'
+colorama==0.4.6
     # via
     #   click
+    #   griffecli
     #   loguru
     #   tqdm
     #   typer
+coloredlogs==15.0.1
+    # via redisvl
 cookiecutter==2.6.0
+    # via veadk-python
+cozeloop==0.1.28
     # via veadk-python
 crcmod==1.7
     # via tos
@@ -107,12 +122,21 @@ cryptography==49.0.0
     #   volcengine-python-sdk
 cyclopts==4.21.0
     # via fastmcp
+dataclasses-json==0.6.7
+    # via llama-index-core
 decorator==5.3.1
     # via retry
+defusedxml==0.7.1
+    # via nltk
 deprecated==1.2.18
     # via
+    #   banks
+    #   llama-index-core
+    #   llama-index-instrumentation
     #   tos
     #   veadk-python
+dirtyjson==1.0.8
+    # via llama-index-core
 diskcache==5.6.3
     # via py-key-value-aio
 distro==1.9.0
@@ -129,11 +153,13 @@ email-validator==2.3.0
     # via pydantic
 et-xmlfile==2.0.0
     # via openpyxl
+events==0.5
+    # via opensearch-py
 exceptiongroup==1.3.1
-    # via
-    #   anyio
-    #   fastmcp
-fastapi==0.124.1
+    # via fastmcp
+faiss-cpu==1.15.0 ; sys_platform != 'win32'
+    # via milvus-lite
+fastapi==0.141.1
     # via
     #   agentkit-sdk-python
     #   google-adk
@@ -147,17 +173,24 @@ fastuuid==0.14.0
 filelock==3.29.7
     # via huggingface-hub
 filetype==1.2.0
-    # via veadk-python
+    # via
+    #   banks
+    #   llama-index-core
+    #   veadk-python
 frozenlist==1.8.0
     # via
     #   aiohttp
     #   aiosignal
 fsspec==2026.6.0
-    # via huggingface-hub
+    # via
+    #   huggingface-hub
+    #   llama-index-core
 google==3.0.0
     # via volcengine
-google-adk==2.1.0
-    # via veadk-python
+google-adk==2.2.0
+    # via
+    #   hybrid-cloud-customer-service
+    #   veadk-python
 google-api-core==2.31.0
     # via a2a-sdk
 google-auth==2.55.2
@@ -165,7 +198,7 @@ google-auth==2.55.2
     #   google-adk
     #   google-api-core
     #   google-genai
-google-genai==1.75.0
+google-genai==2.12.1
     # via google-adk
 googleapis-common-protos==1.75.0
     # via
@@ -174,10 +207,22 @@ googleapis-common-protos==1.75.0
     #   opentelemetry-exporter-otlp-proto-http
 graphviz==0.21
     # via google-adk
-greenlet==3.5.3 ; platform_machine == 'AMD64' or platform_machine == 'WIN32' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'ppc64le' or platform_machine == 'win32' or platform_machine == 'x86_64'
+greenlet==3.5.3
     # via sqlalchemy
+griffe==2.1.0
+    # via banks
+griffecli==2.1.0
+    # via griffe
+griffelib==2.1.0
+    # via
+    #   griffe
+    #   griffecli
 grpcio==1.82.1
-    # via opentelemetry-exporter-otlp-proto-grpc
+    # via
+    #   milvus-lite
+    #   opensearch-protobufs
+    #   opentelemetry-exporter-otlp-proto-grpc
+    #   pymilvus
 h11==0.16.0
     # via
     #   httpcore
@@ -189,14 +234,19 @@ httpcore==1.0.9
 httpx==0.28.1
     # via
     #   a2a-sdk
+    #   cozeloop
     #   fastmcp
     #   google-adk
     #   google-genai
     #   huggingface-hub
     #   hybrid-cloud-customer-service
+    #   lark-channel-sdk
+    #   lark-oapi
     #   litellm
+    #   llama-index-core
     #   mcp
     #   openai
+    #   openviking-sdk
     #   vikingdb-python-sdk
     #   volcengine-python-sdk
 httpx-sse==0.4.3
@@ -205,6 +255,8 @@ httpx-sse==0.4.3
     #   mcp
 huggingface-hub==1.16.1
     # via tokenizers
+humanfriendly==10.0
+    # via coloredlogs
 idna==3.18
     # via
     #   anyio
@@ -219,10 +271,14 @@ importlib-metadata==8.5.0
 jinja2==3.1.6
     # via
     #   agentkit-sdk-python
+    #   banks
     #   cookiecutter
+    #   cozeloop
     #   litellm
 jiter==0.16.0
     # via openai
+joblib==1.5.3
+    # via nltk
 joserfc==1.7.3
     # via authlib
 jsonpickle==4.1.2
@@ -236,17 +292,57 @@ jsonschema-path==0.5.0
     # via fastmcp
 jsonschema-specifications==2025.9.1
     # via jsonschema
-litellm==1.83.14
+lark-channel-sdk==1.2.0
     # via veadk-python
+lark-oapi==1.7.2
+    # via veadk-python
+litellm==1.83.14
+    # via
+    #   hybrid-cloud-customer-service
+    #   veadk-python
+llama-index==0.14.23
+    # via veadk-python
+llama-index-core==0.14.23
+    # via
+    #   llama-index
+    #   llama-index-embeddings-openai
+    #   llama-index-llms-openai
+    #   llama-index-llms-openai-like
+    #   llama-index-vector-stores-milvus
+    #   llama-index-vector-stores-opensearch
+    #   llama-index-vector-stores-redis
+llama-index-embeddings-openai==0.6.0
+    # via
+    #   llama-index
+    #   llama-index-embeddings-openai-like
+llama-index-embeddings-openai-like==0.3.1
+    # via veadk-python
+llama-index-instrumentation==0.5.0
+    # via llama-index-workflows
+llama-index-llms-openai==0.7.10
+    # via
+    #   llama-index
+    #   llama-index-llms-openai-like
+llama-index-llms-openai-like==0.7.2
+    # via veadk-python
+llama-index-vector-stores-milvus==1.1.0
+    # via veadk-python
+llama-index-vector-stores-opensearch==1.2.0
+    # via veadk-python
+llama-index-vector-stores-redis==0.8.0
+    # via veadk-python
+llama-index-workflows==2.23.0
+    # via llama-index-core
 loguru==0.7.3
     # via
     #   agent-pilot-sdk
     #   trustedmcp
-    #   veadk-python
 markdown-it-py==4.2.0
     # via rich
 markupsafe==3.0.3
     # via jinja2
+marshmallow==3.26.2
+    # via dataclasses-json
 mcp==1.26.0
     # via
     #   fastmcp
@@ -254,18 +350,49 @@ mcp==1.26.0
     #   veadk-python
 mdurl==0.1.2
     # via markdown-it-py
+milvus-lite==3.2.0 ; sys_platform != 'win32'
+    # via pymilvus
+ml-dtypes==0.4.1
+    # via redisvl
 multidict==6.7.1
     # via
     #   aiohttp
     #   yarl
+mypy-extensions==1.1.0
+    # via typing-inspect
+nest-asyncio==1.6.0
+    # via llama-index-core
+networkx==3.6.1
+    # via llama-index-core
+nltk==3.10.2
+    # via
+    #   llama-index
+    #   llama-index-core
+numpy==2.5.1
+    # via
+    #   faiss-cpu
+    #   llama-index-core
+    #   milvus-lite
+    #   ml-dtypes
+    #   pandas
+    #   redisvl
 omegaconf==2.3.0
     # via veadk-python
 openai==2.24.0
-    # via litellm
+    # via
+    #   litellm
+    #   llama-index-embeddings-openai
+    #   llama-index-llms-openai
 openapi-pydantic==0.5.1
     # via fastmcp
 openpyxl==3.1.5
     # via agent-pilot-sdk
+opensearch-protobufs==1.2.0
+    # via opensearch-py
+opensearch-py==3.2.0
+    # via
+    #   llama-index-vector-stores-opensearch
+    #   veadk-python
 opentelemetry-api==1.37.0
     # via
     #   agentkit-sdk-python
@@ -308,17 +435,32 @@ opentelemetry-semantic-conventions==0.58b0
     # via
     #   opentelemetry-instrumentation
     #   opentelemetry-sdk
+openviking-sdk==0.1.6
+    # via veadk-python
+orjson==3.11.9
+    # via pymilvus
 packaging==26.2
     # via
+    #   faiss-cpu
     #   google-adk
     #   huggingface-hub
+    #   marshmallow
     #   opentelemetry-instrumentation
+pandas==2.3.3
+    # via pymilvus
 pathable==0.6.0
     # via jsonschema-path
 pathvalidate==3.3.1
     # via py-key-value-aio
+pillow==12.3.0
+    # via
+    #   llama-index-core
+    #   veadk-python
 platformdirs==4.10.0
-    # via fastmcp
+    # via
+    #   banks
+    #   fastmcp
+    #   llama-index-core
 prompt-toolkit==3.0.52
     # via agentkit-sdk-python
 propcache==0.5.2
@@ -332,8 +474,10 @@ protobuf==6.33.6
     #   a2a-sdk
     #   google-api-core
     #   googleapis-common-protos
+    #   opensearch-protobufs
     #   opentelemetry-proto
     #   proto-plus
+    #   pymilvus
     #   volcengine
 psycopg==3.3.4
     # via hybrid-cloud-customer-service
@@ -347,6 +491,8 @@ py-key-value-aio==0.3.0
     # via fastmcp
 py-key-value-shared==0.3.0
     # via py-key-value-aio
+pyarrow==25.0.0 ; sys_platform != 'win32'
+    # via milvus-lite
 pyasn1==0.6.4
     # via pyasn1-modules
 pyasn1-modules==0.4.2
@@ -354,21 +500,30 @@ pyasn1-modules==0.4.2
 pycparser==3.0 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'
     # via cffi
 pycryptodome==3.23.0
-    # via volcengine
+    # via
+    #   lark-channel-sdk
+    #   lark-oapi
+    #   volcengine
 pydantic==2.12.5
     # via
     #   a2a-sdk
     #   agent-pilot-sdk
     #   agentkit-sdk-python
+    #   banks
+    #   cozeloop
     #   fastapi
     #   fastmcp
     #   google-adk
     #   google-genai
     #   litellm
+    #   llama-index-core
+    #   llama-index-instrumentation
+    #   llama-index-workflows
     #   mcp
     #   openai
     #   openapi-pydantic
     #   pydantic-settings
+    #   redisvl
     #   vikingdb-python-sdk
     #   volcengine-python-sdk
 pydantic-core==2.41.5
@@ -384,18 +539,31 @@ pygments==2.20.0
     #   rich
     #   rich-rst
 pyjwt==2.13.0
-    # via mcp
+    # via
+    #   agentkit-sdk-python
+    #   mcp
+    #   redis
+pymilvus==2.6.17
+    # via
+    #   llama-index-vector-stores-milvus
+    #   veadk-python
 pymysql==1.1.1
     # via
     #   aiomysql
     #   veadk-python
+pypdfium2==5.12.1
+    # via veadk-python
 pyperclip==1.11.0
     # via fastmcp
 pyreadline3==3.5.6 ; sys_platform == 'win32'
-    # via agentkit-sdk-python
+    # via
+    #   agentkit-sdk-python
+    #   humanfriendly
 python-dateutil==2.9.0.post0
     # via
     #   arrow
+    #   opensearch-py
+    #   pandas
     #   volcengine-python-sdk
 python-dotenv==1.2.2
     # via
@@ -404,6 +572,7 @@ python-dotenv==1.2.2
     #   google-adk
     #   litellm
     #   pydantic-settings
+    #   pymilvus
 python-frontmatter==1.1.0
     # via veadk-python
 python-multipart==0.0.32
@@ -412,8 +581,11 @@ python-multipart==0.0.32
     #   mcp
 python-slugify==8.0.4
     # via cookiecutter
+python-ulid==3.2.1
+    # via redisvl
 pytz==2026.2
     # via
+    #   pandas
     #   tos
     #   volcengine
 pywin32==312 ; sys_platform == 'win32'
@@ -427,15 +599,25 @@ pyyaml==6.0.3
     #   google-adk
     #   huggingface-hub
     #   jsonschema-path
+    #   llama-index-core
     #   omegaconf
     #   python-frontmatter
+    #   redisvl
+redis==5.3.1
+    # via
+    #   redisvl
+    #   veadk-python
+redisvl==0.4.1
+    # via llama-index-vector-stores-redis
 referencing==0.37.0
     # via
     #   jsonschema
     #   jsonschema-path
     #   jsonschema-specifications
 regex==2026.7.10
-    # via tiktoken
+    # via
+    #   nltk
+    #   tiktoken
 requests==2.34.2
     # via
     #   agent-pilot-sdk
@@ -447,12 +629,22 @@ requests==2.34.2
     #   google-auth
     #   google-genai
     #   hybrid-cloud-customer-service
+    #   lark-channel-sdk
+    #   lark-oapi
+    #   llama-index-core
+    #   opensearch-py
     #   opentelemetry-exporter-otlp-proto-http
+    #   pymilvus
+    #   requests-toolbelt
     #   tiktoken
     #   tos
     #   trustedmcp
     #   vikingdb-python-sdk
     #   volcengine
+requests-toolbelt==1.0.0
+    # via
+    #   lark-channel-sdk
+    #   lark-oapi
 retry==0.9.2
     # via volcengine
 rich==15.0.0
@@ -465,14 +657,12 @@ rich==15.0.0
     #   typer
 rich-rst==2.1.0
     # via cyclopts
-rpds-py==0.30.0 ; python_full_version < '3.11'
+rpds-py==2026.6.3
     # via
     #   jsonschema
     #   referencing
-rpds-py==2026.6.3 ; python_full_version >= '3.11'
-    # via
-    #   jsonschema
-    #   referencing
+setuptools==83.0.0
+    # via llama-index-core
 shellingham==1.5.4
     # via typer
 six==1.17.0
@@ -488,29 +678,37 @@ sniffio==1.3.1
 soupsieve==2.8.4
     # via beautifulsoup4
 sqlalchemy==2.0.51
-    # via veadk-python
+    # via
+    #   llama-index-core
+    #   veadk-python
 sse-starlette==3.4.5
     # via mcp
-starlette==0.49.1
+starlette==1.6.0
     # via
     #   fastapi
     #   google-adk
     #   hybrid-cloud-customer-service
     #   mcp
     #   sse-starlette
+tabulate==0.9.0
+    # via redisvl
 tenacity==9.1.4
     # via
     #   google-adk
     #   google-genai
+    #   llama-index-core
+    #   redisvl
     #   volcengine
 text-unidecode==1.3
     # via python-slugify
 tiktoken==0.12.0
-    # via litellm
+    # via
+    #   litellm
+    #   llama-index-core
+tinytag==2.3.0
+    # via llama-index-core
 tokenizers==0.22.2
     # via litellm
-tomli==2.4.1 ; python_full_version < '3.11'
-    # via cyclopts
 tos==2.8.7
     # via
     #   agentkit-sdk-python
@@ -518,6 +716,8 @@ tos==2.8.7
 tqdm==4.68.4
     # via
     #   huggingface-hub
+    #   llama-index-core
+    #   nltk
     #   openai
 trustedmcp==0.0.5
     # via veadk-python
@@ -531,16 +731,15 @@ typing-extensions==4.16.0
     #   aiosignal
     #   anyio
     #   beautifulsoup4
-    #   cryptography
-    #   cyclopts
     #   exceptiongroup
     #   fastapi
     #   google-adk
     #   google-genai
     #   grpcio
     #   huggingface-hub
+    #   llama-index-core
+    #   llama-index-workflows
     #   mcp
-    #   multidict
     #   openai
     #   opentelemetry-api
     #   opentelemetry-exporter-otlp-proto-grpc
@@ -551,29 +750,38 @@ typing-extensions==4.16.0
     #   py-key-value-shared
     #   pydantic
     #   pydantic-core
-    #   pyjwt
     #   referencing
     #   sqlalchemy
     #   starlette
     #   trustedmcp
+    #   typing-inspect
     #   typing-inspection
-    #   uvicorn
     #   vikingdb-python-sdk
+typing-inspect==0.9.0
+    # via
+    #   dataclasses-json
+    #   llama-index-core
 typing-inspection==0.4.2
     # via
+    #   fastapi
     #   mcp
     #   pydantic
     #   pydantic-settings
 tzdata==2026.3
     # via
     #   arrow
+    #   pandas
     #   psycopg
     #   tzlocal
 tzlocal==5.4.4
-    # via google-adk
-urllib3==2.7.0
+    # via
+    #   apscheduler
+    #   google-adk
+urllib3==1.26.20
     # via
     #   docker
+    #   hybrid-cloud-customer-service
+    #   opensearch-py
     #   requests
     #   vikingdb-python-sdk
     #   volcengine-python-sdk
@@ -586,7 +794,7 @@ uvicorn==0.51.0
     #   google-adk
     #   mcp
     #   trustedmcp
-veadk-python==0.5.40
+veadk-python==1.0.10
     # via hybrid-cloud-customer-service
 vikingdb-python-sdk==0.1.26
     # via veadk-python
@@ -598,22 +806,29 @@ volcengine==1.0.225
 volcengine-python-sdk==5.0.40
     # via
     #   agent-pilot-sdk
+    #   hybrid-cloud-customer-service
     #   trustedmcp
     #   veadk-python
 watchdog==6.0.0
     # via google-adk
 wcwidth==0.8.2
     # via prompt-toolkit
+websocket-client==1.9.0
+    # via agentkit-sdk-python
 websockets==15.0.1
     # via
     #   fastmcp
     #   google-adk
     #   google-genai
+    #   lark-channel-sdk
+    #   lark-oapi
+    #   veadk-python
 win32-setctime==1.2.0 ; sys_platform == 'win32'
     # via loguru
 wrapt==1.17.2
     # via
     #   deprecated
+    #   llama-index-core
     #   opentelemetry-instrumentation
     #   veadk-python
 yarl==1.24.2

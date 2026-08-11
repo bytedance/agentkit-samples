@@ -1,7 +1,7 @@
 import requests
 import httpx
 
-from google.adk.cli.adk_web_server import RunAgentRequest
+from google.adk.cli.api_server import RunAgentRequest
 from google.genai.types import Content, Part
 import asyncio
 
@@ -36,7 +36,7 @@ if __name__ == "__main__":
             parts=[Part(text="Ang Lee的电影评分超过7分，有哪些电影海报包含动物")],
             role="user",
         ),
-        stream=True,
+        streaming=True,
     )
 
     print("[run agent] Event from server:")
@@ -48,7 +48,7 @@ if __name__ == "__main__":
             user_id=user_id,
             session_id=create_session(),
             new_message=Content(parts=[Part(text=message)], role="user"),
-            stream=True,
+            streaming=True,
         )
 
         with httpx.stream(
