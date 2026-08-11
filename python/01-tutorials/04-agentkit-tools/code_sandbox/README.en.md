@@ -1,9 +1,10 @@
 # Code Sandbox Session
 
-This example provides four scripts:
+This example provides five scripts:
 
 - `ensure_session.py`: Ensures an AgentKit sandbox session is available for a given `tool-id` and `session-id`.
 - `codex_ws_tui.py`: A terminal WebSocket TUI client that connects to the Codex app-server and chats with Codex.
+- `codex_opencode.py`: Invokes the headless Codex or OpenCode CLI over a Sandbox shell WebSocket. It supports interactive chat, one-shot messages, and conversation resumption without an agent app-server.
 - `list_snapshots.py`: Lists all session snapshots for a given AgentKit sandbox tool. Supports filtering by UserSessionId, SessionId, and creation time range. Automatically paginates through all results.
 - `restore_from_snapshot.py`: Restores an AgentKit sandbox session from a given `tool-id` and `snapshot-id`, printing the recovered session details (endpoint, status, TTL, etc.).
 
@@ -24,7 +25,7 @@ The script follows this order:
 Install the AgentKit Python SDK:
 
 ```bash
-pip install agentkit-sdk-python==0.8.0
+pip install agentkit-sdk-python==0.8.1
 ```
 
 Or install from the requirements file in this directory:
@@ -33,7 +34,20 @@ Or install from the requirements file in this directory:
 pip install -r requirements.txt
 ```
 
-Configure Volcano Engine credentials before running:
+`codex_opencode.py` also requires `websocket-client` locally:
+
+```bash
+pip install websocket-client
+```
+
+The selected `codex` or `opencode` CLI must already be installed and configured
+inside the target Sandbox. The AgentKit SDK is required when `--session-id` is
+used to resolve or create a Session, but not when connecting directly to an
+existing shell WebSocket with `--url`.
+
+Configure Volcano Engine credentials before running `ensure_session.py`, or
+before asking `codex_opencode.py` to resolve or create a Session with
+`--session-id`:
 
 ```bash
 export VOLCENGINE_ACCESS_KEY=<your_access_key>
@@ -129,6 +143,77 @@ TUI commands:
 /exit     Close the client.
 /quit     Close the client.
 ```
+
+### Run Codex or OpenCode in a Sandbox
+
+`codex_opencode.py` connects to the Sandbox `/v1/shell/ws`, runs the headless
+CLI once per turn, and reuses the Codex thread ID or OpenCode session ID. This
+keeps context in a simple `you>` / `codex>` (or `opencode>`) terminal UI without
+using the Codex app-server or starting a full-screen TUI.
+
+Specify the Sandbox tool the first time a `session-id` is used:
+
+```bash
+python3 codex_opencode.py \
+  --session-id demo-session \
+  --tool-id tl-xxxxxxxx \
+  codex
+```
+
+If the Session-to-tool mapping is already cached locally, `--tool-id` can be
+omitted:
+
+```bash
+python3 codex_opencode.py -s demo-session opencode
+```
+
+Send one message and exit:
+
+```bash
+python3 codex_opencode.py \
+  -s demo-session \
+  --message 'Inspect this repository and summarize its main modules' \
+  codex
+```
+
+Connect directly to an existing shell WebSocket:
+
+```bash
+python3 codex_opencode.py \
+  --url 'wss://<sandbox-host>/v1/shell/ws?faasInstanceName=<instance>&Authorization=<token>' \
+  opencode
+```
+
+Resume an existing Codex thread or OpenCode session:
+
+```bash
+python3 codex_opencode.py \
+  -s demo-session \
+  --thread-id <thread-or-session-id> \
+  codex
+```
+
+To pass options to the agent CLI, put them after the agent name and separate
+them with `--`:
+
+```bash
+python3 codex_opencode.py \
+  -s demo-session \
+  codex -- --model gpt-5
+```
+
+Interactive commands:
+
+```text
+/new      Start a new conversation with the next message.
+/thread   Print the current Codex thread ID or OpenCode session ID.
+/help     Show commands.
+/exit     Close the client.
+/quit     Close the client.
+```
+
+Note: options for `codex_opencode.py` must appear before `codex` or `opencode`.
+Everything after the agent name is passed to the selected CLI.
 
 ### List Session Snapshots
 
@@ -254,6 +339,29 @@ python3 python/01-tutorials/04-agentkit-tools/code_sandbox/restore_from_snapshot
 --verbose               Print JSON-RPC method send/receive events to stderr.
 ```
 
+`codex_opencode.py`:
+
+```text
+--url                   Existing Sandbox endpoint or /v1/shell/ws URL. Usually
+                        omitted in favor of automatic --session-id resolution.
+--session-id, -s        Logical AgentKit Sandbox Session ID.
+--tool-id               Sandbox tool ID used to resolve or create an uncached Session.
+--tool-name             Sandbox tool name to use when the tool ID is omitted.
+--tool-type             Sandbox tool type: CodeEnv or SkillEnv. Default: CodeEnv.
+--ttl                   Session lifetime in seconds when a Session must be created.
+--workdir               Remote agent working directory. Default: /home/gem.
+--thread-id             Resume an existing Codex thread or OpenCode session.
+                        Defaults to AGENT_THREAD_ID.
+--message               Run one turn and exit instead of entering interactive mode.
+--multiline             Enable multiline input in interactive mode.
+--timeout               Per-turn agent timeout in seconds. Default: 1800.
+--token                 Optional bearer token header. Defaults to SANDBOX_WS_TOKEN.
+--header                Extra WebSocket header in 'Name: Value' format; repeatable.
+--verbose               Print raw agent events and ignored remote output to stderr.
+codex | opencode        Headless agent CLI to invoke inside the Sandbox.
+agent_args              Options passed to the agent CLI; use -- as a separator.
+```
+
 `list_snapshots.py`:
 
 ```text
@@ -330,6 +438,26 @@ One-shot message:
 python3 codex_ws_tui.py \
   --url 'https://<sandbox-host>/?faasInstanceName=<instance>&Authorization=<token>' \
   --message '总结一下这个工作区'
+```
+
+### Codex / OpenCode Headless CLI Chat
+
+Start an interactive Codex chat:
+
+```bash
+python3 codex_opencode.py \
+  --session-id demo-session \
+  --tool-id tl-xxxxxxxx \
+  codex
+```
+
+Run one OpenCode turn:
+
+```bash
+python3 codex_opencode.py \
+  --session-id demo-session \
+  --message 'Summarize the current workspace' \
+  opencode
 ```
 
 ### List Session Snapshots
@@ -465,3 +593,8 @@ Example:
 ```
 
 `codex_ws_tui.py --message` prints the plain-text Codex reply; interactive mode continuously shows the conversation in the terminal.
+
+`codex_opencode.py` prints the Sandbox Session ID to stderr and the agent's text
+reply to stdout. One-shot mode returns the agent CLI exit code. In interactive
+mode, `/thread` displays the captured Codex thread ID or OpenCode session ID,
+which is automatically reused on subsequent turns.

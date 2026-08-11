@@ -1,9 +1,10 @@
 # Code Sandbox Session
 
-本示例包含四个脚本：
+本示例包含五个脚本：
 
 - `ensure_session.py`：确保指定 `tool-id` 和 `session-id` 对应的 AgentKit sandbox session 可用。
 - `codex_ws_tui.py`：通过终端 TUI 连接 Codex app-server，并与 Codex 对话。
+- `codex_opencode.py`：通过 Sandbox shell WebSocket 调用 Codex 或 OpenCode 无头 CLI，支持交互对话、单条消息和会话续接，无需启动 agent app-server。
 - `list_snapshots.py`：列出指定 AgentKit sandbox tool 的所有 session 快照，支持按 UserSessionId、SessionId 和创建时间范围过滤，自动分页拉取全部结果。
 - `restore_from_snapshot.py`：根据指定的 `tool-id` 和 `snapshot-id` 从快照恢复 AgentKit sandbox session，输出恢复后的 session 详情（endpoint、status、TTL 等）。
 
@@ -23,7 +24,7 @@ AgentKit Tool Sandbox，因此收录在本教程分类下。
 安装 AgentKit Python SDK：
 
 ```bash
-pip install agentkit-sdk-python==0.8.0
+pip install agentkit-sdk-python==0.8.1
 ```
 
 也可以在当前目录通过 `requirements.txt` 安装：
@@ -32,7 +33,18 @@ pip install agentkit-sdk-python==0.8.0
 pip install -r requirements.txt
 ```
 
-运行 `ensure_session.py` 前需要配置火山引擎凭证：
+`codex_opencode.py` 还需要本地安装 `websocket-client`：
+
+```bash
+pip install websocket-client
+```
+
+目标 Sandbox 中必须已安装并配置所选的 `codex` 或 `opencode` CLI。使用
+`--session-id` 自动定位或创建 Session 时需要 AgentKit SDK；使用 `--url` 直连已有
+shell WebSocket 时不需要 SDK 参与 Session 解析。
+
+运行 `ensure_session.py`，或让 `codex_opencode.py` 通过 `--session-id` 自动定位或创建
+Session 前，需要配置火山引擎凭证：
 
 ```bash
 export VOLCENGINE_ACCESS_KEY=<your_access_key>
@@ -127,6 +139,74 @@ TUI 内置命令：
 /exit     关闭客户端。
 /quit     关闭客户端。
 ```
+
+### 在 Sandbox 中运行 Codex 或 OpenCode
+
+`codex_opencode.py` 连接 Sandbox 的 `/v1/shell/ws`，每轮执行一次无头 CLI，并复用
+Codex thread ID 或 OpenCode session ID，从而在简单的 `you>` / `codex>`（或
+`opencode>`）终端界面中保持上下文。它不使用 Codex app-server，也不启动全屏 TUI。
+
+首次使用 `session-id` 时同时指定 Sandbox tool：
+
+```bash
+python3 codex_opencode.py \
+  --session-id demo-session \
+  --tool-id tl-xxxxxxxx \
+  codex
+```
+
+如果本地已经缓存了 Session 与 tool 的对应关系，可以省略 `--tool-id`：
+
+```bash
+python3 codex_opencode.py -s demo-session opencode
+```
+
+发送单条消息并退出：
+
+```bash
+python3 codex_opencode.py \
+  -s demo-session \
+  --message '检查这个仓库并总结主要模块' \
+  codex
+```
+
+直连已有 shell WebSocket：
+
+```bash
+python3 codex_opencode.py \
+  --url 'wss://<sandbox-host>/v1/shell/ws?faasInstanceName=<instance>&Authorization=<token>' \
+  opencode
+```
+
+恢复已有 Codex thread 或 OpenCode session：
+
+```bash
+python3 codex_opencode.py \
+  -s demo-session \
+  --thread-id <thread-or-session-id> \
+  codex
+```
+
+向 agent CLI 透传参数时，将参数放在 agent 名称之后，并使用 `--` 分隔：
+
+```bash
+python3 codex_opencode.py \
+  -s demo-session \
+  codex -- --model gpt-5
+```
+
+交互模式内置命令：
+
+```text
+/new      下一条消息开始新会话。
+/thread   打印当前 Codex thread ID 或 OpenCode session ID。
+/help     显示帮助命令。
+/exit     关闭客户端。
+/quit     关闭客户端。
+```
+
+注意：`codex_opencode.py` 自身的选项必须放在 `codex` 或 `opencode` 之前；agent
+名称之后的内容都会作为对应 CLI 的参数传入。
 
 ### 列出 Session 快照
 
@@ -251,6 +331,29 @@ python3 python/01-tutorials/04-agentkit-tools/code_sandbox/restore_from_snapshot
 --verbose               将 JSON-RPC 方法发送和接收事件打印到 stderr。
 ```
 
+`codex_opencode.py`：
+
+```text
+--url                   已有 Sandbox endpoint 或 /v1/shell/ws URL；通常省略，改用
+                        --session-id 自动解析。
+--session-id, -s        AgentKit Sandbox 的逻辑 Session ID。
+--tool-id               本地无缓存时用于定位或创建 Session 的 Sandbox tool ID。
+--tool-name             未提供 tool ID 时使用的 Sandbox tool 名称。
+--tool-type             Sandbox tool 类型：CodeEnv 或 SkillEnv。默认值：CodeEnv。
+--ttl                   需要创建 Session 时使用的生命周期，单位秒。
+--workdir               agent 的远端工作目录。默认值：/home/gem。
+--thread-id             恢复已有 Codex thread 或 OpenCode session；默认读取
+                        AGENT_THREAD_ID。
+--message               执行一轮并退出，不进入交互模式。
+--multiline             交互模式下启用多行输入。
+--timeout               每轮 agent 执行超时时间，单位秒。默认值：1800。
+--token                 可选 Bearer token 请求头；默认读取 SANDBOX_WS_TOKEN。
+--header                额外 WebSocket 请求头，格式为 'Name: Value'，可重复传入。
+--verbose               将原始 agent 事件和未处理的远端输出打印到 stderr。
+codex | opencode        要在 Sandbox 中调用的无头 agent CLI。
+agent_args              透传给 agent CLI 的参数，建议使用 -- 与脚本参数分隔。
+```
+
 `list_snapshots.py`：
 
 ```text
@@ -326,6 +429,26 @@ python3 codex_ws_tui.py
 python3 codex_ws_tui.py \
   --url 'https://<sandbox-host>/?faasInstanceName=<instance>&Authorization=<token>' \
   --message '总结一下这个工作区'
+```
+
+### Codex / OpenCode 无头 CLI 对话
+
+启动 Codex 交互对话：
+
+```bash
+python3 codex_opencode.py \
+  --session-id demo-session \
+  --tool-id tl-xxxxxxxx \
+  codex
+```
+
+使用 OpenCode 执行单条消息：
+
+```bash
+python3 codex_opencode.py \
+  --session-id demo-session \
+  --message '总结当前工作区' \
+  opencode
 ```
 
 ### 列出 Session 快照
@@ -461,3 +584,7 @@ python3 restore_from_snapshot.py tl-xxxxxxxx snap-xxxxxxxx
 ```
 
 `codex_ws_tui.py --message` 输出 Codex 的纯文本回复；交互模式会在终端中持续显示对话内容。
+
+`codex_opencode.py` 将 Sandbox Session ID 输出到 stderr，将 agent 的文本回复输出到
+stdout。单条消息模式返回 agent CLI 的退出码；交互模式使用 `/thread` 查看捕获到的
+Codex thread ID 或 OpenCode session ID，并自动在后续轮次中复用该 ID。
