@@ -38,6 +38,7 @@ from urllib.parse import urlsplit, urlunsplit
 AGENTS = ("codex", "opencode")
 DEFAULT_WORKDIR = "/home/gem"
 DEFAULT_TIMEOUT_SECONDS = 1800
+DEFAULT_OPENCODE_FINISH_INTERRUPT_DELAY = 0.5
 TERMINAL_PATH = "/v1/shell/ws"
 
 
@@ -136,6 +137,21 @@ def build_parser() -> argparse.ArgumentParser:
         "--verbose",
         action="store_true",
         help="Print raw agent events and ignored remote output to stderr.",
+    )
+    parser.add_argument(
+        "--opencode-finish-interrupt-delay",
+        type=_positive_float,
+        default=float(
+            os.getenv(
+                "OPENCODE_FINISH_INTERRUPT_DELAY",
+                DEFAULT_OPENCODE_FINISH_INTERRUPT_DELAY,
+            )
+        ),
+        help=(
+            "Seconds to wait after OpenCode step_finish before sending Ctrl-C "
+            "to unblock opencode run (default: "
+            f"{DEFAULT_OPENCODE_FINISH_INTERRUPT_DELAY})."
+        ),
     )
     parser.add_argument("agent", choices=AGENTS, help="Headless agent CLI to use.")
     parser.add_argument(
@@ -244,11 +260,13 @@ class AgentEventParser:
         self.conversation_id = conversation_id
         self.verbose = verbose
         self.turn_had_text = False
+        self.turn_finished_at: float | None = None
         self.turn_errors: list[str] = []
         self._item_text: dict[str, str] = {}
 
     def start_turn(self) -> None:
         self.turn_had_text = False
+        self.turn_finished_at = None
         self.turn_errors.clear()
         self._item_text.clear()
 
@@ -308,6 +326,9 @@ class AgentEventParser:
             self.conversation_id = session_id
 
         event_type = event.get("type")
+        if event_type == "step_finish":
+            self.turn_finished_at = time.monotonic()
+            return
         if event_type in {"error", "session.error"}:
             error = event.get("error") or event.get("message")
             if isinstance(error, dict):
@@ -351,10 +372,14 @@ class SandboxAgentChat:
         headers: Sequence[tuple[str, str]],
         conversation_id: str = "",
         verbose: bool = False,
+        opencode_finish_interrupt_delay: float = (
+            DEFAULT_OPENCODE_FINISH_INTERRUPT_DELAY
+        ),
     ) -> None:
         self.ws_url = ws_url
         self.headers = list(headers)
         self.verbose = verbose
+        self.opencode_finish_interrupt_delay = opencode_finish_interrupt_delay
         self.parser = AgentEventParser(
             agent,
             conversation_id=conversation_id,
@@ -368,6 +393,7 @@ class SandboxAgentChat:
         self._line_buffer = ""
         self._turn_marker = ""
         self._turn_exit_code: int | None = None
+        self._finish_interrupt_sent = False
         self._connection_errors: list[str] = []
         self._ignored_output: list[str] = []
 
@@ -431,6 +457,7 @@ class SandboxAgentChat:
         self._ignored_output.clear()
         self._turn_exit_code = None
         self._turn_marker = f"__AGENTKIT_CHAT_DONE_{uuid.uuid4().hex}__"
+        self._finish_interrupt_sent = False
         self.turn_done.clear()
         wrapped = (
             f"{command}; agentkit_chat_rc=$?; "
@@ -443,6 +470,7 @@ class SandboxAgentChat:
             while not self.turn_done.wait(0.1):
                 if self.closed.is_set():
                     raise RuntimeError("sandbox terminal closed during the agent turn")
+                self._interrupt_stuck_opencode_after_finish()
                 if time.monotonic() >= deadline:
                     self._send({"type": "input", "data": "\x03"})
                     raise TimeoutError(f"agent turn timed out after {timeout:g}s")
@@ -452,6 +480,15 @@ class SandboxAgentChat:
             raise
 
         exit_code = self._turn_exit_code if self._turn_exit_code is not None else 1
+        if (
+            exit_code
+            and self._finish_interrupt_sent
+            and self.parser.turn_finished_at is not None
+        ):
+            # OpenCode can keep `opencode run` alive after emitting step_finish.
+            # The client sends Ctrl-C only after the model turn has completed,
+            # so the resulting 130 exit status should not be reported as a turn error.
+            exit_code = 0
         if exit_code and not self.parser.turn_errors:
             detail = next(
                 (line for line in reversed(self._ignored_output) if line.strip()),
@@ -459,6 +496,24 @@ class SandboxAgentChat:
             )
             self.parser.turn_errors.append(detail.strip())
         return exit_code
+
+    def _interrupt_stuck_opencode_after_finish(self) -> None:
+        if self.parser.agent != "opencode":
+            return
+        if self._finish_interrupt_sent:
+            return
+        finished_at = self.parser.turn_finished_at
+        if finished_at is None:
+            return
+        if time.monotonic() - finished_at < self.opencode_finish_interrupt_delay:
+            return
+        self._finish_interrupt_sent = True
+        if self.verbose:
+            print(
+                "[client] OpenCode step finished; sending Ctrl-C to unblock shell",
+                file=sys.stderr,
+            )
+        self._send({"type": "input", "data": "\x03"})
 
     def _send(self, payload: dict[str, Any]) -> None:
         self.websocket.send(json.dumps(payload, ensure_ascii=False))
@@ -628,6 +683,7 @@ def run(args: argparse.Namespace) -> int:
         headers=headers,
         conversation_id=args.thread_id,
         verbose=args.verbose,
+        opencode_finish_interrupt_delay=args.opencode_finish_interrupt_delay,
     )
     print(f"[sandbox] {sandbox_session_id}", file=sys.stderr)
     chat.connect()
