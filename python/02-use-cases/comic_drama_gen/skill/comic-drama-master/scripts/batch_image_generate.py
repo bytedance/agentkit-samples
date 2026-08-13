@@ -19,7 +19,7 @@
 支持指定输出目录和自定义文件名前缀。
 
 环境变量:
-    MODEL_IMAGE_API_KEY or ARK_API_KEY or MODEL_AGENT_API_KEY: Ark API key (required)
+    MODEL_IMAGE_API_KEY or ARK_API_KEY or MODEL_AGENT_API_KEY: Ark API key (optional, local debugging)
     MODEL_IMAGE_NAME: Image model name (optional, default: doubao-seedream-5-0-pro-260628)
 
 用法:
@@ -39,6 +39,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional
 
+from ark_auth import get_ark_api_key
 from volcenginesdkarkruntime import Ark
 
 # Default model
@@ -49,15 +50,10 @@ DEFAULT_MAX_WORKERS = 3
 
 
 def _get_client() -> Ark:
-    api_key = (
-        os.getenv("MODEL_IMAGE_API_KEY")
-        or os.getenv("ARK_API_KEY")
-        or os.getenv("MODEL_AGENT_API_KEY")
-    )
-    if not api_key:
-        print(
-            "Error: MODEL_IMAGE_API_KEY, ARK_API_KEY or MODEL_AGENT_API_KEY environment variable is required."
-        )
+    try:
+        api_key = get_ark_api_key("MODEL_IMAGE_API_KEY")
+    except RuntimeError as e:
+        print(f"Error: {e}")
         sys.exit(1)
     return Ark(api_key=api_key)
 

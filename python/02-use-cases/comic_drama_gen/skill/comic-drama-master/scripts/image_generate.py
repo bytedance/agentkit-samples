@@ -18,7 +18,7 @@ Image generation tool for comic-drama-master skill.
 Uses the VolcEngine Ark SDK to generate images from text prompts.
 
 Environment variables:
-    MODEL_IMAGE_API_KEY or ARK_API_KEY or MODEL_AGENT_API_KEY: Ark API key (required)
+    MODEL_IMAGE_API_KEY or ARK_API_KEY or MODEL_AGENT_API_KEY: Ark API key (optional, local debugging)
     MODEL_IMAGE_NAME: Image model name (optional, default: doubao-seedream-5-0-pro-260628)
     IMAGE_DOWNLOAD_DIR: Directory to save generated images (optional, default: ./)
 
@@ -33,6 +33,7 @@ import os
 import sys
 import time
 
+from ark_auth import get_ark_api_key
 from volcenginesdkarkruntime import Ark
 
 # Default model
@@ -54,15 +55,10 @@ def image_generate(prompt: str, output_dir: str = None) -> list[str]:
         print("Prompt is empty.")
         return []
 
-    api_key = (
-        os.getenv("MODEL_IMAGE_API_KEY")
-        or os.getenv("ARK_API_KEY")
-        or os.getenv("MODEL_AGENT_API_KEY")
-    )
-    if not api_key:
-        print(
-            "Error: MODEL_IMAGE_API_KEY, ARK_API_KEY or MODEL_AGENT_API_KEY environment variable is required."
-        )
+    try:
+        api_key = get_ark_api_key("MODEL_IMAGE_API_KEY")
+    except RuntimeError as e:
+        print(f"Error: {e}")
         sys.exit(1)
 
     client = Ark(api_key=api_key)

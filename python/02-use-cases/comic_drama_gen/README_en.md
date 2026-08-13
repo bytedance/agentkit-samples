@@ -72,7 +72,7 @@ Comic Drama Master (comic_drama_master)
 
 1. Log in to the [Volcano Engine Console](https://console.volcengine.com)
 2. Go to "Access Control" → "Users" → Create a new user → Enter "Keys" → Create a new key to obtain AK/SK
-3. Go to the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview) → "API Key Management" → Create an API Key
+3. For local or Docker debugging, go to the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview) → "API Key Management" → Create an API Key. AgentKit cloud deployment can obtain an Ark token from runtime identity.
 4. Activate the following pre-built inference endpoints:
    - Agent model: `deepseek-v4-pro-260425`
    - Image generation model: `doubao-seedream-5-0-pro-260628`
@@ -111,10 +111,10 @@ Create a `.env` file in the `comic_drama_gen/` directory:
 ```bash
 VOLCENGINE_ACCESS_KEY=your_ak
 VOLCENGINE_SECRET_KEY=your_sk
-ARK_API_KEY=your_ark_api_key
 DATABASE_TOS_BUCKET=your_tos_bucket_name
 
 # Optional
+ARK_API_KEY=your_ark_api_key
 COMIC_DRAMA_OUTPUT_DIR=./my-comic-drama
 VIDEO_DURATION_MINUTES=0.5
 DEFAULT_VIDEO_MODEL_NAME=doubao-seedance-2-0-260128
@@ -128,12 +128,12 @@ DEFAULT_VIDEO_MODEL_NAME=doubao-seedance-2-0-260128
 # Required
 export VOLCENGINE_ACCESS_KEY=your_ak
 export VOLCENGINE_SECRET_KEY=your_sk
-export ARK_API_KEY=your_ark_api_key
 
 # TOS bucket (for uploading generated videos)
 export DATABASE_TOS_BUCKET=your_tos_bucket_name
 
 # Optional
+export ARK_API_KEY=your_ark_api_key
 export COMIC_DRAMA_OUTPUT_DIR=./my-comic-drama
 export VIDEO_DURATION_MINUTES=0.5
 export DEFAULT_VIDEO_MODEL_NAME=doubao-seedance-2-0-260128
@@ -145,7 +145,7 @@ export DEFAULT_VIDEO_MODEL_NAME=doubao-seedance-2-0-260128
 |----------|----------|---------|-------------|
 | `VOLCENGINE_ACCESS_KEY` | ✅ | — | Volcano Engine access key |
 | `VOLCENGINE_SECRET_KEY` | ✅ | — | Volcano Engine secret key |
-| `ARK_API_KEY` | ✅ | — | BytePlus ModelArk API key |
+| `ARK_API_KEY` | ❌ | Cloud identity token | BytePlus ModelArk API key. Recommended for local or Docker debugging; AgentKit cloud deployment can obtain it from runtime identity. |
 | `DATABASE_TOS_BUCKET` | ✅ | — | TOS bucket name |
 | `COMIC_DRAMA_OUTPUT_DIR` | ❌ | `output/` under project dir | Output root directory |
 | `VIDEO_DURATION_MINUTES` | ❌ | `0.5` | Video duration in minutes, supports 0.5/1/2/3/4 (0.5 = 30s) |
@@ -314,6 +314,8 @@ agentkit config \
 
 agentkit launch
 ```
+
+> In AgentKit cloud deployment, image generation, video generation, and quality scoring scripts first use `MODEL_IMAGE_API_KEY` / `MODEL_VIDEO_API_KEY` / `MODEL_EVALUATE_API_KEY`, `ARK_API_KEY`, or `MODEL_AGENT_API_KEY`. If none of these variables are configured, they fall back to the VeADK runtime identity to obtain an Ark token.
 
 ### Docker Deployment
 

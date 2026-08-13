@@ -7,16 +7,16 @@
 
 import logging
 import sys
-import os
 import requests
+
+from ark_auth import get_ark_authorization
 
 
 logger = logging.getLogger(__name__)
 
 
 def _get_auth() -> str:
-    api_key = os.environ.get("ARK_API_KEY", "")
-    return f"Bearer {api_key}"
+    return get_ark_authorization("MODEL_VIDEO_API_KEY")
 
 
 def query_video_status(task_id: str) -> str:

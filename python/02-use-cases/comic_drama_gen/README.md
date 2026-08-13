@@ -72,7 +72,7 @@ AgentKit Runtime
 
 1. 登录 [火山引擎控制台](https://console.volcengine.com)
 2. 进入「访问控制」→「用户」→ 新建用户 → 进入「密钥」→ 新建密钥，获取 AK/SK
-3. 进入 [火山方舟控制台](https://console.volcengine.com/ark) →「API Key 管理」→ 创建 API Key
+3. 本地或 Docker 调试时，进入 [火山方舟控制台](https://console.volcengine.com/ark) →「API Key 管理」→ 创建 API Key；AgentKit 云端部署可使用运行时身份自动获取 Ark token
 4. 开通以下模型的预置推理接入点：
    - Agent 模型：`deepseek-v4-pro-260425`
    - 生图模型：`doubao-seedream-5-0-pro-260628`
@@ -111,10 +111,10 @@ source .venv/bin/activate
 ```bash
 VOLCENGINE_ACCESS_KEY=your_ak
 VOLCENGINE_SECRET_KEY=your_sk
-ARK_API_KEY=your_ark_api_key
 DATABASE_TOS_BUCKET=your_tos_bucket_name
 
 # 可选
+ARK_API_KEY=your_ark_api_key
 COMIC_DRAMA_OUTPUT_DIR=./my-comic-drama
 VIDEO_DURATION_MINUTES=0.5
 DEFAULT_VIDEO_MODEL_NAME=doubao-seedance-2-0-260128
@@ -128,12 +128,12 @@ DEFAULT_VIDEO_MODEL_NAME=doubao-seedance-2-0-260128
 # 必须设置
 export VOLCENGINE_ACCESS_KEY=your_ak
 export VOLCENGINE_SECRET_KEY=your_sk
-export ARK_API_KEY=your_ark_api_key
 
 # TOS 存储桶（用于上传生成视频）
 export DATABASE_TOS_BUCKET=your_tos_bucket_name
 
 # 可选
+export ARK_API_KEY=your_ark_api_key
 export COMIC_DRAMA_OUTPUT_DIR=./my-comic-drama
 export VIDEO_DURATION_MINUTES=0.5
 export DEFAULT_VIDEO_MODEL_NAME=doubao-seedance-2-0-260128
@@ -145,7 +145,7 @@ export DEFAULT_VIDEO_MODEL_NAME=doubao-seedance-2-0-260128
 |------|------|--------|------|
 | `VOLCENGINE_ACCESS_KEY` | ✅ | — | 火山引擎访问凭证 AK |
 | `VOLCENGINE_SECRET_KEY` | ✅ | — | 火山引擎访问凭证 SK |
-| `ARK_API_KEY` | ✅ | — | 火山方舟 API Key |
+| `ARK_API_KEY` | ❌ | 云端身份 token | 火山方舟 API Key；本地或 Docker 调试建议设置，AgentKit 云端部署可通过运行时身份自动获取 |
 | `DATABASE_TOS_BUCKET` | ✅ | — | TOS 存储桶名称 |
 | `COMIC_DRAMA_OUTPUT_DIR` | ❌ | 项目目录下的 `output/` | 产物输出根目录 |
 | `VIDEO_DURATION_MINUTES` | ❌ | `0.5` | 视频时长（分钟），支持 0.5/1/2/3/4（0.5 = 30 秒）|
@@ -314,6 +314,8 @@ agentkit config \
 
 agentkit launch
 ```
+
+> AgentKit 云端部署时，图片生成、视频生成和质量评分脚本会优先使用 `MODEL_IMAGE_API_KEY` / `MODEL_VIDEO_API_KEY` / `MODEL_EVALUATE_API_KEY`、`ARK_API_KEY`、`MODEL_AGENT_API_KEY`，这些变量都未配置时会通过 VeADK 运行时身份获取 Ark token。
 
 ### Docker 部署
 

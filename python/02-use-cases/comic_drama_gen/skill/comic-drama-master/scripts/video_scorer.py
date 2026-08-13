@@ -11,6 +11,8 @@ import sys
 
 import requests
 
+from ark_auth import get_ark_authorization
+
 _CHAT_URL = "https://ark.cn-beijing.volces.com/api/v3/chat/completions"
 _EVAL_MODEL = os.environ.get("EVAL_MODEL_NAME", "deepseek-v4-pro-260425")
 
@@ -42,10 +44,7 @@ _RUBRIC = """你是专业漫剧质量评审员。请对以下漫剧视频按5个
 
 
 def _get_auth() -> str:
-    api_key = os.environ.get("ARK_API_KEY", "") or os.environ.get(
-        "MODEL_AGENT_API_KEY", ""
-    )
-    return f"Bearer {api_key}"
+    return get_ark_authorization("MODEL_EVALUATE_API_KEY")
 
 
 def score_video(task_folder: str) -> dict:

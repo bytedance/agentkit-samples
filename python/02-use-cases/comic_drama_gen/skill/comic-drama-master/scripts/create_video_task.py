@@ -14,6 +14,8 @@ from typing import Optional
 
 import requests
 
+from ark_auth import get_ark_authorization
+
 logger = logging.getLogger(__name__)
 
 _VALID_DURATIONS = set(range(4, 16))
@@ -24,10 +26,7 @@ _MODEL = os.environ.get("DEFAULT_VIDEO_MODEL_NAME") or os.environ.get(
 
 
 def _get_auth() -> str:
-    api_key = os.environ.get("ARK_API_KEY", "") or os.environ.get(
-        "MODEL_AGENT_API_KEY", ""
-    )
-    return f"Bearer {api_key}"
+    return get_ark_authorization("MODEL_VIDEO_API_KEY")
 
 
 def _strip_cli_flags(prompt: str) -> str:
