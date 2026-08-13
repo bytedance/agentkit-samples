@@ -278,8 +278,8 @@ def build_report(
     for item in buckets:
         params = {
             "StartTime": item.start_epoch,
-            # The public Action accepts epoch seconds. Using an inclusive last
-            # second prevents adjacent local buckets from double-counting.
+            # The public Action accepts epoch seconds. Using the inclusive last
+            # second prevents adjacent local buckets from overlapping.
             "EndTime": item.end_epoch - 1,
             **filters,
         }
@@ -516,8 +516,16 @@ def group_records(
             if timestamp is None:
                 value = "unknown"
             else:
+                # Send-log responses use epoch milliseconds even though the
+                # Action request window uses epoch seconds. Keep compatibility
+                # with older second-based fixtures and responses.
+                timestamp_seconds = (
+                    timestamp / 1000 if timestamp >= 100_000_000_000 else timestamp
+                )
                 value = (
-                    datetime.datetime.fromtimestamp(timestamp, tz=SHANGHAI_TZ)
+                    datetime.datetime.fromtimestamp(
+                        timestamp_seconds, tz=SHANGHAI_TZ
+                    )
                     .date()
                     .isoformat()
                 )
