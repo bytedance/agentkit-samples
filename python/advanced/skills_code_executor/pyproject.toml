@@ -1,0 +1,14 @@
+[project]
+name = "skills-code-executor"
+version = "0.1.0"
+description = "Load a local Google ADK skill and execute its bundled scripts"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "agentkit-sdk-python==0.8.1",
+    "google-adk==2.2.0",
+    "litellm",
+    "urllib3<2.0.0",
+    "veadk-python==1.0.10",
+    "volcengine-python-sdk>=4.0.33",
+]
