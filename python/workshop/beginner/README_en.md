@@ -43,15 +43,15 @@ Welcome to the AgentKit Beginner Case Collection! This directory contains a seri
 
 ### Prerequisites
 
-**Important Note**: Before running any examples, please visit the [AgentKit Console Authorization Page](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) to authorize all dependent services to ensure the cases can execute properly.
+**Important Note**: Before running any examples, authorize the dependent services in the [BytePlus AgentKit Console](https://console.byteplus.com/agentkit).
 
 **1. Activate BytePlus ModelArk Service:**
 
 - Visit the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview) to activate the model service.
 
-**2. Obtain Volcano Engine Access Credentials:**
+**2. Obtain BytePlus Access Credentials:**
 
-- Refer to the [User Guide](https://www.volcengine.com/docs/6291/65568?lang=en) to get your AK/SK.
+- Create an AK/SK in the [BytePlus Console](https://console.byteplus.com).
 
 **3. Install Necessary Tools:**
 
@@ -75,8 +75,10 @@ In the `beginner` directory, you can use a unified method to debug most cases:
 
 ```bash
 # Export environment variables required for all cases
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
+export BYTEPLUS_ACCESS_KEY=<Your Access Key>
+export BYTEPLUS_SECRET_KEY=<Your Secret Key>
+export CLOUD_PROVIDER=byteplus
+export BYTEPLUS_REGION=ap-southeast-1
 export TOOL_TOS_URL=https://tos.mcp.volcbiz.com/mcp\?token\=xxxxx  # Optional, only needed for mcp_simple
 
 # Navigate to the root directory of the beginner cases
@@ -123,9 +125,11 @@ uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
 source .venv/bin/activate
 
 # Configure environment variables
-export MODEL_AGENT_NAME=doubao-seed-1-6-251015
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
+export MODEL_AGENT_NAME=dola-seed-2-1-turbo-260628
+export BYTEPLUS_ACCESS_KEY=<Your Access Key>
+export BYTEPLUS_SECRET_KEY=<Your Secret Key>
+export CLOUD_PROVIDER=byteplus
+export BYTEPLUS_REGION=ap-southeast-1
 
 # Run the Agent service
 uv run agent.py

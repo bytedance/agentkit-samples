@@ -88,9 +88,9 @@ travel_concierge/
 - Visit the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - Activate the model service.
 
-**2. Obtain Volcano Engine Access Credentials:**
+**2. Obtain BytePlus Access Credentials:**
 
-- Refer to the [User Guide](https://www.volcengine.com/docs/6291/65568?lang=zh) to get your AK/SK.
+- Create an AK/SK in the [BytePlus Console](https://console.byteplus.com).
 
 ### Dependency Installation
 
@@ -128,11 +128,13 @@ source .venv/bin/activate
 
 ```bash
 # BytePlus ModelArk model name
-export MODEL_AGENT_NAME=doubao-seed-1-6-251015
+export MODEL_AGENT_NAME=dola-seed-2-1-turbo-260628
 
-# Volcano Engine access credentials (required)
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
+# BytePlus access credentials (required)
+export BYTEPLUS_ACCESS_KEY=<Your Access Key>
+export BYTEPLUS_SECRET_KEY=<Your Secret Key>
+export CLOUD_PROVIDER=byteplus
+export BYTEPLUS_REGION=ap-southeast-1
 ```
 
 ### Debugging Methods
