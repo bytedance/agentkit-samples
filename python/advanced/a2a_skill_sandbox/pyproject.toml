@@ -1,0 +1,8 @@
+[project]
+name = "a2a-skill-sandbox"
+version = "0.1.0"
+description = "Invoke an AgentKit Skills Sandbox through A2A"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "agentkit-sdk-python==0.8.1",
+]
