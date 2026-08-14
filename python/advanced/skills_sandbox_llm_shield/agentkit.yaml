@@ -1,0 +1,37 @@
+common:
+  agent_name: skills_sandbox_llm_shield_agent
+  entry_point: agent.py
+  language: Python
+  language_version: '3.12'
+  agent_type: Basic App
+  dependencies_file: requirements.txt
+  runtime_envs:
+    MODEL_AGENT_NAME: deepseek-v4-pro-260425
+    ENABLE_SKILL_SANDBOX: 'false'
+    EXPOSE_SKILL_SANDBOX_TO_AGENT: 'false'
+    AGENTKIT_TOOL_ID: '<your-skills-sandbox-tool-id>'
+    AGENTKIT_TOOL_ID_SKILLS: '<optional-compatibility-tool-id>'
+    SKILL_SPACE_ID: '<your-skill-space-id>'
+    ENABLE_LLM_SHIELD: 'false'
+    TOOL_LLM_SHIELD_APP_ID: '<your-llm-shield-app-id>'
+  launch_type: cloud
+launch_types:
+  cloud:
+    region: cn-beijing
+    tos_bucket: agentkit-platform-{{account_id}}
+    tos_prefix: agentkit-builds
+    image_tag: '{{timestamp}}'
+    cr_instance_name: agentkit-platform-{{account_id}}
+    cr_namespace_name: agentkit
+    build_timeout: 3600
+  local:
+    image_tag: latest
+    invoke_port: 8000
+    ports:
+    - 8000:8000
+    volumes: []
+    restart_policy: unless-stopped
+    memory_limit: 1g
+    cpu_limit: '1'
+docker_build:
+  platform: auto

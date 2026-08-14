@@ -1,0 +1,14 @@
+[project]
+name = "agentkit-skills-sandbox-llm-shield-sample"
+version = "0.1.0"
+description = "AgentKit Skills Sandbox sample with optional LLM Shield callback"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "agentkit-sdk-python==0.8.1",
+    "google-adk==2.2.0",
+    "urllib3<2.0.0",
+    "veadk-python==1.0.10",
+    "volcengine-python-sdk>=4.0.33",
+    "litellm",
+]
