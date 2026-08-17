@@ -48,6 +48,32 @@ any_input/
 - 工作流模式：`single_workflow`
 - 工作流链路：`START -> LLM -> ANSWER -> END`
 
+### 精简 Agent 配置输入
+
+同时我们提供 `any_input_agent/`，用于只尝试较为重要的 Agent 相关配置。对于 Workflow 导出物，该目录只保留 Agent下面的最小配置。
+
+```bash
+any_input_agent/
+├── metadata.json
+└── app/
+    ├── metadata.json
+    └── workflow/
+        ├── metadata.json
+        ├── workflow_config.json
+        └── workflow_example.json
+```
+
+如果只想验证关键 Agent 行为配置迁移，可以将命令中的 `any_input` 替换为 `any_input_agent`，并建议把输出目录换为 `../any_output_agent`，避免覆盖完整样例的迁移输出：
+
+```bash
+ak migrate any_input_agent --framework any create --name any-agent-test --output ../any_output_agent \
+  --codex-model <codex模型名> \
+  --codex-api-key-env CODEX_MIGRATE_MODEL_API_KEY \
+  --model-id <VeADK模型名> \
+  --model-base-url <VeADK依赖的模型base_url> \
+  --model-api-key-env MODEL_AGENT_API_KEY
+```
+
 ## 迁移流程
 
 ```text
@@ -75,9 +101,11 @@ workflow/
 ├── .env.example       # 环境变量示例
 ├── README.md          # 中文说明文档
 ├── any_input/         # ADP Workflow 导出包输入目录
+├── any_input_agent/   # 仅保留关键 Agent 行为配置的精简输入目录
+└── any_output/        # 迁移完成后写入的 VeADK / AgentKit Runtime 工程
 ```
 
-后续命令均在 `ADP/workflow/` 目录下执行。`any_input/` 是源项目输入目录；`--output ../any_output` 以 `any_input/` 为基准解析，迁移产物会写入与 `any_input/` 同级的 `any_output/` 目录。
+后续命令均在 `ADP/workflow/` 目录下执行。`any_input/` 是源项目输入目录；`any_input_agent/` 是只保留关键 Agent 行为配置的精简输入目录。`--output ../any_output` 以输入目录为基准解析，迁移产物会写入与输入目录同级的输出目录。
 
 ## 发起远端迁移
 

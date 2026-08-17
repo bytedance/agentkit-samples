@@ -1,0 +1,129 @@
+{
+  "ProtoVersion": "V2_6",
+  "WorkflowID": "example-workflow-id",
+  "WorkflowName": "酒店预定agent",
+  "WorkflowDesc": "当我需要预定酒店时，触发此agent",
+  "Nodes": [
+    {
+      "NodeID": "example-start-node-id",
+      "NodeName": "开始",
+      "NodeType": "START",
+      "StartNodeData": {
+        "WorkflowParams": []
+      },
+      "Inputs": [],
+      "Outputs": [],
+      "NextNodeIDs": [
+        "example-llm-node-id"
+      ]
+    },
+    {
+      "NodeID": "example-llm-node-id",
+      "NodeName": "大模型1",
+      "NodeType": "LLM",
+      "LLMNodeData": {
+        "ModelName": "Auto/auto",
+        "Temperature": 0,
+        "TopP": 0,
+        "MaxTokens": 0,
+        "Prompt": "处理酒店预定的相关问题。如果用户想要预定北京的酒店，直接回复，推荐“北京饭店”",
+        "SystemPrompt": "你是酒店预定专家，需要根据用户的建议，生成酒店的预定规划。",
+        "OutputFormat": "LLM_OUTPUT_TEXT",
+        "VisualInputs": [],
+        "AudioInputs": [],
+        "ModelParams": {
+          "StopSequences": [],
+          "ReplyFormat": "",
+          "DeepThinking": "",
+          "ReasoningEffort": ""
+        }
+      },
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Title": "Output",
+          "Type": "OBJECT",
+          "Properties": [
+            {
+              "Title": "Thought",
+              "Type": "STRING",
+              "Desc": "大模型思考过程"
+            },
+            {
+              "Title": "Content",
+              "Type": "STRING",
+              "Desc": "大模型运行后输出内容"
+            }
+          ],
+          "Desc": "输出内容"
+        }
+      ],
+      "NextNodeIDs": [
+        "example-answer-node-id"
+      ],
+      "ExceptionHandling": {
+        "Switch": "OFF",
+        "MaxRetries": "3",
+        "RetryInterval": "1",
+        "HandleMethod": "EXCEPTION_OUTPUT",
+        "Timeout": "300"
+      }
+    },
+    {
+      "NodeID": "example-answer-node-id",
+      "NodeName": "回复1",
+      "NodeType": "ANSWER",
+      "AnswerNodeData": {
+        "Answer": "{{Content}}"
+      },
+      "Inputs": [
+        {
+          "Name": "Content",
+          "Type": "STRING",
+          "Input": {
+            "InputType": "REFERENCE_OUTPUT",
+            "Reference": {
+              "NodeID": "example-llm-node-id",
+              "JsonPath": "Output.Content"
+            }
+          }
+        }
+      ],
+      "Outputs": [
+        {
+          "Title": "Output",
+          "Type": "OBJECT",
+          "Properties": [
+            {
+              "Title": "Answer",
+              "Type": "STRING",
+              "Desc": "回复用户的消息"
+            }
+          ],
+          "Desc": "输出内容"
+        }
+      ],
+      "NextNodeIDs": [
+        "example-end-node-id"
+      ]
+    },
+    {
+      "NodeID": "example-end-node-id",
+      "NodeName": "结束",
+      "NodeType": "END",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Title": "Output",
+          "Type": "OBJECT",
+          "Desc": "输出内容"
+        }
+      ],
+      "NextNodeIDs": []
+    }
+  ],
+  "Edge": "[{\"source\":\"example-start-node-id\",\"target\":\"example-llm-node-id\"},{\"source\":\"example-llm-node-id\",\"target\":\"example-answer-node-id\"},{\"source\":\"example-answer-node-id\",\"target\":\"example-end-node-id\"}]",
+  "Mode": "NORMAL",
+  "ReleaseTime": "",
+  "UpdateTime": "1700000000000"
+}
