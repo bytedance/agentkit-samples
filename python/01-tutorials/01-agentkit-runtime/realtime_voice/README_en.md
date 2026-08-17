@@ -1,5 +1,9 @@
 # NaviGo AI - Real-time Voice Assistant Agent
 
+> **Availability:** This example depends on the Volcengine Doubao Realtime Voice
+> service and is currently not available through BytePlus ModelArk. Do not use
+> BytePlus credentials or regions for this example.
+
 This is an introductory real-time voice assistant Agent built based on Volcano Engine's VeADK and AgentKit, demonstrating how to create an AI Agent with travel planning capabilities.
 
 ## Overview

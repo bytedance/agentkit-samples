@@ -105,9 +105,11 @@ source .venv/bin/activate
 # BytePlus ModelArk model name
 export MODEL_AGENT_NAME=deepseek-v4-pro-260425
 
-# Volcengine Access Credentials
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
+# BytePlus Access Credentials
+export BYTEPLUS_ACCESS_KEY=<Your Access Key>
+export BYTEPLUS_SECRET_KEY=<Your Secret Key>
+export CLOUD_PROVIDER=byteplus
+export BYTEPLUS_REGION=ap-southeast-1
 
 # Volcengine MCP Toolset Address and Access Credentials
 export TOOL_MCP_ROUTER_URL=https://*****.apigateway-cn-****.volceapi.com/mcp
@@ -151,7 +153,7 @@ veadk web
 ### Cloud Deployment Process
 
 **1. Authorization and Preparation**
-Ensure that service authorization is completed in the [AgentKit Console](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default).
+Ensure that service authorization is completed in the [BytePlus AgentKit Console](https://console.byteplus.com/agentkit).
 
 **2. Deployment Commands**
 

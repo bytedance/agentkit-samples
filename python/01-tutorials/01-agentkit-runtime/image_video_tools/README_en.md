@@ -120,7 +120,7 @@ image_video_tools/
 
 ### Prerequisites
 
-**Important note**: Before running this example, please visit the [AgentKit Console Authorization Page](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) to authorize all dependent services to ensure that the case can be executed normally.
+**Important note**: Before running this example, authorize all dependent services in the [BytePlus AgentKit Console](https://console.byteplus.com/agentkit).
 
 **1. Activate BytePlus ModelArk Service:**
 
@@ -132,7 +132,7 @@ image_video_tools/
 - Ensure that image generation and video generation services have been activated
 - Refer to [Video Generation Documentation](https://www.volcengine.com/docs/82379/1366799)
 
-**3. Obtain Volcano Engine Access Credentials:**
+**3. Obtain BytePlus Access Credentials:**
 
 - Refer to [User Guide](https://www.volcengine.com/docs/6291/65568?lang=zh) to obtain AK/SK
 
@@ -177,8 +177,10 @@ Current dependency versions:
 export MODEL_AGENT_NAME=deepseek-v4-pro-260425
 
 # Volcano Engine access credentials (required)
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
+export BYTEPLUS_ACCESS_KEY=<Your Access Key>
+export BYTEPLUS_SECRET_KEY=<Your Secret Key>
+export CLOUD_PROVIDER=byteplus
+export BYTEPLUS_REGION=ap-southeast-1
 ```
 
 ### Start Service
@@ -212,14 +214,14 @@ The Web interface provides a graphical dialogue testing environment, supporting 
 
 ### Prerequisites
 
-**Important note**: Before running this example, please visit the [AgentKit Console Authorization Page](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) to authorize all dependent services to ensure that the case can be executed normally.
+**Important note**: Before running this example, authorize all dependent services in the [BytePlus AgentKit Console](https://console.byteplus.com/agentkit).
 
 **1. Activate BytePlus ModelArk Service:**
 
 - Visit [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - Activate the model service
 
-**2. Obtain Volcano Engine Access Credentials:**
+**2. Obtain BytePlus Access Credentials:**
 
 - Refer to [User Guide](https://www.volcengine.com/docs/6291/65568?lang=zh) to obtain AK/SK
 

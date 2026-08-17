@@ -31,8 +31,8 @@ SkillEnv example (CreateSession injects MODEL_AGENT_* variables):
     --prompt "你有哪些技能" \
     --model-api-key "$MODEL_API_KEY" \
     --model-provider openai \
-    --model-name doubao-seed-2-0-lite-260428 \
-    --model-base-url https://ark.cn-beijing.volces.com/api/v3
+    --model-name dola-seed-2-1-turbo-260628 \
+    --model-base-url https://ark.ap-southeast.bytepluses.com/api/v3
 """
 
 from __future__ import annotations

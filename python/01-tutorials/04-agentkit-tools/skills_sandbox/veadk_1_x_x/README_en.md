@@ -1,6 +1,6 @@
 # Skills Sandbox - Build a Skills-Capable Agent with VeADK and AgentKit
 
-Build a skills-capable Agent based on Volcengine VeADK and AgentKit.
+Build a skills-capable Agent based on VeADK and BytePlus AgentKit.
 
 ## Overview
 
@@ -23,7 +23,7 @@ AgentKit Runtime
 Skills Sandbox
     ├── VeADK Agent (conversation engine)
     ├── ShortTermMemory (session memory)
-    └── Volcengine Ark model (LLM)
+    └── BytePlus ModelArk model (LLM)
 ```
 
 ### Core Components
@@ -53,14 +53,14 @@ skills_sandbox/veadk-1.x.x/
 
 ### Prerequisites
 
-**1. Enable the Volcengine Ark model service:**
+**1. Enable the BytePlus ModelArk service:**
 
-- Visit the [Volcengine Ark console](https://exp.volcengine.com/ark?mode=chat).
+- Visit the [BytePlus ModelArk console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview).
 - Enable the model service.
 
-**2. Obtain Volcengine access credentials:**
+**2. Obtain BytePlus access credentials:**
 
-- Refer to the [user guide](https://www.volcengine.com/docs/6291/65568?lang=en) to obtain an AK/SK.
+- Create an AK/SK in the [BytePlus console](https://console.byteplus.com).
 
 ### Install Dependencies
 
@@ -112,9 +112,11 @@ export AGENTKIT_TOOL_ID=<Your_Tool_ID>
 # Configure the AgentKit Skill Space ID (required; use the ID beginning with ss-)
 export SKILL_SPACE_ID=<Your_Skill_Space_ID>
 
-# Volcengine access credentials (required)
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
+# BytePlus access credentials (required)
+export BYTEPLUS_ACCESS_KEY=<Your Access Key>
+export BYTEPLUS_SECRET_KEY=<Your Secret Key>
+export CLOUD_PROVIDER=byteplus
+export BYTEPLUS_REGION=ap-southeast-1
 ```
 
 `agent.py` reads the remote Skill Space from `SKILL_SPACE_ID`. Set it before starting the local service; otherwise, the remote Skill Registry cannot be initialized.
@@ -151,16 +153,16 @@ uv run client.py
 
 ### Prerequisites
 
-**Important:** Before running this example, visit the [AgentKit console authorization page](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) to authorize all dependent services and ensure the example can run properly.
+**Important:** Before running this example, authorize all dependent services in the [BytePlus AgentKit console](https://console.byteplus.com/agentkit).
 
-**1. Enable the Volcengine Ark model service:**
+**1. Enable the BytePlus ModelArk service:**
 
-- Visit the [Volcengine Ark console](https://exp.volcengine.com/ark?mode=chat).
+- Visit the [BytePlus ModelArk console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview).
 - Enable the model service.
 
-**2. Obtain Volcengine access credentials:**
+**2. Obtain BytePlus access credentials:**
 
-- Refer to the [user guide](https://www.volcengine.com/docs/6291/65568?lang=en) to obtain an AK/SK.
+- Create an AK/SK in the [BytePlus console](https://console.byteplus.com).
 
 **3. Create an AgentKit tool:**
 
@@ -174,9 +176,11 @@ uv run client.py
 # AgentKit Skill Space ID (required; use the ID beginning with ss-)
 export SKILL_SPACE_ID=<Your_Skill_Space_ID>
 
-# Volcengine access credentials (required)
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
+# BytePlus access credentials (required)
+export BYTEPLUS_ACCESS_KEY=<Your Access Key>
+export BYTEPLUS_SECRET_KEY=<Your Secret Key>
+export CLOUD_PROVIDER=byteplus
+export BYTEPLUS_REGION=ap-southeast-1
 ```
 
 ### Deploy to AgentKit Cloud

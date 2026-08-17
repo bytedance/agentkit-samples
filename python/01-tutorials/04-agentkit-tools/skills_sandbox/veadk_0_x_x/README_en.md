@@ -58,7 +58,7 @@ skills_sandbox/veadk-0.x.x/
 - Visit the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - Activate the model service
 
-**2. Obtain Volcengine Access Credentials:**
+**2. Obtain BytePlus Access Credentials:**
 
 - Refer to the [User Guide](https://www.volcengine.com/docs/6291/65568?lang=en) to get AK/SK
 
@@ -111,9 +111,11 @@ export SKILL_SPACE_ID=<Your_Skill_Space_ID>
 # Configure Skill Space ID (optional, but recommended)
 export AGENTKIT_TOOL_ID=<Your_Tool_ID>
 
-# Volcengine Access Credentials (required)
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
+# BytePlus Access Credentials (required)
+export BYTEPLUS_ACCESS_KEY=<Your Access Key>
+export BYTEPLUS_SECRET_KEY=<Your Secret Key>
+export CLOUD_PROVIDER=byteplus
+export BYTEPLUS_REGION=ap-southeast-1
 ```
 
 ### Debugging Method
@@ -148,14 +150,14 @@ uv run client.py
 
 ### Prerequisites
 
-**Important Note**: Before running this example, please visit the [AgentKit Console Authorization Page](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) to authorize all dependent services to ensure the example can run correctly.
+**Important Note**: Before running this example, authorize all dependent services in the [BytePlus AgentKit Console](https://console.byteplus.com/agentkit).
 
 **1. Activate BytePlus ModelArk Service:**
 
 - Visit the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - Activate the model service
 
-**2. Obtain Volcengine Access Credentials:**
+**2. Obtain BytePlus Access Credentials:**
 
 - Refer to the [User Guide](https://www.volcengine.com/docs/6291/65568?lang=en) to get AK/SK
 
@@ -168,9 +170,11 @@ uv run client.py
 **4. Set Environment Variables:**
 
 ```bash
-# Volcengine Access Credentials (required)
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
+# BytePlus Access Credentials (required)
+export BYTEPLUS_ACCESS_KEY=<Your Access Key>
+export BYTEPLUS_SECRET_KEY=<Your Secret Key>
+export CLOUD_PROVIDER=byteplus
+export BYTEPLUS_REGION=ap-southeast-1
 ```
 
 ### AgentKit Cloud Deployment

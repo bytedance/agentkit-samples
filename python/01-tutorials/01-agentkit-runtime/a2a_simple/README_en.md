@@ -149,7 +149,7 @@ def roll_die(sides: int, tool_context: ToolContext) -> int:
 - Visit the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - Activate the model service
 
-**2. Obtain Volcano Engine Access Credentials:**
+**2. Obtain BytePlus Access Credentials:**
 
 - Refer to the [User Guide](https://www.volcengine.com/docs/6291/65568?lang=en) to get your AK/SK
 
@@ -189,8 +189,10 @@ uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
 ```bash
 # Volcano Engine access credentials (required)
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
+export BYTEPLUS_ACCESS_KEY=<Your Access Key>
+export BYTEPLUS_SECRET_KEY=<Your Secret Key>
+export CLOUD_PROVIDER=byteplus
+export BYTEPLUS_REGION=ap-southeast-1
 ```
 
 ### Debugging Methods
@@ -234,14 +236,14 @@ python local_client.py
 
 ### Prerequisites
 
-**Important Note**: Before running this example, please visit the [AgentKit Console Authorization Page](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) to authorize all dependent services to ensure the case can execute normally.
+**Important Note**: Before running this example, authorize all dependent services in the [BytePlus AgentKit Console](https://console.byteplus.com/agentkit).
 
 **1. Activate BytePlus ModelArk Service:**
 
 - Visit the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - Activate the model service
 
-**2. Obtain Volcano Engine Access Credentials:**
+**2. Obtain BytePlus Access Credentials:**
 
 - Refer to the [User Guide](https://www.volcengine.com/docs/6291/65568?lang=en) to get your AK/SK
 
