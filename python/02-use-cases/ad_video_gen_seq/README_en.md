@@ -37,9 +37,9 @@ The system exposes one Root Agent and orchestrates the following sub-agents in s
 
 | Related Service | Description | Pricing |
 | --- | --- | --- |
-| [Doubao-Seed-1.6](https://docs.byteplus.com/en/docs/ModelArk/1108216) | Understands user inputs and converts them into tool calls. | [Model details and pricing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
-| [Doubao-Seedance 2.0](https://docs.byteplus.com/en/docs/ModelArk/1108216) | Converts images and text descriptions into videos. | [Model details and pricing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
-| [Doubao-Seedream 5.0 pro](https://docs.byteplus.com/en/docs/ModelArk/1108216) | Generates images from text or reference images. | [Model details and pricing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
+| [Dola Seed](https://docs.byteplus.com/en/docs/ModelArk/1108216) | Understands user inputs and converts them into tool calls. | [Model details and pricing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
+| [Dreamina Seedance 2.0](https://docs.byteplus.com/en/docs/ModelArk/1108216) | Converts images and text descriptions into videos. | [Model details and pricing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
+| [Dola Seedream 5.0 pro](https://docs.byteplus.com/en/docs/ModelArk/1108216) | Generates images from text or reference images. | [Model details and pricing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
 
 ## Run Locally
 
@@ -76,11 +76,14 @@ source .venv/bin/activate
 
 #### 2. Configure environment variables
 
-Create `config.yaml` by following `config.yaml.example`, and fill in required secrets (models, AK/SK, TOS bucket, etc.).
+Create `config.yaml` from the BytePlus profile and fill in the required ModelArk API keys. The existing `config.yaml.example` contains the Volcengine profile used by the Chinese README.
 
 ```bash
 # Copy the config file
-cp config.yaml.example config.yaml
+cp config.byteplus.yaml.example config.yaml
+
+export CLOUD_PROVIDER=byteplus
+export BYTEPLUS_REGION=ap-southeast-1
 ```
 
 Key fields in `config.yaml` include:
@@ -88,10 +91,10 @@ Key fields in `config.yaml` include:
 - `model.agent.*`: model configuration for text understanding / planning / evaluation
 - `model.agent.image.*`: model configuration for image generation
 - `model.agent.video.*`: model configuration for video generation
-- `volcengine.access_key` / `volcengine.secret_key`: used for TOS upload authentication
+- `volcengine.access_key` / `volcengine.secret_key`: optional, used only when uploading to an existing Volcengine TOS bucket
 - `database.tos.bucket`: bucket name used to store generated videos, images, and other artifacts
   - You can set the bucket to `agentkit-platform-{{your_account_id}}`
-  - Replace `{{your_account_id}}` with your Volcengine account ID
+  - Replace `{{your_account_id}}` with your storage account ID
   - Example: `DATABASE_TOS_BUCKET=agentkit-platform-12345678901234567890`
 
 #### 3. Local debugging
@@ -125,8 +128,10 @@ python debug.py
 Set related environment variables before deployment:
 
 ```bash
-export VOLCENGINE_ACCESS_KEY={your_ak}
-export VOLCENGINE_SECRET_KEY={your_sk}
+export BYTEPLUS_ACCESS_KEY={your_ak}
+export BYTEPLUS_SECRET_KEY={your_sk}
+export CLOUD_PROVIDER=byteplus
+export BYTEPLUS_REGION=ap-southeast-1
 ```
 
 Deploy to runtime:
@@ -163,7 +168,8 @@ User input → Marketing planning → Storyboard generation → Image generation
 │   ├── video/                # Video generation (supports batch)
 │   ├── release/              # Video stitching and upload
 │   └── utils.py              # URL-code mapping, TOS upload, shared utilities
-├── config.yaml.example       # Example config
+├── config.yaml.example       # Volcengine example config
+├── config.byteplus.yaml.example # BytePlus example config
 ├── debug.py                  # Local debug script (does not start server)
 ├── model.py                  # Agent Model
 ├── main.py                   # Local service entry (AgentkitAgentServerApp)

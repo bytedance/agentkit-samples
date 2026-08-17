@@ -22,8 +22,10 @@ import random
 from typing import Dict, List, Optional
 
 from google.adk.tools import ToolContext
+from video_breakdown_agent.utils.model_config import get_model_service_defaults
 
 logger = logging.getLogger(__name__)
+MODEL_DEFAULTS = get_model_service_defaults()
 
 # ==================== Skill方案知识库 ====================
 
@@ -437,7 +439,7 @@ async def extract_script_features(segment: Dict, bgm_info: Optional[Dict]) -> Di
         from video_breakdown_agent.utils.doubao_client import call_doubao_text
 
         response = await call_doubao_text(
-            model=os.getenv("MODEL_AGENT_NAME", "doubao-seed-1-6-251015"),
+            model=os.getenv("MODEL_AGENT_NAME", MODEL_DEFAULTS.agent_model),
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message},
@@ -663,7 +665,7 @@ async def generate_final_prompt(
         from video_breakdown_agent.utils.doubao_client import call_doubao_text
 
         response = await call_doubao_text(
-            model=os.getenv("MODEL_AGENT_NAME", "doubao-seed-1-6-251015"),
+            model=os.getenv("MODEL_AGENT_NAME", MODEL_DEFAULTS.agent_model),
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message},
@@ -731,7 +733,7 @@ async def generate_single_stage_llm_prompt(
     from video_breakdown_agent.utils.doubao_client import call_doubao_text
 
     response = await call_doubao_text(
-        model=os.getenv("MODEL_AGENT_NAME", "doubao-seed-1-6-251015"),
+        model=os.getenv("MODEL_AGENT_NAME", MODEL_DEFAULTS.agent_model),
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_message},

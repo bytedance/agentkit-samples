@@ -8,21 +8,19 @@
 import argparse
 import json
 import logging
-import os
 import re
 from typing import Optional
 
 import requests
 
 from ark_auth import get_ark_authorization
+from model_service import get_video_api_base, get_video_model
 
 logger = logging.getLogger(__name__)
 
 _VALID_DURATIONS = set(range(4, 16))
-_API_URL = "https://ark.cn-beijing.volces.com/api/v3/contents/generations/tasks"
-_MODEL = os.environ.get("DEFAULT_VIDEO_MODEL_NAME") or os.environ.get(
-    "MODEL_VIDEO_NAME"
-)
+_API_URL = f"{get_video_api_base().rstrip('/')}/contents/generations/tasks"
+_MODEL = get_video_model()
 
 
 def _get_auth() -> str:

@@ -30,7 +30,7 @@ BREAKDOWN_AGENT_INSTRUCTION = """
    - 输出：视频元数据、分段信息、关键帧 URL、ASR 语音识别文本
    - 注意：需要本机安装 FFmpeg
 
-2. **analyze_segments_vision** — 视觉分析（doubao-vision）
+2. **analyze_segments_vision** — 多模态视觉分析
    - 输入：自动从 session state 读取 process_video 的输出（无需手动传参）
    - 输出：每个分镜的景别、运镜、画面内容、功能标签等
 

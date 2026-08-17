@@ -13,13 +13,16 @@ from veadk.agents.sequential_agent import SequentialAgent
 
 from video_breakdown_agent.hook.format_hook import soft_fix_hook_output
 from video_breakdown_agent.tools.analyze_hook_segments import analyze_hook_segments
+from video_breakdown_agent.utils.model_config import get_model_service_defaults
 from video_breakdown_agent.utils.types import json_response_config
 from .prompt import HOOK_ANALYZER_INSTRUCTION, HOOK_FORMAT_INSTRUCTION
+
+MODEL_DEFAULTS = get_model_service_defaults()
 
 # 第一阶段：多模态视觉分析（使用 vision 模型）
 hook_analysis_agent = Agent(
     name="hook_analysis_agent",
-    model_name=os.getenv("MODEL_VISION_NAME", "doubao-seed-1-6-vision-250815"),
+    model_name=os.getenv("MODEL_VISION_NAME", MODEL_DEFAULTS.vision_model),
     description="对视频前三秒分镜进行深度钩子分析，具备视觉分析能力，可直接观察关键帧图片进行专业评估",
     instruction=HOOK_ANALYZER_INSTRUCTION,
     tools=[analyze_hook_segments],

@@ -17,16 +17,15 @@ from typing import Dict, List, Optional
 import aiohttp
 from google.adk.tools import ToolContext
 from veadk.config import getenv, settings
-from veadk.consts import DEFAULT_VIDEO_MODEL_API_BASE
+
+from video_breakdown_agent.utils.model_config import get_model_service_defaults
 
 logger = logging.getLogger(__name__)
 
-# 默认视频生成模型（按场景区分）
-# I2V（图生视频）：doubao-seedance-2-0-260128，支持首尾帧、有声视频、adaptive比例
-# T2V（文生视频）：doubao-seedance-1-0-pro-250528，纯文本生成
-# Lite（轻量图生视频）：doubao-seedance-1-0-lite-i2v-250428，参考图
-DEFAULT_VIDEO_MODEL = "doubao-seedance-2-0-260128"  # i2v 默认
-DEFAULT_VIDEO_MODEL_T2V = "doubao-seedance-1-0-pro-250528"  # t2v 默认
+_MODEL_DEFAULTS = get_model_service_defaults()
+DEFAULT_VIDEO_MODEL_API_BASE = _MODEL_DEFAULTS.api_base
+DEFAULT_VIDEO_MODEL = _MODEL_DEFAULTS.video_model
+DEFAULT_VIDEO_MODEL_T2V = _MODEL_DEFAULTS.video_text_model
 
 # Doubao-Seedance 系列合法时长（秒），超出范围自动 snap 到最近合法值
 _VALID_DURATIONS = [5, 10]
@@ -152,11 +151,9 @@ def validate_video_model_config() -> tuple[bool, str]:
             "2. MODEL_AGENT_API_KEY（通用API Key）\n\n"
             "示例配置：\n"
             "export MODEL_VIDEO_API_KEY='your_api_key_here'\n\n"
-            "💡 提示：视频生成功能需要 Doubao-Seedance 模型权限\n"
-            "  支持的模型：\n"
-            "  - doubao-seedance-2-0-260128 (推荐，支持首尾帧/音频)\n"
-            "  - doubao-seedance-1-0-pro-250528 (标准版)\n"
-            "  - doubao-seedance-1-0-lite-i2v-250428 (图生视频)"
+            "💡 提示：请在当前区域的模型服务中开通视频生成模型：\n"
+            f"  - {DEFAULT_VIDEO_MODEL} (图生视频)\n"
+            f"  - {DEFAULT_VIDEO_MODEL_T2V} (文生视频)"
         )
 
     # 检查Base URL
@@ -165,7 +162,7 @@ def validate_video_model_config() -> tuple[bool, str]:
         return False, (
             "❌ 视频生成API Base URL未配置！\n\n"
             "请配置环境变量：\n"
-            "export MODEL_VIDEO_API_BASE='https://ark.cn-beijing.volces.com/api/v3'\n"
+            f"export MODEL_VIDEO_API_BASE='{DEFAULT_VIDEO_MODEL_API_BASE}'\n"
         )
 
     # 获取模型名称（使用默认值）
@@ -293,7 +290,7 @@ async def generate_single_video(
                 }
             )
 
-    # Doubao-Seedance 系列模型只接受 5 或 10 秒两个合法时长，自动 snap
+    # 当前示例使用的视频模型只接受 5 或 10 秒，超出范围时自动调整。
     raw_duration = int(duration)
     valid_duration = _snap_duration(raw_duration)
     if valid_duration != raw_duration:
@@ -302,9 +299,7 @@ async def generate_single_video(
             f"已自动调整为 {valid_duration}s（合法值：5 或 10）"
         )
 
-    # 根据是否有图片内容自动选择模型
-    # - 有图片 (i2v)：优先 doubao-seedance-2-0-260128
-    # - 纯文本 (t2v)：优先 doubao-seedance-1-0-pro-250528
+    # 根据是否有图片内容选择当前区域对应的 I2V/T2V 默认模型。
     has_image = any(item.get("type") == "image_url" for item in content)
     if configured_model:
         model = configured_model

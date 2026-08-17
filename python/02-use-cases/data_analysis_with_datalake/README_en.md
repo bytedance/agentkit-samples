@@ -103,10 +103,19 @@ streamlit run web/app.py
 Edit the `data_analysis_with_datalake/settings.txt` file and optionally configure the following, or export these environment variables instead.
 
 ```text
+CLOUD_PROVIDER=byteplus
+BYTEPLUS_REGION=ap-southeast-1
 MODEL_AGENT_API_KEY=your_api_key_here
+ARK_BASE_URL=https://ark.ap-southeast.bytepluses.com/api/v3
+ARK_TEXT_EMBEDDING_MODEL=skylark-embedding-vision-251215
+ARK_MULTIMODAL_EMBEDDING_MODEL=skylark-embedding-vision-251215
 VOLCENGINE_ACCESS_KEY=your_ak
 VOLCENGINE_SECRET_KEY=your_sk
 ```
+
+The `VOLCENGINE_*` credentials above are only used by this hybrid example to
+access its existing Volcengine TOS dataset. Model inference uses BytePlus
+ModelArk according to `CLOUD_PROVIDER` and `BYTEPLUS_REGION`.
 
 ### Deploying via Command Line
 

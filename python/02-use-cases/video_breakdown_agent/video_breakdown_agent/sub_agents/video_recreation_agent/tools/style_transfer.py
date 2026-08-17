@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import re
 from typing import Dict, Optional
 
@@ -13,8 +14,10 @@ from google.adk.tools import ToolContext
 from video_breakdown_agent.utils.doubao_client import (
     call_doubao_vision,
 )  # 复用现有LLM调用
+from video_breakdown_agent.utils.model_config import get_model_service_defaults
 
 logger = logging.getLogger(__name__)
+MODEL_DEFAULTS = get_model_service_defaults()
 
 
 def smart_replace_keywords(
@@ -130,16 +133,16 @@ async def llm_assisted_transfer(
     user_message += "\n请输出迁移后的提示词："
 
     try:
-        # 调用LLM（复用现有的doubao_client）
+        # 调用当前区域的 ModelArk 兼容接口。
         response = await call_doubao_vision(
-            model_name="doubao-seed",  # 使用主推理模型
-            system_instruction=system_instruction,
-            prompt=user_message,
-            images=[],  # 纯文本任务，无需图片
+            model=os.getenv("MODEL_VISION_NAME", MODEL_DEFAULTS.vision_model),
+            messages=[
+                {"role": "system", "content": system_instruction},
+                {"role": "user", "content": user_message},
+            ],
         )
 
-        # 提取响应文本
-        new_prompt = response.strip()
+        new_prompt = response["choices"][0]["message"]["content"].strip()
 
         # 验证：确保关键元素被保留
         if preserve_camera and "镜头" not in new_prompt and "镜头" in original_prompt:

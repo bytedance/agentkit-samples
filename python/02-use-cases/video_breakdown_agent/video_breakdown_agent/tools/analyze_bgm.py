@@ -15,8 +15,10 @@ from typing import Any, Dict
 
 from google.adk.tools import ToolContext
 from video_breakdown_agent.utils.doubao_client import call_doubao_text
+from video_breakdown_agent.utils.model_config import get_model_service_defaults
 
 logger = logging.getLogger(__name__)
+MODEL_DEFAULTS = get_model_service_defaults()
 
 # ==================== 枚举常量（来自 bgm_prompts.py）====================
 
@@ -133,7 +135,7 @@ async def analyze_bgm(
     model_name = (
         os.getenv("MODEL_BGM_NAME")
         or os.getenv("BGM_MODEL_NAME")
-        or os.getenv("MODEL_AGENT_NAME", "doubao-seed-1-6-251015")
+        or os.getenv("MODEL_AGENT_NAME", MODEL_DEFAULTS.agent_model)
     )
     api_key = (
         os.getenv("MODEL_BGM_API_KEY")

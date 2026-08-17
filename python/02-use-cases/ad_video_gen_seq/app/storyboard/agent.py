@@ -26,7 +26,6 @@ from app.model import ArkLlm
 def get_storyboard_agent():
     storyboard_agent = Agent(
         name="storyboard_agent",
-        # model_name="doubao-seed-1-6-251015",
         enable_responses=True,
         description="根据视频配置脚本，生成分镜脚本",
         instruction=PROMPT_STORYBOARD_AGENT,

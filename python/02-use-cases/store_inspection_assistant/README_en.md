@@ -27,7 +27,7 @@ Main BytePlus products or Agent components:
 
 - Large Language Models:
   - deepseek-v4-pro-260425
-  - doubao-seed-2-0-pro-260215
+  - dola-seed-2-1-turbo-260628
 - Custom Tools
 - Identity
 - APMPlus
@@ -85,7 +85,7 @@ Main BytePlus products or Agent components:
    - Confirm activation and wait for the service to become effective (usually 1-2 minutes).
    - Activate the following models used in this case (you can also activate other models' pre-built inference endpoints as needed and specify them in the `agent.py` code):
      - `deepseek-v4-pro-260425`
-     - `doubao-seed-2-0-pro-260215`
+     - `dola-seed-2-1-turbo-260628`
    - As shown below:
      ![ModelArk Service Management](../../assets/images/ark_model_service_management.jpg)
 

@@ -9,14 +9,37 @@ from volcenginesdkarkruntime import Ark
 
 console = Console()
 
+provider = os.getenv("CLOUD_PROVIDER", "").strip().lower()
+is_byteplus = provider == "byteplus" or (
+    not provider and bool(os.getenv("BYTEPLUS_REGION"))
+)
+default_ark_base_url = (
+    "https://ark.ap-southeast.bytepluses.com/api/v3"
+    if is_byteplus
+    else "https://ark.cn-beijing.volces.com/api/v3"
+)
+
 # Ark configuration read from environment
 MODEL_AGENT_API_KEY = os.getenv("MODEL_AGENT_API_KEY")
-ARK_BASE_URL = os.getenv("ARK_BASE_URL", "https://ark.cn-beijing.volces.com/api/v3")
+ARK_BASE_URL = os.getenv("ARK_BASE_URL", default_ark_base_url)
 ARK_TEXT_EMBEDDING_MODEL = os.getenv(
-    "ARK_TEXT_EMBEDDING_MODEL", "doubao-embedding-large-text-250515"
+    "ARK_TEXT_EMBEDDING_MODEL",
+    (
+        "skylark-embedding-vision-251215"
+        if is_byteplus
+        else "doubao-embedding-large-text-250515"
+    ),
 )
 ARK_MULTIMODAL_EMBEDDING_MODEL = os.getenv(
-    "ARK_MODEL_ID", "doubao-embedding-vision-251215"
+    "ARK_MULTIMODAL_EMBEDDING_MODEL",
+    os.getenv(
+        "ARK_MODEL_ID",
+        (
+            "skylark-embedding-vision-251215"
+            if is_byteplus
+            else "doubao-embedding-vision-251215"
+        ),
+    ),
 )
 
 # Cached clients
@@ -74,11 +97,25 @@ def get_ark_client() -> Tuple[Optional[Ark], Optional[str]]:
 
 
 def get_text_embedding(text: str) -> Tuple[Optional[list], Optional[str]]:
-    """Get text embedding using Ark client."""
+    """获取与当前云厂商匹配的文本向量。
+
+    Function Purpose:
+        避免 BytePlus 环境调用国内方舟文本向量模型。
+
+    Implementation Logic:
+        国内继续使用标准文本 Embedding API；BytePlus 使用支持纯文本输入的
+        Skylark 多模态向量 API，并统一提取响应中的 dense embedding。
+    """
     client, error_msg = get_ark_client()
     if error_msg:
         return None, error_msg
     try:
+        if is_byteplus:
+            resp = client.multimodal_embeddings.create(
+                model=ARK_TEXT_EMBEDDING_MODEL,
+                input=[{"type": "text", "text": text}],
+            )
+            return _extract_multimodal_embedding(resp), None
         resp = client.embeddings.create(model=ARK_TEXT_EMBEDDING_MODEL, input=[text])
         return resp.data[0].embedding, None
     except Exception as e:
@@ -88,7 +125,7 @@ def get_text_embedding(text: str) -> Tuple[Optional[list], Optional[str]]:
 
 
 def get_multimodal_text_vector(text: str) -> Tuple[Optional[list], Optional[str]]:
-    """Get multimodal text vector using Ark client."""
+    """获取多模态检索使用的文本向量。"""
     client, error_msg = get_ark_client()
     if error_msg:
         return None, "MODEL_AGENT_API_KEY 未设置"
@@ -97,10 +134,26 @@ def get_multimodal_text_vector(text: str) -> Tuple[Optional[list], Optional[str]
             model=ARK_MULTIMODAL_EMBEDDING_MODEL,
             input=[{"type": "text", "text": text}],
         )
-        data = getattr(resp, "data", None)
-        if data is None:
-            return None, "Ark 返回为空"
-        vec = data[0].embedding if hasattr(data, "__getitem__") else data.embedding
-        return vec, None
+        return _extract_multimodal_embedding(resp), None
     except Exception as e:
         return None, f"Ark 向量化失败: {e}"
+
+
+def _extract_multimodal_embedding(response) -> list:
+    """从不同 SDK 版本的多模态响应中提取稠密向量。
+
+    Function Purpose:
+        兼容 data 为对象或列表的 Ark/ModelArk SDK 响应结构。
+
+    Implementation Logic:
+        校验 data 与 embedding 字段，列表结构读取首项，对象结构直接读取；
+        响应不完整时抛出明确错误并由调用方转换为工具错误。
+    """
+    data = getattr(response, "data", None)
+    if data is None:
+        raise ValueError("Ark 返回为空")
+    item = data[0] if isinstance(data, (list, tuple)) else data
+    embedding = getattr(item, "embedding", None)
+    if embedding is None:
+        raise ValueError("Ark 返回中缺少 embedding")
+    return embedding

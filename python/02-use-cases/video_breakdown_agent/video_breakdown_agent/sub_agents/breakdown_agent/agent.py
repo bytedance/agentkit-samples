@@ -18,7 +18,7 @@ breakdown_agent = Agent(
     name="breakdown_agent",
     description=(
         "负责视频分镜拆解：视频预处理（FFmpeg + ASR）、"
-        "视觉分析（doubao-vision）、BGM 分析。"
+        "多模态视觉分析、BGM 分析。"
         "支持URL链接和本地文件上传，输出完整分镜结构化数据。"
     ),
     instruction=BREAKDOWN_AGENT_INSTRUCTION,

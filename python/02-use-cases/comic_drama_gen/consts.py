@@ -19,14 +19,39 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_REGION = "cn-beijing"
 
-DEFAULT_MODEL_AGENT_NAME = "deepseek-v4-pro-260425"
-DEFAULT_MODEL_AGENT_API_BASE = "https://ark.cn-beijing.volces.com/api/v3/"
+_MODEL_SERVICE_DEFAULTS = {
+    "volcengine": {
+        "agent_name": "deepseek-v4-pro-260425",
+        "api_base": "https://ark.cn-beijing.volces.com/api/v3/",
+        "video_name": "doubao-seedance-2-0-260128",
+        "image_name": "doubao-seedream-5-0-pro-260628",
+    },
+    "byteplus": {
+        "agent_name": "deepseek-v4-pro-260425",
+        "api_base": "https://ark.ap-southeast.bytepluses.com/api/v3/",
+        "video_name": "dreamina-seedance-2-0-260128",
+        "image_name": "dola-seedream-5-0-pro-260628",
+    },
+}
 
-DEFAULT_VIDEO_MODEL_NAME = "doubao-seedance-2-0-260128"
-DEFAULT_VIDEO_MODEL_API_BASE = "https://ark.cn-beijing.volces.com/api/v3/"
 
-DEFAULT_IMAGE_GENERATE_MODEL_NAME = "doubao-seedream-5-0-pro-260628"
-DEFAULT_IMAGE_GENERATE_MODEL_API_BASE = "https://ark.cn-beijing.volces.com/api/v3/"
+def _resolve_cloud_provider() -> str:
+    """解析当前模型服务所属云厂商。
+
+    Function Purpose:
+        为主 Agent 和 Skill 子进程选择一致的模型服务面。
+
+    Implementation Logic:
+        优先读取 CLOUD_PROVIDER，其次根据 BYTEPLUS_REGION 或地域前缀推断，
+        无区域信息时保持 volcengine 默认值。
+    """
+    provider = os.getenv("CLOUD_PROVIDER", "").strip().lower()
+    if provider in _MODEL_SERVICE_DEFAULTS:
+        return provider
+    if os.getenv("BYTEPLUS_REGION"):
+        return "byteplus"
+    region = os.getenv("VOLCENGINE_REGION", "").strip().lower()
+    return "byteplus" if region and not region.startswith("cn-") else "volcengine"
 
 
 def _load_dotenv():
@@ -55,26 +80,27 @@ def _load_dotenv():
 
 
 def set_veadk_environment_variables():
-    # 优先从 .env 文件加载环境变量（不覆盖已存在的变量）
+    """加载本地配置并填充区域化模型默认值。"""
     _load_dotenv()
+    defaults = _MODEL_SERVICE_DEFAULTS[_resolve_cloud_provider()]
 
     os.environ["MODEL_AGENT_NAME"] = os.getenv(
-        "MODEL_AGENT_NAME", DEFAULT_MODEL_AGENT_NAME
+        "MODEL_AGENT_NAME", defaults["agent_name"]
     )
     os.environ["MODEL_AGENT_API_BASE"] = os.getenv(
-        "MODEL_AGENT_API_BASE", DEFAULT_MODEL_AGENT_API_BASE
+        "MODEL_AGENT_API_BASE", defaults["api_base"]
     )
 
     os.environ["MODEL_VIDEO_NAME"] = os.getenv(
-        "MODEL_VIDEO_NAME", DEFAULT_VIDEO_MODEL_NAME
+        "MODEL_VIDEO_NAME", defaults["video_name"]
     )
     os.environ["MODEL_VIDEO_API_BASE"] = os.getenv(
-        "MODEL_VIDEO_API_BASE", DEFAULT_VIDEO_MODEL_API_BASE
+        "MODEL_VIDEO_API_BASE", defaults["api_base"]
     )
 
     os.environ["MODEL_IMAGE_NAME"] = os.getenv(
-        "MODEL_IMAGE_NAME", DEFAULT_IMAGE_GENERATE_MODEL_NAME
+        "MODEL_IMAGE_NAME", defaults["image_name"]
     )
     os.environ["MODEL_IMAGE_API_BASE"] = os.getenv(
-        "MODEL_IMAGE_API_BASE", DEFAULT_IMAGE_GENERATE_MODEL_API_BASE
+        "MODEL_IMAGE_API_BASE", defaults["api_base"]
     )

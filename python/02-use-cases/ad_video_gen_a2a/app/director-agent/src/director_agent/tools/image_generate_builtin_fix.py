@@ -18,6 +18,7 @@ import concurrent.futures
 import contextvars
 import json
 import mimetypes
+import os
 import traceback
 from typing import Dict
 
@@ -30,14 +31,26 @@ from volcenginesdkarkruntime.types.images.images import SequentialImageGeneratio
 
 from veadk.config import getenv, settings
 from veadk.consts import (
-    DEFAULT_IMAGE_GENERATE_MODEL_API_BASE,
-    DEFAULT_IMAGE_GENERATE_MODEL_NAME,
+    DEFAULT_IMAGE_GENERATE_MODEL_API_BASE as VEADK_IMAGE_API_BASE,
+    DEFAULT_IMAGE_GENERATE_MODEL_NAME as VEADK_IMAGE_MODEL,
 )
 from veadk.utils.logger import get_logger
 from veadk.utils.misc import formatted_timestamp, read_file_to_bytes
 from veadk.version import VERSION
 
 logger = get_logger(__name__)
+
+_IS_BYTEPLUS = os.getenv("CLOUD_PROVIDER", "").lower() == "byteplus" or bool(
+    os.getenv("BYTEPLUS_REGION")
+)
+DEFAULT_IMAGE_GENERATE_MODEL_API_BASE = (
+    "https://ark.ap-southeast.bytepluses.com/api/v3"
+    if _IS_BYTEPLUS
+    else VEADK_IMAGE_API_BASE
+)
+DEFAULT_IMAGE_GENERATE_MODEL_NAME = (
+    "dola-seedream-5-0-pro-260628" if _IS_BYTEPLUS else VEADK_IMAGE_MODEL
+)
 
 client = Ark(
     api_key=getenv(

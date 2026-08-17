@@ -68,15 +68,15 @@ Comic Drama Master (comic_drama_master)
 
 ### Prerequisites
 
-#### Volcano Engine Access Credentials
+#### BytePlus Access Credentials
 
-1. Log in to the [Volcano Engine Console](https://console.volcengine.com)
+1. Log in to the [BytePlus Console](https://console.byteplus.com)
 2. Go to "Access Control" → "Users" → Create a new user → Enter "Keys" → Create a new key to obtain AK/SK
 3. For local or Docker debugging, go to the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview) → "API Key Management" → Create an API Key. AgentKit cloud deployment can obtain an Ark token from runtime identity.
 4. Activate the following pre-built inference endpoints:
    - Agent model: `deepseek-v4-pro-260425`
-   - Image generation model: `doubao-seedream-5-0-pro-260628`
-   - Video generation model: `doubao-seedance-2-0-260128`
+   - Image generation model: `dola-seedream-5-0-pro-260628`
+   - Video generation model: `dreamina-seedance-2-0-260128`
 
 #### Node.js Environment
 
@@ -109,15 +109,17 @@ Two methods are supported:
 Create a `.env` file in the `comic_drama_gen/` directory:
 
 ```bash
-VOLCENGINE_ACCESS_KEY=your_ak
-VOLCENGINE_SECRET_KEY=your_sk
+BYTEPLUS_ACCESS_KEY=your_ak
+BYTEPLUS_SECRET_KEY=your_sk
+CLOUD_PROVIDER=byteplus
+BYTEPLUS_REGION=ap-southeast-1
 DATABASE_TOS_BUCKET=your_tos_bucket_name
 
 # Optional
 ARK_API_KEY=your_ark_api_key
 COMIC_DRAMA_OUTPUT_DIR=./my-comic-drama
 VIDEO_DURATION_MINUTES=0.5
-DEFAULT_VIDEO_MODEL_NAME=doubao-seedance-2-0-260128
+DEFAULT_VIDEO_MODEL_NAME=dreamina-seedance-2-0-260128
 ```
 
 > The `.env` file is automatically loaded at startup (via `python-dotenv` or the built-in parser) and will not override existing exported environment variables.
@@ -126,8 +128,10 @@ DEFAULT_VIDEO_MODEL_NAME=doubao-seedance-2-0-260128
 
 ```bash
 # Required
-export VOLCENGINE_ACCESS_KEY=your_ak
-export VOLCENGINE_SECRET_KEY=your_sk
+export BYTEPLUS_ACCESS_KEY=your_ak
+export BYTEPLUS_SECRET_KEY=your_sk
+export CLOUD_PROVIDER=byteplus
+export BYTEPLUS_REGION=ap-southeast-1
 
 # TOS bucket (for uploading generated videos)
 export DATABASE_TOS_BUCKET=your_tos_bucket_name
@@ -136,20 +140,20 @@ export DATABASE_TOS_BUCKET=your_tos_bucket_name
 export ARK_API_KEY=your_ark_api_key
 export COMIC_DRAMA_OUTPUT_DIR=./my-comic-drama
 export VIDEO_DURATION_MINUTES=0.5
-export DEFAULT_VIDEO_MODEL_NAME=doubao-seedance-2-0-260128
+export DEFAULT_VIDEO_MODEL_NAME=dreamina-seedance-2-0-260128
 ```
 
 **Environment Variables Reference:**
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `VOLCENGINE_ACCESS_KEY` | ✅ | — | Volcano Engine access key |
-| `VOLCENGINE_SECRET_KEY` | ✅ | — | Volcano Engine secret key |
+| `BYTEPLUS_ACCESS_KEY` | ✅ | — | BytePlus access key |
+| `BYTEPLUS_SECRET_KEY` | ✅ | — | BytePlus secret key |
 | `ARK_API_KEY` | ❌ | Cloud identity token | BytePlus ModelArk API key. Recommended for local or Docker debugging; AgentKit cloud deployment can obtain it from runtime identity. |
 | `DATABASE_TOS_BUCKET` | ✅ | — | TOS bucket name |
 | `COMIC_DRAMA_OUTPUT_DIR` | ❌ | `output/` under project dir | Output root directory |
 | `VIDEO_DURATION_MINUTES` | ❌ | `0.5` | Video duration in minutes, supports 0.5/1/2/3/4 (0.5 = 30s) |
-| `DEFAULT_VIDEO_MODEL_NAME` | ❌ | `doubao-seedance-2-0-260128` | Video generation model name |
+| `DEFAULT_VIDEO_MODEL_NAME` | ❌ | `dreamina-seedance-2-0-260128` | Video generation model name |
 
 ### Local Execution
 

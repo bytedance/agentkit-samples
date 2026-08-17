@@ -36,8 +36,8 @@ The system exposes one Root Agent. Internally, the Prompt constraints and tool c
 | Related Service | Description | Pricing |
 | --- | --- | --- |
 | DeepSeek V4 Pro (`deepseek-v4-pro-260425`) | Understands user input, plans the marketing story, and converts it into tool calls. | [Model details and pricing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
-| Doubao Seedream 5.0 pro (`doubao-seedream-5-0-pro-260628`) | Generates the 2x2 marketing story reference image from text or product image references. | [Model details and pricing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
-| Doubao Seedance 2.0 (`doubao-seedance-2-0-260128`) | Generates the marketing short video from the 2x2 reference image and video description. | [Model details and pricing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
+| Dola Seedream 5.0 pro (`dola-seedream-5-0-pro-260628`) | Generates the 2x2 marketing story reference image from text or product image references. | [Model details and pricing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
+| Dreamina Seedance 2.0 (`dreamina-seedance-2-0-260128`) | Generates the marketing short video from the 2x2 reference image and video description. | [Model details and pricing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
 
 ## Run Locally
 
@@ -77,19 +77,22 @@ source .venv/bin/activate
 For local debugging, configure models and API keys directly through environment variables.
 
 ```bash
+export CLOUD_PROVIDER=byteplus
+export BYTEPLUS_REGION=ap-southeast-1
+
 # Main model
 export MODEL_AGENT_NAME=deepseek-v4-pro-260425
-export MODEL_AGENT_API_BASE=https://ark.cn-beijing.volces.com/api/v3/
+export MODEL_AGENT_API_BASE=https://ark.ap-southeast.bytepluses.com/api/v3/
 export MODEL_AGENT_API_KEY=<Your Ark API Key>
 
 # Image generation model
-export MODEL_IMAGE_NAME=doubao-seedream-5-0-pro-260628
-export MODEL_IMAGE_API_BASE=https://ark.cn-beijing.volces.com/api/v3/
+export MODEL_IMAGE_NAME=dola-seedream-5-0-pro-260628
+export MODEL_IMAGE_API_BASE=https://ark.ap-southeast.bytepluses.com/api/v3/
 export MODEL_IMAGE_API_KEY=<Your Ark API Key>
 
 # Video generation model
-export MODEL_VIDEO_NAME=doubao-seedance-2-0-260128
-export MODEL_VIDEO_API_BASE=https://ark.cn-beijing.volces.com/api/v3/
+export MODEL_VIDEO_NAME=dreamina-seedance-2-0-260128
+export MODEL_VIDEO_API_BASE=https://ark.ap-southeast.bytepluses.com/api/v3/
 export MODEL_VIDEO_API_KEY=<Your Ark API Key>
 ```
 

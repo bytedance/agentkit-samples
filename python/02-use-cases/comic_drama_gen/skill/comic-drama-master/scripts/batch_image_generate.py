@@ -20,7 +20,7 @@
 
 环境变量:
     MODEL_IMAGE_API_KEY or ARK_API_KEY or MODEL_AGENT_API_KEY: Ark API key (optional, local debugging)
-    MODEL_IMAGE_NAME: Image model name (optional, default: doubao-seedream-5-0-pro-260628)
+    MODEL_IMAGE_NAME: Image model name (optional, inferred from cloud provider)
 
 用法:
     # 从 JSON 文件读取 prompts 列表，并行生成
@@ -40,10 +40,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional
 
 from ark_auth import get_ark_api_key
+from model_service import get_image_api_base, get_image_model
 from volcenginesdkarkruntime import Ark
-
-# Default model
-DEFAULT_MODEL = "doubao-seedream-5-0-pro-260628"
 
 # 最大并行数（避免 API rate limit）
 DEFAULT_MAX_WORKERS = 3
@@ -55,7 +53,7 @@ def _get_client() -> Ark:
     except RuntimeError as e:
         print(f"Error: {e}")
         sys.exit(1)
-    return Ark(api_key=api_key)
+    return Ark(api_key=api_key, base_url=get_image_api_base())
 
 
 def _generate_single(
@@ -197,7 +195,7 @@ def batch_image_generate(
         names = [f"{prefix}{i + 1:02d}{ext}" for i in range(len(prompts))]
 
     client = _get_client()
-    model = os.getenv("MODEL_IMAGE_NAME", DEFAULT_MODEL)
+    model = get_image_model()
 
     print(f"🎨 开始批量生成 {len(prompts)} 张图片（并行度: {max_workers}）...")
     start_time = time.time()

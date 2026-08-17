@@ -20,6 +20,15 @@ from veadk.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+_IS_BYTEPLUS = os.getenv("CLOUD_PROVIDER", "").lower() == "byteplus" or bool(
+    os.getenv("BYTEPLUS_REGION")
+)
+DEFAULT_VISION_MODEL = (
+    "dola-seed-2-1-turbo-260628"
+    if _IS_BYTEPLUS
+    else "doubao-seed-1-6-251015"
+)
+
 filter_agent_instructions = """
 你是一个专业的图片理解评论专家，你现在为一个电商营销视频策划方案服务支撑，
 你的工作是阅读你收到的图片，理解图片内容，给出详细的描述，
@@ -46,7 +55,7 @@ async def comment_image(image: str) -> dict[str, Any]:
         api_key=os.getenv("MODEL_AGENT_API_KEY"),
     )
     response = await client.responses.create(
-        model="doubao-seed-1-6-251015",
+        model=os.getenv("MODEL_VISION_NAME", DEFAULT_VISION_MODEL),
         instructions=filter_agent_instructions,
         input=[{"role": "user", "content": [image_part]}],
         extra_body={"thinking": {"type": "disabled"}},

@@ -26,9 +26,9 @@ The system includes 4 core agents, each with its own responsibilities:
 
 | Service | Description | Billing Information |
 | --- | --- | --- |
-| [Doubao-Seed-1.6](https://docs.byteplus.com/en/docs/ModelArk/1108216) | Responsible for understanding user information and converting it into tool calls. | [Model details and billing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
-| [Doubao-Seedance 2.0](https://docs.byteplus.com/en/docs/ModelArk/1108216) | Responsible for converting images and text descriptions into videos. | [Model details and billing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
-| [Doubao-Seedream 5.0 pro](https://docs.byteplus.com/en/docs/ModelArk/1108216) | Responsible for generating images based on text or reference images. | [Model details and billing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
+| [Dola Seed](https://docs.byteplus.com/en/docs/ModelArk/1108216) | Responsible for understanding user information and converting it into tool calls. | [Model details and billing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
+| [Dreamina Seedance 2.0](https://docs.byteplus.com/en/docs/ModelArk/1108216) | Responsible for converting images and text descriptions into videos. | [Model details and billing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
+| [Dola Seedream 5.0 pro](https://docs.byteplus.com/en/docs/ModelArk/1108216) | Responsible for generating images based on text or reference images. | [Model details and billing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
 
 ## Local Execution
 
@@ -60,7 +60,7 @@ uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
 #### 2. Configure environment variables
 
-This project contains multiple Agents, and each Agent requires separate configuration. Please refer to the `config.yaml.example` file to create a `config.yaml` for each Agent and fill in the necessary key information.
+This project contains multiple Agents, and each Agent requires separate configuration. Use `config.byteplus.yaml.example` for BytePlus. The existing `config.yaml.example` files contain the Volcengine model profile used by the Chinese README.
 
 Taking `director-agent` as an example:
 
@@ -69,10 +69,13 @@ Taking `director-agent` as an example:
 cd app/director-agent
 
 # Copy the configuration file
-cp config.yaml.example config.yaml
+cp config.byteplus.yaml.example config.yaml
+
+export CLOUD_PROVIDER=byteplus
+export BYTEPLUS_REGION=ap-southeast-1
 ```
 
-Then, edit the `config.yaml` file and fill in your BytePlus ModelArk API key, Volcano Engine AK/SK, and other information. Please repeat this operation for `market-agent`, `evaluate-agent`, `release-agent`, and `multimedia-agent`.
+Then, edit `config.yaml` and fill in your BytePlus ModelArk API key. Repeat this operation for `market-agent`, `evaluate-agent`, `release-agent`, and `multimedia-agent`. Set `CLOUD_PROVIDER=byteplus` and `BYTEPLUS_REGION=ap-southeast-1` before starting the Agents. Volcengine AK/SK is only needed by optional workflows that still access VikingDB, web search, or VOD.
 
 For specific configuration items, please refer to the <a target="_blank" href="https://github.com/volcengine/veadk-python/blob/main/config.yaml.full">veadk-python config.yaml configuration document</a>.
 

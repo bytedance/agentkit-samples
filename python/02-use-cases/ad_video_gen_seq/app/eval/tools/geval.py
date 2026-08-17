@@ -19,11 +19,11 @@ from typing import Any
 
 from openai import AsyncOpenAI
 from veadk.auth.veauth.ark_veauth import get_ark_token
-from veadk.consts import DEFAULT_MODEL_AGENT_API_BASE
 from veadk.utils.logger import get_logger
 
 from app.eval.prompt import PROMPT_EVALUATE_ITEM_AGENT
 from app.eval.schema import EvaluationList, ScoredImageList, ScoredVideoList
+from app.provider_config import get_evaluate_model, get_model_api_base
 from app.utils import url_shortener
 
 logger = get_logger(__name__)
@@ -142,13 +142,13 @@ async def evaluate_media(
     logger.debug(f"Repaired {media_type} list: messages={len(m_content)}")
     logger.info(f"media_list: \n\n {media_list} \n\n")
     client = AsyncOpenAI(
-        base_url=os.getenv("MODEL_AGENT_API_BASE") or DEFAULT_MODEL_AGENT_API_BASE,
+        base_url=os.getenv("MODEL_AGENT_API_BASE") or get_model_api_base(),
         api_key=os.getenv("MODEL_AGENT_API_KEY") or get_ark_token(),
     )
 
     async def process_message(msg):
         response = await client.responses.create(
-            model=os.getenv("MODEL_EVALUATE_NAME", "doubao-seed-1-6-251015"),
+            model=os.getenv("MODEL_EVALUATE_NAME", get_evaluate_model()),
             instructions=evaluate_agent_instruction,
             input=[msg],
             text={

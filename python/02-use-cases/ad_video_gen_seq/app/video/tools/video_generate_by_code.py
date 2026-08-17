@@ -84,8 +84,7 @@ async def video_generate(
 
     Model text commands (append after the prompt; unsupported keys are ignored by some models):
         --rs / --resolution <value>       Video resolution. Common values: 480p, 720p, 1080p.
-                                          Default depends on model (e.g., doubao-seedance-1-0-pro: 1080p,
-                                          some others default 720p).
+                                          Default depends on the selected regional video model.
 
         --rt / --ratio <value>            Aspect ratio. Typical: 16:9 (default), 9:16, 4:3, 3:4, 1:1, 2:1, 21:9.
                                           Some models support `keep_ratio` (keep source image ratio) or `adaptive`

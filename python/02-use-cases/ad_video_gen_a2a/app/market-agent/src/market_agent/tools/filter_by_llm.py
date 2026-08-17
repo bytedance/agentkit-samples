@@ -23,6 +23,15 @@ from veadk.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+_IS_BYTEPLUS = os.getenv("CLOUD_PROVIDER", "").lower() == "byteplus" or bool(
+    os.getenv("BYTEPLUS_REGION")
+)
+DEFAULT_VISION_MODEL = (
+    "dola-seed-2-1-turbo-260628"
+    if _IS_BYTEPLUS
+    else "doubao-seed-1-6-251015"
+)
+
 filter_agent_instructions = """
 你是一个专业的图片过滤器，服务于一个商品图片相关的任务
 你将收到一张图片输入，他来自于一个网页的链接，通过网页解析等机制解析下来的，
@@ -71,7 +80,7 @@ async def filter_images(image_list: list[str]) -> list[str]:
         async with sem:
             try:
                 response = await client.responses.create(
-                    model="doubao-seed-1-6-251015",
+                    model=os.getenv("MODEL_VISION_NAME", DEFAULT_VISION_MODEL),
                     instructions=filter_agent_instructions,
                     input=[{"role": "user", "content": [_input]}],
                     text={
@@ -101,7 +110,7 @@ async def summarize_text(text: str):
     )
     try:
         response = await client.responses.create(
-            model="doubao-seed-1-6-251015",
+            model=os.getenv("MODEL_VISION_NAME", DEFAULT_VISION_MODEL),
             instructions=summarize_text_instructions,
             input=text[0:10000],
             extra_body={"thinking": {"type": "disabled"}},

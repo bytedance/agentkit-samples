@@ -32,6 +32,15 @@ from evaluate_agent.prompt import PROMPT_EVALUATE_ITEM_AGENT
 evaluate_agent_instruction = PROMPT_EVALUATE_ITEM_AGENT
 logger = get_logger(__name__)
 
+_IS_BYTEPLUS = os.getenv("CLOUD_PROVIDER", "").lower() == "byteplus" or bool(
+    os.getenv("BYTEPLUS_REGION")
+)
+DEFAULT_EVALUATE_MODEL = (
+    "dola-seed-2-1-turbo-260628"
+    if _IS_BYTEPLUS
+    else "doubao-seed-1-6-flash-250828"
+)
+
 # 短链接服务配置
 shorten_url_service_url = os.getenv("SHORTEN_URL_SERVICE_URL", None)
 assert shorten_url_service_url, "SHORTEN_URL_SERVICE_URL is not set"
@@ -207,7 +216,7 @@ async def evaluate_media(
     # 定义异步处理单个消息的函数
     async def process_message(msg):
         response = await client.responses.create(
-            model=os.getenv("MODEL_EVALUATE_ITEM", "doubao-seed-1-6-flash-250828"),
+            model=os.getenv("MODEL_EVALUATE_ITEM", DEFAULT_EVALUATE_MODEL),
             instructions=evaluate_agent_instruction,
             input=[msg],
             text={

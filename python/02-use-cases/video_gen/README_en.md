@@ -1,11 +1,11 @@
 # Video Generation Agent - Video Story Generator
 
-This is a "Fable Storybook Video Generation" Agent based on Volcano Engine AgentKit. It will, based on the user-inputted fable storyline:
+This is a "Fable Storybook Video Generation" Agent based on BytePlus AgentKit. It will, based on the user-inputted fable storyline:
 
 - Generate four cartoon-style storyboard illustrations
 - Generate three transitional video segments with adjacent storyboards as the start and end frames
 - Stitch the three video segments sequentially into a complete film using a local MCP tool
-- Upload the finished film to Volcano Engine TOS and return an accessible signed URL
+- Upload the finished film to BytePlus TOS and return an accessible signed URL
 
 ## Overview
 
@@ -64,9 +64,9 @@ Key features include:
 - Ensure the `npx` command is available in the terminal
 - Required for running the MCP video stitching tool
 
-#### Volcano Engine Access Credentials
+#### BytePlus Access Credentials
 
-1. Log in to the [Volcano Engine Console](https://console.volcengine.com)
+1. Log in to the [BytePlus Console](https://console.byteplus.com)
 2. Go to "Access Control" → "Users" -> Create a new user or search for an existing username -> Click the username to enter "User Details" -> Go to "Keys" -> Create a new key or copy an existing AK/SK
     - As shown in the figure below
         ![Volcengine AK/SK Management](../img/volcengine_aksk.jpg)
@@ -84,8 +84,8 @@ Key features include:
     - Go to "Activation Management" -> "Language Models" -> Find the corresponding model -> Click "Activate Service"
     - Activate the following models used in this case
         - root_agent model: `deepseek-v4-pro-260425`
-        - Image generation model: `doubao-seedream-5-0-pro-260628`
-        - Video generation model: `doubao-seedance-2-0-260128`
+        - Image generation model: `dola-seedream-5-0-pro-260628`
+        - Video generation model: `dreamina-seedance-2-0-260128`
     - As shown in the figure below
         ![ModelArk Service Management](../img/ark_model_service_management.jpg)
 
@@ -110,8 +110,10 @@ uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
 Set the following environment variables:
 
 ```bash
-export VOLCENGINE_ACCESS_KEY={your_ak}
-export VOLCENGINE_SECRET_KEY={your_sk}
+export BYTEPLUS_ACCESS_KEY={your_ak}
+export BYTEPLUS_SECRET_KEY={your_sk}
+export CLOUD_PROVIDER=byteplus
+export BYTEPLUS_REGION=ap-southeast-1
 export DATABASE_TOS_BUCKET=agentkit-platform-{{your_account_id}}
 export MODEL_AGENT_API_KEY={{your_model_agent_api_key}} # Get from BytePlus ModelArk, required for local debugging
 
@@ -122,7 +124,7 @@ export DOWNLOAD_DIR=/tmp
 **TOS Bucket Configuration:**
 
 - **Default bucket**: `agentkit-platform-{{your_account_id}}`
-  - Where `{{your_account_id}}` needs to be replaced with your Volcano Engine account ID
+  - Where `{{your_account_id}}` needs to be replaced with your BytePlus account ID
   - Example: `DATABASE_TOS_BUCKET=agentkit-platform-12345678901234567890`
 - **If you need to customize, you can modify the `bucket_name` parameter in [`tool/tos_upload.py`](tool/tos_upload.py) or pass it in during the tool call.**
 
@@ -206,7 +208,7 @@ Visit `http://localhost:8000` in your browser, select the `video_gen` agent, ent
 
 ## AgentKit Deployment
 
-### Deploy to Volcano Engine AgentKit Runtime
+### Deploy to BytePlus AgentKit Runtime
 
 Step 1: Enter the project directory
 
@@ -247,7 +249,7 @@ agentkit launch
 
 After successful deployment:
 
-1. Visit the [Volcano Engine AgentKit Console](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/runtime)
+1. Visit the [BytePlus AgentKit Console](https://console.byteplus.com/agentkit)
 2. Click **Runtime** to view the deployed agent `storybook_illustrator`
 3. Get the public access domain name (e.g., `https://xxxxx.apigateway-cn-beijing.volceapi.com`) and API Key
 
@@ -328,7 +330,7 @@ Video generation effect demonstration.
 
 **TOS upload failed:**
 
-- Confirm that `VOLCENGINE_ACCESS_KEY` and `VOLCENGINE_SECRET_KEY` are set
+- Confirm that `BYTEPLUS_ACCESS_KEY` and `BYTEPLUS_SECRET_KEY` are set
 - Verify that your account has TOS bucket access permissions
 
 **MCP tool connection error:**
@@ -349,9 +351,9 @@ Video generation effect demonstration.
 
 ## 🔗 Related Resources
 
-- [AgentKit Official Documentation](https://www.volcengine.com/docs/86681/1844878?lang=en)
-- [TOS Object Storage](https://www.volcengine.com/product/TOS)
-- [AgentKit Console](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/overview?projectName=default)
+- [AgentKit Official Documentation](https://volcengine.github.io/agentkit-sdk-python/)
+- [BytePlus TOS Object Storage](https://www.byteplus.com/en/product/tos)
+- [BytePlus AgentKit Console](https://console.byteplus.com/agentkit)
 - [BytePlus ModelArk Service](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 
 ## Code License

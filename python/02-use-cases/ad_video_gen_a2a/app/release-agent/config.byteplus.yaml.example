@@ -1,0 +1,30 @@
+model:
+  agent:
+    provider: openai
+    name: dola-seed-2-1-turbo-260628
+    api_base: https://ark.ap-southeast.bytepluses.com/api/v3/
+    api_key:
+  format:
+    name: dola-seed-2-1-turbo-260628
+
+shorten_url_service_url: http://127.0.0.1:8005
+
+volcengine:
+  # Optional: required only when using the existing Volcengine VOD workflow.
+  access_key:
+  secret_key:
+
+tools:
+  vod:
+    space_name:
+    task_polling_interval: 20
+    max_retries: 60
+
+logging:
+  level: DEBUG
+
+thinking:
+  release_agent: disabled
+  audio_agent: disabled
+  film_agent: disabled
+  format_agent: disabled

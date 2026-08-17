@@ -88,7 +88,7 @@ ai_coding/
    - Confirm activation and wait for the service to become effective (usually 1-2 minutes).
    - Activate the following models used in this case:
         - `deepseek-v4-pro-260425`
-        - `doubao-seed-code-preview-251028`
+        - `seed-2-0-code-preview-260328`
    - As shown below:
    ![ModelArk Service Management](../../assets/images/ark_model_service_management.jpg)
 

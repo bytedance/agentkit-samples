@@ -15,8 +15,10 @@ from typing import Any, Dict, Optional
 
 from google.adk.tools import ToolContext
 from video_breakdown_agent.utils.doubao_client import call_doubao_text
+from video_breakdown_agent.utils.model_config import get_model_service_defaults
 
 logger = logging.getLogger(__name__)
+MODEL_DEFAULTS = get_model_service_defaults()
 
 # 功能标签枚举（来自 enhance_prompts.py）
 FUNCTION_TAG_OPTIONS = [
@@ -450,10 +452,10 @@ async def analyze_segments_vision(
     # LiteLLM 模型名约定：
     #   gemini/gemini-2.5-pro      → 直连 Google (需 GEMINI_API_KEY)
     #   openai/gemini-2.5-pro      → OpenAI 兼容代理（如 OneRouter）
-    #   doubao-seed-1-6-251015     → 火山方舟 (需 api_base + api_key)
+    #   方舟或 ModelArk 模型 ID     → 对应区域服务 (需 api_base + api_key)
     #   gpt-4o                     → OpenAI
     model_name = os.getenv("MODEL_VISION_NAME") or os.getenv(
-        "MODEL_AGENT_NAME", "doubao-seed-1-6-vision"
+        "MODEL_AGENT_NAME", MODEL_DEFAULTS.vision_model
     )
     api_key = (
         os.getenv("MODEL_VISION_API_KEY")

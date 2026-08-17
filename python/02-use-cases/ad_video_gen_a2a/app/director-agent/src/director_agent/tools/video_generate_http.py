@@ -25,11 +25,26 @@ from opentelemetry import trace
 from opentelemetry.trace import Span
 
 from veadk.config import getenv, settings
-from veadk.consts import DEFAULT_VIDEO_MODEL_API_BASE, DEFAULT_VIDEO_MODEL_NAME
+from veadk.consts import (
+    DEFAULT_VIDEO_MODEL_API_BASE as VEADK_VIDEO_API_BASE,
+    DEFAULT_VIDEO_MODEL_NAME as VEADK_VIDEO_MODEL,
+)
 from veadk.utils.logger import get_logger
 from veadk.version import VERSION
 
 logger = get_logger(__name__)
+
+_IS_BYTEPLUS = os.getenv("CLOUD_PROVIDER", "").lower() == "byteplus" or bool(
+    os.getenv("BYTEPLUS_REGION")
+)
+DEFAULT_VIDEO_MODEL_API_BASE = (
+    "https://ark.ap-southeast.bytepluses.com/api/v3"
+    if _IS_BYTEPLUS
+    else VEADK_VIDEO_API_BASE
+)
+DEFAULT_VIDEO_MODEL_NAME = (
+    "dreamina-seedance-2-0-260128" if _IS_BYTEPLUS else VEADK_VIDEO_MODEL
+)
 
 # 短链接服务配置
 shorten_url_service_url = os.getenv("SHORTEN_URL_SERVICE_URL", None)
@@ -203,8 +218,7 @@ async def video_generate(
 
     Model text commands (append after the prompt; unsupported keys are ignored by some models):
         --rs / --resolution <value>       Video resolution. Common values: 480p, 720p, 1080p.
-                                          Default depends on model (e.g., doubao-seedance-1-0-pro: 1080p,
-                                          some others default 720p).
+                                          Default depends on the selected regional video model.
 
         --rt / --ratio <value>            Aspect ratio. Typical: 16:9 (default), 9:16, 4:3, 3:4, 1:1, 2:1, 21:9.
                                           Some models support `keep_ratio` (keep source image ratio) or `adaptive`

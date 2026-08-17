@@ -13,7 +13,10 @@ from ...tools.generate_video_prompts import generate_video_prompts
 from ...tools.style_transfer import style_transfer
 from ...hook.format_hook import fix_prompt_output
 from ...utils.types import json_response_config, VideoPromptList
+from video_breakdown_agent.utils.model_config import get_model_service_defaults
 from .prompt import PROMPT_GENERATOR_INSTRUCTION, PROMPT_FORMAT_INSTRUCTION
+
+MODEL_DEFAULTS = get_model_service_defaults()
 
 
 def create_prompt_generator_agent() -> SequentialAgent:
@@ -38,7 +41,8 @@ def create_prompt_generator_agent() -> SequentialAgent:
     prompt_format_agent = Agent(
         name="prompt_format_agent",
         model_name=os.getenv(
-            "MODEL_FORMAT_NAME", os.getenv("MODEL_AGENT_NAME", "doubao-seed-1-6-251015")
+            "MODEL_FORMAT_NAME",
+            os.getenv("MODEL_AGENT_NAME", MODEL_DEFAULTS.agent_model),
         ),
         description="将提示词格式化为标准JSON结构",
         instruction=PROMPT_FORMAT_INSTRUCTION,

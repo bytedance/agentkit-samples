@@ -19,7 +19,7 @@ Uses the VolcEngine Ark SDK to generate images from text prompts.
 
 Environment variables:
     MODEL_IMAGE_API_KEY or ARK_API_KEY or MODEL_AGENT_API_KEY: Ark API key (optional, local debugging)
-    MODEL_IMAGE_NAME: Image model name (optional, default: doubao-seedream-5-0-pro-260628)
+    MODEL_IMAGE_NAME: Image model name (optional, inferred from cloud provider)
     IMAGE_DOWNLOAD_DIR: Directory to save generated images (optional, default: ./)
 
 Usage:
@@ -34,10 +34,8 @@ import sys
 import time
 
 from ark_auth import get_ark_api_key
+from model_service import get_image_api_base, get_image_model
 from volcenginesdkarkruntime import Ark
-
-# Default model
-DEFAULT_MODEL = "doubao-seedream-5-0-pro-260628"
 
 
 def image_generate(prompt: str, output_dir: str = None) -> list[str]:
@@ -61,9 +59,9 @@ def image_generate(prompt: str, output_dir: str = None) -> list[str]:
         print(f"Error: {e}")
         sys.exit(1)
 
-    client = Ark(api_key=api_key)
+    client = Ark(api_key=api_key, base_url=get_image_api_base())
 
-    model = os.getenv("MODEL_IMAGE_NAME", DEFAULT_MODEL)
+    model = get_image_model()
 
     if output_dir is None:
         output_dir = os.getenv("IMAGE_DOWNLOAD_DIR", os.path.expanduser("./"))

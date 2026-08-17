@@ -10,6 +10,7 @@ import sys
 import requests
 
 from ark_auth import get_ark_authorization
+from model_service import get_video_api_base
 
 
 logger = logging.getLogger(__name__)
@@ -26,9 +27,7 @@ def query_video_status(task_id: str) -> str:
     Returns:
         str: 状态描述（含视频链接或错误信息）
     """
-    url = (
-        f"https://ark.cn-beijing.volces.com/api/v3/contents/generations/tasks/{task_id}"
-    )
+    url = f"{get_video_api_base().rstrip('/')}/contents/generations/tasks/{task_id}"
     headers = {"Content-Type": "application/json", "Authorization": _get_auth()}
 
     try:

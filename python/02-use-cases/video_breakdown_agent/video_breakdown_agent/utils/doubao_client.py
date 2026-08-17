@@ -1,9 +1,9 @@
 """
-豆包官方 API 调用封装
+方舟与 BytePlus ModelArk API 调用封装
 支持文本模型（/chat/completions）和视觉模型（/responses）
 
 文本模型：标准 OpenAI 兼容格式
-视觉模型：豆包专有 Responses API 格式
+视觉模型：ModelArk Responses API 格式
   - endpoint: /api/v3/responses
   - 请求体：只有 model + input（无 temperature/parameters 等）
   - input content 类型：input_text / input_image（非 text / image_url）
@@ -17,16 +17,19 @@ from typing import List, Dict, Any, Optional
 
 import httpx
 
+from video_breakdown_agent.utils.model_config import get_model_service_defaults
+
 logger = logging.getLogger(__name__)
+DEFAULT_MODEL_API_BASE = get_model_service_defaults().api_base
 
 
 class DoubaoClient:
-    """豆包 API 客户端"""
+    """兼容方舟与 BytePlus ModelArk 的 API 客户端。"""
 
     def __init__(
         self,
         api_key: str,
-        api_base: str = "https://ark.cn-beijing.volces.com/api/v3",
+        api_base: str = DEFAULT_MODEL_API_BASE,
         timeout: int = 120,
     ):
         self.api_key = api_key
@@ -340,9 +343,7 @@ async def call_doubao_text(
         if not api_key:
             raise ValueError("API Key 未提供，且环境变量 MODEL_AGENT_API_KEY 未设置")
     if not api_base:
-        api_base = os.getenv(
-            "MODEL_AGENT_API_BASE", "https://ark.cn-beijing.volces.com/api/v3"
-        )
+        api_base = os.getenv("MODEL_AGENT_API_BASE", DEFAULT_MODEL_API_BASE)
 
     async with DoubaoClient(api_key=api_key, api_base=api_base) as client:
         return await client.text_completion(model=model, messages=messages, **kwargs)
@@ -361,9 +362,7 @@ async def call_doubao_vision(
         if not api_key:
             raise ValueError("API Key 未提供，且环境变量 MODEL_VISION_API_KEY 未设置")
     if not api_base:
-        api_base = os.getenv(
-            "MODEL_VISION_API_BASE", "https://ark.cn-beijing.volces.com/api/v3"
-        )
+        api_base = os.getenv("MODEL_VISION_API_BASE", DEFAULT_MODEL_API_BASE)
 
     async with DoubaoClient(api_key=api_key, api_base=api_base) as client:
         return await client.vision_completion(model=model, messages=messages, **kwargs)

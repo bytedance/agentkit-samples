@@ -53,8 +53,9 @@ from volcenginesdkarkruntime.types.responses.response_input_param import (
 )
 
 from veadk.config import settings
-from veadk.consts import DEFAULT_VIDEO_MODEL_API_BASE
 from veadk.utils.logger import get_logger
+
+from app.provider_config import get_model_api_base
 
 logger = get_logger(__name__)
 
@@ -636,7 +637,7 @@ class ArkLlmClient:
         self, **kwargs
     ) -> Union[ArkTypeResponse, AsyncStream[ResponseStreamEvent]]:
         # 1. Get request params
-        api_base = kwargs.pop("api_base", DEFAULT_VIDEO_MODEL_API_BASE)
+        api_base = kwargs.pop("api_base", get_model_api_base())
         api_key = kwargs.pop("api_key", settings.model.api_key)
 
         # 2. Call openai responses

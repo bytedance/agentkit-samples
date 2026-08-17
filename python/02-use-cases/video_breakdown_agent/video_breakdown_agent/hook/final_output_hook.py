@@ -19,7 +19,10 @@ from google.adk.events import Event
 from google.adk.models import LlmResponse
 from veadk.utils.logger import get_logger
 
+from video_breakdown_agent.utils.model_config import get_model_service_defaults
+
 logger = get_logger(__name__)
+MODEL_DEFAULTS = get_model_service_defaults()
 
 
 def _get_first_text(llm_response: LlmResponse) -> str:
@@ -105,10 +108,8 @@ def _call_repair_llm(raw_text: str) -> Optional[str]:
     if not api_key:
         return None
 
-    model = os.getenv("MODEL_AGENT_NAME", "doubao-seed-1-6-251015")
-    api_base = os.getenv(
-        "MODEL_AGENT_API_BASE", "https://ark.cn-beijing.volces.com/api/v3/"
-    )
+    model = os.getenv("MODEL_AGENT_NAME", MODEL_DEFAULTS.agent_model)
+    api_base = os.getenv("MODEL_AGENT_API_BASE", MODEL_DEFAULTS.api_base)
     api_base = api_base.rstrip("/")
     url = f"{api_base}/chat/completions"
 
