@@ -46,6 +46,30 @@ any_input/
 - 项目类型：TCADP / ADP ClawAgent 导出包
 - Agent 名称：`travel-planner-main`
 
+### 精简 Agent 配置输入
+
+同时我们提供 `any_input_agent/`，用于转化ADP层面的Agent 相关配置。该目录从完整导出包中保留了 Agent目录下所有的信息
+```bash
+any_input_agent/
+├── metadata.json
+└── app/
+    ├── metadata.json
+    └── agent/
+        ├── metadata.json
+        └── claw_agent_config.json
+```
+
+如果只想验证关键 Agent 配置迁移，可以将命令中的 `any_input` 替换为 `any_input_agent`，并建议把输出目录换为 `../any_output_agent`，避免覆盖完整样例的迁移输出：
+
+```bash
+ak migrate any_input_agent --framework any create --name any-agent-test --output ../any_output_agent \
+  --codex-model <codex模型名> \
+  --codex-api-key-env CODEX_MIGRATE_MODEL_API_KEY \
+  --model-id <VeADK模型名> \
+  --model-base-url <VeADK依赖的模型base_url> \
+  --model-api-key-env MODEL_AGENT_API_KEY
+```
+
 ## 迁移整体流程
 
 ```text
@@ -73,10 +97,11 @@ claw/
 ├── .env.example       # 环境变量示例
 ├── README.md          # 中文说明文档
 ├── any_input/         # ADP / TCADP ClawAgent 导出包输入目录
+├── any_input_agent/   # 仅保留关键 Agent 配置的精简输入目录
 └── any_output/        # 迁移完成后写入的 VeADK / AgentKit Runtime 工程
 ```
 
-以下命令均在 `ADP/claw/` 目录下执行。`any_input/` 是源项目输入目录；`--output ../any_output` 以 `any_input/` 为基准解析，迁移产物会写入与 `any_input/` 同级的 `any_output/` 目录。
+以下命令均在 `ADP/claw/` 目录下执行。`any_input/` 是源项目输入目录；`any_input_agent/` 是只保留关键 Agent 配置的精简输入目录。`--output ../any_output` 以输入目录为基准解析，迁移产物会写入与输入目录同级的输出目录。
 
 ## 发起远端迁移
 
