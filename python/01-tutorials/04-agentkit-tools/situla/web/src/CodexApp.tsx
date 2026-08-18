@@ -120,6 +120,7 @@ export function CodexApp(): ReactNode {
   } : undefined, [codexLaunch]);
   const [showTerminal, setShowTerminal] = useState(false);
   const [showBrowser, setShowBrowser] = useState(false);
+  const [browserPreviewUrl, setBrowserPreviewUrl] = useState<string>();
   const [terminalShellId, setTerminalShellId] = useState<string>();
   const [uploadBusy, setUploadBusy] = useState(false);
   const messageScroll = useMessageScroll(messages);
@@ -973,7 +974,10 @@ export function CodexApp(): ReactNode {
           onOpenSidebar={() => setSidebarOpen(true)}
           onOpenConnectionSettings={() => setShowConnect(Boolean(session))}
           onOpenTerminal={() => setShowTerminal(true)}
-          onOpenSandboxBrowser={() => setShowBrowser(true)}
+          onOpenSandboxBrowser={() => {
+            setBrowserPreviewUrl(undefined);
+            setShowBrowser(true);
+          }}
           onToggleTheme={toggleTheme}
         />
         <ChatPanel
@@ -988,6 +992,10 @@ export function CodexApp(): ReactNode {
           onJumpToLatest={messageScroll.jumpToLatest}
           error={error}
           onDismissError={() => setError(undefined)}
+          onPreviewUrl={(url) => {
+            setBrowserPreviewUrl(url);
+            setShowBrowser(true);
+          }}
           composer={(
             <Composer
               value={draft}
@@ -1058,7 +1066,11 @@ export function CodexApp(): ReactNode {
         <Suspense fallback={<div className="modal-layer terminal-layer"><div className="modal-backdrop" /><div className="terminal-loading"><Spinner />正在加载沙箱浏览器…</div></div>}>
           <BrowserDialog
             sessionId={session.id}
-            onClose={() => setShowBrowser(false)}
+            initialUrl={browserPreviewUrl}
+            onClose={() => {
+              setShowBrowser(false);
+              setBrowserPreviewUrl(undefined);
+            }}
           />
         </Suspense>
       )}

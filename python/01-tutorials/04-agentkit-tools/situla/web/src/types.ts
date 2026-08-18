@@ -74,6 +74,7 @@ export interface AgentkitTool {
   projectName?: string;
   createdAt?: string;
   updatedAt?: string;
+  enableSnapshot?: boolean;
 }
 
 export interface AgentkitSession {
@@ -85,6 +86,16 @@ export interface AgentkitSession {
   createdAt?: string;
   expireAt?: string;
   endpoint?: string;
+}
+
+export interface AgentkitSessionSnapshot {
+  snapshotId: string;
+  toolId?: string;
+  sessionId?: string;
+  userSessionId?: string;
+  status?: string;
+  reason?: string;
+  createdAt?: string;
 }
 
 export type ApprovalDecision = "accept" | "acceptForSession" | "decline" | "cancel";

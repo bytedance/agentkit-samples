@@ -8,6 +8,7 @@ import { dirname, extname, resolve, sep } from "node:path";
 import {
   AgentkitToolsClient,
   AgentkitApiError,
+  type AgentkitSessionSnapshotSummary,
   type AgentkitSessionSummary,
   type AgentkitToolSearchField,
   type AgentkitToolSummary,
@@ -239,6 +240,15 @@ async function handleApi(
     return true;
   }
 
+  const agentkitToolMatch = url.pathname.match(/^\/api\/agentkit\/tools\/([^/]+)$/);
+  if (request.method === "GET" && agentkitToolMatch) {
+    const tool = await (await requireAgentkit()).getTool(
+      decodeURIComponent(agentkitToolMatch[1]),
+    );
+    sendJson(response, 200, publicAgentkitTool(tool));
+    return true;
+  }
+
   const agentkitSessionsMatch = url.pathname.match(
     /^\/api\/agentkit\/tools\/([^/]+)\/sessions$/,
   );
@@ -260,6 +270,40 @@ async function handleApi(
       ...(typeof body.ttl === "number" ? { ttl: body.ttl } : {}),
     });
     const ready = await waitForAgentkitSession(client, toolId, created);
+    sendJson(response, 201, publicAgentkitSession(ready));
+    return true;
+  }
+
+  const agentkitSnapshotsMatch = url.pathname.match(
+    /^\/api\/agentkit\/tools\/([^/]+)\/snapshots$/,
+  );
+  if (request.method === "GET" && agentkitSnapshotsMatch) {
+    const toolId = decodeURIComponent(agentkitSnapshotsMatch[1]);
+    const data = await (await requireAgentkit()).listAllSessionSnapshots(toolId);
+    sendJson(response, 200, { data: data.map(publicAgentkitSessionSnapshot) });
+    return true;
+  }
+
+  const agentkitSnapshotResumeMatch = url.pathname.match(
+    /^\/api\/agentkit\/tools\/([^/]+)\/snapshots\/([^/]+)\/resume$/,
+  );
+  if (request.method === "POST" && agentkitSnapshotResumeMatch) {
+    const body = await readJson(request);
+    const client = await requireAgentkit();
+    const toolId = decodeURIComponent(agentkitSnapshotResumeMatch[1]);
+    const snapshotId = decodeURIComponent(agentkitSnapshotResumeMatch[2]);
+    const userSessionId = typeof body.userSessionId === "string"
+      ? body.userSessionId.trim()
+      : "";
+    const current = userSessionId
+      ? await client.findSessionByUserSessionId(toolId, userSessionId)
+      : undefined;
+    const resumed = current ?? await client.resumeSessionFromSnapshot(
+      toolId,
+      snapshotId,
+      typeof body.ttl === "number" ? body.ttl : undefined,
+    );
+    const ready = await waitForAgentkitSession(client, toolId, resumed);
     sendJson(response, 201, publicAgentkitSession(ready));
     return true;
   }
@@ -428,6 +472,17 @@ async function handleApi(
 
   if (request.method === "GET" && action === "browser") {
     sendJson(response, 200, { url: browserProxy.browserUrl(request.headers.host, sessionId) });
+    return true;
+  }
+
+  if (request.method === "POST" && action === "browser/navigate") {
+    const targetUrl = browserPreviewUrlFromBody(await readJson(request));
+    try {
+      await browserProxy.navigate(sessionId, targetUrl);
+    } catch (error) {
+      throw httpError(502, session.safeError(error));
+    }
+    sendJson(response, 200, { ok: true, url: targetUrl });
     return true;
   }
 
@@ -789,6 +844,31 @@ function workspaceDirectoryFromBody(body: JsonBody): string {
   return body.cwd;
 }
 
+function browserPreviewUrlFromBody(body: JsonBody): string {
+  if (typeof body.url !== "string" || body.url.length > 2_048) {
+    throw httpError(400, "browser preview URL is required and must not exceed 2048 characters");
+  }
+  let url: URL;
+  try {
+    url = new URL(body.url.trim());
+  } catch {
+    throw httpError(400, "browser preview URL is invalid");
+  }
+  if (!["http:", "https:"].includes(url.protocol)) {
+    throw httpError(400, "browser preview URL must use http or https");
+  }
+  if (url.username || url.password) {
+    throw httpError(400, "browser preview URL must not include credentials");
+  }
+  const hostname = url.hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  if (hostname === "0.0.0.0") {
+    url.hostname = "127.0.0.1";
+  } else if (!isLoopbackHostname(hostname)) {
+    throw httpError(400, "browser preview URL must target the sandbox loopback interface");
+  }
+  return url.toString();
+}
+
 function sessionRuntimeSettings(session: BridgeSession) {
   return {
     ...(session.approvalPolicy ? { approvalPolicy: session.approvalPolicy } : {}),
@@ -888,6 +968,18 @@ function publicAgentkitSession(session: AgentkitSessionSummary) {
   };
 }
 
+function publicAgentkitSessionSnapshot(snapshot: AgentkitSessionSnapshotSummary) {
+  return {
+    snapshotId: snapshot.snapshotId,
+    ...(snapshot.toolId ? { toolId: snapshot.toolId } : {}),
+    ...(snapshot.sessionId ? { sessionId: snapshot.sessionId } : {}),
+    ...(snapshot.userSessionId ? { userSessionId: snapshot.userSessionId } : {}),
+    ...(snapshot.status ? { status: snapshot.status } : {}),
+    ...(snapshot.reason ? { reason: snapshot.reason } : {}),
+    ...(snapshot.createdAt ? { createdAt: snapshot.createdAt } : {}),
+  };
+}
+
 function publicAgentkitTool(tool: AgentkitToolSummary) {
   return {
     toolId: tool.toolId,
@@ -898,6 +990,7 @@ function publicAgentkitTool(tool: AgentkitToolSummary) {
     ...(tool.projectName ? { projectName: tool.projectName } : {}),
     ...(tool.createdAt ? { createdAt: tool.createdAt } : {}),
     ...(tool.updatedAt ? { updatedAt: tool.updatedAt } : {}),
+    ...(tool.enableSnapshot !== undefined ? { enableSnapshot: tool.enableSnapshot } : {}),
   };
 }
 

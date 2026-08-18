@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { getSandboxBrowserUrl } from "./api";
+import { getSandboxBrowserUrl, navigateSandboxBrowser } from "./api";
 import { messageOf } from "./display";
 import { Spinner } from "./components/ui";
 
 export function BrowserDialog({
   sessionId,
+  initialUrl,
   onClose,
 }: {
   sessionId: string;
+  initialUrl?: string;
   onClose: () => void;
 }): ReactNode {
   const closeRef = useRef(onClose);
@@ -22,8 +24,12 @@ export function BrowserDialog({
     let cancelled = false;
     setUrl(undefined);
     setError(undefined);
-    setStatus("正在连接");
-    void getSandboxBrowserUrl(sessionId)
+    setStatus(initialUrl ? "正在打开产物" : "正在连接");
+    const navigate = initialUrl
+      ? navigateSandboxBrowser(sessionId, initialUrl)
+      : Promise.resolve();
+    void navigate
+      .then(() => getSandboxBrowserUrl(sessionId))
       .then((result) => {
         if (cancelled) return;
         setUrl(result.url);
@@ -42,7 +48,7 @@ export function BrowserDialog({
       cancelled = true;
       window.removeEventListener("keydown", escape);
     };
-  }, [sessionId]);
+  }, [initialUrl, sessionId]);
 
   const reload = () => {
     if (!url) return;

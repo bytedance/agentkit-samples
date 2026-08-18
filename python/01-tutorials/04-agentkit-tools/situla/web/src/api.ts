@@ -2,6 +2,7 @@ import type {
   ApprovalDecision,
   AgentkitConfig,
   AgentkitSession,
+  AgentkitSessionSnapshot,
   AgentkitTool,
   ConnectedSession,
   ConnectInput,
@@ -95,6 +96,10 @@ export function listAgentkitTools(options: {
   return api(`/api/agentkit/tools?${query}`);
 }
 
+export function getAgentkitTool(toolId: string): Promise<AgentkitTool> {
+  return api(`/api/agentkit/tools/${encodeURIComponent(toolId)}`);
+}
+
 export function listAgentkitSessions(toolId: string): Promise<{ data: AgentkitSession[] }> {
   return api(`/api/agentkit/tools/${encodeURIComponent(toolId)}/sessions`);
 }
@@ -111,6 +116,30 @@ export function createAgentkitSession(toolId: string, input: {
     method: "POST",
     body: JSON.stringify(input),
   });
+}
+
+export function listAgentkitSessionSnapshots(
+  toolId: string,
+): Promise<{ data: AgentkitSessionSnapshot[] }> {
+  return api(`/api/agentkit/tools/${encodeURIComponent(toolId)}/snapshots`);
+}
+
+export function resumeAgentkitSessionSnapshot(
+  toolId: string,
+  snapshotId: string,
+  userSessionId?: string,
+  ttl?: number,
+): Promise<AgentkitSession> {
+  return api(
+    `/api/agentkit/tools/${encodeURIComponent(toolId)}/snapshots/${encodeURIComponent(snapshotId)}/resume`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        ...(userSessionId ? { userSessionId } : {}),
+        ...(ttl === undefined ? {} : { ttl }),
+      }),
+    },
+  );
 }
 
 export function launchAgentkitWorkspace(
@@ -255,6 +284,16 @@ export function getSessionStatus(sessionId: string): Promise<SessionStatus> {
 
 export function getSandboxBrowserUrl(sessionId: string): Promise<{ url: string }> {
   return api(`/api/sessions/${encodeURIComponent(sessionId)}/browser`);
+}
+
+export function navigateSandboxBrowser(
+  sessionId: string,
+  url: string,
+): Promise<{ ok: true; url: string }> {
+  return api(`/api/sessions/${encodeURIComponent(sessionId)}/browser/navigate`, {
+    method: "POST",
+    body: JSON.stringify({ url }),
+  });
 }
 
 export function getSandboxTerminalUrl(

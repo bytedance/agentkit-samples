@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 0.1.0" src="https://img.shields.io/badge/version-0.1.0-b7f462?style=for-the-badge&labelColor=111c24">
+  <img alt="Version 0.1.1" src="https://img.shields.io/badge/version-0.1.1-b7f462?style=for-the-badge&labelColor=111c24">
   <img alt="Linux x64" src="https://img.shields.io/badge/Linux-x64-b7f462?style=for-the-badge&labelColor=111c24">
   <img alt="macOS arm64" src="https://img.shields.io/badge/macOS-arm64-b7f462?style=for-the-badge&labelColor=111c24">
 </p>
@@ -374,17 +374,17 @@ npm ci
 
 ```bash
 npm run build:binary
-# Linux x64 示例：dist/situla-v0.1.0-linux-x64 和对应的 .sha256 文件
+# Linux x64 示例：dist/situla-v0.1.1-linux-x64 和对应的 .sha256 文件
 ```
 
 Node SEA 二进制绑定构建机的平台和架构，因此 Linux x64、Linux arm64、macOS x64、
 macOS arm64 需要分别在对应 runner 上构建。安装脚本会用 `uname` 选择匹配的文件，默认从
 Situla 的 TOS 发布目录下载；也可以通过 `SITULA_DOWNLOAD_BASE_URL` 使用其他镜像源。
-安装脚本默认安装 `0.1.0`，也可以通过 `SITULA_VERSION` 选择其他已上传版本：
+安装脚本默认安装 `0.1.1`，也可以通过 `SITULA_VERSION` 选择其他已上传版本：
 
 ```bash
 curl -fsSL https://public-reading.tos-cn-beijing.volces.com/agentkit/situla/install.sh |
-  SITULA_VERSION=0.1.0 sh
+  SITULA_VERSION=0.1.1 sh
 ```
 
 ```bash
@@ -392,9 +392,9 @@ npm run typecheck
 npm test
 npm run build
 npm run build:binary
-dist/situla-v0.1.0-linux-x64 --help
-dist/situla-v0.1.0-linux-x64 licenses
-(cd dist && sha256sum -c situla-v0.1.0-linux-x64.sha256)
+dist/situla-v0.1.1-linux-x64 --help
+dist/situla-v0.1.1-linux-x64 licenses
+(cd dist && sha256sum -c situla-v0.1.1-linux-x64.sha256)
 ```
 
 当前自动化测试覆盖 URL 转换与脱敏、初始化握手、流式 turn、fallback 文本、审批响应、

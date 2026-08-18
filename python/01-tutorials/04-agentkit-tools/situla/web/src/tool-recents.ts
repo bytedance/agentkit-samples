@@ -87,6 +87,9 @@ function parseRecentTool(value: unknown): AgentkitTool | undefined {
     ...(stringField(value.projectName) ? { projectName: stringField(value.projectName) } : {}),
     ...(stringField(value.createdAt) ? { createdAt: stringField(value.createdAt) } : {}),
     ...(stringField(value.updatedAt) ? { updatedAt: stringField(value.updatedAt) } : {}),
+    ...(typeof value.enableSnapshot === "boolean"
+      ? { enableSnapshot: value.enableSnapshot }
+      : {}),
   });
 }
 
@@ -113,6 +116,7 @@ function publicToolFields(tool: AgentkitTool): AgentkitTool {
     ...(tool.projectName ? { projectName: tool.projectName } : {}),
     ...(tool.createdAt ? { createdAt: tool.createdAt } : {}),
     ...(tool.updatedAt ? { updatedAt: tool.updatedAt } : {}),
+    ...(tool.enableSnapshot !== undefined ? { enableSnapshot: tool.enableSnapshot } : {}),
   };
 }
 

@@ -129,6 +129,7 @@ interface TurnState {
 
 const DEFAULT_CONNECT_TIMEOUT_MS = 30_000;
 const DEFAULT_REQUEST_TIMEOUT_MS = 300_000;
+const DEFAULT_TURN_TIMEOUT_MS = 60 * 60_000;
 const DEFAULT_OVERLOAD_RETRIES = 3;
 const WS_OPEN = 1;
 const OVERLOADED_ERROR_CODE = -32001;
@@ -188,7 +189,10 @@ export class CodexAppServerClient {
     this.websocketUrl = appServerWebSocketUrl(publicSandboxUrl);
     this.#connectTimeoutMs = options.connectTimeoutMs ?? DEFAULT_CONNECT_TIMEOUT_MS;
     this.#requestTimeoutMs = options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
-    this.#turnTimeoutMs = options.turnTimeoutMs ?? this.#requestTimeoutMs;
+    this.#turnTimeoutMs = options.turnTimeoutMs ??
+      (options.requestTimeoutMs === undefined
+        ? DEFAULT_TURN_TIMEOUT_MS
+        : this.#requestTimeoutMs);
     this.#overloadRetries = options.overloadRetries ?? DEFAULT_OVERLOAD_RETRIES;
     this.#approvalHandler = options.approvalHandler;
     this.#onProtocolEvent = options.onProtocolEvent;

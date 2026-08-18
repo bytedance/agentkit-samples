@@ -13,6 +13,7 @@ test("bridge proxies sandbox files, terminal, and the embedded isolated browser"
   let browserInfoQuery = "";
   let browserForwardedPrefix = "";
   let cdpUpstreamUrl = "";
+  const cdpCommands: Array<Record<string, unknown>> = [];
   let terminalPageQuery = "";
   let terminalWebSocketQuery = "";
   let workspaceSettingsRequest: Record<string, unknown> | undefined;
@@ -166,7 +167,27 @@ test("bridge proxies sandbox files, terminal, and the embedded isolated browser"
       if (pathname === "/cdp/devtools/browser/browser-test") {
         cdpUpstreamUrl = request.url ?? "";
         websocket.on("message", (raw, isBinary) => {
-          websocket.send(raw, { binary: isBinary });
+          const message = JSON.parse(raw.toString()) as Record<string, unknown>;
+          cdpCommands.push(message);
+          if (message.method === "Target.getTargets") {
+            websocket.send(JSON.stringify({
+              id: message.id,
+              result: {
+                targetInfos: [{ targetId: "page-data-plane", type: "page", url: "about:blank" }],
+              },
+            }));
+          } else if (message.method === "Target.attachToTarget") {
+            websocket.send(JSON.stringify({
+              id: message.id,
+              result: { sessionId: "cdp-session-data-plane" },
+            }));
+          } else if (message.method === "Page.navigate") {
+            websocket.send(JSON.stringify({ id: message.id, result: { frameId: "frame-data-plane" } }));
+          } else if (message.method === "Target.activateTarget") {
+            websocket.send(JSON.stringify({ id: message.id, result: {} }));
+          } else {
+            websocket.send(raw, { binary: isBinary });
+          }
         });
       }
     });
@@ -415,6 +436,40 @@ test("bridge proxies sandbox files, terminal, and the embedded isolated browser"
   assert.equal(new URL(browserInfo.data.cdp_url).origin.replace(/^ws/, "http"), browserOrigin);
   assert.equal(browserInfoQuery, "?Authorization=sandbox-secret");
   assert.equal(browserForwardedPrefix, `/browser/${connected.id}`);
+
+  const rejectedPreview = await fetch(
+    `${origin}/api/sessions/${encodeURIComponent(connected.id)}/browser/navigate`,
+    {
+      method: "POST",
+      headers: { cookie, origin, "content-type": "application/json" },
+      body: JSON.stringify({ url: "https://example.com/not-a-sandbox-preview" }),
+    },
+  );
+  assert.equal(rejectedPreview.status, 400);
+
+  const previewResponse = await fetch(
+    `${origin}/api/sessions/${encodeURIComponent(connected.id)}/browser/navigate`,
+    {
+      method: "POST",
+      headers: { cookie, origin, "content-type": "application/json" },
+      body: JSON.stringify({ url: "http://0.0.0.0:8000/index.html?demo=1#preview" }),
+    },
+  );
+  assert.equal(previewResponse.status, 200);
+  assert.deepEqual(await previewResponse.json(), {
+    ok: true,
+    url: "http://127.0.0.1:8000/index.html?demo=1#preview",
+  });
+  assert.deepEqual(
+    cdpCommands.slice(-4).map((command) => command.method),
+    ["Target.getTargets", "Target.attachToTarget", "Page.navigate", "Target.activateTarget"],
+  );
+  assert.deepEqual(cdpCommands.at(-2), {
+    id: 3,
+    method: "Page.navigate",
+    params: { url: "http://127.0.0.1:8000/index.html?demo=1#preview" },
+    sessionId: "cdp-session-data-plane",
+  });
 
   const cdp = new WebSocket(browserInfo.data.cdp_url, { headers: { origin: browserOrigin } });
   context.after(() => cdp.terminate());

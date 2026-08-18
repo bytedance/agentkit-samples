@@ -8,6 +8,8 @@ const CONTENT_TYPE = "application/json";
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_RETRIES = 2;
 const MAX_RETRY_DELAY_MS = 30_000;
+const MAX_SESSION_TTL_SECONDS = 86_400;
+const MAX_USER_SESSION_ID_LENGTH = 200;
 const RETRYABLE_HTTP_STATUSES = new Set([429, 503]);
 const X_CUSTOM_REQUEST_CONTEXT = `situla/${SITULA_VERSION} (schema=v1; entry=sdk; os=node)`;
 
@@ -40,10 +42,27 @@ export interface AgentkitToolSummary {
   projectName?: string;
   createdAt?: string;
   updatedAt?: string;
+  enableSnapshot?: boolean;
 }
 
 export interface AgentkitToolPage {
   data: AgentkitToolSummary[];
+  nextToken?: string;
+  requestId?: string;
+}
+
+export interface AgentkitSessionSnapshotSummary {
+  snapshotId: string;
+  toolId?: string;
+  sessionId?: string;
+  userSessionId?: string;
+  status?: string;
+  reason?: string;
+  createdAt?: string;
+}
+
+export interface AgentkitSessionSnapshotPage {
+  data: AgentkitSessionSnapshotSummary[];
   nextToken?: string;
   requestId?: string;
 }
@@ -62,6 +81,12 @@ export interface ListAgentkitToolsInput {
 export interface CreateAgentkitSessionInput {
   userSessionId?: string;
   ttl?: number;
+}
+
+export interface ListAgentkitSessionSnapshotsInput {
+  userSessionId?: string;
+  maxResults?: number;
+  nextToken?: string;
 }
 
 export interface AgentkitToolsOptions {
@@ -214,12 +239,32 @@ export class AgentkitToolsClient {
     );
   }
 
-  async listSessions(toolId: string, nextToken?: string): Promise<AgentkitSessionPage> {
+  async getTool(toolId: string): Promise<AgentkitToolSummary> {
     const normalizedToolId = required(toolId, "AgentKit Tool ID");
+    const { result, requestId } = await this.#invoke("GetTool", {
+      ToolId: normalizedToolId,
+    });
+    const tool = parseTool(result);
+    if (!tool) {
+      throw invalidResponse("GetTool", "Result is missing ToolId", requestId);
+    }
+    return tool;
+  }
+
+  async listSessions(
+    toolId: string,
+    nextToken?: string,
+    userSessionId?: string,
+  ): Promise<AgentkitSessionPage> {
+    const normalizedToolId = required(toolId, "AgentKit Tool ID");
+    const normalizedUserSessionId = userSessionId?.trim();
     const { result, requestId } = await this.#invoke("ListSessions", {
       ToolId: normalizedToolId,
       MaxResults: 100,
       ...(nextToken ? { NextToken: nextToken } : {}),
+      ...(normalizedUserSessionId
+        ? { Filters: [{ Name: "UserSessionId", Values: [normalizedUserSessionId] }] }
+        : {}),
     });
     if (result.SessionInfos !== undefined && !Array.isArray(result.SessionInfos)) {
       throw invalidResponse("ListSessions", "Result.SessionInfos is not an array", requestId);
@@ -276,6 +321,132 @@ export class AgentkitToolsClient {
     );
   }
 
+  async findSessionByUserSessionId(
+    toolId: string,
+    userSessionId: string,
+    maxPages = 100,
+  ): Promise<AgentkitSessionSummary | undefined> {
+    const normalizedToolId = required(toolId, "AgentKit Tool ID");
+    const normalizedUserSessionId = required(userSessionId, "AgentKit UserSessionId");
+    positiveInteger(maxPages, "maximum session page count");
+    const seenTokens = new Set<string>();
+    let nextToken: string | undefined;
+
+    for (let pageNumber = 0; pageNumber < maxPages; pageNumber += 1) {
+      const page = await this.listSessions(
+        normalizedToolId,
+        nextToken,
+        normalizedUserSessionId,
+      );
+      const current = page.data.find((session) =>
+        session.userSessionId === normalizedUserSessionId &&
+        !["failed", "terminating", "deleted", "expired"].includes(
+          session.status.toLowerCase(),
+        ));
+      if (current) return current;
+      if (!page.nextToken) return undefined;
+      if (seenTokens.has(page.nextToken)) {
+        throw invalidResponse(
+          "ListSessions",
+          "response repeated NextToken and would cause a pagination loop",
+          page.requestId,
+        );
+      }
+      seenTokens.add(page.nextToken);
+      nextToken = page.nextToken;
+    }
+
+    throw invalidResponse(
+      "ListSessions",
+      `response exceeded the ${maxPages}-page safety limit`,
+    );
+  }
+
+  async listSessionSnapshots(
+    toolId: string,
+    input: ListAgentkitSessionSnapshotsInput = {},
+  ): Promise<AgentkitSessionSnapshotPage> {
+    const normalizedToolId = required(toolId, "AgentKit Tool ID");
+    const maxResults = input.maxResults ?? 100;
+    if (!Number.isSafeInteger(maxResults) || maxResults < 1 || maxResults > 100) {
+      throw new TypeError("snapshot page size must be an integer between 1 and 100");
+    }
+    const userSessionId = input.userSessionId?.trim();
+    const { result, requestId } = await this.#invoke("ListSessionSnapshots", {
+      ToolId: normalizedToolId,
+      MaxResults: maxResults,
+      ...(userSessionId ? { UserSessionId: userSessionId } : {}),
+      ...(input.nextToken ? { NextToken: input.nextToken } : {}),
+    });
+    if (result.Snapshots !== undefined && !Array.isArray(result.Snapshots)) {
+      throw invalidResponse(
+        "ListSessionSnapshots",
+        "Result.Snapshots is not an array",
+        requestId,
+      );
+    }
+    const data = ((result.Snapshots ?? []) as unknown[]).map((rawSnapshot, index) => {
+      const snapshot = parseSessionSnapshot(rawSnapshot);
+      if (!snapshot) {
+        throw invalidResponse(
+          "ListSessionSnapshots",
+          `Result.Snapshots[${index}] is missing SnapshotId`,
+          requestId,
+        );
+      }
+      return { ...snapshot, toolId: snapshot.toolId ?? normalizedToolId };
+    }).sort(compareSessionSnapshots);
+    if (result.NextToken !== undefined && typeof result.NextToken !== "string") {
+      throw invalidResponse(
+        "ListSessionSnapshots",
+        "Result.NextToken is not a string",
+        requestId,
+      );
+    }
+    return {
+      data,
+      ...(typeof result.NextToken === "string" && result.NextToken
+        ? { nextToken: result.NextToken }
+        : {}),
+      ...(requestId ? { requestId } : {}),
+    };
+  }
+
+  async listAllSessionSnapshots(
+    toolId: string,
+    input: Omit<ListAgentkitSessionSnapshotsInput, "nextToken"> = {},
+    maxPages = 100,
+  ): Promise<AgentkitSessionSnapshotSummary[]> {
+    const normalizedToolId = required(toolId, "AgentKit Tool ID");
+    positiveInteger(maxPages, "maximum snapshot page count");
+    const snapshots = new Map<string, AgentkitSessionSnapshotSummary>();
+    const seenTokens = new Set<string>();
+    let nextToken: string | undefined;
+
+    for (let pageNumber = 0; pageNumber < maxPages; pageNumber += 1) {
+      const page = await this.listSessionSnapshots(normalizedToolId, {
+        ...input,
+        ...(nextToken ? { nextToken } : {}),
+      });
+      for (const snapshot of page.data) snapshots.set(snapshot.snapshotId, snapshot);
+      if (!page.nextToken) return [...snapshots.values()].sort(compareSessionSnapshots);
+      if (seenTokens.has(page.nextToken)) {
+        throw invalidResponse(
+          "ListSessionSnapshots",
+          "response repeated NextToken and would cause a pagination loop",
+          page.requestId,
+        );
+      }
+      seenTokens.add(page.nextToken);
+      nextToken = page.nextToken;
+    }
+
+    throw invalidResponse(
+      "ListSessionSnapshots",
+      `response exceeded the ${maxPages}-page safety limit`,
+    );
+  }
+
   async getSession(toolId: string, sessionId: string): Promise<AgentkitSessionSummary> {
     const normalizedToolId = required(toolId, "AgentKit Tool ID");
     const { result, requestId } = await this.#invoke("GetSession", {
@@ -295,12 +466,19 @@ export class AgentkitToolsClient {
   ): Promise<AgentkitSessionSummary> {
     const normalizedToolId = required(toolId, "AgentKit Tool ID");
     const ttl = input.ttl ?? 28_800;
-    if (!Number.isInteger(ttl) || ttl < 60 || ttl > 604_800) {
-      throw new TypeError("session TTL must be an integer between 60 and 604800 seconds");
+    if (!Number.isInteger(ttl) || ttl < 60 || ttl > MAX_SESSION_TTL_SECONDS) {
+      throw new TypeError(
+        `session TTL must be an integer between 60 and ${MAX_SESSION_TTL_SECONDS} seconds`,
+      );
     }
     const userSessionId = input.userSessionId?.trim() || `situla-${randomUUID()}`;
-    if (userSessionId.length > 128) {
-      throw new TypeError("UserSessionId must not exceed 128 characters");
+    if (
+      userSessionId.length > MAX_USER_SESSION_ID_LENGTH ||
+      !/^[A-Za-z0-9_-]+$/.test(userSessionId)
+    ) {
+      throw new TypeError(
+        `UserSessionId must contain only letters, digits, hyphens, or underscores and not exceed ${MAX_USER_SESSION_ID_LENGTH} characters`,
+      );
     }
     const { result, requestId } = await this.#invoke("CreateSession", {
       ToolId: normalizedToolId,
@@ -314,6 +492,34 @@ export class AgentkitToolsClient {
     );
     if (!session) {
       throw invalidResponse("CreateSession", "Result is missing SessionId", requestId);
+    }
+    return { ...session, toolId: session.toolId ?? normalizedToolId };
+  }
+
+  async resumeSessionFromSnapshot(
+    toolId: string,
+    snapshotId: string,
+    ttl = 28_800,
+  ): Promise<AgentkitSessionSummary> {
+    const normalizedToolId = required(toolId, "AgentKit Tool ID");
+    if (!Number.isInteger(ttl) || ttl < 60 || ttl > MAX_SESSION_TTL_SECONDS) {
+      throw new TypeError(
+        `session TTL must be an integer between 60 and ${MAX_SESSION_TTL_SECONDS} seconds`,
+      );
+    }
+    const { result, requestId } = await this.#invoke("ResumeSessionFromSnapshot", {
+      ToolId: normalizedToolId,
+      SnapshotId: required(snapshotId, "AgentKit Snapshot ID"),
+      Ttl: ttl,
+      CreateNewInstance: false,
+    });
+    const session = parseSession(result, "Starting");
+    if (!session) {
+      throw invalidResponse(
+        "ResumeSessionFromSnapshot",
+        "Result is missing SessionId",
+        requestId,
+      );
     }
     return { ...session, toolId: session.toolId ?? normalizedToolId };
   }
@@ -541,6 +747,9 @@ function parseTool(value: unknown): AgentkitToolSummary | undefined {
     ...(typeof value.UpdatedAt === "string" && value.UpdatedAt
       ? { updatedAt: value.UpdatedAt }
       : {}),
+    ...(typeof value.EnableSnapshot === "boolean"
+      ? { enableSnapshot: value.EnableSnapshot }
+      : {}),
   };
 }
 
@@ -581,7 +790,37 @@ function parseSession(
   };
 }
 
+function parseSessionSnapshot(value: unknown): AgentkitSessionSnapshotSummary | undefined {
+  if (!isRecord(value) || typeof value.SnapshotId !== "string" || !value.SnapshotId) {
+    return undefined;
+  }
+  return {
+    snapshotId: value.SnapshotId,
+    ...(typeof value.ToolId === "string" && value.ToolId ? { toolId: value.ToolId } : {}),
+    ...(typeof value.SessionId === "string" && value.SessionId
+      ? { sessionId: value.SessionId }
+      : {}),
+    ...(typeof value.UserSessionId === "string" && value.UserSessionId
+      ? { userSessionId: value.UserSessionId }
+      : {}),
+    ...(typeof value.Status === "string" && value.Status ? { status: value.Status } : {}),
+    ...(typeof value.Reason === "string" && value.Reason ? { reason: value.Reason } : {}),
+    ...(typeof value.CreatedAt === "string" && value.CreatedAt
+      ? { createdAt: value.CreatedAt }
+      : {}),
+  };
+}
+
 function compareSessions(left: AgentkitSessionSummary, right: AgentkitSessionSummary): number {
+  const leftTime = Date.parse(left.createdAt ?? "") || 0;
+  const rightTime = Date.parse(right.createdAt ?? "") || 0;
+  return rightTime - leftTime;
+}
+
+function compareSessionSnapshots(
+  left: AgentkitSessionSnapshotSummary,
+  right: AgentkitSessionSnapshotSummary,
+): number {
   const leftTime = Date.parse(left.createdAt ?? "") || 0;
   const rightTime = Date.parse(right.createdAt ?? "") || 0;
   return rightTime - leftTime;

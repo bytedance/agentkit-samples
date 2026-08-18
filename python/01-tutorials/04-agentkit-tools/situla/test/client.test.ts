@@ -91,7 +91,7 @@ test("initializes, starts a thread, and streams a completed turn", async () => {
     clientInfo: {
       name: "agentkit_codex_app_server_client",
       title: "AgentKit Codex App Server Client",
-      version: "0.1.0",
+      version: "0.1.1",
     },
     capabilities: { experimentalApi: true },
   });

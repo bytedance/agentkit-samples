@@ -23,6 +23,7 @@ interface ProxyConnection {
 }
 
 const MAX_PENDING_CDP_BYTES = 64 * 1024;
+const CDP_COMMAND_TIMEOUT_MS = 10_000;
 const COMMON_HEADERS = {
   "cross-origin-resource-policy": "same-origin",
   "referrer-policy": "no-referrer",
@@ -70,6 +71,57 @@ export class SandboxBrowserProxy {
     url.hash = "";
     this.#browserHosts.set(sessionId, url.host);
     return url.toString();
+  }
+
+  async navigate(sessionId: string, targetUrl: string): Promise<void> {
+    const session = this.#getSession(sessionId);
+    if (!session) throw httpError(404, "session not found");
+    const infoResponse = await fetch(session.sandboxServiceUrl("/v1/browser/info"), {
+      signal: AbortSignal.timeout(CDP_COMMAND_TIMEOUT_MS),
+    });
+    if (!infoResponse.ok) {
+      throw new Error(`sandbox browser info returned HTTP ${infoResponse.status}`);
+    }
+    const cdpPath = browserCdpPath(await infoResponse.json());
+    const socket = new ProxyWebSocket(session.sandboxServiceUrl(cdpPath, true));
+    socket.on("error", () => undefined);
+    try {
+      await waitForWebSocketOpen(socket);
+      const targetsResult = await sendCdpCommand(socket, 1, "Target.getTargets");
+      let targetId = firstPageTargetId(targetsResult);
+      let commandId = 2;
+      if (!targetId) {
+        const createResult = await sendCdpCommand(
+          socket,
+          commandId++,
+          "Target.createTarget",
+          { url: "about:blank" },
+        );
+        targetId = stringProperty(createResult, "targetId", "CDP create target result");
+      }
+      const attachResult = await sendCdpCommand(
+        socket,
+        commandId++,
+        "Target.attachToTarget",
+        { targetId, flatten: true },
+      );
+      const cdpSessionId = stringProperty(attachResult, "sessionId", "CDP attach result");
+      await sendCdpCommand(
+        socket,
+        commandId++,
+        "Page.navigate",
+        { url: targetUrl },
+        cdpSessionId,
+      );
+      await sendCdpCommand(
+        socket,
+        commandId,
+        "Target.activateTarget",
+        { targetId },
+      );
+    } finally {
+      socket.close();
+    }
   }
 
   closeSession(sessionId: string): void {
@@ -315,14 +367,11 @@ function localBrowserInfo(value: unknown, request: IncomingMessage, prefix: stri
   if (!isRecord(value) || !isRecord(value.data) || typeof value.data.cdp_url !== "string") {
     throw new TypeError("browser info is missing data.cdp_url");
   }
-  const upstreamCdp = new URL(value.data.cdp_url);
-  const marker = "/cdp/devtools/";
-  const markerIndex = upstreamCdp.pathname.lastIndexOf(marker);
-  if (markerIndex < 0) throw new TypeError("browser info returned an invalid CDP URL");
+  const cdpPath = browserCdpPath(value);
   const host = request.headers.host;
   if (!host) throw new TypeError("browser proxy request is missing Host");
   const localCdp = new URL(`ws://${host}`);
-  localCdp.pathname = `${prefix}${upstreamCdp.pathname.slice(markerIndex)}`;
+  localCdp.pathname = `${prefix}${cdpPath}`;
   localCdp.search = "";
   const localPage = new URL(`http://${host}`);
   localPage.pathname = `${prefix}/browser-ui`;
@@ -333,6 +382,120 @@ function localBrowserInfo(value: unknown, request: IncomingMessage, prefix: stri
   };
   delete data.vnc_url;
   return { ...value, data };
+}
+
+function browserCdpPath(value: unknown): string {
+  if (!isRecord(value) || !isRecord(value.data) || typeof value.data.cdp_url !== "string") {
+    throw new TypeError("browser info is missing data.cdp_url");
+  }
+  const upstreamCdp = new URL(value.data.cdp_url);
+  const markerIndex = upstreamCdp.pathname.lastIndexOf("/cdp/devtools/");
+  if (markerIndex < 0) throw new TypeError("browser info returned an invalid CDP URL");
+  return upstreamCdp.pathname.slice(markerIndex);
+}
+
+function waitForWebSocketOpen(socket: ProxyWebSocket): Promise<void> {
+  if (socket.readyState === ProxyWebSocket.OPEN) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error("sandbox browser CDP connection timed out"));
+    }, CDP_COMMAND_TIMEOUT_MS);
+    const cleanup = () => {
+      clearTimeout(timer);
+      socket.off("open", onOpen);
+      socket.off("error", onError);
+      socket.off("close", onClose);
+    };
+    const onOpen = () => {
+      cleanup();
+      resolve();
+    };
+    const onError = (error: Error) => {
+      cleanup();
+      reject(error);
+    };
+    const onClose = () => {
+      cleanup();
+      reject(new Error("sandbox browser CDP closed before connecting"));
+    };
+    socket.on("open", onOpen);
+    socket.on("error", onError);
+    socket.on("close", onClose);
+  });
+}
+
+function sendCdpCommand(
+  socket: ProxyWebSocket,
+  id: number,
+  method: string,
+  params?: Record<string, unknown>,
+  sessionId?: string,
+): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error(`sandbox browser CDP ${method} timed out`));
+    }, CDP_COMMAND_TIMEOUT_MS);
+    const cleanup = () => {
+      clearTimeout(timer);
+      socket.off("message", onMessage);
+      socket.off("close", onClose);
+    };
+    const onMessage = (raw: RawData) => {
+      let response: unknown;
+      try {
+        response = JSON.parse(raw.toString());
+      } catch {
+        return;
+      }
+      if (!isRecord(response) || response.id !== id) return;
+      cleanup();
+      if (isRecord(response.error)) {
+        reject(new Error(
+          typeof response.error.message === "string"
+            ? response.error.message
+            : `sandbox browser CDP ${method} failed`,
+        ));
+        return;
+      }
+      resolve(response.result);
+    };
+    const onClose = () => {
+      cleanup();
+      reject(new Error(`sandbox browser CDP closed during ${method}`));
+    };
+    socket.on("message", onMessage);
+    socket.on("close", onClose);
+    try {
+      socket.send(JSON.stringify({
+        id,
+        method,
+        ...(params ? { params } : {}),
+        ...(sessionId ? { sessionId } : {}),
+      }));
+    } catch (error) {
+      cleanup();
+      reject(error);
+    }
+  });
+}
+
+function firstPageTargetId(value: unknown): string | undefined {
+  if (!isRecord(value) || !Array.isArray(value.targetInfos)) return undefined;
+  for (const target of value.targetInfos) {
+    if (isRecord(target) && target.type === "page" && typeof target.targetId === "string") {
+      return target.targetId;
+    }
+  }
+  return undefined;
+}
+
+function stringProperty(value: unknown, key: string, description: string): string {
+  if (!isRecord(value) || typeof value[key] !== "string") {
+    throw new TypeError(`${description} is missing ${key}`);
+  }
+  return value[key];
 }
 
 function sendJson(response: ServerResponse, status: number, value: unknown): void {

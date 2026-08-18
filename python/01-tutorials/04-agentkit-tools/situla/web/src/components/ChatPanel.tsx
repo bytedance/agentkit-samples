@@ -2,9 +2,10 @@ import type { ReactNode, RefObject, UIEventHandler } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { formatTime } from "../display";
+import { extractSandboxPreviewUrls } from "../preview-url";
 import { skillDisplayParts } from "../skill-mentions";
 import type { ChatMessage, ExecutionStep, SkillSummary } from "../types";
-import { AlertIcon, ArrowDownIcon, LinkIcon, Logo, SkillIcon, TerminalIcon, UserIcon } from "./ui";
+import { AlertIcon, ArrowDownIcon, BrowserIcon, LinkIcon, Logo, SkillIcon, TerminalIcon, UserIcon } from "./ui";
 
 const SUGGESTIONS = [
   {
@@ -70,6 +71,7 @@ interface ChatPanelProps {
   onJumpToLatest: () => void;
   error?: string;
   onDismissError: () => void;
+  onPreviewUrl: (url: string) => void;
   composer: ReactNode;
 }
 
@@ -85,6 +87,7 @@ export function ChatPanel({
   onJumpToLatest,
   error,
   onDismissError,
+  onPreviewUrl,
   composer,
 }: ChatPanelProps) {
   return (
@@ -96,7 +99,13 @@ export function ChatPanel({
           ) : (
             <div className="messages">
               {messages.map((message) => (
-                <Message key={message.id} message={message} skills={skills} />
+                <Message
+                  key={message.id}
+                  message={message}
+                  skills={skills}
+                  previewEnabled={connected}
+                  onPreviewUrl={onPreviewUrl}
+                />
               ))}
             </div>
           )}
@@ -142,9 +151,13 @@ function EmptyState({ connected, onSuggestion, onConnect }: { connected: boolean
 function Message({
   message,
   skills,
+  previewEnabled,
+  onPreviewUrl,
 }: {
   message: ChatMessage;
   skills: readonly SkillSummary[];
+  previewEnabled: boolean;
+  onPreviewUrl: (url: string) => void;
 }) {
   const author = message.role === "user" ? "你" : message.role === "system" ? "Situla" : "Codex";
   const userDisplay = message.role === "user" && !message.skillNames?.length
@@ -153,6 +166,9 @@ function Message({
         content: message.content,
         skillNames: message.skillNames ?? [],
       };
+  const previewUrls = message.role === "assistant" && message.state === "complete"
+    ? extractSandboxPreviewUrls(message.content)
+    : [];
   return (
     <article className={`message ${message.role} ${message.state}`}>
       <div className="message-avatar">{message.role === "user" ? <UserIcon /> : message.role === "system" ? <TerminalIcon /> : <Logo compact />}</div>
@@ -177,6 +193,22 @@ function Message({
           streaming={message.state === "streaming"}
           markdown={message.role !== "user"}
         />
+        {previewUrls.length > 0 && (
+          <div className="preview-cards">
+            {previewUrls.map((url) => (
+              <div className="preview-card" key={url}>
+                <span className="preview-card-icon"><BrowserIcon /></span>
+                <span className="preview-card-copy">
+                  <strong>网页产物</strong>
+                  <code title={url}>{displayPreviewUrl(url)}</code>
+                </span>
+                <button onClick={() => onPreviewUrl(url)} disabled={!previewEnabled}>
+                  {previewEnabled ? "打开预览" : "连接后预览"}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
         {message.role === "assistant" && message.state === "complete" && message.tokenUsage && (
           <div
             className="message-usage"
@@ -197,6 +229,11 @@ function Message({
       </div>
     </article>
   );
+}
+
+function displayPreviewUrl(value: string): string {
+  const url = new URL(value);
+  return `${url.host}${url.pathname}${url.search}${url.hash}`;
 }
 
 function SkillDisclosure({

@@ -30,7 +30,7 @@ interface CliArgs extends ThreadOptions {
   url?: string;
   prompt?: string;
   thread?: string;
-  timeoutSeconds: number;
+  timeoutSeconds?: number;
   approval: ApprovalMode;
   verbose: boolean;
   help: boolean;
@@ -49,7 +49,7 @@ Options:
       --thread <id>        Resume an existing Codex thread
       --cwd <path>         Sandbox working directory for the thread
       --model <model>      Override the sandbox's configured model
-      --timeout <seconds>  Request and turn timeout (default: 300)
+      --timeout <seconds>  Override request and turn timeouts
       --approval <mode>    ask, accept, or reject (default: ask)
   -v, --verbose            Print protocol method names to stderr
   -h, --help               Show this help
@@ -65,7 +65,6 @@ Interactive commands:
 
 function parseArgs(argv: string[]): CliArgs {
   const args: CliArgs = {
-    timeoutSeconds: 300,
     approval: "ask",
     verbose: false,
     help: false,
@@ -108,7 +107,10 @@ function parseArgs(argv: string[]): CliArgs {
     else throw new TypeError(`unknown option: ${token}`);
   }
 
-  if (!Number.isFinite(args.timeoutSeconds) || args.timeoutSeconds <= 0) {
+  if (
+    args.timeoutSeconds !== undefined &&
+    (!Number.isFinite(args.timeoutSeconds) || args.timeoutSeconds <= 0)
+  ) {
     throw new TypeError("--timeout must be greater than zero");
   }
   return args;
@@ -234,14 +236,15 @@ export async function runChat(argv = process.argv.slice(2)): Promise<number> {
 
   const needsTerminal = args.prompt === undefined || args.approval === "ask";
   const terminal = needsTerminal ? createInterface({ input: stdin, output: stdout }) : undefined;
-  const timeoutMs = args.timeoutSeconds * 1000;
+  const requestTimeoutMs = (args.timeoutSeconds ?? 300) * 1000;
+  const turnTimeoutMs = (args.timeoutSeconds ?? 3_600) * 1000;
   let client: CodexAppServerClient | undefined;
   try {
     const websocketUrl = appServerWebSocketUrl(sandboxUrl);
     stderr.write(`connecting to ${redactedUrl(websocketUrl)}\n`);
     client = new CodexAppServerClient(sandboxUrl, {
-      requestTimeoutMs: timeoutMs,
-      turnTimeoutMs: timeoutMs,
+      requestTimeoutMs,
+      turnTimeoutMs,
       approvalHandler: approvalHandler(args.approval, terminal),
       ...(args.verbose
         ? {

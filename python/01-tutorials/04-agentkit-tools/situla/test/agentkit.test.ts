@@ -23,6 +23,7 @@ test("AgentKit client lists every Tool type with bounded pagination metadata", a
               ProjectName: "default",
               CreatedAt: "2026-07-01T00:00:00Z",
               UpdatedAt: "2026-07-18T00:00:00Z",
+              EnableSnapshot: true,
             },
             { ToolId: "tool-private", Status: "Creating", ToolType: "Private" },
           ],
@@ -47,6 +48,7 @@ test("AgentKit client lists every Tool type with bounded pagination metadata", a
       projectName: "default",
       createdAt: "2026-07-01T00:00:00Z",
       updatedAt: "2026-07-18T00:00:00Z",
+      enableSnapshot: true,
     },
     { toolId: "tool-private", status: "Creating", toolType: "Private" },
   ]);
@@ -77,6 +79,40 @@ test("AgentKit Tool search uses the SDK ListTools contains-filter contract", asy
     Filters: [{ NameContains: field, Values: ["sandbox"] }],
   })));
   await assert.rejects(client.listTools({ maxResults: 101 }), /between 1 and 100/);
+});
+
+test("AgentKit client gets Tool details including the snapshot switch", async () => {
+  const calls: Array<{ url: string; body: string }> = [];
+  const client = new AgentkitToolsClient({
+    accessKey: "AKID",
+    secretKey: "SECRET",
+    fetch: async (input, init) => {
+      calls.push({ url: String(input), body: String(init?.body) });
+      return Response.json({
+        ResponseMetadata: { RequestId: "get-tool" },
+        Result: {
+          ToolId: "tool-snapshot",
+          Name: "Snapshot Tool",
+          Status: "Ready",
+          ToolType: "CodeEnv",
+          EnableSnapshot: false,
+        },
+      });
+    },
+  });
+
+  assert.deepEqual(await client.getTool("tool-snapshot"), {
+    toolId: "tool-snapshot",
+    name: "Snapshot Tool",
+    status: "Ready",
+    toolType: "CodeEnv",
+    enableSnapshot: false,
+  });
+  assert.equal(
+    calls[0]?.url,
+    "https://agentkit.cn-beijing.volcengineapi.com/?Action=GetTool&Version=2025-10-30",
+  );
+  assert.equal(calls[0]?.body, JSON.stringify({ ToolId: "tool-snapshot" }));
 });
 
 test("AgentKit Tool pagination rejects malformed pages and repeated cursors", async () => {
@@ -149,7 +185,7 @@ test("AgentKit client signs ListSessions and projects instance metadata", async 
   assert.match(headers.Authorization, /^HMAC-SHA256 Credential=AKID\/20260718\/cn-beijing\/agentkit\/request,/);
   assert.match(headers.Authorization, /SignedHeaders=content-type;host;x-content-sha256;x-date;x-security-token/);
   assert.match(headers["X-Content-Sha256"], /^[a-f0-9]{64}$/);
-  assert.match(headers["X-Custom-Request-Context"], /^situla\/0\.1\.0 /);
+  assert.match(headers["X-Custom-Request-Context"], /^situla\/0\.1\.1 /);
   assert.equal(page.nextToken, "next-page");
   assert.deepEqual(page.data, [{
     sessionId: "session-1",
@@ -164,7 +200,7 @@ test("AgentKit client signs ListSessions and projects instance metadata", async 
   }]);
 });
 
-test("AgentKit client creates a bounded-TTL session and surfaces API errors", async () => {
+test("AgentKit client creates a minute-TTL session and surfaces API errors", async () => {
   const bodies: string[] = [];
   let fail = false;
   const client = new AgentkitToolsClient({
@@ -183,7 +219,10 @@ test("AgentKit client creates a bounded-TTL session and surfaces API errors", as
     },
   });
 
-  assert.deepEqual(await client.createSession("tool-2", { userSessionId: "task-2", ttl: 3_600 }), {
+  assert.deepEqual(await client.createSession("tool-2", {
+    userSessionId: "task-2",
+    ttl: 60,
+  }), {
     sessionId: "session-2",
     toolId: "tool-2",
     userSessionId: "task-2",
@@ -192,12 +231,147 @@ test("AgentKit client creates a bounded-TTL session and surfaces API errors", as
   assert.equal(bodies[0], JSON.stringify({
     ToolId: "tool-2",
     UserSessionId: "task-2",
-    Ttl: 3_600,
+    Ttl: 60,
     TtlUnit: "second",
   }));
-  await assert.rejects(client.createSession("tool-2", { ttl: 30 }), /between 60 and 604800/);
+  await assert.rejects(client.createSession("tool-2", { ttl: 30 }), /between 60 and 86400/);
+  await assert.rejects(
+    client.createSession("tool-2", { userSessionId: "中文不允许" }),
+    /only letters, digits, hyphens, or underscores/,
+  );
   fail = true;
   await assert.rejects(client.getSession("tool-2", "session-2"), /AccessDenied.*denied/);
+});
+
+test("AgentKit client paginates snapshots and resumes one with a bounded TTL", async () => {
+  const calls: Array<{ action: string; body: Record<string, unknown> }> = [];
+  const pagination = Object.fromEntries([["NextToken", "snapshot-next"]]);
+  let snapshotPage = 0;
+  const client = new AgentkitToolsClient({
+    accessKey: "AKID",
+    secretKey: "SECRET",
+    fetch: async (input, init) => {
+      const action = new URL(String(input)).searchParams.get("Action") ?? "";
+      const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      calls.push({ action, body });
+      if (action === "ListSessionSnapshots") {
+        snapshotPage += 1;
+        return Response.json({
+          ResponseMetadata: { RequestId: `snapshot-page-${snapshotPage}` },
+          Result: snapshotPage === 1
+            ? {
+                ...pagination,
+                Snapshots: [{
+                  SnapshotId: "snapshot-new",
+                  ToolId: "tool-snapshot",
+                  SessionId: "session-old",
+                  UserSessionId: "task-snapshot",
+                  Status: "Ready",
+                  Reason: "Expired",
+                  CreatedAt: "2026-08-03T10:00:00Z",
+                }],
+              }
+            : {
+                Snapshots: [{
+                  SnapshotId: "snapshot-old",
+                  UserSessionId: "task-snapshot",
+                  CreatedAt: "2026-08-03T09:00:00Z",
+                }],
+              },
+        });
+      }
+      if (action === "ResumeSessionFromSnapshot") {
+        return Response.json({ Result: { SessionId: "session-restored" } });
+      }
+      throw new Error(`unexpected action ${action}`);
+    },
+  });
+
+  assert.deepEqual(await client.listAllSessionSnapshots("tool-snapshot", {
+    userSessionId: "task-snapshot",
+  }), [
+    {
+      snapshotId: "snapshot-new",
+      toolId: "tool-snapshot",
+      sessionId: "session-old",
+      userSessionId: "task-snapshot",
+      status: "Ready",
+      reason: "Expired",
+      createdAt: "2026-08-03T10:00:00Z",
+    },
+    {
+      snapshotId: "snapshot-old",
+      toolId: "tool-snapshot",
+      userSessionId: "task-snapshot",
+      createdAt: "2026-08-03T09:00:00Z",
+    },
+  ]);
+  assert.deepEqual(await client.resumeSessionFromSnapshot(
+    "tool-snapshot",
+    "snapshot-new",
+    60,
+  ), {
+    sessionId: "session-restored",
+    toolId: "tool-snapshot",
+    status: "Starting",
+  });
+  assert.deepEqual(calls.map(({ action, body }) => ({ action, body })), [
+    {
+      action: "ListSessionSnapshots",
+      body: {
+        ToolId: "tool-snapshot",
+        MaxResults: 100,
+        UserSessionId: "task-snapshot",
+      },
+    },
+    {
+      action: "ListSessionSnapshots",
+      body: {
+        ToolId: "tool-snapshot",
+        MaxResults: 100,
+        UserSessionId: "task-snapshot",
+        ...pagination,
+      },
+    },
+    {
+      action: "ResumeSessionFromSnapshot",
+      body: {
+        ToolId: "tool-snapshot",
+        SnapshotId: "snapshot-new",
+        Ttl: 60,
+        CreateNewInstance: false,
+      },
+    },
+  ]);
+});
+
+test("AgentKit client finds an active Session by exact UserSessionId before restore", async () => {
+  let body: Record<string, unknown> | undefined;
+  const client = new AgentkitToolsClient({
+    accessKey: "AKID",
+    secretKey: "SECRET",
+    fetch: async (_input, init) => {
+      body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      return Response.json({
+        Result: {
+          SessionInfos: [
+            { SessionId: "terminating", UserSessionId: "task-1", Status: "Terminating" },
+            { SessionId: "ready", UserSessionId: "task-1", Status: "Ready" },
+          ],
+        },
+      });
+    },
+  });
+
+  assert.equal(
+    (await client.findSessionByUserSessionId("tool-1", "task-1"))?.sessionId,
+    "ready",
+  );
+  assert.deepEqual(body, {
+    ToolId: "tool-1",
+    MaxResults: 100,
+    Filters: [{ Name: "UserSessionId", Values: ["task-1"] }],
+  });
 });
 
 test("AgentKit client supports a configured custom service and host", async () => {

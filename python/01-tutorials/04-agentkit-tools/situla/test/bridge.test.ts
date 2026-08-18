@@ -56,6 +56,25 @@ function respondToSetup(socket: FakeWebSocket): void {
   };
 }
 
+test("bridge defaults turn timeout to one hour", () => {
+  const socket = new FakeWebSocket();
+  let clientOptions: ClientOptions | undefined;
+  const session = new BridgeSession({
+    sandboxUrl: "https://sandbox.example/?Authorization=secret",
+    clientFactory: (url, options) => {
+      clientOptions = options;
+      return new CodexAppServerClient(url, {
+        ...options,
+        webSocketFactory: () => socket as unknown as WebSocketLike,
+      });
+    },
+  });
+
+  assert.equal(clientOptions?.requestTimeoutMs, 300_000);
+  assert.equal(clientOptions?.turnTimeoutMs, 3_600_000);
+  session.close();
+});
+
 test("bridge isolates failed subscribers and replays ordered history", async () => {
   const socket = new FakeWebSocket();
   respondToSetup(socket);

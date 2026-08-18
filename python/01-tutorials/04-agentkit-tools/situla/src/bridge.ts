@@ -139,6 +139,7 @@ export interface BridgeSessionOptions extends ThreadOptions {
   sandboxUrl: string;
   resumeThreadId?: string;
   requestTimeoutMs?: number;
+  turnTimeoutMs?: number;
   clientFactory?: (url: string, options: ClientOptions) => CodexAppServerClient;
 }
 
@@ -200,12 +201,13 @@ export class BridgeSession {
       cwd: options.cwd,
       model: options.model,
     };
-    const timeoutMs = options.requestTimeoutMs ?? 300_000;
+    const requestTimeoutMs = options.requestTimeoutMs ?? 300_000;
+    const turnTimeoutMs = options.turnTimeoutMs ?? options.requestTimeoutMs ?? 60 * 60_000;
     const clientFactory = options.clientFactory ?? ((url, clientOptions) =>
       new CodexAppServerClient(url, clientOptions));
     this.#client = clientFactory(options.sandboxUrl, {
-      requestTimeoutMs: timeoutMs,
-      turnTimeoutMs: timeoutMs,
+      requestTimeoutMs,
+      turnTimeoutMs,
       approvalHandler: (request) => this.#requestApproval(request),
       onDisconnect: (error) => this.#finishClose(false, error.message),
     });

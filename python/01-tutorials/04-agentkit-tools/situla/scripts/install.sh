@@ -5,7 +5,7 @@ default_download_base_url=https://public-reading.tos-cn-beijing.volces.com/agent
 download_base_url=${SITULA_DOWNLOAD_BASE_URL:-$default_download_base_url}
 default_install_directory="$HOME/.local/bin"
 install_directory=${SITULA_INSTALL_DIR:-$default_install_directory}
-version=${SITULA_VERSION:-0.1.0}
+version=${SITULA_VERSION:-0.1.1}
 version=${version#v}
 
 fail() {
