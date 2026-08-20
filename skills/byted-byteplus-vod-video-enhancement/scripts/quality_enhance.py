@@ -51,6 +51,7 @@ _VALID_REPAIR_STYLES = {1, 2}
 _VALID_TARGET_RES = frozenset(
     {"240p", "360p", "480p", "540p", "720p", "1080p", "2k", "4k"}
 )
+_VALID_BIT_DEPTHS = frozenset({8, 10, 12, 16})
 # User-facing aliases that mean "keep source resolution" (omit MoeEnhance.Target)
 _RES_ORIGINAL_ALIASES = frozenset(
     {"", "original", "source", "same", "native", "none", "default"}
@@ -226,13 +227,45 @@ def _parse_target_res(args: dict) -> str | None:
     return normalized
 
 
-def _build_moe_enhance(config: str, repair_style: int, target_res: str | None) -> dict:
+def _parse_bit_depth(args: dict, repair_style: int) -> int | None:
+    """Parse optional Target.BitDepth; online color-depth output is Pro-only."""
+    if "bit_depth" not in args or args.get("bit_depth") is None:
+        return None
+
+    raw = args.get("bit_depth")
+    if isinstance(raw, bool):
+        bail("quality_enhance: 'bit_depth' must be one of 8, 10, 12, or 16")
+    if isinstance(raw, int):
+        bit_depth = raw
+    elif isinstance(raw, str) and raw.strip() in {"8", "10", "12", "16"}:
+        bit_depth = int(raw.strip())
+    else:
+        bail("quality_enhance: 'bit_depth' must be one of 8, 10, 12, or 16")
+
+    if bit_depth not in _VALID_BIT_DEPTHS:
+        bail("quality_enhance: 'bit_depth' must be one of 8, 10, 12, or 16")
+    if repair_style != 2:
+        bail("quality_enhance: 'bit_depth' is supported only with the Pro tier")
+    return bit_depth
+
+
+def _build_moe_enhance(
+    config: str,
+    repair_style: int,
+    target_res: str | None,
+    bit_depth: int | None,
+) -> dict:
     moe: dict = {
         "Config": config,
         "VideoStrategy": {"RepairStyle": repair_style, "RepairStrength": 0},
     }
+    target: dict = {}
     if target_res is not None:
-        moe["Target"] = {"Res": target_res}
+        target["Res"] = target_res
+    if bit_depth is not None:
+        target["BitDepth"] = bit_depth
+    if target:
+        moe["Target"] = target
     return moe
 
 
@@ -265,7 +298,8 @@ def main():
     config = _parse_moe_config(args)
     repair_style = _parse_repair_style(args)
     target_res = _parse_target_res(args)
-    moe_enhance = _build_moe_enhance(config, repair_style, target_res)
+    bit_depth = _parse_bit_depth(args, repair_style)
+    moe_enhance = _build_moe_enhance(config, repair_style, target_res, bit_depth)
 
     payload = {
         "Input": media_input,
@@ -282,9 +316,17 @@ def main():
     }
 
     res_note = target_res or "source"
+    bit_depth_note = bit_depth or "default (8-bit)"
+    if bit_depth == 16:
+        log(
+            "16-bit requirements: input duration must not exceed 40 seconds; "
+            "output uses FFV1 lossless encoding without a target bitrate; "
+            "tasks are processed serially and may take longer"
+        )
     log(
         f"Submitting quality restoration job, video={video} type={asset_type} "
-        f"config={config} repair_style={repair_style} res={res_note}"
+        f"config={config} repair_style={repair_style} res={res_note} "
+        f"bit_depth={bit_depth_note}"
     )
     try:
         run_id = _start_execution(client, payload)

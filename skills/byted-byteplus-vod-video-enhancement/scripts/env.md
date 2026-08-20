@@ -8,4 +8,3 @@ BYTEPLUS_SECRETKEY=
 
 # VOD space name (required)
 VOD_SPACE_NAME=
-
