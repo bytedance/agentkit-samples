@@ -199,6 +199,7 @@ def cmd_auth_login(args, state, session):
     return {"data": cua_auth.login(
         state, base_url,
         prompt=not args.no_prompt,
+        manual=args.manual,
     )}
 
 
@@ -337,6 +338,87 @@ def cmd_desktop_revoke_access(args, state, session):
     )
     return {"data": data, "next": {
         "agent_hint": "The temporary CUA App URL has been revoked. Run desktop access if the user needs a new link.",
+    }}
+
+
+def cmd_desktop_shutdown(args, state, session):
+    base_url = resolve_base_url(args, state)
+    body = {
+        "confirm": True,
+        "idempotency_key": args.idempotency_key,
+        "reason": "user_requested_shutdown",
+    }
+    if args.desktop:
+        body["desktop_id"] = args.desktop
+    data = cua_auth.authorized_call(
+        state, base_url, "POST", "/v1/desktop/release", body=body,
+    )
+    operation_id = data.get("operation_id")
+    next_action = {
+        "agent_hint": "The shutdown request ended billing entitlement and revoked desktop access. "
+        "Physical stop or deletion is asynchronous; do not use the old desktop. If "
+        "data.operation.recoverable is true, retain data.desktop.desktop_id and "
+        "data.operation.purge_after so a later explicit desktop start can recover it before the "
+        "retention deadline.",
+    }
+    if operation_id:
+        next_action["command"] = (
+            f"python3 {script_path()} desktop operation --operation-id {operation_id}"
+        )
+    return {"data": data, "next": next_action}
+
+
+def cmd_desktop_start(args, state, session):
+    base_url = resolve_base_url(args, state)
+    body = {"idempotency_key": args.idempotency_key}
+    if args.desktop:
+        body["desktop_id"] = args.desktop
+    data = cua_auth.authorized_call(
+        state, base_url, "POST", "/v1/desktop/start", body=body,
+    )
+    operation = data.get("operation") if isinstance(data.get("operation"), dict) else {}
+    operation_id = data.get("operation_id") or operation.get("operation_id")
+    action = data.get("action") or "start"
+    if operation_id:
+        return {"data": data, "next": {
+            "command": f"python3 {script_path()} desktop operation --operation-id {operation_id}",
+            "agent_hint": (
+                f"Desktop {action} is in progress. Keep checking this logical operation until it "
+                "is terminal; only succeeded means the desktop and its required access and "
+                "entitlement state are ready."
+            ),
+        }}
+    return {"data": data, "next": {
+        "agent_hint": (
+            f"Desktop start completed with action {action}. Use data.restoring and "
+            "data.newly_allocated to distinguish retained recovery from reuse or new allocation."
+        ),
+    }}
+
+
+def cmd_desktop_operation(args, state, session):
+    base_url = resolve_base_url(args, state)
+    data = cua_auth.authorized_call(
+        state,
+        base_url,
+        "GET",
+        f"/v1/desktop/operations/{args.operation_id}",
+        retries=IDEMPOTENT_RETRIES,
+    )
+    status = data.get("status")
+    terminal = data.get("terminal") is True
+    if terminal:
+        hint = (
+            "The desktop lifecycle operation is terminal. Report whether it succeeded or failed "
+            "from data.status and data.operation."
+        )
+        return {"data": data, "next": {"agent_hint": hint}}
+    return {"data": data, "next": {
+        "command": f"python3 {script_path()} desktop operation --operation-id {args.operation_id}",
+        "agent_hint": (
+            f"The desktop lifecycle operation is still {status or 'running'}. Keep checking this "
+            "same operation; do not submit another start or shutdown request."
+        ),
     }}
 
 
@@ -874,8 +956,16 @@ def build_parser():
     p = auth.add_parser("status", help="Check the current login state.")
     p.set_defaults(handler=cmd_auth_status, action="auth status")
 
-    p = auth.add_parser("login", help="Use arkcli or the hidden local credential prompt.")
-    p.add_argument("--no-prompt", action="store_true", help="Do not prompt; require an arkcli credential.")
+    p = auth.add_parser("login", help="Use arkcli by default or explicitly select the hidden manual prompt.")
+    login_mode = p.add_mutually_exclusive_group()
+    login_mode.add_argument(
+        "--no-prompt", action="store_true", help="Do not prompt; require an arkcli credential."
+    )
+    login_mode.add_argument(
+        "--manual",
+        action="store_true",
+        help="Bypass arkcli and securely prompt for an API key in this local terminal.",
+    )
     p.set_defaults(handler=cmd_auth_login, action="auth login")
 
     p = auth.add_parser("logout", help="Clear the locally cached AgentPlan API key.")
@@ -947,6 +1037,43 @@ def _add_semantic_parsers(sub):
     group.add_argument("--ticket", help="Ticket returned by desktop access.")
     group.add_argument("--access-url", help="CUA App URL containing the ticket query parameter.")
     p.set_defaults(handler=cmd_desktop_revoke_access, action="desktop revoke-access")
+
+    p = desktop.add_parser(
+        "start",
+        help="Ensure a desktop is ready by reusing, starting, recovering, or allocating it.",
+    )
+    p.add_argument(
+        "--desktop",
+        help="Exact caller-owned desktop id to recover or start. Omit to let the service select the primary desktop or allocate one.",
+    )
+    p.add_argument(
+        "--idempotency-key",
+        required=True,
+        help="Stable unique key for this user-requested start; reuse it when retrying the same request.",
+    )
+    p.set_defaults(handler=cmd_desktop_start, action="desktop start")
+
+    p = desktop.add_parser(
+        "shutdown",
+        help="Release the desktop to stop billing, revoke access, and stop or delete it.",
+    )
+    p.add_argument("--desktop", help="Optional exact caller-owned desktop id.")
+    p.add_argument(
+        "--confirm",
+        action="store_true",
+        required=True,
+        help="Confirm that the user explicitly requested shutdown and understands active tasks stop.",
+    )
+    p.add_argument(
+        "--idempotency-key",
+        required=True,
+        help="Stable unique key for this user-approved shutdown; reuse it when retrying the same request.",
+    )
+    p.set_defaults(handler=cmd_desktop_shutdown, action="desktop shutdown")
+
+    p = desktop.add_parser("operation", help="Check a desktop start or shutdown operation.")
+    p.add_argument("--operation-id", required=True, help="Operation id returned by desktop start or shutdown.")
+    p.set_defaults(handler=cmd_desktop_operation, action="desktop operation")
 
 
     model = sub.add_parser("model", help="Read the default CUA model config.").add_subparsers(dest="model_command")

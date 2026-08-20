@@ -25,6 +25,26 @@ the same API key to CUA runtime model calls.
    `arkcli_hint`, and the existing `setup_command`. Ask the user to run that
    command in their own local terminal; it uses the hidden API-key prompt.
 
+### Explicit manual login
+
+When the user intentionally needs a different account or machine credential,
+even while arkcli is installed and valid, ask them to run this in their own
+local terminal:
+
+```bash
+python3 scripts/cua.py auth login --manual
+```
+
+`--manual` skips arkcli discovery for that login only and reads the API key
+through `getpass`, so it is not echoed or passed as a command argument. After
+gateway validation, the key is stored in the same protected `0600` cache.
+Business commands already prefer that cache over arkcli, so the manual identity
+remains active until `auth logout` clears it. Normal `auth login`, `auth status`,
+and business-command discovery keep their existing behavior when no manual key
+is cached. If a cached manual key is rejected, the CLI returns the manual login
+command instead of falling back to arkcli, avoiding an unintended identity or
+desktop switch. `--manual` and `--no-prompt` are mutually exclusive.
+
 When stdin is not a TTY, `auth login` does not prompt or block. It returns
 `AUTH_REQUIRED` with `setup_command` so the agent can ask the user to perform the
 login in a real local terminal instead of pasting the API key into chat.
@@ -36,9 +56,9 @@ login in a real local terminal instead of pasting the API key into chat.
 - Permissions: `0600`; the script attempts to repair unsafe permissions and
   refuses to continue if it cannot.
 - `auth.json` holds the API base URL and, only for the hidden local-prompt
-  fallback, the protected credential plus last verified user summary and desktop binding
-  flag. arkcli-sourced keys are never copied here. Cache contents are never
-  printed.
+  fallback or explicit `--manual` login, the protected credential plus its
+  source, last verified user summary, and desktop binding flag. Arkcli-sourced
+  keys are never copied here. Cache contents are never printed.
 
 ## Auth Errors
 
@@ -46,6 +66,7 @@ login in a real local terminal instead of pasting the API key into chat.
 | --- | --- | --- |
 | `AUTH_REQUIRED` | no usable key from existing configuration or arkcli, or the key is invalid | inspect `arkcli_status`; fix arkcli when practical, otherwise ask the user to run fallback `setup_command`, then retry |
 | `AUTH_REQUIRED` with `arkcli_status=state_snapshot_failed` | arkcli state could not be copied into a private temporary HOME | use the local hidden API-key prompt or fix access to the user's arkcli state |
+| `AUTH_REQUIRED` with `manual_login_required=true` | the explicit manual path needs a real local TTY, or the manual key was rejected | run `setup_command` in the user's local terminal and enter the key through the hidden prompt; never paste it into chat |
 | `TOKEN_EXPIRED` | gateway rejected the bearer credential | ask the user to run `setup_command` in their own local terminal again |
 | `REFRESH_FAILED` | legacy alias for re-login needed | ask the user to run `setup_command` in their own local terminal again |
 | `FORBIDDEN` | API key is valid but not allowed for this operation | do not retry with the same key |

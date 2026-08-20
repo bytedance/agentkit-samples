@@ -84,7 +84,13 @@ def _next_for_error(body):
         }
     setup = body.get("setup_command")
     if code in ("AUTH_REQUIRED", "REFRESH_FAILED", "TOKEN_EXPIRED") and setup:
-        if body.get("arkcli_status"):
+        if body.get("manual_login_required"):
+            agent_hint = (
+                "The user explicitly selected manual API-key login. Ask them to open a local "
+                "terminal, run setup_command there, and enter the key through the hidden prompt. "
+                "This path intentionally bypasses arkcli. Never ask them to paste the key into chat."
+            )
+        elif body.get("arkcli_status"):
             agent_hint = (
                 "arkcli discovery already ran. Inspect error.arkcli_status and follow error.arkcli_hint first; "
                 "never expose the key. If arkcli is unavailable or cannot be repaired, ask the user to open "
@@ -163,9 +169,10 @@ def script_path():
     return os.path.abspath(sys.argv[0]) if sys.argv and sys.argv[0] else "scripts/cua.py"
 
 
-def login_setup_command():
+def login_setup_command(manual=False):
     """The command the user should run in their own local terminal to login."""
-    return f"python3 {script_path()} auth login"
+    suffix = " --manual" if manual else ""
+    return f"python3 {script_path()} auth login{suffix}"
 
 
 # MIME type -> file extension, for artifact downloads that don't specify a name.

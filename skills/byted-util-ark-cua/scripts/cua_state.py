@@ -101,6 +101,10 @@ class AuthState(_JsonFile):
         return self.data.get("api_key")
 
     @property
+    def credential_source(self):
+        return self.data.get("credential_source")
+
+    @property
     def refresh_token(self):
         return None
 
@@ -129,23 +133,27 @@ class AuthState(_JsonFile):
             "access_token_expires_at": access_token_expires_at,
             "desktop_bound": desktop_bound,
         })
+        self.data.pop("credential_source", None)
         self.save()
 
-    def set_api_key(self, *, api_base_url, api_key, user=None, desktop_bound=False):
+    def set_api_key(self, *, api_base_url, api_key, user=None, desktop_bound=False,
+                    credential_source=None):
         self.data.update({
             "api_base_url": api_base_url,
             "api_key": api_key,
             "user": user or {},
             "desktop_bound": bool(desktop_bound),
         })
+        if credential_source:
+            self.data["credential_source"] = credential_source
         for key in ("access_token", "access_token_expires_at", "refresh_token",
                     "refresh_token_expires_at"):
             self.data.pop(key, None)
         self.save()
 
     def clear_tokens(self):
-        for key in ("api_key", "access_token", "access_token_expires_at", "refresh_token",
-                    "refresh_token_expires_at", "user", "desktop_bound"):
+        for key in ("api_key", "credential_source", "access_token", "access_token_expires_at",
+                    "refresh_token", "refresh_token_expires_at", "user", "desktop_bound"):
             self.data.pop(key, None)
         self.save()
 

@@ -129,15 +129,26 @@ def _authorized_raw_call_once(state, base_url, method, path, body=None, query=No
     return headers, raw
 
 
-def login(state, base_url, prompt=True, **_unused):
+def login(state, base_url, prompt=True, manual=False, **_unused):
     """Configure and validate an AgentPlan API key."""
-    credential, arkcli_discovery = _arkcli_credential()
-    if not credential and prompt:
-        if not sys.stdin.isatty():
-            raise _auth_required(arkcli_discovery)
+    credential = None
+    arkcli_discovery = None
+    if manual:
+        if not prompt or not sys.stdin.isatty():
+            raise _auth_required(manual=True)
         credential = CredentialHandle.optional(
-            getpass.getpass("AgentPlan API key: "), "prompt"
+            getpass.getpass("AgentPlan API key (manual): "), "manual"
         )
+        if not credential:
+            raise _auth_required(manual=True)
+    else:
+        credential, arkcli_discovery = _arkcli_credential()
+        if not credential and prompt:
+            if not sys.stdin.isatty():
+                raise _auth_required(arkcli_discovery)
+            credential = CredentialHandle.optional(
+                getpass.getpass("AgentPlan API key: "), "prompt"
+            )
     if not credential:
         raise _auth_required(arkcli_discovery)
 
@@ -161,7 +172,7 @@ def login(state, base_url, prompt=True, **_unused):
             except SkillError as fallback_exc:
                 raise _auth_error_with_retry(fallback_exc)
         else:
-            raise _auth_error_with_retry(exc)
+            raise _auth_error_with_retry(exc, manual=credential.source == "manual")
     user = _safe_user(data.get("user") or data.get("caller") or data)
     # arkcli remains the source of truth. Its key is used only by this process
     # and is deliberately not copied into the CUA auth cache.
@@ -172,6 +183,7 @@ def login(state, base_url, prompt=True, **_unused):
                 api_key=value,
                 user=user,
                 desktop_bound=bool(data.get("desktop_bound")),
+                credential_source=credential.source,
             )
         )
     result = {
@@ -194,13 +206,14 @@ def auth_status(state, base_url):
         lambda token: gateway_call("GET", base_url, "/v1/auth/me", token=token),
     )
     user = _safe_user(data.get("user") or data.get("caller") or data)
-    if user and user != state.user and credential.source == "cache":
+    if user and user != state.user and credential.source in ("cache", "manual"):
         credential.invoke(
             lambda value: state.set_api_key(
                 api_base_url=base_url,
                 api_key=value,
                 user=user,
                 desktop_bound=bool(data.get("desktop_bound")),
+                credential_source=getattr(state, "credential_source", None),
             )
         )
     result = {
@@ -226,7 +239,8 @@ def logout(state, base_url):
 
 
 def _resolve_credential(state):
-    cached = CredentialHandle.optional(state.access_token, "cache")
+    source = "manual" if getattr(state, "credential_source", None) == "manual" else "cache"
+    cached = CredentialHandle.optional(state.access_token, source)
     if cached:
         return cached, None
     return _arkcli_credential()
@@ -242,6 +256,8 @@ def _with_credential_recovery(state, operation):
         if _is_agentplan_auth_rejection(exc):
             if credential.source == "arkcli":
                 raise _auth_required({"status": "api_key_rejected", "profile": credential.profile})
+            if credential.source == "manual":
+                raise _auth_required(manual=True)
             arkcli_credential, arkcli_discovery = _arkcli_credential()
             if arkcli_credential and not arkcli_credential.same_value(credential):
                 try:
@@ -373,7 +389,14 @@ def _arkcli_error_status(stderr, fallback):
     return error_type if isinstance(error_type, str) and error_type else fallback
 
 
-def _auth_required(discovery=None):
+def _auth_required(discovery=None, manual=False):
+    if manual:
+        return SkillError(
+            "AUTH_REQUIRED",
+            "Manual AgentPlan API key login requires a local hidden prompt.",
+            setup_command=login_setup_command(manual=True),
+            manual_login_required=True,
+        )
     status = (discovery or {}).get("status") or "unavailable"
     hints = {
         "not_installed": "arkcli is not installed; use the local hidden API-key prompt.",
@@ -391,16 +414,19 @@ def _auth_required(discovery=None):
     )
 
 
-def _auth_error_with_retry(exc):
+def _auth_error_with_retry(exc, manual=False):
     if _is_agentplan_auth_rejection(exc):
         return SkillError(
             "AUTH_REQUIRED",
             "AgentPlan APIKey 不合法，请输入正确的 APIKey。",
-            setup_command=login_setup_command(),
+            setup_command=login_setup_command(manual=manual),
+            manual_login_required=manual or None,
             auth_type="agentplan_bearer",
         )
     if exc.code in ("AUTH_REQUIRED", "TOKEN_EXPIRED", "REFRESH_FAILED") and "setup_command" not in exc.extra:
-        exc.extra["setup_command"] = login_setup_command()
+        exc.extra["setup_command"] = login_setup_command(manual=manual)
+        if manual:
+            exc.extra["manual_login_required"] = True
     return exc
 
 
