@@ -36,9 +36,7 @@ _IS_BYTEPLUS = os.getenv("CLOUD_PROVIDER", "").lower() == "byteplus" or bool(
     os.getenv("BYTEPLUS_REGION")
 )
 DEFAULT_EVALUATE_MODEL = (
-    "dola-seed-2-1-turbo-260628"
-    if _IS_BYTEPLUS
-    else "doubao-seed-1-6-flash-250828"
+    "dola-seed-2-1-turbo-260628" if _IS_BYTEPLUS else "doubao-seed-1-6-flash-250828"
 )
 
 # 短链接服务配置

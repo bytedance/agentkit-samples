@@ -53,10 +53,11 @@ VeADK 按以下优先级（从高到低）读取配置：
 ```python
 from google.adk.tools import ToolContext
 
+
 async def my_custom_tool(tool_context: ToolContext) -> str:
     # 从 session state 读取完整的视觉分析结果
     vision_result = tool_context.state.get("vision_analysis_result", [])
-    
+
     # vision_result 是一个列表，每个元素包含完整的 frame_urls（含 base64）
     for segment in vision_result:
         frame_urls = segment.get("frame_urls", [])  # 完整的 base64 URLs

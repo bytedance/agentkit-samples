@@ -29,8 +29,4 @@ def get_model_api_base() -> str:
 
 def get_evaluate_model() -> str:
     """返回当前区域支持的多模态评估模型。"""
-    return (
-        "dola-seed-2-1-turbo-260628"
-        if is_byteplus()
-        else "doubao-seed-1-6-251015"
-    )
+    return "dola-seed-2-1-turbo-260628" if is_byteplus() else "doubao-seed-1-6-251015"

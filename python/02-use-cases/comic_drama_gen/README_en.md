@@ -81,8 +81,8 @@ Comic Drama Master (comic_drama_master)
 #### Node.js Environment
 
 - Install Node.js 18+ and npm ([Node.js Installation](https://nodejs.org/en))
-- Ensure the `npx` command is available in the terminal
-- The MCP video tool (`@pickstar-2002/video-clip-mcp`) will be automatically started via `npx` when the agent is running — no manual installation required
+- Ensure the `npm` command is available in the terminal
+- The MCP video tool (`@pickstar-2002/video-clip-mcp`) is installed by `scripts/setup.sh`; AgentKit runs this script automatically during cloud image builds
 
 #### TOS Storage Bucket
 
@@ -95,6 +95,9 @@ cd 02-use-cases/comic_drama_gen
 
 # Install dependencies using uv
 uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
+
+# Install the pinned MCP video tool
+bash scripts/setup.sh
 
 # Activate the virtual environment
 source .venv/bin/activate
@@ -315,7 +318,17 @@ agentkit config \
   --entry_point 'agent.py' \
   --runtime_envs DATABASE_TOS_BUCKET=your_bucket_name \
   --launch_type cloud
+```
 
+Ensure the generated `agentkit.yaml` contains the build script configuration so the MCP tool is installed while building the image:
+
+```yaml
+docker_build:
+  platform: auto
+  build_script: scripts/setup.sh
+```
+
+```bash
 agentkit launch
 ```
 
@@ -412,9 +425,9 @@ curl --location 'https://xxxxx.apigateway-cn-beijing.volceapi.com/run_sse' \
 - `.env` will not override variables already set via `export`
 - Install `python-dotenv` for better compatibility, otherwise the built-in parser is used
 
-**`npx` command not found:**
+**`video-clip-mcp` command not found:**
 - Install Node.js 18+ and npm
-- Verify that `npx --version` runs correctly in the terminal
+- Run `bash scripts/setup.sh`, then verify the installation with `command -v video-clip-mcp`
 
 **MCP tool connection error:**
 - Ensure the default MCP port does not conflict

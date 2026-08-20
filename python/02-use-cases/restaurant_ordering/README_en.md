@@ -58,6 +58,7 @@ async def add_to_order(dish_name: str, tool_context: ToolContext = None) -> str:
     tool_context.state["order"] = tool_context.state["order"] + [dish_name]
     return f"I've added {dish_name} to your order."
 
+
 async def summarize_order(tool_context: ToolContext = None) -> str:
     """Summarizes the user's current order."""
     order = tool_context.state.get("order", [])
@@ -122,7 +123,9 @@ app = App(
     root_agent=root_agent,
     plugins=[
         CountInvocationPlugin(),
-        ContextFilterPlugin(num_invocations_to_keep=8),  # Keep the last 8 rounds of conversation
+        ContextFilterPlugin(
+            num_invocations_to_keep=8
+        ),  # Keep the last 8 rounds of conversation
         SaveFilesAsArtifactsPlugin(),
     ],
     # Event compression: trigger compression every 3 calls

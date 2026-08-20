@@ -1,14 +1,12 @@
 #!/bin/bash
 # install-video-clip-mcp.sh
 
-echo "开始安装 @pickstar-2002/video-clip-mcp..."
-npm install -g @pickstar-2002/video-clip-mcp@latest
+set -euo pipefail
 
-if [ $? -eq 0 ]; then
-    echo "✅ 安装成功！"
-    echo "安装位置: $(which video-clip-mcp)"
-    echo "版本信息: $(video-clip-mcp --version 2>/dev/null || echo '运行 video-clip-mcp --version 查看')"
-else
-    echo "❌ 安装失败！"
-    exit 1
-fi
+readonly MCP_PACKAGE="@pickstar-2002/video-clip-mcp@1.2.0"
+
+echo "开始安装 ${MCP_PACKAGE}..."
+npm install -g --no-audit --no-fund "${MCP_PACKAGE}"
+
+MCP_BIN="$(command -v video-clip-mcp)"
+echo "安装成功，命令路径: ${MCP_BIN}"

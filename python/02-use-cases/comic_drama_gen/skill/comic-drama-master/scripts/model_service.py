@@ -38,9 +38,9 @@ def resolve_provider() -> str:
 
 def get_api_base() -> str:
     """返回显式配置或当前区域默认的模型 API Base URL。"""
-    return os.getenv("MODEL_AGENT_API_BASE") or _DEFAULTS[resolve_provider()][
-        "api_base"
-    ]
+    return (
+        os.getenv("MODEL_AGENT_API_BASE") or _DEFAULTS[resolve_provider()]["api_base"]
+    )
 
 
 def get_image_api_base() -> str:
@@ -55,9 +55,7 @@ def get_video_api_base() -> str:
 
 def get_image_model() -> str:
     """返回图片生成模型名称。"""
-    return os.getenv("MODEL_IMAGE_NAME") or _DEFAULTS[resolve_provider()][
-        "image_model"
-    ]
+    return os.getenv("MODEL_IMAGE_NAME") or _DEFAULTS[resolve_provider()]["image_model"]
 
 
 def get_video_model() -> str:

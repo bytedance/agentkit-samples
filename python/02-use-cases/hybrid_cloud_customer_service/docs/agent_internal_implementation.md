@@ -20,11 +20,18 @@ flowchart LR
 
 ```python
 # agent.py：把可测试的业务核心包装成 Agent tool
-def customer_service_demo(message: str, tenant_id: str = "demo-bank",
-                          user_id: str = "user-001", session_id: str = "session-001") -> str:
-    return json.dumps(service.chat(
-        message, tenant_id=tenant_id, user_id=user_id, session_id=session_id
-    ).to_dict(), ensure_ascii=False)
+def customer_service_demo(
+    message: str,
+    tenant_id: str = "demo-bank",
+    user_id: str = "user-001",
+    session_id: str = "session-001",
+) -> str:
+    return json.dumps(
+        service.chat(
+            message, tenant_id=tenant_id, user_id=user_id, session_id=session_id
+        ).to_dict(),
+        ensure_ascii=False,
+    )
 ```
 
 ## 2. 构建 Agent：模型、工具与平台资源
@@ -35,6 +42,7 @@ def customer_service_demo(message: str, tenant_id: str = "demo-bank",
 # agent.py
 def build_agent():
     from veadk import Agent
+
     knowledge = build_platform_knowledge("hybrid_cloud_customer_service")
     memory = build_platform_memory("hybrid_cloud_customer_service")
     options = {}
@@ -44,9 +52,13 @@ def build_agent():
         options["long_term_memory"] = memory
         options["auto_save_session"] = True
     return Agent(
-        name="hybrid_cloud_customer_service", instruction=INSTRUCTION,
-        model_name=settings.model_name, model_api_key=settings.model_api_key,
-        model_api_base=settings.model_api_base, tools=[customer_service_demo], **options,
+        name="hybrid_cloud_customer_service",
+        instruction=INSTRUCTION,
+        model_name=settings.model_name,
+        model_api_key=settings.model_api_key,
+        model_api_base=settings.model_api_base,
+        tools=[customer_service_demo],
+        **options,
     )
 ```
 
@@ -95,7 +107,8 @@ if not endpoint or not token:
 response = requests.post(
     f"{endpoint}/v1/search",
     json={"question": query, "history_chats": [], "top_k": top_k},
-    headers={"Authorization": f"Bearer {token}"}, timeout=20,
+    headers={"Authorization": f"Bearer {token}"},
+    timeout=20,
 )
 ```
 
@@ -120,21 +133,32 @@ curl -X POST '<runtime-endpoint>/invoke' \
 
 ```python
 # agent.py
-if all(os.getenv(key) for key in (
-    "DATABASE_POSTGRESQL_HOST", "DATABASE_POSTGRESQL_PORT",
-    "DATABASE_POSTGRESQL_USER", "DATABASE_POSTGRESQL_PASSWORD",
-    "DATABASE_POSTGRESQL_DATABASE",
-)):
+if all(
+    os.getenv(key)
+    for key in (
+        "DATABASE_POSTGRESQL_HOST",
+        "DATABASE_POSTGRESQL_PORT",
+        "DATABASE_POSTGRESQL_USER",
+        "DATABASE_POSTGRESQL_PASSWORD",
+        "DATABASE_POSTGRESQL_DATABASE",
+    )
+):
     # VeADK 从环境变量读取配置，并处理密码编码与驱动兼容性。
     short_term_memory = ShortTermMemory(backend="postgresql")
 else:
     short_term_memory = ShortTermMemory(backend="local")
 
 # platform_memory.py
-requests.post(f"{endpoint}/v1/memories/", headers=headers, json={
-    "messages": [{"role": "user", "content": event_string}],
-    "user_id": user_id, "async_mode": True, "version": "v2",
-})
+requests.post(
+    f"{endpoint}/v1/memories/",
+    headers=headers,
+    json={
+        "messages": [{"role": "user", "content": event_string}],
+        "user_id": user_id,
+        "async_mode": True,
+        "version": "v2",
+    },
+)
 ```
 
 验证：相同 `tenant_id/user_id`、不同 `session_id` 读取偏好；更换 tenant 或 user 必须读不到该偏好。
@@ -231,7 +255,9 @@ def configure_hybrid_skills_endpoint() -> None:
 
 ```python
 # agent.py
-skill_space_ids = [item.strip() for item in os.getenv("SKILL_SPACE_ID", "").split(",") if item.strip()]
+skill_space_ids = [
+    item.strip() for item in os.getenv("SKILL_SPACE_ID", "").split(",") if item.strip()
+]
 if skill_space_ids:
     optional_features["skills"] = skill_space_ids
     optional_features["skills_mode"] = "skills_sandbox"
@@ -248,6 +274,7 @@ def execute_skills(workflow_prompt: str, tool_context: Context = None) -> str:
         timeout=900,
         extra_env_vars=hybrid_skills_sandbox_env(tool_context.state),
     )
+
 
 if os.getenv("AGENTKIT_TOOL_ID"):
     tools.append(run_code)
@@ -287,9 +314,14 @@ if a2a_data_agent_configured():
 # a2a_client.py
 card = client.get(config.card_url, headers=headers).json()
 assert "complaint-trend-analysis" in {item["id"] for item in card["skills"]}
-response = client.post(config.rpc_url, json={
-    "jsonrpc": "2.0", "method": "message/send", "params": {"message": message},
-})
+response = client.post(
+    config.rpc_url,
+    json={
+        "jsonrpc": "2.0",
+        "method": "message/send",
+        "params": {"message": message},
+    },
+)
 ```
 
 平台操作与可复制 curl 请见 [A2A 数据分析 Agent 验证](a2a_agent_validation.md)。
@@ -331,11 +363,13 @@ Live 模式使用 `AgentkitAgentServerApp` 的标准 Telemetry 中间件，由 V
 trace_id = f"trace-{uuid.uuid4().hex[:12]}"
 events: list[CapabilityEvent] = []
 
-events.append(CapabilityEvent(
-    "knowledge.search",
-    mode=self.mode,
-    detail={"hits": len(hits), "selected": 1},
-))
+events.append(
+    CapabilityEvent(
+        "knowledge.search",
+        mode=self.mode,
+        detail={"hits": len(hits), "selected": 1},
+    )
+)
 ```
 
 ```json

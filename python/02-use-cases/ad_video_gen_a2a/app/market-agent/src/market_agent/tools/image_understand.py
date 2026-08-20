@@ -24,9 +24,7 @@ _IS_BYTEPLUS = os.getenv("CLOUD_PROVIDER", "").lower() == "byteplus" or bool(
     os.getenv("BYTEPLUS_REGION")
 )
 DEFAULT_VISION_MODEL = (
-    "dola-seed-2-1-turbo-260628"
-    if _IS_BYTEPLUS
-    else "doubao-seed-1-6-251015"
+    "dola-seed-2-1-turbo-260628" if _IS_BYTEPLUS else "doubao-seed-1-6-251015"
 )
 
 filter_agent_instructions = """

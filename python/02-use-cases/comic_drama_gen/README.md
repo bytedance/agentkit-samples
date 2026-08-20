@@ -81,8 +81,8 @@ AgentKit Runtime
 #### Node.js 环境
 
 - 安装 Node.js 18+ 和 npm（[Node.js 安装指南](https://nodejs.org/en)）
-- 确保终端可以使用 `npx` 命令
-- MCP 视频剪辑工具 (`@pickstar-2002/video-clip-mcp`) 在 Agent 运行时通过 `npx` 自动启动，无需手动安装
+- 确保终端可以使用 `npm` 命令
+- MCP 视频剪辑工具 (`@pickstar-2002/video-clip-mcp`) 通过 `scripts/setup.sh` 安装；AgentKit 云端构建会自动执行该脚本
 
 #### TOS 存储桶
 
@@ -95,6 +95,9 @@ cd 02-use-cases/comic_drama_gen
 
 # 使用 uv 安装依赖
 uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
+
+# 安装固定版本的 MCP 视频剪辑工具
+bash scripts/setup.sh
 
 # 激活虚拟环境
 source .venv/bin/activate
@@ -311,7 +314,17 @@ agentkit config \
   --entry_point 'agent.py' \
   --runtime_envs DATABASE_TOS_BUCKET=your_bucket_name \
   --launch_type cloud
+```
 
+确认生成的 `agentkit.yaml` 包含构建脚本配置，确保 MCP 工具在镜像构建阶段安装：
+
+```yaml
+docker_build:
+  platform: auto
+  build_script: scripts/setup.sh
+```
+
+```bash
 agentkit launch
 ```
 
@@ -408,9 +421,9 @@ curl --location 'https://xxxxx.apigateway-cn-beijing.volceapi.com/run_sse' \
 - `.env` 不会覆盖已通过 `export` 设置的环境变量
 - 可安装 `python-dotenv` 获得更好的兼容性，否则使用内置解析器
 
-**`npx` 命令未找到：**
+**`video-clip-mcp` 命令未找到：**
 - 安装 Node.js 18+ 和 npm
-- 在终端中验证 `npx --version` 能否正常运行
+- 执行 `bash scripts/setup.sh`，然后通过 `command -v video-clip-mcp` 验证安装结果
 
 **MCP 工具连接失败：**
 - 确保默认 MCP 端口没有冲突

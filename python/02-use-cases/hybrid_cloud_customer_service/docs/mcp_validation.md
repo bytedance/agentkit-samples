@@ -81,12 +81,12 @@ TOOL_MCP_ROUTER_API_KEY
 
 ```python
 def build_platform_mcp_router():
-    if not (os.getenv("TOOL_MCP_ROUTER_URL") and
-            os.getenv("TOOL_MCP_ROUTER_API_KEY")):
+    if not (os.getenv("TOOL_MCP_ROUTER_URL") and os.getenv("TOOL_MCP_ROUTER_API_KEY")):
         return None
     url = normalize_mcp_router_url(os.environ["TOOL_MCP_ROUTER_URL"])
     os.environ["TOOL_MCP_ROUTER_URL"] = url
     from veadk.tools.builtin_tools.mcp_router import mcp_router
+
     return mcp_router
 ```
 

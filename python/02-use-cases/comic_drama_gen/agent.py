@@ -47,8 +47,8 @@ app = AgentkitSimpleApp()
 agent_builder = AgentBuilder()
 
 server_parameters = StdioServerParameters(
-    command="npx",
-    args=["@pickstar-2002/video-clip-mcp@latest"],
+    command="video-clip-mcp",
+    args=[],
 )
 mcpTool = McpToolset(
     connection_params=StdioConnectionParams(
