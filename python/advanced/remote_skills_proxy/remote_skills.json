@@ -1,0 +1,159 @@
+{
+  "remote_skills": [
+    {
+      "name": "docx",
+      "display_name": "DOCX 文档处理",
+      "description": "远程创建、编辑、分析 Word .docx 文档，支持修订、批注、格式保留和文本提取等专业文档任务。",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": ["create", "edit", "analyze", "extract_text", "comment", "redline"],
+            "description": "期望执行的文档操作"
+          },
+          "input_files": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "远端沙箱可访问的 .docx 文件路径或文件 URL"
+          },
+          "output_requirements": {
+            "type": "string",
+            "description": "输出格式、命名、修订/批注等要求"
+          }
+        },
+        "required": ["operation"]
+      },
+      "timeout_seconds": 1800
+    },
+    {
+      "name": "pdf",
+      "display_name": "PDF 处理",
+      "description": "远程处理 PDF 文档，包括文本和表格提取、生成 PDF、合并拆分、表单识别与填写等批量 PDF 任务。",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": ["extract", "create", "merge", "split", "fill_form", "analyze"],
+            "description": "期望执行的 PDF 操作"
+          },
+          "input_files": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "远端沙箱可访问的 PDF 文件路径或文件 URL"
+          },
+          "output_requirements": {
+            "type": "string",
+            "description": "输出文件、表格、表单字段或分析结果要求"
+          }
+        },
+        "required": ["operation"]
+      },
+      "timeout_seconds": 1800
+    },
+    {
+      "name": "pptx",
+      "display_name": "PPTX 演示文稿处理",
+      "description": "远程创建、编辑和分析 PowerPoint .pptx 演示文稿，支持版式、备注、批注、内容修改和结构化抽取。",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": ["create", "edit", "analyze", "extract_text", "add_notes", "add_comments"],
+            "description": "期望执行的演示文稿操作"
+          },
+          "input_files": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "远端沙箱可访问的 .pptx 文件路径或文件 URL"
+          },
+          "output_requirements": {
+            "type": "string",
+            "description": "页数、风格、版式、备注或输出文件要求"
+          }
+        },
+        "required": ["operation"]
+      },
+      "timeout_seconds": 1800
+    },
+    {
+      "name": "xlsx",
+      "display_name": "XLSX 表格处理",
+      "description": "远程创建、编辑和分析电子表格，支持公式、格式、数据分析、可视化、模板保留和公式重算。",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": ["create", "edit", "analyze", "visualize", "recalculate", "extract_data"],
+            "description": "期望执行的表格操作"
+          },
+          "input_files": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "远端沙箱可访问的 .xlsx、.xlsm、.csv 或 .tsv 文件路径/URL"
+          },
+          "output_requirements": {
+            "type": "string",
+            "description": "公式、格式、图表、分析维度或输出文件要求"
+          }
+        },
+        "required": ["operation"]
+      },
+      "timeout_seconds": 1800
+    },
+    {
+      "name": "tos-file-access",
+      "display_name": "TOS 文件访问",
+      "description": "远程上传文件或目录到 TOS 兼容对象存储，或从 URL 下载文件供沙箱后续处理。",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": ["upload_file", "upload_directory", "download_file"],
+            "description": "上传或下载操作"
+          },
+          "paths_or_urls": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "需要上传的沙箱路径，或需要下载的 URL"
+          },
+          "output_requirements": {
+            "type": "string",
+            "description": "期望返回签名 URL、TOS 路径或本地保存路径"
+          }
+        },
+        "required": ["operation", "paths_or_urls"]
+      },
+      "timeout_seconds": 1800
+    },
+    {
+      "name": "skill-creator",
+      "display_name": "Skill 创建与更新",
+      "description": "远程指导创建或更新 Skill，包括需求澄清、内容规划、初始化、编辑、打包和快速校验。",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": ["create", "update", "package", "validate", "review"],
+            "description": "期望执行的 Skill 工作流"
+          },
+          "skill_name": {
+            "type": "string",
+            "description": "要创建或更新的 Skill 名称"
+          },
+          "requirements": {
+            "type": "string",
+            "description": "Skill 的触发场景、能力范围、资源和输出要求"
+          }
+        },
+        "required": ["operation"]
+      },
+      "timeout_seconds": 1800
+    }
+  ]
+}

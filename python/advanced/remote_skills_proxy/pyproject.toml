@@ -1,0 +1,14 @@
+[project]
+name = "remote-skills-proxy"
+version = "0.1.0"
+description = "Expose protected RemoteSkills to a Runtime Agent and execute them through Skills Sandbox A2A"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "agentkit-sdk-python==0.8.1",
+    "google-adk==2.2.0",
+    "litellm",
+    "urllib3<2.0.0",
+    "veadk-python>=1.1.4",
+    "volcengine-python-sdk>=4.0.33",
+]
