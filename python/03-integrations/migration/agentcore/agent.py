@@ -52,7 +52,7 @@ def _env(name: str) -> str:
 
 @tool
 def get_product_info(product_id: str) -> str:
-    """Get mock product information by product ID, for example PROD-001 or PROD-002."""
+    """Get sample product information by product ID, for example PROD-001 or PROD-002."""
     normalized = product_id.strip().upper()
     product = PRODUCTS.get(normalized)
     if product is None:
@@ -66,17 +66,17 @@ def get_product_info(product_id: str) -> str:
 
 @tool
 def get_return_policy(category: str) -> str:
-    """Get mock return policy by product category, for example audio or electronics."""
+    """Get sample return policy by product category, for example audio or electronics."""
     normalized = category.strip().lower()
     policy = RETURN_POLICIES.get(normalized)
     if policy is None:
-        return f"No mock return policy for category: {category}."
+        return f"No sample return policy for category: {category}."
     return f"Return policy for {normalized}: {policy}"
 
 
 @tool
 def check_product_stock(product_id: str) -> str:
-    """Check mock inventory status for a product ID."""
+    """Check sample inventory status for a product ID."""
     normalized = product_id.strip().upper()
     product = PRODUCTS.get(normalized)
     if product is None:
@@ -93,7 +93,7 @@ def check_product_stock(product_id: str) -> str:
 
 @tool
 def get_shipping_estimate(product_id: str) -> str:
-    """Get mock shipping estimate for a product ID."""
+    """Get sample shipping estimate for a product ID."""
     normalized = product_id.strip().upper()
     product = PRODUCTS.get(normalized)
     if product is None:
@@ -118,6 +118,15 @@ def estimate_refund(product_id: str, days_since_purchase: int) -> str:
     return f"{normalized}: {product['name']} purchased {days} days ago is {action}."
 
 
+SUPPORT_TOOLS = [
+    get_product_info,
+    get_return_policy,
+    check_product_stock,
+    get_shipping_estimate,
+    estimate_refund,
+]
+
+
 def _openai_base_url(api_base: str) -> str:
     base_url = api_base.strip().rstrip("/")
     for suffix in ("/responses", "/chat/completions"):
@@ -126,7 +135,7 @@ def _openai_base_url(api_base: str) -> str:
     return base_url
 
 
-def build_model() -> Any:
+def create_model() -> Any:
     model_name = _env("MODEL_AGENT_NAME")
     api_key = _env("MODEL_AGENT_API_KEY")
 
@@ -141,7 +150,10 @@ def build_model() -> Any:
         model_id=model_name,
         stream=False,
         client_args=client_args,
-        params={"temperature": float(os.environ.get("MODEL_AGENT_TEMPERATURE", "0.2"))},
+        params={
+            "temperature": float(os.environ.get("MODEL_AGENT_TEMPERATURE", "0.2")),
+            "extra_body": {"thinking": {"type": "disabled"}},
+        },
     )
 
 
@@ -150,14 +162,8 @@ def get_agent() -> Agent:
     if _agent is None:
         _agent = Agent(
             name="agentcore_support_assistant",
-            model=build_model(),
-            tools=[
-                get_product_info,
-                get_return_policy,
-                check_product_stock,
-                get_shipping_estimate,
-                estimate_refund,
-            ],
+            model=create_model(),
+            tools=SUPPORT_TOOLS,
             system_prompt=SYSTEM_PROMPT,
             callback_handler=None,
         )
@@ -181,7 +187,10 @@ def _extract_agent_text(response: Any) -> str:
     message = getattr(response, "message", None)
     if isinstance(message, dict):
         blocks = message.get("content", [])
-        return "".join(str(block.get("text", "")) for block in blocks)
+        return "".join(
+            str(block.get("text", "")) if isinstance(block, dict) else str(block)
+            for block in blocks
+        )
     return str(response)
 
 

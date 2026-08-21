@@ -4,8 +4,7 @@ from typing import Any, TypedDict
 
 from dotenv import load_dotenv
 from langchain.agents import create_agent
-from langchain_core.language_models import FakeMessagesListChatModel
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages import HumanMessage
 from langchain_core.tools import BaseTool, tool
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
@@ -110,63 +109,17 @@ TRAVEL_TOOLS: list[BaseTool] = [
 ]
 
 
-class ToolCallingDemoChatModel(FakeMessagesListChatModel):
-    """Demo chat model that lets LangGraph bind tools during local runs."""
-
-    def bind_tools(self, tools: Any, **kwargs: Any) -> "ToolCallingDemoChatModel":
-        del tools, kwargs
-        return self
-
-
-def demo_tool_calls() -> list[dict[str, Any]]:
-    return [
-        {
-            "name": "search_travel_notes",
-            "args": {"query": "北京 3天 父母 历史文化 轻松行程"},
-            "id": "call_search_travel_notes",
-        },
-        {
-            "name": "estimate_trip_budget",
-            "args": {"city": "北京", "days": 3, "budget": 3000},
-            "id": "call_estimate_trip_budget",
-        },
-        {
-            "name": "recommend_transport",
-            "args": {"city": "北京", "travelers": "带父母/长辈"},
-            "id": "call_recommend_transport",
-        },
-    ]
+def _required_env(name: str) -> str:
+    value = _env(name)
+    if not value:
+        raise RuntimeError(f"Set {name} before running this LangGraph sample.")
+    return value
 
 
-def demo_final_answer() -> str:
-    return (
-        "北京3天旅行规划（示例模型输出）\n\n"
-        "第1天：故宫博物院 + 什刹海胡同，午餐安排炸酱面，晚上尝试铜锅涮肉。\n"
-        "第2天：天坛公园 + 前门周边，节奏放慢，下午预留休息时间。\n"
-        "第3天：国家博物馆 + 老北京美食体验，避开早晚高峰返程。\n\n"
-        "预算建议：3000元三天人均每日约1000元，整体比较宽松。\n"
-        "交通建议：优先地铁和短距离打车，每天控制在1到2个核心区域。"
-    )
-
-
-def create_demo_model() -> ToolCallingDemoChatModel:
-    return ToolCallingDemoChatModel(
-        responses=[
-            AIMessage(content="", tool_calls=demo_tool_calls()),
-            AIMessage(content=demo_final_answer()),
-        ]
-    )
-
-
-def create_chat_model() -> Any:
-    model_name = _env("MODEL_AGENT_NAME")
-    api_key = _env("MODEL_AGENT_API_KEY")
-    if not model_name or not api_key:
-        return create_demo_model()
-
+def create_chat_model() -> ChatOpenAI:
     model_config: dict[str, Any] = {
-        "model": model_name,
-        "api_key": api_key,
+        "model": _required_env("MODEL_AGENT_NAME"),
+        "api_key": _required_env("MODEL_AGENT_API_KEY"),
         "temperature": float(_env("MODEL_AGENT_TEMPERATURE", "0.2")),
     }
 

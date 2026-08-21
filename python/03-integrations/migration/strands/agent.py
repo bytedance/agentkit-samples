@@ -1,11 +1,10 @@
 import os
-import re
 from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
 from strands import Agent, tool
-from strands.models import Model
+from strands.models.openai import OpenAIModel
 
 
 SYSTEM_PROMPT = (
@@ -19,6 +18,13 @@ load_dotenv(_ENV_FILE)
 
 def _env(name: str, default: str = "") -> str:
     return os.environ.get(name, "").strip() or default
+
+
+def _required_env(name: str) -> str:
+    value = _env(name)
+    if not value:
+        raise RuntimeError(f"Set {name} before running this Strands sample.")
+    return value
 
 
 CITY_NOTES = {
@@ -44,44 +50,11 @@ CITY_NOTES = {
     },
 }
 
-DAY_PATTERN = re.compile(r"(?P<days>\d+)\s*天")
-BUDGET_PATTERNS = (
-    re.compile(r"(?:总预算|预算)\s*(?P<budget>\d{3,6})\s*元"),
-    re.compile(r"(?P<budget>\d{3,6})\s*元"),
-)
-TRAVELER_RULES = (
-    (("父母", "长辈"), "带父母/长辈"),
-    (("孩子", "亲子"), "亲子"),
-    (("朋友", "同学"), "朋友同行"),
-)
-
 
 def _find_city(text: str, default: str = "北京") -> str:
     for city in CITY_NOTES:
         if city in text:
             return city
-    return default
-
-
-def _extract_days(text: str, default: int = 3) -> int:
-    match = DAY_PATTERN.search(text)
-    if not match:
-        return default
-    return int(match.group("days"))
-
-
-def _extract_budget(text: str, default: int = 3000) -> int:
-    for pattern in BUDGET_PATTERNS:
-        match = pattern.search(text)
-        if match:
-            return int(match.group("budget"))
-    return default
-
-
-def _extract_travelers(text: str, default: str = "普通出行") -> str:
-    for keywords, label in TRAVELER_RULES:
-        if any(keyword in text for keyword in keywords):
-            return label
     return default
 
 
@@ -137,118 +110,29 @@ def _openai_base_url(api_base: str) -> str:
     return base_url
 
 
-def _latest_user_text(messages: Any) -> str:
-    if not messages:
-        return ""
-    content = messages[-1].get("content", "") if isinstance(messages[-1], dict) else ""
-    if isinstance(content, str):
-        return content
-    if isinstance(content, list):
-        parts = []
-        for block in content:
-            if isinstance(block, dict):
-                parts.append(str(block.get("text", "")))
-        return "".join(parts)
-    return str(content)
+def create_model() -> OpenAIModel:
+    client_args: dict[str, str] = {"api_key": _required_env("MODEL_AGENT_API_KEY")}
 
+    api_base = _env("MODEL_AGENT_API_BASE")
+    if api_base:
+        client_args["base_url"] = _openai_base_url(api_base)
 
-def _build_day_plan(city: str, days: int) -> str:
-    notes = CITY_NOTES[city]
-    lines = []
-    for day in range(1, max(days, 1) + 1):
-        attraction = notes["attractions"][(day - 1) % len(notes["attractions"])]
-        food = notes["foods"][(day - 1) % len(notes["foods"])]
-        lines.append(f"第{day}天：{attraction}，餐饮可安排{food}，节奏保持轻松。")
-    return "\n".join(lines)
-
-
-def _build_local_answer(question: str) -> str:
-    city = _find_city(question)
-    days = _extract_days(question)
-    budget = _extract_budget(question)
-    travelers = _extract_travelers(question)
-    return (
-        f"{city}{days}天旅行规划（示例模型输出）\n\n"
-        f"需求摘要：{travelers}，结合本地资料、预算和交通建议安排路线。\n"
-        f"资料检索：{search_travel_notes(question)}\n"
-        f"预算建议：{estimate_trip_budget(city, days, budget)}\n"
-        f"交通建议：{recommend_transport(city, travelers)}\n\n"
-        f"{_build_day_plan(city, days)}"
+    return OpenAIModel(
+        model_id=_required_env("MODEL_AGENT_NAME"),
+        stream=False,
+        client_args=client_args,
+        params={
+            "temperature": float(_env("MODEL_AGENT_TEMPERATURE", "0.2")),
+            "extra_body": {"thinking": {"type": "disabled"}},
+        },
     )
-
-
-class LocalTravelModel(Model):
-    """Small deterministic model for running the native Strands demo locally."""
-
-    def update_config(self, **model_config: Any) -> None:
-        del model_config
-        return None
-
-    def get_config(self) -> dict[str, Any]:
-        return {}
-
-    async def structured_output(
-        self,
-        output_model: Any,
-        prompt: Any,
-        system_prompt: str | None = None,
-        **kwargs: Any,
-    ) -> Any:
-        del prompt, system_prompt, kwargs
-        yield {"output": output_model()}
-
-    async def stream(
-        self,
-        messages: Any,
-        tool_specs: Any | None = None,
-        system_prompt: str | None = None,
-        **kwargs: Any,
-    ) -> Any:
-        del tool_specs, system_prompt, kwargs
-        text = _build_local_answer(_latest_user_text(messages))
-        yield {"messageStart": {"role": "assistant"}}
-        yield {"contentBlockStart": {"start": {}}}
-        yield {"contentBlockDelta": {"delta": {"text": text}}}
-        yield {"contentBlockStop": {}}
-        yield {"messageStop": {"stopReason": "end_turn"}}
-        yield {
-            "metadata": {
-                "usage": {
-                    "inputTokens": 1,
-                    "outputTokens": 1,
-                    "totalTokens": 2,
-                },
-                "metrics": {"latencyMs": 0},
-            }
-        }
-
-
-def _build_model() -> Any:
-    model_name = _env("MODEL_AGENT_NAME")
-    api_key = _env("MODEL_AGENT_API_KEY")
-    if model_name and api_key:
-        from strands.models.openai import OpenAIModel
-
-        client_args: dict[str, str] = {"api_key": api_key}
-        api_base = _env("MODEL_AGENT_API_BASE")
-        if api_base:
-            client_args["base_url"] = _openai_base_url(api_base)
-        return OpenAIModel(
-            model_id=model_name,
-            stream=False,
-            client_args=client_args,
-            params={
-                "temperature": float(_env("MODEL_AGENT_TEMPERATURE", "0.2")),
-            },
-        )
-    return LocalTravelModel()
 
 
 def agent() -> Agent:
     """Create the native Strands Agent used by AgentKit migration."""
     return Agent(
         name="strands_travel_planner",
-        model=_build_model(),
+        model=create_model(),
         tools=TRAVEL_TOOLS,
         system_prompt=SYSTEM_PROMPT,
         callback_handler=None,

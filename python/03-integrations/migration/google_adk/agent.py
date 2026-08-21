@@ -16,7 +16,7 @@ SYSTEM_PROMPT = (
     "你是中国本地旅行规划助手。根据用户需求选择合适工具，结合城市信息、"
     "预算判断和交通建议，输出可执行的每日景点、美食和交通安排。"
 )
-
+os.environ.setdefault("ADK_DISABLE_JSON_SCHEMA_FOR_FUNC_DECL", "1")
 DEMO_QUESTION = "我想去北京玩3天"
 
 
@@ -50,18 +50,6 @@ def _find_city(text: str, default: str = "北京") -> str:
     return default
 
 
-def _model_name() -> str:
-    return _env("MODEL_AGENT_NAME")
-
-
-def _model_api_base() -> str:
-    return _env("MODEL_AGENT_API_BASE")
-
-
-def _model_api_key() -> str:
-    return _env("MODEL_AGENT_API_KEY")
-
-
 def _openai_base_url(api_base: str) -> str:
     base_url = api_base.strip().rstrip("/")
     for suffix in ("/responses", "/chat/completions"):
@@ -70,14 +58,10 @@ def _openai_base_url(api_base: str) -> str:
     return base_url
 
 
-def _configure_openai_compatible_env() -> None:
-    os.environ["OPENAI_API_KEY"] = _model_api_key()
-    os.environ["OPENAI_BASE_URL"] = _openai_base_url(_model_api_base())
-
-
-def _build_model():
-    _configure_openai_compatible_env()
-    return OpenAILlm(model=_model_name())
+def create_model() -> OpenAILlm:
+    os.environ["OPENAI_API_KEY"] = _env("MODEL_AGENT_API_KEY")
+    os.environ["OPENAI_BASE_URL"] = _openai_base_url(_env("MODEL_AGENT_API_BASE"))
+    return OpenAILlm(model=_env("MODEL_AGENT_NAME"))
 
 
 def search_travel_notes(query: str) -> str:
@@ -160,17 +144,13 @@ TRAVEL_TOOLS = [
 ]
 
 
-def build_agent() -> Agent:
-    return Agent(
-        name="google_adk_travel_planner",
-        model=_build_model(),
-        description="Google ADK travel planning agent for AgentKit migration demo.",
-        instruction=SYSTEM_PROMPT,
-        tools=TRAVEL_TOOLS,
-    )
-
-
-root_agent = build_agent()
+root_agent = Agent(
+    name="google_adk_travel_planner",
+    model=create_model(),
+    description="Google ADK travel planning agent for AgentKit migration demo.",
+    instruction=SYSTEM_PROMPT,
+    tools=TRAVEL_TOOLS,
+)
 
 # Alias for migration tools or users that prefer agent.py:agent.
 agent = root_agent
