@@ -8,7 +8,6 @@ from langchain_core.language_models import FakeMessagesListChatModel
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.tools import BaseTool, tool
 from langchain_openai import ChatOpenAI
-from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 
 
@@ -44,8 +43,11 @@ CITY_NOTES = {
 }
 
 
-class TravelState(TypedDict, total=False):
+class TravelInput(TypedDict):
     question: str
+
+
+class TravelState(TravelInput, total=False):
     answer: str
 
 
@@ -57,7 +59,7 @@ def _find_city(text: str, default: str = "北京") -> str:
 
 
 def _openai_base_url(api_base: str) -> str:
-    base_url = api_base.strip().rstrip("/")
+    base_url = api_base.rstrip("/")
     for suffix in ("/responses", "/chat/completions"):
         if base_url.endswith(suffix):
             return base_url[: -len(suffix)]
@@ -116,69 +118,67 @@ class ToolCallingDemoChatModel(FakeMessagesListChatModel):
         return self
 
 
-def _build_openai_chat_model(model_name: str, api_key: str) -> ChatOpenAI:
-    kwargs: dict[str, Any] = {
+def demo_tool_calls() -> list[dict[str, Any]]:
+    return [
+        {
+            "name": "search_travel_notes",
+            "args": {"query": "北京 3天 父母 历史文化 轻松行程"},
+            "id": "call_search_travel_notes",
+        },
+        {
+            "name": "estimate_trip_budget",
+            "args": {"city": "北京", "days": 3, "budget": 3000},
+            "id": "call_estimate_trip_budget",
+        },
+        {
+            "name": "recommend_transport",
+            "args": {"city": "北京", "travelers": "带父母/长辈"},
+            "id": "call_recommend_transport",
+        },
+    ]
+
+
+def demo_final_answer() -> str:
+    return (
+        "北京3天旅行规划（示例模型输出）\n\n"
+        "第1天：故宫博物院 + 什刹海胡同，午餐安排炸酱面，晚上尝试铜锅涮肉。\n"
+        "第2天：天坛公园 + 前门周边，节奏放慢，下午预留休息时间。\n"
+        "第3天：国家博物馆 + 老北京美食体验，避开早晚高峰返程。\n\n"
+        "预算建议：3000元三天人均每日约1000元，整体比较宽松。\n"
+        "交通建议：优先地铁和短距离打车，每天控制在1到2个核心区域。"
+    )
+
+
+def create_demo_model() -> ToolCallingDemoChatModel:
+    return ToolCallingDemoChatModel(
+        responses=[
+            AIMessage(content="", tool_calls=demo_tool_calls()),
+            AIMessage(content=demo_final_answer()),
+        ]
+    )
+
+
+def create_chat_model() -> Any:
+    model_name = _env("MODEL_AGENT_NAME")
+    api_key = _env("MODEL_AGENT_API_KEY")
+    if not model_name or not api_key:
+        return create_demo_model()
+
+    model_config: dict[str, Any] = {
         "model": model_name,
         "api_key": api_key,
         "temperature": float(_env("MODEL_AGENT_TEMPERATURE", "0.2")),
     }
 
-    api_base = _env("MODEL_AGENT_API_BASE")
-    if api_base:
-        kwargs["base_url"] = _openai_base_url(api_base)
+    model_api_base = _env("MODEL_AGENT_API_BASE")
+    if model_api_base:
+        model_config["base_url"] = _openai_base_url(model_api_base)
 
-    return ChatOpenAI(**kwargs)
-
-
-def _build_demo_chat_model() -> ToolCallingDemoChatModel:
-    return ToolCallingDemoChatModel(
-        responses=[
-            AIMessage(
-                content="",
-                tool_calls=[
-                    {
-                        "name": "search_travel_notes",
-                        "args": {"query": "北京 3天 父母 历史文化 轻松行程"},
-                        "id": "call_search_travel_notes",
-                    },
-                    {
-                        "name": "estimate_trip_budget",
-                        "args": {"city": "北京", "days": 3, "budget": 3000},
-                        "id": "call_estimate_trip_budget",
-                    },
-                    {
-                        "name": "recommend_transport",
-                        "args": {"city": "北京", "travelers": "带父母/长辈"},
-                        "id": "call_recommend_transport",
-                    },
-                ],
-            ),
-            AIMessage(
-                content=(
-                    "北京3天旅行规划（示例模型输出）\n\n"
-                    "第1天：故宫博物院 + 什刹海胡同，午餐安排炸酱面，晚上尝试铜锅涮肉。\n"
-                    "第2天：天坛公园 + 前门周边，节奏放慢，下午预留休息时间。\n"
-                    "第3天：国家博物馆 + 老北京美食体验，避开早晚高峰返程。\n\n"
-                    "预算建议：3000元三天人均每日约1000元，整体比较宽松。\n"
-                    "交通建议：优先地铁和短距离打车，每天控制在1到2个核心区域。"
-                )
-            ),
-        ]
-    )
-
-
-def _build_chat_model() -> Any:
-    model_name = _env("MODEL_AGENT_NAME")
-    api_key = _env("MODEL_AGENT_API_KEY")
-
-    if model_name and api_key:
-        return _build_openai_chat_model(model_name, api_key)
-
-    return _build_demo_chat_model()
+    return ChatOpenAI(**model_config)
 
 
 react_agent = create_agent(
-    model=_build_chat_model(),
+    model=create_chat_model(),
     tools=TRAVEL_TOOLS,
     system_prompt=SYSTEM_PROMPT,
 )
@@ -202,7 +202,7 @@ builder = StateGraph(TravelState)
 builder.add_node("plan_trip", plan_trip)
 builder.add_edge(START, "plan_trip")
 builder.add_edge("plan_trip", END)
-agent = builder.compile(checkpointer=InMemorySaver())
+agent = builder.compile()
 
 
 if __name__ == "__main__":
@@ -212,7 +212,6 @@ if __name__ == "__main__":
                 "我想带父母去北京玩3天，总预算3000元，喜欢历史文化、胡同和"
                 "老北京美食，行程轻松一点。请帮我规划每天的景点、美食和交通建议。"
             )
-        },
-        config={"configurable": {"thread_id": "local-demo"}},
+        }
     )
     print(result["answer"])

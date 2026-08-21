@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from typing import Any, TypedDict
 
+from dotenv import load_dotenv
 from langchain.agents import create_agent
 from langchain_core.tools import BaseTool, tool
 from langchain_openai import ChatOpenAI
@@ -41,29 +42,7 @@ CITY_NOTES: dict[str, CityTravelNotes] = {
     },
 }
 
-
-def _load_dotenv() -> None:
-    env_path = Path(__file__).with_name(".env")
-    if not env_path.exists():
-        return
-
-    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        if line.startswith("export "):
-            line = line[len("export ") :].lstrip()
-
-        name, value = line.split("=", 1)
-        name = name.strip()
-        value = value.strip()
-        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
-            value = value[1:-1]
-        if name and name not in os.environ:
-            os.environ[name] = value
-
-
-_load_dotenv()
+load_dotenv(Path(__file__).with_name(".env"), override=False)
 
 
 def _required_env(name: str) -> str:
@@ -73,12 +52,19 @@ def _required_env(name: str) -> str:
     return value
 
 
-def _normalize_openai_base_url(api_base: str) -> str:
-    base_url = api_base.strip().rstrip("/")
+MODEL_CONFIG: dict[str, Any] = {
+    "model": _required_env("MODEL_AGENT_NAME"),
+    "api_key": _required_env("MODEL_AGENT_API_KEY"),
+    "temperature": float(os.environ.get("MODEL_AGENT_TEMPERATURE", "0.2")),
+}
+
+model_api_base = os.environ.get("MODEL_AGENT_API_BASE", "").strip().rstrip("/")
+if model_api_base:
     for suffix in ("/responses", "/chat/completions"):
-        if base_url.endswith(suffix):
-            return base_url[: -len(suffix)]
-    return base_url
+        if model_api_base.endswith(suffix):
+            model_api_base = model_api_base[: -len(suffix)]
+            break
+    MODEL_CONFIG["base_url"] = model_api_base
 
 
 def _find_city(text: str, default: str = "北京") -> str:
@@ -135,33 +121,11 @@ TRAVEL_TOOLS: list[BaseTool] = [
 ]
 
 
-def build_model() -> ChatOpenAI:
-    """Create the OpenAI-compatible chat model used by the LangChain agent."""
-    model_name = _required_env("MODEL_AGENT_NAME")
-    api_key = _required_env("MODEL_AGENT_API_KEY")
-    api_base = os.environ.get("MODEL_AGENT_API_BASE", "").strip()
-
-    kwargs: dict[str, Any] = {
-        "model": model_name,
-        "api_key": api_key,
-        "temperature": float(os.environ.get("MODEL_AGENT_TEMPERATURE", "0.2")),
-    }
-    if api_base:
-        kwargs["base_url"] = _normalize_openai_base_url(api_base)
-
-    return ChatOpenAI(**kwargs)
-
-
-def build_agent() -> Any:
-    """Create the native LangChain agent exported for AgentKit migration."""
-    return create_agent(
-        model=build_model(),
-        tools=TRAVEL_TOOLS,
-        system_prompt=SYSTEM_PROMPT,
-    )
-
-
-agent = build_agent()
+agent = create_agent(
+    model=ChatOpenAI(**MODEL_CONFIG),
+    tools=TRAVEL_TOOLS,
+    system_prompt=SYSTEM_PROMPT,
+)
 
 
 if __name__ == "__main__":
