@@ -185,19 +185,50 @@ uv run agent.py
 
 ### AgentKit 云上部署
 
+#### 1. 生成部署配置
+
 ```bash
 cd python/01-tutorials/01-agentkit-runtime/realtime_voice
 
-# 配置部署参数
+# 根据命令行提示配置项目，并生成 agentkit.yaml 和 Dockerfile
 agentkit config
-
-# 启动云端服务
-agentkit launch
-
-# 测试部署的 Agent
-# 需要编辑 client/interface.html，将其中的第 168 行的 ws://localhost:8000 修改为 agentkit.yaml 中生成的 runtime_endpoint 字段
-# 在浏览器中打开 client/interface.html，客户端将自动连接到 WebSocket 服务器。
 ```
+
+配置完成后，请检查生成的 `agentkit.yaml`，确认应用入口、监听端口和运行时
+环境变量符合当前项目。模型密钥、AK/SK 等敏感信息应通过 AgentKit 控制台或
+环境变量配置，不要直接写入配置文件并提交到代码仓库。
+
+#### 2. 启动云端服务
+
+```bash
+cd python/01-tutorials/01-agentkit-runtime/realtime_voice
+
+agentkit launch
+```
+
+部署成功后，Runtime 链接信息会自动保存到 `agentkit.yaml`。访问凭证应保存在
+环境变量或密钥管理服务中，不要硬编码到客户端代码、URL 或 Git 仓库。
+
+#### 3. 验证部署结果
+
+建议先使用 AgentKit CLI 验证云端服务，再接入自定义页面：
+
+```bash
+agentkit status
+agentkit invoke "你好，请介绍一下自己"
+```
+
+> [!IMPORTANT]
+> `client/interface.html` 默认连接 `ws://localhost:8000`，仅用于本地调试。
+> 当前静态客户端没有实现 AgentKit 云端鉴权，因此不能仅将该地址替换为
+> `runtime_endpoint` 后直接访问云端运行时。
+>
+> 如需从浏览器访问云端服务，请通过自己的后端代理完成身份认证，并由后端
+> 安全地注入 API Key。不要把 API Key 写入 `interface.html`、查询参数或其他
+> 会暴露给浏览器的静态资源。
+
+本地验证时无需修改客户端地址：启动 `uv run agent.py` 后，在浏览器中打开
+`client/interface.html` 即可连接本地 WebSocket 服务。
 
 ## 示例提示词
 
@@ -205,7 +236,13 @@ agentkit launch
 
 ## 常见问题
 
-无。
+### 为什么部署后不能直接使用 `client/interface.html`？
+
+当前静态客户端没有实现 AgentKit 云端鉴权。请先使用 `agentkit invoke` 验证服务，或增加后端代理后再连接浏览器页面。
+
+### 可以把 API Key 直接写进 WebSocket 地址吗？
+
+不建议。URL 可能出现在浏览器历史、代理日志和监控系统中。应由可信后端读取环境变量中的 API Key，并按照 AgentKit 的鉴权要求访问云端运行时。
 
 ## 参考资料
 
