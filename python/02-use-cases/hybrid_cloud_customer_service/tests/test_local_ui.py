@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 
 import local_ui
+import pytest
 from fastapi.testclient import TestClient
 
 
@@ -44,6 +45,43 @@ class FakeJsonResponse:
             "citations": [{"title": "退款规则"}],
             "events": [{"name": "knowledge.search", "status": "succeeded"}],
         }
+
+
+class CloseTrackingResponse(FakeResponse):
+    def __init__(self) -> None:
+        self.closed = False
+
+    def close(self) -> None:
+        self.closed = True
+
+
+class FailingCloseTrackingResponse(CloseTrackingResponse):
+    def raise_for_status(self) -> None:
+        raise local_ui.requests.ConnectionError("Runtime unavailable")
+
+
+def test_remote_ui_closes_response_after_success(monkeypatch) -> None:
+    monkeypatch.setenv("RUNTIME_ENDPOINT", "https://runtime.example/")
+    monkeypatch.setenv("RUNTIME_API_KEY", "test-key")
+    response = CloseTrackingResponse()
+    monkeypatch.setattr(local_ui.requests, "post", lambda *args, **kwargs: response)
+
+    local_ui.chat(local_ui.LocalChatRequest(message="测试"))
+
+    assert response.closed is True
+
+
+def test_remote_ui_closes_response_after_http_error(monkeypatch) -> None:
+    monkeypatch.setenv("RUNTIME_ENDPOINT", "https://runtime.example/")
+    monkeypatch.setenv("RUNTIME_API_KEY", "test-key")
+    response = FailingCloseTrackingResponse()
+    monkeypatch.setattr(local_ui.requests, "post", lambda *args, **kwargs: response)
+
+    with pytest.raises(local_ui.HTTPException) as exc_info:
+        local_ui.chat(local_ui.LocalChatRequest(message="测试"))
+
+    assert exc_info.value.status_code == 502
+    assert response.closed is True
 
 
 def test_remote_ui_omits_model_thought(monkeypatch) -> None:
