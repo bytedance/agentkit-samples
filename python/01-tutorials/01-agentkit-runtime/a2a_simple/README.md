@@ -401,7 +401,7 @@ a2a_app.run(agent_card=agent_card, host="0.0.0.0", port=8000)
 
 - [VeADK 官方文档](https://volcengine.github.io/veadk-python/)
 - [AgentKit 开发指南](https://volcengine.github.io/agentkit-sdk-python/)
-- [A2A 协议规范](https://github.com/google/adk)
+- [A2A 协议规范](https://github.com/google/adk-python)
 - [火山方舟模型服务](https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new&projectName=default)
 
 ## 代码许可
