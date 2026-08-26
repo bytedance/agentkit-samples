@@ -1,0 +1,9 @@
+veadk-python==1.1.5
+agentkit-sdk-python==0.8.3
+authlib>=1.3,<2
+fastapi>=0.115,<1
+Flask>=3,<4
+httpx>=0.27,<1
+PyJWT>=2.8,<3
+python-dotenv>=1,<2
+uvicorn>=0.30,<1
