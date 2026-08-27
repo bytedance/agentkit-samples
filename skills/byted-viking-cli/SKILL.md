@@ -3,9 +3,9 @@ name: byted-viking-cli
 description: 官方Viking CLI 命令行助手：本CLI覆盖火山引擎/BytePlus VikingDB(向量库)/Knowledge(知识库)/Memory(记忆库)的数据集管理和数据的读写及检索，
   可用于扩展Agent的知识检索边界 提升Agent的记忆能力；
   当用户对知识库/向量库提问时，使用本Skill;
-  当用要操作向量库/知识库 或 从向量库/知识库检索信息时使用本Skill；
+  当用户要操作向量库/知识库 或 从向量库/知识库检索信息时使用本Skill；
   当用户要记忆检索和记忆存储时，使用本Skill。
-version: 1.3.1
+version: 1.3.2
 license: Apache-2.0
 ---
 
@@ -60,6 +60,7 @@ viking-cli version
   - `add-session`
   - `search`
 - `viking-cli knowledge`
+  - `open`
   - `setup`
   - `collection {create|get|list|delete}`
   - `add-doc`
@@ -115,13 +116,13 @@ viking-cli auth
 默认输出为格式化 JSON；若用户需要纯文本，使用 `--format text`。
 
 
-### 版本与鉴权配置
+## 版本与鉴权配置
 ```bash
 viking-cli version
 viking-cli auth
 ```
 
-### VikingDB / Setup
+## VikingDB / Setup
 通过本地数据样本自动推断 schema，并一键创建 collection、index，并 upsert 数据 【推荐】。
 
 `vikingdb setup` 支持默认命名（允许不传 `--collection` / `--index`）：
@@ -136,7 +137,7 @@ viking-cli --region <region> vikingdb setup   --collection <collection_name>   -
 viking-cli --region <region> vikingdb setup   --collection <collection_name>   --index <index_name>   --file data.jsonl   --vectorize-field content
 ```
 
-### VikingDB / Collection
+## VikingDB / Collection
 创建：
 ```bash
 viking-cli --region <region> vikingdb collection create   --name <collection_name>   --desc '<description>'   --fields-json '<json_array>'   --fulltext-json '<json_object>'   --tags-json '<json_value>'   --vectorize-json '<json_object>'
@@ -162,7 +163,7 @@ viking-cli --region <region> vikingdb collection update --name <collection_name>
 viking-cli --region <region> vikingdb collection delete --name <collection_name>
 ```
 
-### VikingDB / Index
+## VikingDB / Index
 创建：
 ```bash
 viking-cli --region <region> vikingdb index create  --name <index_name>   --collection <collection_name>   --desc '<description>'   --cpu-quota 2   --shard-count 1   --shard-policy '<policy>'   --vector-index-json '<json_object>'   --scalar-index-json '<json_value>'
@@ -189,7 +190,7 @@ viking-cli --region <region> vikingdb index disable --name <index_name> --collec
 viking-cli --region <region> vikingdb index delete --name <index_name> --collection <collection_name>
 ```
 
-### VikingDB / Data
+## VikingDB / Data
 导入 / 更新数据：
 ```bash
 viking-cli --region <region> vikingdb upsert   --collection <collection_name>   --file data.csv   --id-field id   --batch-size 200
@@ -215,7 +216,7 @@ Query或关键词搜索：
 viking-cli --region <region> vikingdb search-by-keywords   --collection <collection_name>   --index <index_name>   --query '<search_text>'   --limit 10
 ```
 
-### Memory / Setup 与 Collection
+## Memory / Setup 与 Collection
 一键创建个人记忆库，默认命名为 `viking_cli_{userid}`：
 ```bash
 viking-cli --region <region> memory setup
@@ -240,7 +241,7 @@ viking-cli --region <region> memory collection update --name <collection_name> -
 viking-cli --region <region> memory collection delete --name <collection_name>
 ```
 
-### Memory / Session 与搜索
+## Memory / Session 与搜索
 记录会话内容：
 ```bash
 viking-cli --region <region> memory add-session   --collection <collection_name>   --session-id '<session_id>'   --messages-file ./messages.json   [--metadata-file ./metadata.json]
@@ -274,8 +275,13 @@ viking-cli --region <region> memory add-session   --collection <collection_name>
 viking-cli --region <region> memory search --collection <collection_name> --query '打篮球' --filter-json '<json_object>' --limit 10
 ```
 
-### Knowledge / Setup 与 Collection
-一键创建个人知识库，默认命名为 `viking_cli_{userid}`：
+## Knowledge / Setup 与 Collection
+开通知识库服务（支持 `volcengine` / `byteplus`，幂等：已开通则直接返回当前状态，未开通时执行开通）：
+```bash
+viking-cli --region <region> knowledge open
+```
+
+一键创建个人知识库，默认命名为 `viking_cli_{userid}`。在 `volcengine` / `byteplus` 下，`setup` 会先检查知识库服务是否已开通，未开通时自动开通，再创建 collection：
 ```bash
 viking-cli --region <region> knowledge setup
 
@@ -295,7 +301,7 @@ viking-cli --region <region> knowledge collection get --name <collection_name>
 viking-cli --region <region> knowledge collection delete --name <collection_name>
 ```
 
-### Knowledge / 文档与搜索
+## Knowledge / 文档与搜索
 新增文档（直接传 URI）：
 ```bash
 viking-cli --region <region> knowledge add-doc   --collection <collection_name>   --uri <uri>   --doc-id <doc_id>   --doc-name '<doc_name>'   --doc-type '<doc_type>'   --desc '<description>'   --tag-list-json '<json_value>'
@@ -326,7 +332,7 @@ viking-cli --region <region> knowledge search-collection   --query '<keyword>'
 viking-cli --region <region> knowledge search-collection   --query '<keyword>'   --limit 5
 ```
 
-### Knowledge / 知识服务的检索与问答
+## Knowledge / 知识服务的检索与问答
 对知识服务进行检索或问答。支持非流式和流式输出。鉴权使用 APIKey：优先 `--api-key`，否则从 `~/.viking/config` 读取；首次调用成功后会写入配置文件，后续可直接复用。`service-rid` 同理：优先 `--service-rid`，否则从配置文件读取。
 ```bash
 viking-cli --region <region> knowledge service-chat --api-key <api_key> --service-rid <service_rid> --content '列举 2025 Q1 财报里的三项亮点'
