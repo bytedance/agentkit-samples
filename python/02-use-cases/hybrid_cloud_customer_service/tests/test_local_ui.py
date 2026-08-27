@@ -339,7 +339,7 @@ def test_runtime_deployment_guide_uses_environment_specific_openapi_host() -> No
     assert "pip install --no-cache-dir -r requirements.txt" not in dockerfile
     assert "agentkit-sdk-python==0.8.1" in requirements_lock
     assert "google-adk==2.2.0" in requirements_lock
-    assert "veadk-python==1.0.10" in requirements_lock
+    assert "veadk-python==1.1.2" in requirements_lock
     assert "uv export --frozen --no-hashes --no-dev --no-emit-project" in requirements_lock
     assert "requirements.lock" not in (PROJECT_ROOT / ".dockerignore").read_text()
     assert "临时访问指令" in deployment

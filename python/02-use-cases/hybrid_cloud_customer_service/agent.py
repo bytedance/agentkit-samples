@@ -271,6 +271,14 @@ def build_agent():
     long_term_memory = build_platform_memory(app_name) if long_term_memory_enabled() else None
 
     optional_features = {}
+    if os.getenv("DIRECT_CONTAINER_MODE", "false").lower() in {"1", "true", "yes"}:
+        # Keep the managed/public Runtime path unchanged. Direct-container
+        # exporter construction lives behind this narrow opt-in seam.
+        from direct_observability import build_direct_container_tracers
+
+        direct_tracers = build_direct_container_tracers(app_name)
+        if direct_tracers:
+            optional_features["tracers"] = direct_tracers
     if knowledge is not None:
         optional_features["knowledgebase"] = knowledge
     if long_term_memory is not None:
@@ -363,9 +371,12 @@ def build_agent():
         name="hybrid_cloud_customer_service",
         description="Hybrid-cloud enterprise customer-service demo.",
         instruction=INSTRUCTION,
-        model_name=settings.model_name,
-        model_api_key=settings.model_api_key,
-        model_api_base=settings.model_api_base,
+        # VeADK 1.1.x validates these fields as strings. Live deployment still
+        # requires real model values; empty strings only keep deterministic
+        # local imports and tests from passing None into Agent validation.
+        model_name=settings.model_name or "",
+        model_api_key=settings.model_api_key or "",
+        model_api_base=settings.model_api_base or "",
         # Keep the deterministic business workflow available for local demo
         # tests.  In live mode, the tool description below makes policy
         # questions use VeADK's injected ``load_knowledgebase`` tool instead.
@@ -378,10 +389,11 @@ def build_agent():
 
 
 def main() -> None:
+    bind_host = os.getenv("APP_BIND_HOST", "0.0.0.0")
     if settings.effective_mode == "demo":
         import uvicorn
 
-        uvicorn.run("demo_app:app", host="0.0.0.0", port=int(os.getenv("PORT", "8000")))
+        uvicorn.run("demo_app:app", host=bind_host, port=int(os.getenv("PORT", "8000")))
         return
 
     from agentkit.apps import AgentkitAgentServerApp
@@ -389,6 +401,12 @@ def main() -> None:
 
     short_term_memory = build_short_term_memory(ShortTermMemory)
     app = AgentkitAgentServerApp(agent=build_agent(), short_term_memory=short_term_memory)
+    if os.getenv("DIRECT_CONTAINER_MODE", "false").lower() in {"1", "true", "yes"}:
+        # Uvicorn applies logging configuration after Agent construction.
+        # Reattach the handler during startup for access/error log export.
+        from direct_observability import ensure_direct_otel_logging_handlers
+
+        app.app.add_event_handler("startup", ensure_direct_otel_logging_handlers)
     removed_discovery_routes = hide_adk_discovery_route(app.app)
     logger.info(
         "ADK online-test discovery disabled; public /invoke remains enabled: routes=%s",
@@ -401,7 +419,7 @@ def main() -> None:
     # The gateway authenticates /invoke with its bearer credential.  Bypass
     # only ADK's browser-development Origin check for that public API route.
     app.app.add_middleware(PublicInvokeOriginMiddleware)
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "8000")))
+    app.run(host=bind_host, port=int(os.getenv("PORT", "8000")))
 
 
 if __name__ == "__main__":

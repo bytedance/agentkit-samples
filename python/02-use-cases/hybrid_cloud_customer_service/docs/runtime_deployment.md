@@ -299,6 +299,45 @@ Demo 模式直接运行确定性 FastAPI，不创建 `AgentkitAgentServerApp`，
 
 完成一次 live 请求后，在 **可观测 → Trace 分析** 中按 Runtime 名称和时间核对 Agent、Workflow、LLM 与 Tool Span。Runtime 创建或编辑时还需在“高级配置”中开启观测服务并重新发布。以 LLM Span 中的模型名称、Input/Output/Total Tokens 和耗时作为模型调用证据；不能把“存在 thought 文本”作为必选条件，因为模型可能不返回可展示的思考过程。
 
+### Docker 直跑并接入平台可观测
+
+不使用平台 Runtime 托管时，仍可使用同一镜像直接启动容器。将平台关联组件注入的非敏感
+配置和人工取得的密钥保存在目标机器的 `0600` env 文件中，不要提交该文件：
+
+```dotenv
+DIRECT_CONTAINER_MODE=true
+OTEL_SERVICE_NAME=<unique-service-name>
+OTEL_RESOURCE_ATTRIBUTES=apmplus.business_carrier=agentkit_runtime
+
+OTEL_TRACES_EXPORTER=otlp
+OTEL_EXPORTER_OTLP_TRACES_PROTOCOL=http/protobuf
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://<collector>/<credential-path>/v1/traces
+
+OTEL_METRICS_EXPORTER=otlp
+OTEL_EXPORTER_OTLP_METRICS_PROTOCOL=http/protobuf
+OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://<collector>/<credential-path>/v1/metrics
+
+OTEL_LOGS_EXPORTER=otlp
+OTEL_EXPORTER_OTLP_LOGS_PROTOCOL=http/protobuf
+OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=http://<collector>/<credential-path>/v1/logs
+
+OTEL_METRIC_EXPORT_INTERVAL=60000
+OTEL_PYTHON_LOG_LEVEL=INFO
+```
+
+```bash
+chmod 600 /path/to/runtime.env
+docker run -d --name hybrid-cloud-customer-service \
+  --env-file /path/to/runtime.env \
+  -p 18001:8000 \
+  <registry>/<repository>:<tag>
+```
+
+验收至少包含：健康检查返回 200；`/invoke` 返回最终回答；Trace 中出现
+`agent_server → workflow → agent → llm/tool`；运行时大盘调用数增加；日志页能按同一
+`OTEL_SERVICE_NAME` 检索到带 TraceID 的应用日志。Trace 中存在 Token 但聚合大盘为 0 时，
+应单独检查 Metrics 查询字段映射，不能据此否定 Trace 上报。
+
 ## 11. 查看状态与清理
 
 ```bash

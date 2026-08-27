@@ -251,7 +251,7 @@ def configure_hybrid_skills_endpoint() -> None:
             os.environ[target] = os.environ[source]
 ```
 
-这不是覆盖用户设置：若 Runtime 显式注入 `AGENTKIT_SKILL_HOST` 或 `AGENTKIT_TOP_SCHEME`，显式值优先。`veadk-python==0.5.40` 会把 `SKILL_SPACE_ID` 传入关联 Sandbox；本样例还通过一个同签名的轻量包装函数传递 `CLOUD_PROVIDER=vestack`、TOP endpoint 和调用范围的 IAM 凭据。原因是 Runtime 与隔离 Skills Sandbox 是两个进程：后者也必须知道自己处于混合云，才能走 VeADK 的 `GenTempTosObjectDownloadUrl` 分支下载 MinIO 中的已发布 Skill。没有手写 MinIO endpoint、bucket 或长期对象存储密钥。
+这不是覆盖用户设置：若 Runtime 显式注入 `AGENTKIT_SKILL_HOST` 或 `AGENTKIT_TOP_SCHEME`，显式值优先。`veadk-python==1.1.2` 会把 `SKILL_SPACE_ID` 传入关联 Sandbox；本样例还通过一个同签名的轻量包装函数传递 `CLOUD_PROVIDER=vestack`、TOP endpoint 和调用范围的 IAM 凭据。原因是 Runtime 与隔离 Skills Sandbox 是两个进程：后者也必须知道自己处于混合云，才能走 VeADK 的 `GenTempTosObjectDownloadUrl` 分支下载 MinIO 中的已发布 Skill。没有手写 MinIO endpoint、bucket 或长期对象存储密钥。
 
 ```python
 # agent.py
@@ -354,6 +354,18 @@ curl http://127.0.0.1:8000/api/capabilities
 Live 模式使用 `AgentkitAgentServerApp` 的标准 Telemetry 中间件，由 VeADK 生成并关联
 `agent_server → workflow → agent → llm/tool` Span。应用不手写平台 Trace ID，也不在仓库
 保存 OTLP 地址或认证信息。平台开关与 SDK Telemetry 缺一不可。
+
+直接使用 `docker run` 启动时没有 Runtime 的可观测注入层。设置
+`DIRECT_CONTAINER_MODE=true` 后，[`direct_observability.py`](../direct_observability.py)
+会在 VeADK Agent 初始化前注册 OTLP Metrics/Logs Provider，并由 VeADK tracer 输出 Trace：
+
+- `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`：VeADK Agent、LLM 与 Tool Span；
+- `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`：LLM 调用次数、Token、耗时、异常与工具指标；
+- `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`：Python 与 Uvicorn 日志，并携带当前 Trace 上下文。
+
+三个 endpoint 必须由交付环境分别提供；实现不会从包含凭证的 Trace URL 拼接另外两个地址。
+Metrics 和 Logs 支持 `http/protobuf` 与 `grpc`，Trace 当前要求 `http/protobuf`。平台托管
+Runtime 不设置 `DIRECT_CONTAINER_MODE`，因此不会进入这条分支。
 
 此外，demo 业务编排会生成独立的应用层 `trace_id`，并在 `events` 中记录能力调用链，
 用于关联本地 UI、API 响应和业务事件；它与平台生成的 32 位 Trace ID 不是同一个字段。

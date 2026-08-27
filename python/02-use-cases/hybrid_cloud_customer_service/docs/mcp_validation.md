@@ -90,7 +90,7 @@ def build_platform_mcp_router():
     return mcp_router
 ```
 
-当前混合云平台注入的 `TOOL_MCP_ROUTER_URL` 是工具集公网 Base URL，而 VeADK 0.5.40 会原样使用它；实际 Streamable HTTP 入口在 `/mcp`。适配层仅在 URL 尚未以 `/mcp` 结尾时追加该路径，已经是完整地址则不修改。API Key 和完整连接地址不会写入日志。
+当前混合云平台注入的 `TOOL_MCP_ROUTER_URL` 是工具集公网 Base URL，而 VeADK 1.1.2 会原样使用它；实际 Streamable HTTP 入口在 `/mcp`。适配层仅在 URL 尚未以 `/mcp` 结尾时追加该路径，已经是完整地址则不修改。API Key 和完整连接地址不会写入日志。
 
 [`agent.py`](../agent.py) 将 `mcp_router` 加入主 Agent 的 `tools`。VeADK 使用平台注入的工具集入口完成工具发现、路由和 MCP 调用；业务代码不连接单个 MCP 服务，也不自行拼 JSON-RPC。
 

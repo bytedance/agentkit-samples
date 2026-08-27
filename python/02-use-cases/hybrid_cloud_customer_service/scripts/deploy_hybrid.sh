@@ -33,6 +33,7 @@ cleanup() {
   fi
   if [[ -n "${AUTH_CHECK_FILE}" && -f "${AUTH_CHECK_FILE}" ]]; then
     rm -f -- "${AUTH_CHECK_FILE}"
+  fi
   if [[ -n "${CLI_STDERR_FILE}" && -f "${CLI_STDERR_FILE}" ]]; then
     rm -f -- "${CLI_STDERR_FILE}"
   fi

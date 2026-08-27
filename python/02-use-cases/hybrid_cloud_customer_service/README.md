@@ -246,7 +246,7 @@ DEMO_MODE=demo uv run --frozen client.py
 ```
 
 - [Agent 内部实现与混合云开发手册](docs/agent_internal_implementation.md)
-- [Runtime 部署](docs/runtime_deployment.md)
+- [Runtime 部署（含 Docker 直跑与平台可观测）](docs/runtime_deployment.md)
 - [MCP 接入](docs/mcp_validation.md)
 - [A2A 验证](docs/a2a_agent_validation.md)
 - [评测与可观测](docs/evaluation_and_observability.md)
