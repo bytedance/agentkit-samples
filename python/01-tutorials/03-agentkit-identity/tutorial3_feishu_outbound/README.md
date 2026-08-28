@@ -232,7 +232,7 @@ sequenceDiagram
 
     ```bash
     # 进入 test_agent 目录，这里准备好了一个目标Agent
-    cd tutorial-3-feishu-outbound/test_agent
+    cd tutorial3_feishu_outbound/test_agent
 
     # 从模板创建一份agentkit.yaml配置文件
     cp agentkit.yaml.template agentkit.yaml
@@ -282,7 +282,7 @@ sequenceDiagram
     export VOLCENGINE_ACCESS_KEY=<火山AK>
     export VOLCENGINE_SECRET_KEY=<火山SK>
 
-    # 确保当前位于 tutorial-1-userpool-inbound/test_agent 目录
+    # 确保当前位于 tutorial3_feishu_outbound/test_agent 目录
     agentkit launch
     ```
 
@@ -300,9 +300,9 @@ sequenceDiagram
 
     ```bash
     # 确保位于正确的目录
-    cd tutorial-3-outbound-feishu
+    cd tutorial3_feishu_outbound
 
-    # 确保当前位于 tutorial-3-outbound-feishu 目录
+    # 确保当前位于 tutorial3_feishu_outbound 目录
     cp .env.template .env
     ```
 
@@ -337,7 +337,7 @@ uv pip install -r requirements.txt
 1. 启动应用
 
     ```bash
-    # 确保当前位于 tutorial-3-outbound-feishu 目录
+    # 确保当前位于 tutorial3_feishu_outbound 目录
     uv run app.py
     ```
 
@@ -608,8 +608,8 @@ Outbound 凭证托管涉及 **三个地方** 需要配置回调 URL，务必区�
 
 ## 相关资源
 
-- [实验1: 用户池认证](../tutorial-1-userpool-inbound/README.md) - 基础教程
-- [实验2: 飞书IdP联合登录](../tutorial-2-feishu-idp/README.md) - 基础教程
+- [实验1: 用户池认证](../tutorial1_userpool_inbound/README.md) - 基础教程
+- [实验2: 飞书IdP联合登录](../tutorial2_feishu_idp/README.md) - 基础教程
 - [飞书开放平台](https://open.feishu.cn/)
 - [Agent Identity 凭证托管文档](https://www.volcengine.com/docs/identity/credential-provider)
 - [AgentKit Runtime 部署指南](https://volcengine.github.io/agentkit-sdk-python/content/4.runtime/1.runtime_quickstart.html)

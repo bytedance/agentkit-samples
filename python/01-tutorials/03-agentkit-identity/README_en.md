@@ -38,9 +38,9 @@ Agent Identity separates the "user → application → agent → resource" link 
 
 | Experiment | Description | Directory |
 | --- | --- | --- |
-| **Experiment 1: User Pool Authentication** | Use user pools to control agent access (Inbound authentication) | [tutorial-1-userpool-inbound](./tutorial-1-userpool-inbound/) |
-| **Experiment 2: Feishu Federated Login** | Use Feishu account as the enterprise identity source (IdP integration) | [tutorial-2-feishu-idp](./tutorial-2-feishu-idp/) |
-| **Experiment 3: Feishu Document Access** | Configure the agent to access Feishu documents on behalf of the user | [tutorial-3-feishu-outbound](./tutorial-3-feishu-outbound/) |
+| **Experiment 1: User Pool Authentication** | Use user pools to control agent access (Inbound authentication) | [tutorial1_userpool_inbound](./tutorial1_userpool_inbound/) |
+| **Experiment 2: Feishu Federated Login** | Use Feishu account as the enterprise identity source (IdP integration) | [tutorial2_feishu_idp](./tutorial2_feishu_idp/) |
+| **Experiment 3: Feishu Document Access** | Configure the agent to access Feishu documents on behalf of the user | [tutorial3_feishu_outbound](./tutorial3_feishu_outbound/) |
 
 ## Core Functions
 
@@ -52,11 +52,11 @@ Agent Identity separates the "user → application → agent → resource" link 
 
 ```bash
 ./
-├── README.md                           # This file
+├── README_en.md                           # This file
 ├── docs/                               # Documentation and image resources
 │   └── images/
-├── tutorial-1-userpool-inbound/        # Experiment 1: Inbound Authentication
-│   ├── README.md                       # Tutorial documentation
+├── tutorial1_userpool_inbound/        # Experiment 1: Inbound Authentication
+│   ├── README_en.md                       # Tutorial documentation
 │   ├── app.py                          # Sample code
 │   ├── oauth2_testapp.py               # OAuth2 test application
 │   ├── requirements.txt                # Dependency configuration
@@ -66,15 +66,15 @@ Agent Identity separates the "user → application → agent → resource" link 
 │   └── test_agent/                     # Agent under test
 │       ├── agent.py                    # Agent code
 │       └── agentkit.yaml.template      # AgentKit configuration template
-├── tutorial-2-feishu-idp/              # Experiment 2: Feishu IdP Federated Login
-│   ├── README.md                       # Tutorial documentation
+├── tutorial2_feishu_idp/              # Experiment 2: Feishu IdP Federated Login
+│   ├── README_en.md                       # Tutorial documentation
 │   ├── app.py                          # Sample code
 │   ├── requirements.txt                # Dependency configuration
 │   ├── .env.template                   # Environment variable template
 │   └── templates/                      # HTML template
 │       └── index.html
-└── tutorial-3-feishu-outbound/         # Experiment 3: Feishu Document Access
-    ├── README.md                       # Tutorial documentation
+└── tutorial3_feishu_outbound/         # Experiment 3: Feishu Document Access
+    ├── README_en.md                       # Tutorial documentation
     ├── app.py                          # Sample code
     ├── requirements.txt                # Dependency configuration
     ├── .env.template                   # Environment variable template

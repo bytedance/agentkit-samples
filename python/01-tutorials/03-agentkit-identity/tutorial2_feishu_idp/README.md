@@ -226,9 +226,9 @@ https://userpool-<用户池UID>.userpool.auth.id.cn-beijing.volces.com/signup/ge
 
     ```bash
     # 确保位于正确的目录
-    cd tutorial-2-feishu-idp
+    cd tutorial2_feishu_idp
 
-    # 确保当前位于 tutorial-2-feishu-idp 目录
+    # 确保当前位于 tutorial2_feishu_idp 目录
     cp .env.template .env
     ```
 
@@ -263,7 +263,7 @@ uv pip install -r requirements.txt
 1. 启动应用
 
     ```bash
-    # 确保当前位于 tutorial-2-feishu-idp 目录
+    # 确保当前位于 tutorial2_feishu_idp 目录
     uv run app.py
     ```
 
@@ -346,7 +346,7 @@ uv pip install -r requirements.txt
 
 完成联合登录后，如果需要让 Agent **代表用户**安全访问飞书文档等外部资源，请继续：
 
-→ [实验3: Outbound 凭证托管 - 让 Agent 安全访问飞书文档](../tutorial-3-feishu-outbound/)
+→ [实验3: Outbound 凭证托管 - 让 Agent 安全访问飞书文档](../tutorial3_feishu_outbound/)
 
 在实验3中，你将学习：
 

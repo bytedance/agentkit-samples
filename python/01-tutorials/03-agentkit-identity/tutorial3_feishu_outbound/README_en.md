@@ -222,7 +222,7 @@ Remember the credential provider name (e.g., `feishu_oauth`), which will be used
 
     ```bash
     # Enter the test_agent directory, where a target agent is ready
-    cd tutorial-3-feishu-outbound/test_agent
+    cd tutorial3_feishu_outbound/test_agent
 
     # Create an agentkit.yaml configuration file from the template
     cp agentkit.yaml.template agentkit.yaml
@@ -270,7 +270,7 @@ Remember the credential provider name (e.g., `feishu_oauth`), which will be used
     export VOLCENGINE_ACCESS_KEY=<Volcano Engine AK>
     export VOLCENGINE_SECRET_KEY=<Volcano Engine SK>
 
-    # Make sure you are in the tutorial-1-userpool-inbound/test_agent directory
+    # Make sure you are in the tutorial3_feishu_outbound/test_agent directory
     agentkit launch
     ```
 
@@ -288,9 +288,9 @@ Record the **Service endpoint** for subsequent testing procedures.
 
     ```bash
     # Make sure you are in the correct directory
-    cd tutorial-3-outbound-feishu
+    cd tutorial3_feishu_outbound
 
-    # Make sure you are in the tutorial-3-outbound-feishu directory
+    # Make sure you are in the tutorial3_feishu_outbound directory
     cp .env.template .env
     ```
 
@@ -324,7 +324,7 @@ uv pip install -r requirements.txt
 1. Start the application
 
     ```bash
-    # Make sure you are in the tutorial-3-outbound-feishu directory
+    # Make sure you are in the tutorial3_feishu_outbound directory
     uv run app.py
     ```
 
@@ -595,8 +595,8 @@ The configuration method is similar, just create the corresponding Credential Pr
 
 ## Related Resources
 
-- [Experiment 1: User Pool Authentication](../tutorial-1-userpool-inbound/README.md) - Basic Tutorial
-- [Experiment 2: Feishu IdP Federated Login](../tutorial-2-feishu-idp/README.md) - Basic Tutorial
+- [Experiment 1: User Pool Authentication](../tutorial1_userpool_inbound/README.md) - Basic Tutorial
+- [Experiment 2: Feishu IdP Federated Login](../tutorial2_feishu_idp/README.md) - Basic Tutorial
 - [Feishu Open Platform](https://open.feishu.cn/)
 - [Agent Identity Credential Hosting Documentation](https://www.volcengine.com/docs/identity/credential-provider)
 - [AgentKit Runtime Deployment Guide](https://volcengine.github.io/agentkit-sdk-python/content/4.runtime/1.runtime_quickstart.html)

@@ -145,7 +145,7 @@ flowchart TB
 
     ```bash
     # 确保位于正确的目录
-    cd tutorial-1-userpool-inbound
+    cd tutorial1_userpool_inbound
 
     # 从模板创建.env
     cp .env.template .env
@@ -232,7 +232,7 @@ uv pip install -r requirements.txt
 
 ```bash
 # 进入 test_agent 目录，这里准备好了一个目标Agent
-cd tutorial-1-userpool-inbound/test_agent
+cd tutorial1_userpool_inbound/test_agent
 
 # 从模板创建一份agentkit.yaml配置文件
 cp agentkit.yaml.template agentkit.yaml
@@ -273,7 +273,7 @@ launch_types:
 export VOLCENGINE_ACCESS_KEY=<火山AK>
 export VOLCENGINE_SECRET_KEY=<火山SK>
 
-# 确保当前位于 tutorial-1-userpool-inbound/test_agent 目录
+# 确保当前位于 tutorial1_userpool_inbound/test_agent 目录
 agentkit launch
 ```
 
@@ -317,7 +317,7 @@ curl $AGENT_ENDPOINT'/invoke' \
 1. 复制环境变量模板并填写：
 
 ```bash
-# 确保当前位于 tutorial-1-inbound-userpool 目录
+# 确保当前位于 tutorial1_userpool_inbound 目录
 cp .env.template .env
 ```
 
@@ -388,7 +388,7 @@ uv pip install -r requirements.txt
 
 想让用户使用飞书账号登录？请参考：
 
-→ [实验2: 飞书 IdP 联合登录](../tutorial-2-feishu-idp/README.md)
+→ [实验2: 飞书 IdP 联合登录](../tutorial2_feishu_idp/README.md)
 
 ---
 

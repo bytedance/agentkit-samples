@@ -38,9 +38,9 @@ Agent Identity 把“用户 → 应用 → Agent → 资源”的链路拆开治
 
 | 实验 | 说明 | 目录 |
 | ------ | ------ | ------ |
-| **实验1: 用户池认证** | 使用用户池管控智能体访问 (Inbound 认证) | [tutorial-1-userpool-inbound](./tutorial-1-userpool-inbound/) |
-| **实验2: 飞书联合登录** | 使用飞书账号作为企业身份源 (IdP 集成) | [tutorial-2-feishu-idp](./tutorial-2-feishu-idp/) |
-| **实验3: 飞书文档访问** | 配置 Agent 代表用户访问飞书文档 | [tutorial-3-feishu-outbound](./tutorial-3-feishu-outbound/) |
+| **实验1: 用户池认证** | 使用用户池管控智能体访问 (Inbound 认证) | [tutorial1_userpool_inbound](./tutorial1_userpool_inbound/) |
+| **实验2: 飞书联合登录** | 使用飞书账号作为企业身份源 (IdP 集成) | [tutorial2_feishu_idp](./tutorial2_feishu_idp/) |
+| **实验3: 飞书文档访问** | 配置 Agent 代表用户访问飞书文档 | [tutorial3_feishu_outbound](./tutorial3_feishu_outbound/) |
 
 ## 核心功能
 
@@ -55,7 +55,7 @@ Agent Identity 把“用户 → 应用 → Agent → 资源”的链路拆开治
 ├── README.md                           # 本文件
 ├── docs/                               # 文档和图片资源
 │   └── images/
-├── tutorial-1-userpool-inbound/        # 实验1: Inbound 认证
+├── tutorial1_userpool_inbound/        # 实验1: Inbound 认证
 │   ├── README.md                       # 教程文档
 │   ├── app.py                          # 示例代码
 │   ├── oauth2_testapp.py               # OAuth2 测试应用
@@ -66,14 +66,14 @@ Agent Identity 把“用户 → 应用 → Agent → 资源”的链路拆开治
 │   └── test_agent/                     # 被测智能体
 │       ├── agent.py                    # 智能体代码
 │       └── agentkit.yaml.template      # AgentKit 配置模板
-├── tutorial-2-feishu-idp/              # 实验2: 飞书 IdP 联合登录
+├── tutorial2_feishu_idp/              # 实验2: 飞书 IdP 联合登录
 │   ├── README.md                       # 教程文档
 │   ├── app.py                          # 示例代码
 │   ├── requirements.txt                # 依赖配置
 │   ├── .env.template                   # 环境变量模板
 │   └── templates/                      # HTML 模板
 │       └── index.html
-└── tutorial-3-feishu-outbound/         # 实验3: 飞书文档访问
+└── tutorial3_feishu_outbound/         # 实验3: 飞书文档访问
     ├── README.md                       # 教程文档
     ├── app.py                          # 示例代码
     ├── requirements.txt                # 依赖配置

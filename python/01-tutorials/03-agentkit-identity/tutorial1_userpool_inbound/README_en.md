@@ -145,7 +145,7 @@ flowchart TB
 
     ```bash
     # Make sure you are in the correct directory
-    cd tutorial-1-userpool-inbound
+    cd tutorial1_userpool_inbound
 
     # Create .env from the template
     cp .env.template .env
@@ -230,7 +230,7 @@ In the next section, we will use the AgentKit CLI to actually deploy an intellig
 
     ```bash
     # Enter the test_agent directory, where a target agent is ready
-    cd tutorial-1-userpool-inbound/test_agent
+    cd tutorial1_userpool_inbound/test_agent
 
     # Create an agentkit.yaml configuration file from the template
     cp agentkit.yaml.template agentkit.yaml
@@ -271,7 +271,7 @@ In the next section, we will use the AgentKit CLI to actually deploy an intellig
     export VOLCENGINE_ACCESS_KEY=<Volcano Engine AK>
     export VOLCENGINE_SECRET_KEY=<Volcano Engine SK>
 
-    # Make sure you are in the tutorial-1-userpool-inbound/test_agent directory
+    # Make sure you are in the tutorial1_userpool_inbound/test_agent directory
     agentkit launch
     ```
 
@@ -315,7 +315,7 @@ curl $AGENT_ENDPOINT'/invoke' \
 1. Copy and fill in the environment variable template:
 
     ```bash
-    # Make sure you are in the tutorial-1-inbound-userpool directory
+    # Make sure you are in the tutorial1_userpool_inbound directory
     cp .env.template .env
     ```
 
@@ -385,7 +385,7 @@ uv pip install -r requirements.txt
 
 Want users to log in with their Feishu accounts? Please refer to:
 
-→ [Experiment 2: Feishu IdP Federated Login](../tutorial-2-feishu-idp/README.md)
+→ [Experiment 2: Feishu IdP Federated Login](../tutorial2_feishu_idp/README_en.md)
 
 ---
 

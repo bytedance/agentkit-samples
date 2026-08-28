@@ -202,9 +202,9 @@ After the configuration is complete, the user pool login page will display a "Lo
 
     ```bash
     # Make sure you are in the correct directory
-    cd tutorial-2-feishu-idp
+    cd tutorial2_feishu_idp
 
-    # Make sure you are in the tutorial-2-feishu-idp directory
+    # Make sure you are in the tutorial2_feishu_idp directory
     cp .env.template .env
     ```
 
@@ -238,7 +238,7 @@ uv pip install -r requirements.txt
 1. Start the application
 
     ```bash
-    # Make sure you are in the tutorial-2-feishu-idp directory
+    # Make sure you are in the tutorial2_feishu_idp directory
     uv run app.py
     ```
 
@@ -320,7 +320,7 @@ If you need to retest the login process:
 
 After completing federated login, if you need to let the Agent **represent the user** to securely access external resources such as Feishu documents, please continue:
 
-→ [Experiment 3: Outbound Credential Hosting - Let the Agent Securely Access Feishu Documents](../tutorial-3-feishu-outbound/)
+→ [Experiment 3: Outbound Credential Hosting - Let the Agent Securely Access Feishu Documents](../tutorial3_feishu_outbound/)
 
 In Experiment 3, you will learn:
 
