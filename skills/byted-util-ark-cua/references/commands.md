@@ -1,7 +1,7 @@
 # AgentPlan CUA Skill commands
 
 All commands: `python3 <skill_dir>/scripts/cua.py <command> [options]`.
-Global option: `--api-base-url <url>` overrides the gateway URL for one call.
+Global options precede the command. `--api-base-url <url>` overrides the gateway URL for one local-development call.
 Gateway URLs must use HTTPS; plain HTTP is accepted only for loopback development
 hosts (`localhost`, `127.0.0.1`, or `::1`).
 
@@ -53,7 +53,7 @@ python3 scripts/cua.py model get
 
 `desktop start` is the unified start and recovery interface; there is no separate restore command. Use it only after an explicit user request because successful start or recovery reactivates billable use. The service returns the actual route under `data.action`: `reused`, `starting`, `resuming`, or `allocating`; use `data.restoring` and `data.newly_allocated` to explain the result. Pass the exact shutdown desktop id when the user wants that retained desktop back. Omit it only when service selection or a new primary allocation is acceptable. An exact expired or purged desktop fails instead of silently changing identity. If the response includes an operation id, follow `next.command`: success means the logical desktop, guest readiness, access, and entitlement state are all ready, not merely that the VM started.
 
-`desktop access` calls `GET /v1/desktop/access` and returns a newly issued temporary URL. Give the user `full_interface_url`, falling back to `access_url`; never reuse a URL from an earlier result. New gateways return the canonical `/desktops/<id>/cua-app/?ticket=...` route directly; legacy gateway URLs are converted without dropping the ticket. Treat URLs and tickets as secrets. Revoke a URL that may have leaked or is no longer needed.
+`desktop access` calls `GET /v1/desktop/access` and returns a newly issued temporary URL. Give the user `full_interface_url`, falling back to `access_url`. Never reuse a URL from an earlier result. New gateways return the canonical `/desktops/<id>/cua-app/?ticket=...` route directly; legacy gateway URLs are converted without dropping the ticket. Treat URLs and tickets as secrets. Revoke a URL that may have leaked or is no longer needed.
 
 If a URL returns `runtime_capability_required`, do not edit its host or path. Revoke it, run `desktop access` once, and return the newly issued URL. If that fresh URL also fails, stop and report a Desktop Gateway/runtime configuration problem.
 
@@ -89,3 +89,20 @@ python3 scripts/cua.py artifact save (--artifact-id <id> | --last) \
 ```
 
 `artifact save` never overwrites an existing path and does not create a missing parent directory. Omit `--output` to use a secure temporary file. Downloads are limited to 256 MiB; HTML/interstitial content and missing artifacts are not written.
+
+## Credential setup and sync
+
+```bash
+python3 scripts/cua.py credentials status [--desktop-id <id>]
+python3 scripts/cua.py credentials setup [--desktop-id <id>] [--skip-browser]
+python3 scripts/cua.py credentials sync browser --desktop-id <id> <site>...
+python3 scripts/cua.py credentials sync env --desktop-id <id> <name>...
+python3 scripts/cua.py credentials sync secret --desktop-id <id> <name>...
+python3 scripts/cua.py credentials sync credential-set --desktop-id <id> --type <type> --name <name>
+python3 scripts/cua.py credentials sync file --desktop-id <id> --profile <profile>
+python3 scripts/cua.py credentials reset --desktop-id <id> [--device-id <exact-id>]
+```
+
+These commands use the embedded Credential runtime and existing AgentPlan Skill Gateway Credential tools. They do not download or invoke another Skill and do not create a model task. Browser sync accepts explicit signed-Policy site names only; it has no `--all` mode and performs no per-site Chrome permission mutation. See [credentials.md](credentials.md) for the trust boundary and waiting semantics.
+
+`credential-target` is an internal `cua-target/v1` adapter surface used by the embedded orchestration scripts. Agents should not call it directly.

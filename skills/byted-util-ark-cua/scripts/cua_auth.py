@@ -33,7 +33,14 @@ import tempfile
 import time
 from pathlib import Path
 
-from cua_http import gateway_call, raw_request
+from cua_http import (
+    gateway_call,
+    gateway_credential_bootstrap,
+    gateway_manifest,
+    gateway_private_call,
+    gateway_tool_call,
+    raw_request,
+)
 from cua_util import RETRYABLE_ERROR_CODES, SkillError, login_setup_command
 
 DEFAULT_LOGIN_TIMEOUT_SEC = 0
@@ -104,6 +111,59 @@ def authorized_raw_call(state, base_url, method, path, body=None, query=None, ti
                 time.sleep(min(2 * attempt, 5))
                 continue
             raise
+
+
+def authorized_manifest(state, base_url, timeout=None):
+    """Read `/skill/manifest` with the redacted AgentPlan credential."""
+    kwargs = {"timeout": timeout} if timeout is not None else {}
+    result, _credential = _with_credential_recovery(
+        state,
+        lambda token: gateway_manifest(base_url, token=token, **kwargs),
+    )
+    return result
+
+
+def authorized_tool_call(state, base_url, tool_name, arguments=None, timeout=None, retries=0):
+    """Call an existing `/skill/tools` operation with the redacted AgentPlan credential."""
+    attempt = 0
+    while True:
+        try:
+            kwargs = {"timeout": timeout} if timeout is not None else {}
+            result, _credential = _with_credential_recovery(
+                state,
+                lambda token: gateway_tool_call(
+                    base_url, token, tool_name, arguments or {}, **kwargs
+                ),
+            )
+            return result
+        except SkillError as exc:
+            if exc.code in RETRYABLE_ERROR_CODES and attempt < retries:
+                attempt += 1
+                time.sleep(min(2 * attempt, 5))
+                continue
+            raise
+
+
+def authorized_private_call(state, base_url, path, arguments=None, timeout=None):
+    """Move an encrypted pairing envelope through a fixed private relay path."""
+    kwargs = {"timeout": timeout} if timeout is not None else {}
+    result, _credential = _with_credential_recovery(
+        state,
+        lambda token: gateway_private_call(base_url, token, path, arguments or {}, **kwargs),
+    )
+    return result
+
+
+def authorized_credential_bootstrap(state, base_url, arguments, timeout=None):
+    """Mint one proof-bound assertion without exposing the bearer credential."""
+    kwargs = {"timeout": timeout} if timeout is not None else {}
+    result, _credential = _with_credential_recovery(
+        state,
+        lambda token: gateway_credential_bootstrap(
+            base_url, token, arguments, **kwargs
+        ),
+    )
+    return result
 
 
 def _authorized_call_once(state, base_url, method, path, body=None, query=None, timeout=None):
@@ -194,6 +254,9 @@ def login(state, base_url, prompt=True, manual=False, **_unused):
         "desktop_bound": bool(data.get("desktop_bound")),
         "scopes": _scopes(data),
     }
+    verification = _safe_real_name_verification(data.get("real_name_verification"))
+    if verification:
+        result["real_name_verification"] = verification
     if credential.profile:
         result["arkcli_profile"] = credential.profile
     return result
@@ -225,6 +288,9 @@ def auth_status(state, base_url):
         "scopes": _scopes(data),
         "desktop_bound": bool(data.get("desktop_bound") or state.desktop_bound),
     }
+    verification = _safe_real_name_verification(data.get("real_name_verification"))
+    if verification:
+        result["real_name_verification"] = verification
     if credential.profile:
         result["arkcli_profile"] = credential.profile
     return result
@@ -431,6 +497,8 @@ def _auth_error_with_retry(exc, manual=False):
 
 
 def _is_agentplan_auth_rejection(exc):
+    if exc.code in ("VOLCENGINE_REAL_NAME_REQUIRED", "VOLCENGINE_REAL_NAME_CHECK_UNAVAILABLE"):
+        return False
     if exc.code not in ("AUTH_REQUIRED", "TOKEN_EXPIRED", "FORBIDDEN"):
         return False
     if exc.extra.get("auth_type") == "agentplan_bearer":
@@ -467,4 +535,21 @@ def _safe_user(user):
         "org_id": user.get("org_id"),
         "user_id": user.get("user_id"),
         "email": user.get("email"),
+    }
+
+
+def _safe_real_name_verification(value):
+    if not isinstance(value, dict):
+        return {}
+    return {
+        key: value.get(key)
+        for key in (
+            "status",
+            "new_cua_allocation_allowed",
+            "checked_at",
+            "expires_at",
+            "source",
+            "verification_url",
+        )
+        if value.get(key) is not None
     }

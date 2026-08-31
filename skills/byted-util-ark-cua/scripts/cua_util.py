@@ -28,7 +28,13 @@ from datetime import datetime, timezone
 # backend hiccups, rate limits, and local network blips. The CLI keeps polling
 # on these instead of failing a whole task on a single 504.
 RETRYABLE_ERROR_CODES = frozenset(
-    {"GATEWAY_TIMEOUT", "CUA_BACKEND_UNAVAILABLE", "RATE_LIMITED", "NETWORK"}
+    {
+        "GATEWAY_TIMEOUT",
+        "CUA_BACKEND_UNAVAILABLE",
+        "VOLCENGINE_REAL_NAME_CHECK_UNAVAILABLE",
+        "RATE_LIMITED",
+        "NETWORK",
+    }
 )
 
 
@@ -129,6 +135,13 @@ def _next_for_error(body):
             "agent_hint": "The model provider timed out. Report error.reason and error.request_id. "
             "Retry only when the operation is safe and the user wants to try again.",
         }
+    if code == "VOLCENGINE_REAL_NAME_REQUIRED" and body.get("verification_url"):
+        return {
+            "verification_url": body["verification_url"],
+            "agent_hint": "The API key is valid, but this operation would allocate a new CUA. "
+            "Ask the user to complete Volcengine real-name verification at verification_url, "
+            "then run `auth status` and retry. Existing allocated CUA invocations are unaffected.",
+        }
     if code in ("DESKTOP_UNHEALTHY", "SESSION_CLEANUP", "UPSTREAM_FAILURE"):
         return {
             "agent_hint": "Do not retry blindly. Report error.reason, error.request_id, and any safe context "
@@ -169,10 +182,14 @@ def script_path():
     return os.path.abspath(sys.argv[0]) if sys.argv and sys.argv[0] else "scripts/cua.py"
 
 
+def command_prefix():
+    return f"python3 {script_path()}"
+
+
 def login_setup_command(manual=False):
     """The command the user should run in their own local terminal to login."""
     suffix = " --manual" if manual else ""
-    return f"python3 {script_path()} auth login{suffix}"
+    return f"{command_prefix()} auth login{suffix}"
 
 
 # MIME type -> file extension, for artifact downloads that don't specify a name.

@@ -20,7 +20,7 @@ envelope and converts errors into SkillError with the gateway error code.
 
 import json
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from cua_util import SkillError
@@ -39,12 +39,16 @@ class _NoRedirect(HTTPRedirectHandler):
 _OPENER = build_opener(_NoRedirect)
 
 
+def _request_headers(accept):
+    return {"accept": accept}
+
+
 def request(method, base_url, path, token=None, body=None, query=None, timeout=DEFAULT_TIMEOUT_SEC):
     """Perform an HTTP request and return (status_code, parsed_json)."""
     url = base_url.rstrip("/") + path
     if query:
         url += "?" + urlencode(query)
-    headers = {"accept": "application/json"}
+    headers = _request_headers("application/json")
     data = None
     if body is not None:
         data = json.dumps(body).encode("utf-8")
@@ -72,7 +76,7 @@ def raw_request(method, base_url, path, token=None, body=None, query=None, timeo
     url = base_url.rstrip("/") + path
     if query:
         url += "?" + urlencode(query)
-    headers = {"accept": "application/octet-stream, */*"}
+    headers = _request_headers("application/octet-stream, */*")
     data = None
     if body is not None:
         data = json.dumps(body).encode("utf-8")
@@ -121,6 +125,68 @@ def gateway_call(method, base_url, path, token=None, body=None, query=None, time
     _raise_gateway_error(status, payload)
 
 
+def gateway_manifest(base_url, token=None, timeout=30):
+    """Read the AgentPlan Skill manifest without changing local or remote state."""
+    status, payload = request(
+        "GET", base_url, "/skill/manifest", token=token, timeout=timeout
+    )
+    if 200 <= status < 300 and isinstance(payload, dict):
+        return payload
+    _raise_gateway_error(status, payload)
+
+
+def gateway_tool_call(base_url, token, tool_name, arguments=None, timeout=DEFAULT_TIMEOUT_SEC):
+    """Call an existing AgentPlan Skill tool and return its `result` object."""
+    if not isinstance(tool_name, str) or not tool_name.startswith("cua_credential_"):
+        raise SkillError("VALIDATION_ERROR", "Unsupported Credential tool name.")
+    status, payload = request(
+        "POST",
+        base_url,
+        "/skill/tools/" + quote(tool_name, safe=""),
+        token=token,
+        body=arguments or {},
+        timeout=timeout,
+    )
+    if 200 <= status < 300 and isinstance(payload, dict) and payload.get("ok") is True:
+        result = payload.get("result", {})
+        if not isinstance(result, dict):
+            raise SkillError("UPSTREAM_PROTOCOL_ERROR", "CUA Skill tool returned an invalid result envelope.")
+        return dict(result)
+    _raise_gateway_error(status, payload)
+
+
+def gateway_private_call(base_url, token, path, arguments=None, timeout=DEFAULT_TIMEOUT_SEC):
+    """Call the fixed encrypted Credential pairing relay without exposing its payload."""
+    if (
+        not isinstance(path, str)
+        or not path.startswith("/skill/credential-relay/")
+        or ".." in path
+        or "?" in path
+        or "#" in path
+    ):
+        raise SkillError("VALIDATION_ERROR", "Unsupported private CUA Skill Gateway path.")
+    status, payload = request(
+        "POST", base_url, path, token=token, body=arguments or {}, timeout=timeout
+    )
+    if 200 <= status < 300 and isinstance(payload, dict) and payload.get("ok") is True:
+        result = payload.get("result", {})
+        if not isinstance(result, dict):
+            raise SkillError("UPSTREAM_PROTOCOL_ERROR", "Credential relay returned an invalid result envelope.")
+        return result
+    _raise_gateway_error(status, payload)
+
+
+def gateway_credential_bootstrap(base_url, token, arguments, timeout=DEFAULT_TIMEOUT_SEC):
+    """Mint one proof-bound Agent enrollment assertion on the fixed endpoint."""
+    status, payload = request(
+        "POST", base_url, "/skill/credential-bootstrap", token=token,
+        body=arguments, timeout=timeout,
+    )
+    if 200 <= status < 300 and isinstance(payload, dict):
+        return dict(payload)
+    _raise_gateway_error(status, payload)
+
+
 def _raise_gateway_error(status, payload):
     # Prefer a real gateway error envelope (it carries the authoritative code).
     error = payload.get("error") if isinstance(payload, dict) else None
@@ -145,6 +211,8 @@ def _raise_gateway_error(status, payload):
             "upstream_status",
             "conflict_scope",
             "active_task_id",
+            "action_required",
+            "verification_url",
         }
         extra = {k: v for k, v in error.items() if k in safe_fields}
         if payload.get("request_id") and not extra.get("request_id"):

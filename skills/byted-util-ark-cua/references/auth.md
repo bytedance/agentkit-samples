@@ -19,7 +19,10 @@ the same API key to CUA runtime model calls.
    deleted after discovery.
 3. An arkcli-sourced credential is validated through `/v1/auth/me`, used only in
    that process, and never copied into the CUA cache. Successful auth output
-   exposes only its source and selected profile metadata.
+   exposes only its source and selected profile metadata. For AgentPlan users it
+   also reports `real_name_verification`. An unverified result does not make the
+   API key invalid and does not interrupt an already allocated CUA; it prevents
+   only a later operation that must allocate a new CUA.
 4. If arkcli is not installed, has no personal Agent Plan Max profile, has no
    usable key, or otherwise fails, `AUTH_REQUIRED` includes `arkcli_status`,
    `arkcli_hint`, and the existing `setup_command`. Ask the user to run that
@@ -70,6 +73,8 @@ login in a real local terminal instead of pasting the API key into chat.
 | `TOKEN_EXPIRED` | gateway rejected the bearer credential | ask the user to run `setup_command` in their own local terminal again |
 | `REFRESH_FAILED` | legacy alias for re-login needed | ask the user to run `setup_command` in their own local terminal again |
 | `FORBIDDEN` | API key is valid but not allowed for this operation | do not retry with the same key |
+| `VOLCENGINE_REAL_NAME_REQUIRED` | API key is valid, but the account has not completed Volcengine real-name verification and this operation would allocate a new CUA | show `verification_url`, ask the user to complete verification on Volcengine, then rerun `auth status` and retry the allocation |
+| `VOLCENGINE_REAL_NAME_CHECK_UNAVAILABLE` | the server could not determine verification state while a new CUA allocation was required | retry later; do not create a duplicate task |
 
 ## Logout
 
