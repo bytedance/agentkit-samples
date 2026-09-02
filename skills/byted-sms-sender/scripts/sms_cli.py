@@ -24,20 +24,51 @@ import hmac
 import io
 import json
 import math
+import os
 import pathlib
 import re
+import signal
+import subprocess
 import sys
+import threading
 from typing import Any, Dict, List, Mapping, Optional, Sequence, TextIO, Tuple
 from urllib import parse, request
 
 from analytics import AnalyticsError, build_report
-from api_client import SmsApiClient, emit_json
+from api_client import (
+    LOGIN_PROCESS_LEASE_SECONDS,
+    SmsApiClient,
+    cleanup_private_auth_home,
+    emit_json,
+    select_cli_auth_home,
+)
+from qualification_display import qualification_display_adapter
+from qualification_upload import QualificationUploadError
+from qualification_wizard import run_qualification_wizard
+
+
+PROCESS_TERMINATION_GRACE_SECONDS = 5
 
 
 class CliError(ValueError):
-    def __init__(self, message: str, code: str = "validation_error") -> None:
+    def __init__(
+        self,
+        message: str,
+        code: str = "validation_error",
+        *,
+        request_id: Optional[str] = None,
+        log_id: Optional[str] = None,
+        retryable: bool = False,
+        outcome_unknown: bool = False,
+        remediation: Optional[Mapping[str, Any]] = None,
+    ) -> None:
         super().__init__(message)
         self.code = code
+        self.request_id = request_id
+        self.log_id = log_id
+        self.retryable = retryable
+        self.outcome_unknown = outcome_unknown
+        self.remediation = dict(remediation) if remediation else None
 
 
 class JsonArgumentParser(argparse.ArgumentParser):
@@ -45,18 +76,64 @@ class JsonArgumentParser(argparse.ArgumentParser):
         raise CliError(message, "argument_error")
 
 
+def _stop_process(process: subprocess.Popen) -> None:
+    if process.poll() is not None:
+        return
+    process.terminate()
+    try:
+        process.wait(timeout=PROCESS_TERMINATION_GRACE_SECONDS)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait()
+
+
+def _run_login_process(argv: Sequence[str], env: Mapping[str, str]) -> None:
+    process = subprocess.Popen(argv, env=dict(env))
+    interrupted = False
+    previous_handlers: Dict[int, Any] = {}
+
+    def interrupt(signum: int, frame: Any) -> None:
+        nonlocal interrupted
+        interrupted = True
+        _stop_process(process)
+
+    if threading.current_thread() is threading.main_thread():
+        for signum in (signal.SIGINT, signal.SIGTERM):
+            previous_handlers[signum] = signal.getsignal(signum)
+            signal.signal(signum, interrupt)
+    try:
+        try:
+            process.wait(timeout=LOGIN_PROCESS_LEASE_SECONDS)
+        except subprocess.TimeoutExpired as exc:
+            _stop_process(process)
+            raise CliError(
+                "Volcengine login session expired before authorization completed",
+                "auth_login_expired",
+            ) from exc
+        if interrupted:
+            raise CliError("Volcengine login was cancelled", "auth_login_cancelled")
+    finally:
+        _stop_process(process)
+        for signum, handler in previous_handlers.items():
+            signal.signal(signum, handler)
+
+
 def _local_error(action: str, exc: CliError) -> Dict[str, Any]:
+    error_value: Dict[str, Any] = {
+        "code": exc.code,
+        "message": str(exc),
+        "retryable": exc.retryable,
+        "outcome_unknown": exc.outcome_unknown,
+    }
+    if exc.remediation:
+        error_value["remediation"] = exc.remediation
     return {
         "success": False,
         "action": action,
-        "request_id": None,
+        "request_id": exc.request_id,
+        "log_id": exc.log_id,
         "result": None,
-        "error": {
-            "code": exc.code,
-            "message": str(exc),
-            "retryable": False,
-            "outcome_unknown": False,
-        },
+        "error": error_value,
     }
 
 
@@ -64,7 +141,8 @@ def _local_success(action: str, result: Mapping[str, Any]) -> Dict[str, Any]:
     return {
         "success": True,
         "action": action,
-        "request_id": None,
+        "request_id": result.get("requestId"),
+        "log_id": result.get("logId"),
         "result": dict(result),
         "error": None,
     }
@@ -127,22 +205,11 @@ def _is_approved(value: Any) -> bool:
     }
 
 
-def _is_usable(item: Mapping[str, Any]) -> bool:
-    value = item.get("usable")
-    if value is None:
-        value = item.get("Usable")
-    return value is True
-
-
 def _is_template_signature_usable(item: Mapping[str, Any]) -> bool:
     value = item.get("usable")
     if value is None:
         value = item.get("Usable")
     return value is None or value is True
-
-
-def _is_direct_send_signature_usable(item: Mapping[str, Any]) -> bool:
-    return _is_template_signature_usable(item)
 
 
 def _channels(item: Mapping[str, Any]) -> set:
@@ -167,7 +234,37 @@ def _require_query_success(envelope: Mapping[str, Any]) -> None:
             if isinstance(error_value, Mapping)
             else "resource query failed"
         )
-        raise CliError(str(message), "resource_query_failed")
+        code = (
+            error_value.get("code")
+            if isinstance(error_value, Mapping)
+            else "resource_query_failed"
+        )
+        remediation = (
+            error_value.get("remediation")
+            if isinstance(error_value, Mapping)
+            and isinstance(error_value.get("remediation"), Mapping)
+            else None
+        )
+        raise CliError(
+            str(message),
+            str(code or "resource_query_failed"),
+            request_id=(
+                str(envelope.get("request_id"))
+                if envelope.get("request_id") is not None
+                else None
+            ),
+            retryable=(
+                bool(error_value.get("retryable"))
+                if isinstance(error_value, Mapping)
+                else False
+            ),
+            outcome_unknown=(
+                bool(error_value.get("outcome_unknown"))
+                if isinstance(error_value, Mapping)
+                else False
+            ),
+            remediation=remediation,
+        )
 
 
 def _validate_signature_resources(
@@ -1074,7 +1171,7 @@ def _send_summary(
             item
             for item in _items(signatures)
             if _is_approved(item.get("Status"))
-            and _is_direct_send_signature_usable(item)
+            and _is_template_signature_usable(item)
             and _normalize_signature(str(item.get("Signature", ""))) == signature
             and _signature_supports_sub_account(item, args.sub_account)
         ),
@@ -1606,6 +1703,59 @@ def execute(
     uploader: Any = _default_uploader,
     now: Any = None,
 ) -> Dict[str, Any]:
+    if args.command == "auth-login":
+        try:
+            login_env = dict(os.environ)
+            login_env["HOME"] = select_cli_auth_home(login_env)
+            if os.name == "nt":
+                login_env["USERPROFILE"] = login_env["HOME"]
+            login_argv = ["ve", "login"]
+            if args.remote:
+                login_argv.append("--remote")
+            login_argv.extend(["--region", "cn-beijing"])
+            if args.profile:
+                login_argv.extend(["--profile", args.profile])
+            # Browser completion is authoritative only after an STS readiness probe.
+            _run_login_process(login_argv, login_env)
+            return client.auth_doctor()
+        except FileNotFoundError as exc:
+            raise CliError("Volcengine CLI is not installed", "ve_cli_missing") from exc
+        except (OSError, RuntimeError) as exc:
+            raise CliError(
+                "Unable to start Volcengine login in the system temporary directory",
+                "auth_temp_home_invalid",
+            ) from exc
+    if args.command == "auth-doctor":
+        return client.auth_doctor()
+    if args.command == "auth-cleanup":
+        return cleanup_private_auth_home(
+            args.path,
+            empty_only=args.empty_only,
+        )
+
+    if args.command == "qualification-wizard":
+        try:
+            result = run_qualification_wizard(
+                client,
+                display=qualification_display_adapter(args.display),
+            )
+        except QualificationUploadError as exc:
+            raise CliError(
+                str(exc),
+                exc.code,
+                request_id=exc.request_id,
+                log_id=exc.log_id,
+            ) from exc
+        if result.get("outcomeUnknown") is True:
+            raise CliError(
+                "Qualification submission outcome is unknown; do not submit again",
+                "qualification_submission_outcome_unknown",
+                request_id=result.get("requestId"),
+                log_id=result.get("logId"),
+                outcome_unknown=True,
+            )
+        return _local_success(args.command, result)
+
     if args.command == "analytics":
         try:
             report = build_report(
@@ -2136,6 +2286,18 @@ def build_parser() -> JsonArgumentParser:
     parser = JsonArgumentParser(description="Volcengine domestic SMS")
     commands = parser.add_subparsers(dest="command", required=True)
 
+    commands.add_parser("auth-doctor", help="check ve and credential readiness")
+    auth_login = commands.add_parser(
+        "auth-login", help="start login with a system-temporary CLI HOME"
+    )
+    auth_login.add_argument("--remote", action="store_true")
+    auth_login.add_argument("--profile")
+    auth_cleanup = commands.add_parser(
+        "auth-cleanup", help="remove a validated temporary authentication HOME"
+    )
+    auth_cleanup.add_argument("--path", required=True)
+    auth_cleanup.add_argument("--empty-only", action="store_true")
+
     groups = commands.add_parser("list-message-groups")
     groups.add_argument("--name")
 
@@ -2151,6 +2313,16 @@ def build_parser() -> JsonArgumentParser:
     qualifications.add_argument("--material-name")
     qualifications.add_argument("--status", action="append", type=int)
     _page_options(qualifications)
+
+    qualification = commands.add_parser(
+        "qualification-wizard",
+        help="open one private local qualification draft and submission wizard",
+    )
+    qualification.add_argument(
+        "--display",
+        choices=("browser", "host"),
+        default="browser",
+    )
 
     signatures = commands.add_parser("list-signatures")
     signatures.add_argument("--signature")

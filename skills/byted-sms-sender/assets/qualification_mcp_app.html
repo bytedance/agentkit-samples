@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>火山引擎短信资质</title>
+  <style>
+    :root { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #161616; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f5f6f8; }
+    #status { padding: 14px 16px; background: #fff; color: #475467; }
+    #status.error { color: #b42318; background: #fff1f0; }
+    iframe { display: none; width: 100%; height: calc(100vh - 50px); border: 0; background: #f5f6f8; }
+  </style>
+</head>
+<body>
+  <div id="status">正在准备私密资质表单…</div>
+  <iframe id="wizard" title="火山引擎短信资质表单" referrerpolicy="no-referrer"
+    sandbox="allow-forms allow-scripts allow-same-origin"></iframe>
+  <script>
+    const APP_PROTOCOL_VERSION = '2026-01-26';
+    const REQUEST_TIMEOUT_MS = 15000;
+    const WIZARD_READY_TIMEOUT_MS = 10000;
+    const pending = new Map();
+    let nextId = 1;
+    let hostCapabilities = {};
+    let flowId = '';
+    let completionPublished = false;
+    let loadedWizardUrl = '';
+    let wizardReady = false;
+    let wizardReadyTimer = null;
+
+    function send(message) {
+      window.parent.postMessage(message, '*');
+    }
+
+    function request(method, params, timeoutMs = REQUEST_TIMEOUT_MS) {
+      return new Promise((resolve, reject) => {
+        const id = `qualification-${nextId++}`;
+        const timeout = window.setTimeout(() => {
+          pending.delete(id);
+          reject(new Error(`${method} timed out`));
+        }, timeoutMs);
+        pending.set(id, { resolve, reject, timeout });
+        send({ jsonrpc: '2.0', id, method, params });
+      });
+    }
+
+    function notify(method, params) {
+      send({ jsonrpc: '2.0', method, params });
+    }
+
+    function setStatus(message, error = false) {
+      const status = document.getElementById('status');
+      status.textContent = message;
+      status.className = error ? 'error' : '';
+    }
+
+    function safeCompletionText(result) {
+      const status = result.status || 'qualification_application_failed';
+      if (status === 'qualification_application_abandoned') {
+        return '我已放弃本次资质填写，请停止资质申请流程。';
+      }
+      if (status === 'qualification_submission_outcome_unknown') {
+        const reference = result.logId || result.requestId;
+        return `资质提交结果暂时无法确认，请勿重复提交${reference ? `；排障编号：${reference}` : ''}。`;
+      }
+      if (result.qualificationId) {
+        return `资质申请已提交审核，申请 ID：${result.qualificationId}。请继续原短信任务的审核等待流程。`;
+      }
+      return '资质表单已结束，请检查当前任务中的安全结果。';
+    }
+
+    async function publishCompletion(result) {
+      if (completionPublished) return;
+      completionPublished = true;
+      const text = safeCompletionText(result);
+      setStatus(text);
+      const content = [{ type: 'text', text }];
+      if (hostCapabilities.message) {
+        await request('ui/message', { role: 'user', content });
+      } else if (hostCapabilities.updateModelContext) {
+        await request('ui/update-model-context', {
+          content,
+          structuredContent: result,
+        });
+      }
+    }
+
+    async function readCompletion() {
+      if (!flowId) return;
+      for (let attempt = 0; attempt < 20; attempt += 1) {
+        const response = await request('tools/call', {
+          name: 'get_qualification_application_result',
+          arguments: { flowId },
+        });
+        const result = response && response.structuredContent || {};
+        if (result.status && result.status !== 'waiting_for_customer') {
+          await publishCompletion(result);
+          return;
+        }
+        await new Promise(resolve => setTimeout(resolve, 250));
+      }
+      setStatus('表单已经结束，正在等待安全结果…');
+    }
+
+    function loadWizard(toolResult) {
+      const privateData = toolResult && toolResult._meta && toolResult._meta.qualificationDisplay;
+      if (!privateData || !privateData.url || !privateData.flowId) {
+        setStatus('无法取得私密表单地址，请关闭此面板后重试。', true);
+        return;
+      }
+      let privateUrl;
+      try {
+        privateUrl = new URL(privateData.url);
+      } catch (_) {
+        setStatus('私密表单地址无效，请关闭此面板后重试。', true);
+        return;
+      }
+      if (privateUrl.protocol !== 'http:' || privateUrl.hostname !== '127.0.0.1' || !privateUrl.port) {
+        setStatus('私密表单地址不属于本机，请关闭此面板后重试。', true);
+        return;
+      }
+      if (flowId === privateData.flowId && loadedWizardUrl === privateUrl.href) {
+        return;
+      }
+      flowId = privateData.flowId;
+      loadedWizardUrl = privateUrl.href;
+      wizardReady = false;
+      const frame = document.getElementById('wizard');
+      if (wizardReadyTimer !== null) window.clearTimeout(wizardReadyTimer);
+      frame.onload = () => {
+        if (!wizardReady) setStatus('表单资源已加载，正在初始化…');
+      };
+      frame.onerror = () => {
+        if (!wizardReady) {
+          setStatus('表单加载失败，请检查本机服务后重试。', true);
+        }
+      };
+      frame.src = privateUrl.href;
+      frame.style.display = 'block';
+      setStatus('正在加载私密资质表单…');
+      wizardReadyTimer = window.setTimeout(() => {
+        setStatus('表单未完成初始化，请检查本机服务或宿主 CSP 后重试。', true);
+      }, WIZARD_READY_TIMEOUT_MS);
+    }
+
+    function onMessage(event) {
+      const message = event.data;
+      if (
+        message &&
+        (message.type === 'qualification:wizard-ready' ||
+          message.type === 'qualification:wizard-finished')
+      ) {
+        if (event.source !== document.getElementById('wizard').contentWindow) return;
+        if (message.type === 'qualification:wizard-ready') {
+          wizardReady = true;
+          if (wizardReadyTimer !== null) {
+            window.clearTimeout(wizardReadyTimer);
+            wizardReadyTimer = null;
+          }
+          setStatus('请在下方完成资质填写和确认。');
+          return;
+        }
+        readCompletion().catch(() => setStatus('读取资质结果失败，请在对话中重试查询。', true));
+        return;
+      }
+      if (!message || message.jsonrpc !== '2.0') return;
+      if (event.source !== window.parent) return;
+      if (message.id && pending.has(String(message.id))) {
+        const waiter = pending.get(String(message.id));
+        pending.delete(String(message.id));
+        window.clearTimeout(waiter.timeout);
+        if (message.error) waiter.reject(new Error(message.error.message || 'MCP App request failed'));
+        else waiter.resolve(message.result);
+        return;
+      }
+      if (message.method === 'ui/notifications/tool-result') {
+        loadWizard(message.params || {});
+      }
+    }
+
+    window.addEventListener('message', onMessage);
+
+    request('ui/initialize', {
+      protocolVersion: APP_PROTOCOL_VERSION,
+      appInfo: { name: 'volcengine-sms-qualification', version: '1.3.0' },
+      appCapabilities: { availableDisplayModes: ['inline', 'fullscreen'] },
+    }).then(result => {
+      hostCapabilities = result.hostCapabilities || {};
+      notify('ui/notifications/initialized', {});
+    }).catch(() => setStatus('当前客户端无法初始化内嵌资质表单。', true));
+  </script>
+</body>
+</html>
