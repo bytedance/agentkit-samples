@@ -14,17 +14,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Create/reuse a Skill or SkillEnv sandbox session and invoke its A2A endpoint.
+"""Create/reuse a sandbox session and invoke its A2A endpoint directly.
 
 Skill example (CreateSession does not inject environment variables):
-    python3 advanced/a2a/sandbox_a2a_invoke.py \
+    python3 advanced/a2a/direct_sandbox_a2a_invoke.py \
     --sandbox-profile skill \
     --tool-id t-yes0m2osg0k6ee1en4ke \
     --session-id demo-session \
     --prompt "你有哪些技能"
 
 SkillEnv example (CreateSession injects MODEL_AGENT_* variables):
-    python3 advanced/a2a/sandbox_a2a_invoke.py \
+    python3 advanced/a2a/direct_sandbox_a2a_invoke.py \
     --sandbox-profile skill-env \
     --tool-id t-yes0m2osg0k6ee1en4ke \
     --session-id demo-session \
@@ -61,7 +61,7 @@ from agentkit.toolkit.cli.sandbox.env_config import build_invoke_session_envs
 from agentkit.toolkit.cli.sandbox.session_create import ensure_sandbox_session
 from agentkit.toolkit.cli.sandbox.tool_resolve import SandboxToolType
 
-SOURCE = "sandbox-invoke"
+SOURCE = "direct-sandbox-a2a-invoke"
 SKILL_SANDBOX_PROFILE = "skill"
 SKILL_ENV_SANDBOX_PROFILE = "skill-env"
 SANDBOX_PROFILES = (SKILL_SANDBOX_PROFILE, SKILL_ENV_SANDBOX_PROFILE)

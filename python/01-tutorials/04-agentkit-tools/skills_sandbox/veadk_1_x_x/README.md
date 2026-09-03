@@ -6,6 +6,99 @@
 
 本示例展示的是在AgentKit如何创建一个具备 skills 能力的 Agent。
 
+## 与 veadk_0_x_x 的区别
+
+`veadk_0_x_x` 示例主要使用旧式 `Agent(skills=...)` 封装来加载技能：
+
+```python
+agent = Agent(
+    skills=[skill_space_id],
+    tools=[execute_skills],
+)
+```
+
+本地执行时通常通过 `skills_mode="local"` 控制：
+
+```python
+agent = Agent(
+    skills=[skill_space_id],
+    skills_mode="local",
+)
+```
+
+`veadk_1_x_x` 更推荐使用 ADK Toolset 风格加载远程技能：
+
+```python
+registry = VeSkillRegistry(skill_source_id=skill_space_id)
+skill_toolset = SkillToolset(registry=registry)
+
+agent = Agent(
+    tools=[skill_toolset],
+)
+```
+
+核心差异如下：
+
+| 维度 | veadk_0_x_x | veadk_1_x_x |
+| --- | --- | --- |
+| 技能加载方式 | 以 `Agent(skills=[...])` 为主 | 以 `SkillToolset(registry=VeSkillRegistry(...))` 为主 |
+| remote registry 本地执行 | `skills_mode="local"` | 使用 `SkillToolset`，不推荐继续依赖旧 `skills_mode="local"` 路径 |
+| Skills Sandbox 执行 | runtime Agent 挂载 `execute_skills` | 支持同步 `execute_skills` 和非阻塞 `invoke_skill/poll_skill` 两种链路 |
+| AIO/run_code 执行 | 旧示例未完整覆盖 | 使用 `SkillToolset` 加载远程技能，并用 `run_code` 进入 AIO/script sandbox |
+| A2A 调用 | 无独立 A2A 调用脚本 | `advanced/a2a/` 提供直接调用 sandbox 和 runtime-agent 两类示例 |
+| runtime Agent 位置 | 示例脚本本地运行 | 当前示例脚本也是本地 runtime；被调用的 sandbox 在远程 |
+
+## A2A 与 Sandbox 支持状态
+
+当前 `veadk-python==1.1.9` 已支持以下几类 runtime Agent 到 sandbox 的调用链路：
+
+| 场景 | 是否支持 | 链路 | 入口 |
+| --- | --- | --- | --- |
+| Skills Sandbox 同步委托 | 支持 | `runtime Agent (execute_skills) -> Skills Sandbox (VeADK Agent -> runtime)` | `advanced/a2a/runtime_to_skills_sandbox_execute.py` |
+| Skills Sandbox 非阻塞任务 | 支持 | `runtime Agent (invoke_skill, poll_skill) -> Skills Sandbox (VeADK Agent -> runtime)` | `advanced/a2a/runtime_to_skills_sandbox_invoke_poll.py` |
+| AIO Sandbox 代码执行 | 支持 | `runtime Agent (run_code) -> AIO/script Sandbox` | `advanced/a2a/runtime_to_aio_sandbox_run_code.py` |
+
+Skills Sandbox 同步委托样例的 runtime Agent 只挂载 `execute_skills`，不挂载
+bash/code 工具：
+
+```python
+agent = Agent(
+    name="remote_skills_runtime_agent",
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v4-pro-260425"),
+    instruction=ROOT_AGENT_INSTRUCTION,
+    skills=[os.getenv("SKILL_SPACE_ID")],
+    skills_mode="skills_sandbox",
+    tools=[execute_skills],
+)
+```
+
+Skills Sandbox 非阻塞任务样例使用 `veadk-python==1.1.9` 提供的非阻塞工具。
+注意工具名是单数：`invoke_skill`、`poll_skill`。
+
+```python
+from google.adk.tools.skill_toolset import SkillToolset
+from veadk.skills import VeSkillRegistry
+from veadk.tools.builtin_tools.invoke_skill import invoke_skill
+from veadk.tools.builtin_tools.poll_skill import poll_skill
+
+skill_toolset = SkillToolset(
+    registry=VeSkillRegistry(skill_source_id=os.getenv("SKILL_SPACE_ID")),
+)
+
+agent = Agent(
+    name="skill_agent",
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v4-pro-260425"),
+    instruction=ROOT_AGENT_INSTRUCTION,
+    tools=[skill_toolset, invoke_skill, poll_skill] if skill_toolset else [],
+)
+```
+
+AIO Sandbox 代码执行样例的 runtime Agent 挂载 `SkillToolset` 和 `run_code`。
+远程技能通过 `SKILL_SPACE_ID` 加载，代码或 Shell 命令通过 `run_code` 进入
+AIO/script sandbox 执行。
+
+更多命令行样例见 `advanced/a2a/README.md`。
+
 ## 核心功能
 
 - skill加载方式：加载本地skill、从AgentKit平台Skills中心、TOS

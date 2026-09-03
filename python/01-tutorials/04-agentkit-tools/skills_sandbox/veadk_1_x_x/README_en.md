@@ -6,6 +6,103 @@ Build a skills-capable Agent based on VeADK and BytePlus AgentKit.
 
 This example demonstrates how to create a skills-capable Agent in AgentKit.
 
+## Differences from veadk_0_x_x
+
+The `veadk_0_x_x` examples mainly use the legacy `Agent(skills=...)` wrapper to
+load skills:
+
+```python
+agent = Agent(
+    skills=[skill_space_id],
+    tools=[execute_skills],
+)
+```
+
+For local execution, they usually rely on `skills_mode="local"`:
+
+```python
+agent = Agent(
+    skills=[skill_space_id],
+    skills_mode="local",
+)
+```
+
+`veadk_1_x_x` more commonly uses the ADK Toolset style for remote skills:
+
+```python
+registry = VeSkillRegistry(skill_source_id=skill_space_id)
+skill_toolset = SkillToolset(registry=registry)
+
+agent = Agent(
+    tools=[skill_toolset],
+)
+```
+
+Key differences:
+
+| Dimension | veadk_0_x_x | veadk_1_x_x |
+| --- | --- | --- |
+| Skill loading | Mainly `Agent(skills=[...])` | Mainly `SkillToolset(registry=VeSkillRegistry(...))` |
+| Local execution for remote registry skills | `skills_mode="local"` | Use `SkillToolset`; the legacy `skills_mode="local"` path is no longer recommended |
+| Skills Sandbox execution | Runtime Agent mounts `execute_skills` | Supports both synchronous `execute_skills` and non-blocking `invoke_skill/poll_skill` flows |
+| AIO/run_code execution | Not fully covered by the old examples | Loads remote skills with `SkillToolset` and uses `run_code` for AIO/script sandbox execution |
+| A2A invocation | No standalone A2A invocation scripts | `advanced/a2a/` provides both direct sandbox invocation and runtime-Agent examples |
+| Runtime Agent location | Runs locally in the example scripts | Current scripts also run the runtime Agent locally; the invoked sandbox is remote |
+
+## A2A and Sandbox Support
+
+With `veadk-python==1.1.9`, the following runtime Agent to sandbox flows are
+supported:
+
+| Scenario | Supported | Flow | Entry point |
+| --- | --- | --- | --- |
+| Skills Sandbox synchronous delegation | Yes | `runtime Agent (execute_skills) -> Skills Sandbox (VeADK Agent -> runtime)` | `advanced/a2a/runtime_to_skills_sandbox_execute.py` |
+| Skills Sandbox non-blocking tasks | Yes | `runtime Agent (invoke_skill, poll_skill) -> Skills Sandbox (VeADK Agent -> runtime)` | `advanced/a2a/runtime_to_skills_sandbox_invoke_poll.py` |
+| AIO Sandbox code execution | Yes | `runtime Agent (run_code) -> AIO/script Sandbox` | `advanced/a2a/runtime_to_aio_sandbox_run_code.py` |
+
+In the Skills Sandbox synchronous delegation sample, the runtime Agent mounts
+only `execute_skills`; it does not mount bash or code execution tools:
+
+```python
+agent = Agent(
+    name="remote_skills_runtime_agent",
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v4-pro-260425"),
+    instruction=ROOT_AGENT_INSTRUCTION,
+    skills=[os.getenv("SKILL_SPACE_ID")],
+    skills_mode="skills_sandbox",
+    tools=[execute_skills],
+)
+```
+
+The Skills Sandbox non-blocking task sample uses the non-blocking tools provided
+by `veadk-python==1.1.9`. The tool names are singular: `invoke_skill` and
+`poll_skill`.
+
+```python
+from google.adk.tools.skill_toolset import SkillToolset
+from veadk.skills import VeSkillRegistry
+from veadk.tools.builtin_tools.invoke_skill import invoke_skill
+from veadk.tools.builtin_tools.poll_skill import poll_skill
+
+skill_toolset = SkillToolset(
+    registry=VeSkillRegistry(skill_source_id=os.getenv("SKILL_SPACE_ID")),
+)
+
+agent = Agent(
+    name="skill_agent",
+    model_name=os.getenv("MODEL_AGENT_NAME", "deepseek-v4-pro-260425"),
+    instruction=ROOT_AGENT_INSTRUCTION,
+    tools=[skill_toolset, invoke_skill, poll_skill] if skill_toolset else [],
+)
+```
+
+In the AIO Sandbox code execution sample, the runtime Agent mounts
+`SkillToolset` and `run_code`. Remote skills are loaded through
+`SKILL_SPACE_ID`, and code or shell commands are delegated to the AIO/script
+sandbox through `run_code`.
+
+See `advanced/a2a/README.md` for complete command-line examples.
+
 ## Key Features
 
 - Skill loading methods: load local skills, load from the AgentKit platform Skills Center, and load from TOS.
