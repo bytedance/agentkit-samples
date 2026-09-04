@@ -20,8 +20,7 @@ API_BASE = (
 ).rstrip("/")
 API_BASE = API_BASE.replace("/api/coding/v3", "/api/v3")
 
-# DEFAULT_MODEL = "doubao-seedance-2-0-260128"
-DEFAULT_MODEL = "doubao-seedance-1-5-pro-251215"
+DEFAULT_MODEL = "doubao-seedance-2-5-260628"
 
 
 @dataclass
@@ -402,7 +401,7 @@ def main():
         "--model",
         "-m",
         default=None,
-        help="Model name (default: doubao-seedance-2-0-260128)",
+        help="Model name (default: doubao-seedance-2-5-260628)",
     )
     parser.add_argument(
         "--ratio",

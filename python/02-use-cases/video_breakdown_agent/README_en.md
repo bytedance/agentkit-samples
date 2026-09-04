@@ -53,7 +53,7 @@ Main BytePlus products and Agent components:
 - ModelArk:
   - deepseek-v4-pro-260425 (primary reasoning model)
   - dola-seed-2-1-turbo-260628 (vision analysis model)
-  - dreamina-seedance-2-0-260128 (video generation)
+  - dreamina-seedance-2-5-260628 (video generation)
 - TOS Object Storage
 - Volcengine ASR Speech Recognition (optional)
 - Web Search
@@ -158,7 +158,7 @@ Based on the scene breakdown, the LLM 3-stage workflow generates:
 
 **Generation Info:**
 - Time range: 0.0-3.0s | Duration: 3s (auto-snapped to 5s)
-- Model: dreamina-seedance-2-0-260128
+- Model: dreamina-seedance-2-5-260628
 - Estimated cost: ¥0.70
 
 **XiaoShi (Root Agent):** ✅ Video generation complete!
@@ -302,7 +302,7 @@ MODEL_VISION_NAME=dola-seed-2-1-turbo-260628
 
 # Video recreation (optional, required only when using video generation)
 MODEL_VIDEO_API_KEY=your_ark_api_key  # can be the same as MODEL_AGENT_API_KEY
-MODEL_VIDEO_NAME=dreamina-seedance-2-0-260128  # default, can be omitted
+MODEL_VIDEO_NAME=dreamina-seedance-2-5-260628  # default, can be omitted
 ```
 
 **Method 2: Use environment variables directly**
@@ -387,7 +387,7 @@ After deployment, you need to configure the following environment variables in t
 - `VOLCENGINE_SECRET_KEY`: Volcengine Secret Key
 - `DATABASE_TOS_BUCKET`: TOS bucket name
 - `DATABASE_TOS_REGION`: TOS region (default: `cn-beijing`)
-- `MODEL_VIDEO_NAME`: Video generation model (optional, default: `dreamina-seedance-2-0-260128`)
+- `MODEL_VIDEO_NAME`: Video generation model (optional, default: `dreamina-seedance-2-5-260628`)
 
 **4. Test deployment:**
 

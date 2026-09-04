@@ -85,7 +85,7 @@ Key features include:
     - Activate the following models used in this case
         - root_agent model: `deepseek-v4-pro-260425`
         - Image generation model: `dola-seedream-5-0-pro-260628`
-        - Video generation model: `dreamina-seedance-2-0-260128`
+        - Video generation model: `dreamina-seedance-2-5-260628`
     - As shown in the figure below
         ![ModelArk Service Management](../img/ark_model_service_management.jpg)
 

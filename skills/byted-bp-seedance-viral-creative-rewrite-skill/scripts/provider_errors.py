@@ -40,9 +40,9 @@ def format_provider_http_error(exc: httpx.HTTPStatusError, *, provider: str, lan
             lines.append(f"Also enable Doubao Seed 2.0 Pro permission in model management: {MODEL_OPEN_MANAGEMENT_URL}")
         elif status == 429:
             lines.append("Likely cause: rate limit, too much concurrency, insufficient quota, or unavailable resource-package balance.")
-            lines.append(f"Next step: retry later and check the Seedance 2.0 resource package: {SEEDANCE_RESOURCE_PACKAGE_URL}")
+            lines.append(f"Next step: retry later and check the Seedance 2.5 resource package: {SEEDANCE_RESOURCE_PACKAGE_URL}")
         elif status == 400 and any(token in body_lower for token in ("quota", "resource", "package", "payment", "billing", "insufficient", "余额", "资源包", "欠费", "额度")):
-            lines.append("Likely cause: Seedance 2.0 resource package is not purchased, not active, out of balance, or the model settings exceed the entitlement.")
+            lines.append("Likely cause: Seedance 2.5 resource package is not purchased, not active, out of balance, or the model settings exceed the entitlement.")
             lines.append(f"Next step: check the resource package and video-generation API requirements: {SEEDANCE_RESOURCE_PACKAGE_URL} / {VIDEO_GENERATION_API_URL}")
         elif status >= 500:
             lines.append("Likely cause: provider service is temporarily unavailable or upstream timed out.")
@@ -64,9 +64,9 @@ def format_provider_http_error(exc: httpx.HTTPStatusError, *, provider: str, lan
         lines.append(f"同时到模型开通管理页开启 Doubao Seed 2.0 Pro 权限：{MODEL_OPEN_MANAGEMENT_URL}")
     elif status == 429:
         lines.append("可能原因：请求限流、并发过高、额度不足，或资源包余额/配额不可用。")
-        lines.append(f"处理方式：稍后重试，并检查 Seedance 2.0 资源包状态：{SEEDANCE_RESOURCE_PACKAGE_URL}")
+        lines.append(f"处理方式：稍后重试，并检查 Seedance 2.5 资源包状态：{SEEDANCE_RESOURCE_PACKAGE_URL}")
     elif status == 400 and any(token in body_lower for token in ("quota", "resource", "package", "payment", "billing", "insufficient", "余额", "资源包", "欠费", "额度")):
-        lines.append("可能原因：Seedance 2.0 资源包未购买、未生效、余额不足，或模型参数不在当前权益范围内。")
+        lines.append("可能原因：Seedance 2.5 资源包未购买、未生效、余额不足，或模型参数不在当前权益范围内。")
         lines.append(f"处理方式：检查资源包和视频生成 API 要求：{SEEDANCE_RESOURCE_PACKAGE_URL} / {VIDEO_GENERATION_API_URL}")
     elif status >= 500:
         lines.append("可能原因：服务端暂时不可用或上游超时。")
@@ -87,7 +87,7 @@ def format_seedance_task_failure(*, task_id: str, code: str, message: str, langu
         if "outputaudiosensitivecontentdetected" in lower:
             hints.append("Audio safety check failed; when allowed, the runner retries with stricter abstract instrumental constraints.")
         if any(token in lower for token in ("quota", "resource", "package", "payment", "billing", "insufficient", "余额", "资源包", "欠费", "额度")):
-            hints.append(f"Check Seedance 2.0 resource-package balance or service permission: {SEEDANCE_RESOURCE_PACKAGE_URL}")
+            hints.append(f"Check Seedance 2.5 resource-package balance or service permission: {SEEDANCE_RESOURCE_PACKAGE_URL}")
         if any(token in lower for token in ("permission", "forbidden", "unauthorized", "access")):
             hints.append(f"Check ARK_API_KEY: {MODELARK_API_KEY_URL}")
             hints.append(f"Confirm Doubao Seed 2.0 Pro permission is enabled: {MODEL_OPEN_MANAGEMENT_URL}")
@@ -102,7 +102,7 @@ def format_seedance_task_failure(*, task_id: str, code: str, message: str, langu
     if "outputaudiosensitivecontentdetected" in lower:
         hints.append("音频安全校验未通过；runner 会在允许时用更严格的抽象纯音乐约束自动重试。")
     if any(token in lower for token in ("quota", "resource", "package", "payment", "billing", "insufficient", "余额", "资源包", "欠费", "额度")):
-        hints.append(f"请检查 Seedance 2.0 资源包、余额或服务权限：{SEEDANCE_RESOURCE_PACKAGE_URL}")
+        hints.append(f"请检查 Seedance 2.5 资源包、余额或服务权限：{SEEDANCE_RESOURCE_PACKAGE_URL}")
     if any(token in lower for token in ("permission", "forbidden", "unauthorized", "access")):
         hints.append(f"请检查 ARK_API_KEY：{MODELARK_API_KEY_URL}")
         hints.append(f"请确认 Doubao Seed 2.0 Pro 模型权限已开启：{MODEL_OPEN_MANAGEMENT_URL}")

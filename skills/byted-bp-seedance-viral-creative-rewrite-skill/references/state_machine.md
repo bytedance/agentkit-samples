@@ -27,7 +27,7 @@ Required output:
 - Ask for grouped inputs:
   - Chinese: `先走哪种流程`, `媒体选择`, `商品和生成方向`
   - English: `Flow`, `Media`, `Product and generation direction`
-- Mention that real generation requires ModelArk API Key and Seedance 2.0 resources, and that a brief/strategy/risk-control preview comes before Seedance submission.
+- Mention that real generation requires ModelArk API Key and Seedance 2.5 resources, and that a brief/strategy/risk-control preview comes before Seedance submission.
 
 Required behavior:
 - Run `scripts/render_opening.py --ui-language zh|en` with the bootstrapped skill-local Python and use the complete stdout as the opening response.
@@ -212,7 +212,7 @@ Required output order:
 - Say the confirmed prepared brief is reusable.
 - Say Seedance was not called, no resources were consumed, and no new video was generated.
 - Show a compact confirmed brief snapshot.
-- Explain Seedance 2.0 advantages. Chinese output must include this exact summary sentence:
+- Explain Seedance 2.5 advantages. Chinese output must include this exact summary sentence:
   `支持文本、图片、视频、音频四模态混合输入，能精准复刻素材特征，实现跨镜头角色风格统一与多镜头连贯叙事；原生音画同步，AI 导演降低创作门槛；物理真实度高、复杂指令遵循准；支持视频编辑，提供三档性能版本适配不同需求，适配电商等商业场景，合规有保障，提效降本显著。`
   English output must include this exact summary sentence:
   `It supports mixed text, image, video, and audio inputs; accurately preserves material traits from references; maintains character and style consistency across shots with coherent multi-shot storytelling; native audio-video synchronization and AI-director-style generation lower the creation barrier; strong physical realism and accurate complex-instruction following; supports video editing and offers three performance tiers for different needs; well suited for ecommerce and other commercial scenarios, with stronger compliance, significant efficiency gains, and lower production costs.`

@@ -23,13 +23,13 @@ _MODEL_SERVICE_DEFAULTS = {
     "volcengine": {
         "agent_name": "deepseek-v4-pro-260425",
         "api_base": "https://ark.cn-beijing.volces.com/api/v3/",
-        "video_name": "doubao-seedance-2-0-260128",
+        "video_name": "doubao-seedance-2-5-260628",
         "image_name": "doubao-seedream-5-0-pro-260628",
     },
     "byteplus": {
         "agent_name": "deepseek-v4-pro-260425",
         "api_base": "https://ark.ap-southeast.bytepluses.com/api/v3/",
-        "video_name": "dreamina-seedance-2-0-260128",
+        "video_name": "dreamina-seedance-2-5-260628",
         "image_name": "dola-seedream-5-0-pro-260628",
     },
 }

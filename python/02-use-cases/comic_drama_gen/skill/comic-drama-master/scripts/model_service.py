@@ -7,12 +7,12 @@ _DEFAULTS = {
     "volcengine": {
         "api_base": "https://ark.cn-beijing.volces.com/api/v3",
         "image_model": "doubao-seedream-5-0-pro-260628",
-        "video_model": "doubao-seedance-2-0-260128",
+        "video_model": "doubao-seedance-2-5-260628",
     },
     "byteplus": {
         "api_base": "https://ark.ap-southeast.bytepluses.com/api/v3",
         "image_model": "dola-seedream-5-0-pro-260628",
-        "video_model": "dreamina-seedance-2-0-260128",
+        "video_model": "dreamina-seedance-2-5-260628",
     },
 }
 

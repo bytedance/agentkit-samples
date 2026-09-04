@@ -76,7 +76,7 @@ Comic Drama Master (comic_drama_master)
 4. Activate the following pre-built inference endpoints:
    - Agent model: `deepseek-v4-pro-260425`
    - Image generation model: `dola-seedream-5-0-pro-260628`
-   - Video generation model: `dreamina-seedance-2-0-260128`
+   - Video generation model: `dreamina-seedance-2-5-260628`
 
 #### Node.js Environment
 
@@ -122,7 +122,7 @@ DATABASE_TOS_BUCKET=your_tos_bucket_name
 ARK_API_KEY=your_ark_api_key
 COMIC_DRAMA_OUTPUT_DIR=./my-comic-drama
 VIDEO_DURATION_MINUTES=0.5
-DEFAULT_VIDEO_MODEL_NAME=dreamina-seedance-2-0-260128
+DEFAULT_VIDEO_MODEL_NAME=dreamina-seedance-2-5-260628
 ```
 
 > The `.env` file is automatically loaded at startup (via `python-dotenv` or the built-in parser) and will not override existing exported environment variables.
@@ -143,7 +143,7 @@ export DATABASE_TOS_BUCKET=your_tos_bucket_name
 export ARK_API_KEY=your_ark_api_key
 export COMIC_DRAMA_OUTPUT_DIR=./my-comic-drama
 export VIDEO_DURATION_MINUTES=0.5
-export DEFAULT_VIDEO_MODEL_NAME=dreamina-seedance-2-0-260128
+export DEFAULT_VIDEO_MODEL_NAME=dreamina-seedance-2-5-260628
 ```
 
 **Environment Variables Reference:**
@@ -156,7 +156,7 @@ export DEFAULT_VIDEO_MODEL_NAME=dreamina-seedance-2-0-260128
 | `DATABASE_TOS_BUCKET` | ✅ | — | TOS bucket name |
 | `COMIC_DRAMA_OUTPUT_DIR` | ❌ | `output/` under project dir | Output root directory |
 | `VIDEO_DURATION_MINUTES` | ❌ | `0.5` | Video duration in minutes, supports 0.5/1/2/3/4 (0.5 = 30s) |
-| `DEFAULT_VIDEO_MODEL_NAME` | ❌ | `dreamina-seedance-2-0-260128` | Video generation model name |
+| `DEFAULT_VIDEO_MODEL_NAME` | ❌ | `dreamina-seedance-2-5-260628` | Video generation model name |
 
 ### Local Execution
 

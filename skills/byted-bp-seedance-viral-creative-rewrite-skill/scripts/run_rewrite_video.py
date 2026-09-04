@@ -719,7 +719,7 @@ def _seedance_example_paths() -> list[str]:
 
 def print_seedance_advantages_and_examples(*, language: str = "zh", media_style: str = "codex") -> None:
     if language == "en":
-        print("\nWhy Seedance 2.0 is useful for the final production step")
+        print("\nWhy Seedance 2.5 is useful for the final production step")
         print(
             "It supports mixed text, image, video, and audio inputs; accurately preserves material traits from references; "
             "maintains character and style consistency across shots with coherent multi-shot storytelling; native audio-video synchronization "
@@ -731,7 +731,7 @@ def print_seedance_advantages_and_examples(*, language: str = "zh", media_style:
         for index, path in enumerate(_seedance_example_paths(), start=1):
             print(media_markdown(f"Seedance example {index}", path, style=media_style))
         return
-    print("\nSeedance 2.0 作为最终视频生产步骤的优势")
+    print("\nSeedance 2.5 作为最终视频生产步骤的优势")
     print(
         "支持文本、图片、视频、音频四模态混合输入，能精准复刻素材特征，实现跨镜头角色风格统一与多镜头连贯叙事；"
         "原生音画同步，AI 导演降低创作门槛；物理真实度高、复杂指令遵循准；支持视频编辑，提供三档性能版本适配不同需求，"

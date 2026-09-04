@@ -46,7 +46,7 @@ def main() -> None:
         print("\nFlow:\nNo-cost rehearsal, or real analysis preview / real generation.")
         print("\nMedia:\nProvide a local template video path or accessible video URL. Use the default example product image or your own product image?")
         print("\nProduct and generation direction:\nProduct identity / must-keep selling points, target audience, and goal. Default output is 9:16, 720p, with original unrecognizable instrumental background music.")
-        print("\nReal generation requires a ModelArk API Key and Seedance 2.0 prepaid resources. In the real analysis/generation flow, I first show the brief, strategy, forbidden carryover, and risk controls; after you approve the direction, we move to the Seedance submission step.")
+        print("\nReal generation requires a ModelArk API Key and Seedance 2.5 prepaid resources. In the real analysis/generation flow, I first show the brief, strategy, forbidden carryover, and risk controls; after you approve the direction, we move to the Seedance submission step.")
         return
 
     print("这个 skill 做的是广告模板复刻：我会先理解一个参考广告视频的开头钩子、镜头节奏、产品爽点和收尾方式，再用你的商品图作为产品真相，生成一条新的商品广告视频。")
@@ -63,7 +63,7 @@ def main() -> None:
     print("\n先走哪种流程：\n无成本彩排 或 真实分析预览/正式生成")
     print("\n媒体选择：\n模板视频用本地路径还是视频 URL？商品图用默认示例还是你自己的商品图？")
     print("\n商品和生成方向：\n商品身份/必须保留卖点、目标人群、目标，比如提高点击率/强化开头；默认输出为 9:16、720p、带原创不可识别无歌词背景音乐。")
-    print("\n正式生成需要 ModelArk API Key，并且账号需要有 Seedance 2.0 可用资源包或权益。进入真实分析/生成流程后，我会先给你看 brief、策略、禁止继承项和风险控制；你确认方向后，才会进入提交 Seedance 的下一步。")
+    print("\n正式生成需要 ModelArk API Key，并且账号需要有 Seedance 2.5 可用资源包或权益。进入真实分析/生成流程后，我会先给你看 brief、策略、禁止继承项和风险控制；你确认方向后，才会进入提交 Seedance 的下一步。")
 
 
 if __name__ == "__main__":

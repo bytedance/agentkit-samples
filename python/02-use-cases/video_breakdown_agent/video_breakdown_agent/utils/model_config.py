@@ -20,15 +20,15 @@ _SERVICE_DEFAULTS = {
         api_base="https://ark.cn-beijing.volces.com/api/v3",
         agent_model="doubao-seed-1-6-251015",
         vision_model="doubao-seed-1-6-vision-250815",
-        video_model="doubao-seedance-2-0-260128",
-        video_text_model="doubao-seedance-1-0-pro-250528",
+        video_model="doubao-seedance-2-5-260628",
+        video_text_model="doubao-seedance-2-5-260628",
     ),
     "byteplus": ModelServiceDefaults(
         api_base="https://ark.ap-southeast.bytepluses.com/api/v3",
         agent_model="dola-seed-2-1-turbo-260628",
         vision_model="dola-seed-2-1-turbo-260628",
-        video_model="dreamina-seedance-2-0-260128",
-        video_text_model="dreamina-seedance-2-0-260128",
+        video_model="dreamina-seedance-2-5-260628",
+        video_text_model="dreamina-seedance-2-5-260628",
     ),
 }
 

@@ -38,7 +38,7 @@ Chinese and English user flows are both supported. Set `ui_language` to `zh`, `e
    - Confirm the template profile and active transfer slots. A watermelon/drink case should stay focused on product texture and shot mechanics; a clothing presenter/voiceover case should preserve broad person context, real scene, spoken language, mouth/gesture rhythm, and no-subtitle defaults.
 7. Offer to expand the detailed analysis before generation confirmation. If the user says yes, show it and then continue the same generation flow.
 8. Rehearse the full flow with built-in example artifacts, if desired. This shows the brief, detailed-analysis option, confirmation gate, and example result without keys or provider calls.
-9. Confirm `ARK_API_KEY` and Seedance 2.0 resource package or equivalent entitlement only before final generation.
+9. Confirm `ARK_API_KEY` and Seedance 2.5 resource package or equivalent entitlement only before final generation.
 10. Confirm the prepared brief before real generation. Saying "real generation" starts this confirmation path; it does not submit Seedance immediately.
 11. Review the generated video first, then the task ID and manual review checklist. Debug artifacts are hidden by default.
 
@@ -50,7 +50,7 @@ Chinese and English user flows are both supported. Set `ui_language` to `zh`, `e
 
 Note: when surfacing these links, output each URL complete and verbatim. Do not shorten them or strip query / UTM parameters (e.g. `utm_campaign`) — they carry channel attribution and registration benefits and must reach the user intact.
 
-Formal generation requires purchasing a Seedance 2.0 prepaid resource package and confirming video-generation permissions. Template/product understanding is done by the host agent and does not require `ARK_API_KEY`.
+Formal generation requires purchasing a Seedance 2.5 prepaid resource package and confirming video-generation permissions. Template/product understanding is done by the host agent and does not require `ARK_API_KEY`.
 
 In a platform agent environment, users provide API keys to the agent or secure secret input. In local CLI runs, get `ARK_API_KEY` from ModelArk API Key management, copy `.env.example` to `.env` in the skill root, and fill `ARK_API_KEY=...` there instead of shared docs.
 
@@ -61,7 +61,7 @@ If `ARK_API_KEY` is missing, complete the setup in this order:
 3. Enable Doubao Seed 2.0 Pro model permission: <https://console.byteplus.com/ark/region:ark+ap-southeast-1/openManagement?LLM=%7B%7D>
 4. For local testing, copy `.env.example` to `.env` in the skill root and fill `ARK_API_KEY=...`.
 
-When the user has already chosen real generation and the key is missing, do not stop before analysis. First finish agent-led video understanding, detailed analysis, and the prepared brief. Then summarize Seedance 2.0 advantages, show playable production example videos, and only after that show the complete setup order above.
+When the user has already chosen real generation and the key is missing, do not stop before analysis. First finish agent-led video understanding, detailed analysis, and the prepared brief. Then summarize Seedance 2.5 advantages, show playable production example videos, and only after that show the complete setup order above.
 
 ## Important Behavior
 

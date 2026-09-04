@@ -93,14 +93,14 @@ key = "DATABASE_TOS_BUCKET"
 url = "https://console.volcengine.com/tos/bucket"
 
 [[envs]]
-name = "视频生成模型名称（可选，默认 doubao-seedance-2-0-260128）"
+name = "视频生成模型名称（可选，默认 doubao-seedance-2-5-260628）"
 key = "MODEL_VIDEO_NAME"
 url = "https://console.volcengine.com/ark/region:ark+cn-beijing/model/detail"
 
 models = [
   "doubao-seed-1-6-251015",
   "doubao-seed-1-6-vision-250815",
-  "doubao-seedance-2-0-260128",
+  "doubao-seedance-2-5-260628",
 ]
 
 [cloud_resources]

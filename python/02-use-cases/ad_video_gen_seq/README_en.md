@@ -38,7 +38,7 @@ The system exposes one Root Agent and orchestrates the following sub-agents in s
 | Related Service | Description | Pricing |
 | --- | --- | --- |
 | [Dola Seed](https://docs.byteplus.com/en/docs/ModelArk/1108216) | Understands user inputs and converts them into tool calls. | [Model details and pricing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
-| [Dreamina Seedance 2.0](https://docs.byteplus.com/en/docs/ModelArk/1108216) | Converts images and text descriptions into videos. | [Model details and pricing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
+| [Dreamina Seedance 2.5](https://docs.byteplus.com/en/docs/ModelArk/1108216) | Converts images and text descriptions into videos. | [Model details and pricing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
 | [Dola Seedream 5.0 pro](https://docs.byteplus.com/en/docs/ModelArk/1108216) | Generates images from text or reference images. | [Model details and pricing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
 
 ## Run Locally

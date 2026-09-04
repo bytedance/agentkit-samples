@@ -27,7 +27,7 @@ The system includes 4 core agents, each with its own responsibilities:
 | Service | Description | Billing Information |
 | --- | --- | --- |
 | [Dola Seed](https://docs.byteplus.com/en/docs/ModelArk/1108216) | Responsible for understanding user information and converting it into tool calls. | [Model details and billing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
-| [Dreamina Seedance 2.0](https://docs.byteplus.com/en/docs/ModelArk/1108216) | Responsible for converting images and text descriptions into videos. | [Model details and billing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
+| [Dreamina Seedance 2.5](https://docs.byteplus.com/en/docs/ModelArk/1108216) | Responsible for converting images and text descriptions into videos. | [Model details and billing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
 | [Dola Seedream 5.0 pro](https://docs.byteplus.com/en/docs/ModelArk/1108216) | Responsible for generating images based on text or reference images. | [Model details and billing](https://docs.byteplus.com/en/docs/ModelArk/1108216) |
 
 ## Local Execution

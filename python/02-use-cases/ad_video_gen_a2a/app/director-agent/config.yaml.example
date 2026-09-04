@@ -6,7 +6,7 @@ model:
     api_base: https://ark.cn-beijing.volces.com/api/v3/
     api_key: 
   video:
-    name: doubao-seedance-1-0-pro-250528
+    name: doubao-seedance-2-5-260628
     api_base: https://ark.cn-beijing.volces.com/api/v3/
     api_key: 
   image:

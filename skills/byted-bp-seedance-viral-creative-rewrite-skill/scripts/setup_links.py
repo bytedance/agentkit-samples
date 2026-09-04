@@ -16,13 +16,13 @@ def print_base_setup_links(language: str = "zh") -> None:
         print(f"- BytePlus registration: {BYTEPLUS_REGISTRATION_URL}")
         print(f"- ModelArk API Key management: {MODELARK_API_KEY_URL}")
         print(f"- ModelArk quick start: {MODELARK_QUICK_START_URL}")
-        print("Note: real generation requires a Seedance 2.0 prepaid resource package or equivalent entitlement and video-generation permission.")
+        print("Note: real generation requires a Seedance 2.5 prepaid resource package or equivalent entitlement and video-generation permission.")
         return
     print("\n相关链接：")
     print(f"- BytePlus registration: {BYTEPLUS_REGISTRATION_URL}")
     print(f"- ModelArk API Key management: {MODELARK_API_KEY_URL}")
     print(f"- ModelArk quick start: {MODELARK_QUICK_START_URL}")
-    print("提示：正式生成前需要先购买 Seedance 2.0 预付费资源包，并确认账号有视频生成权限。")
+    print("提示：正式生成前需要先购买 Seedance 2.5 预付费资源包，并确认账号有视频生成权限。")
 
 
 def print_real_generation_setup_flow(language: str = "zh") -> None:

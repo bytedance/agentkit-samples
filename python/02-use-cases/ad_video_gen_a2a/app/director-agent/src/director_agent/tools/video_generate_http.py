@@ -43,7 +43,7 @@ DEFAULT_VIDEO_MODEL_API_BASE = (
     else VEADK_VIDEO_API_BASE
 )
 DEFAULT_VIDEO_MODEL_NAME = (
-    "dreamina-seedance-2-0-260128" if _IS_BYTEPLUS else VEADK_VIDEO_MODEL
+    "dreamina-seedance-2-5-260628" if _IS_BYTEPLUS else VEADK_VIDEO_MODEL
 )
 
 # 短链接服务配置

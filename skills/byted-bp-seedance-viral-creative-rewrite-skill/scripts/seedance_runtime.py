@@ -39,7 +39,7 @@ def image_file_to_data_url(path: str) -> str:
 
 
 def get_seedance_model_id() -> str:
-    return os.environ.get("SEEDANCE_MODEL_ID", "dreamina-seedance-2-0-260128")
+    return os.environ.get("SEEDANCE_MODEL_ID", "dreamina-seedance-2-5-260628")
 
 
 def get_seedance_tasks_path() -> str:

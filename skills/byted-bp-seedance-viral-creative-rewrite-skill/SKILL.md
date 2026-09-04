@@ -44,7 +44,7 @@ The template video provides creative structure: hook, pacing, visual rhythm, CTA
 - Video understanding and rewrite planning must be done by the host agent in the conversation. Do not call ModelArk/Seed/ARK Responses for template or product-image understanding.
 - For local template-video understanding, inspect visual evidence at 1fps by default, meaning one timestamped frame per second. Use these per-second observations as evidence, then summarize them into every-5-second windows. If the video has very fast cuts, text flashes, or hand motions that may be missed, increase density for the relevant interval instead of lowering detail.
 - When the template shows a person whose mouth is visibly moving, increasing frame density is not enough — frames cannot tell whether there is voiceover. You must also inspect the audio track (listen for spoken voiceover vs music/ambient only) before classifying the profile. Run `scripts/extract_video_frames.py --with-audio`, which exports `audio_track.m4a` and records `has_audio_stream` in the manifest, then actually listen. Do not infer `human_demo` vs `human_voiceover` from visual frames alone; screen-recording sources especially must have their original audio checked.
-- If the user has chosen real generation and `ARK_API_KEY` is missing, still continue through agent-led video understanding, detailed analysis, and brief confirmation. Then show Seedance 2.0 advantages, playable production examples, and only after that show the account/key setup block: BytePlus registration, ModelArk/Seedance setup document for API key plus prepaid resource package activation, Doubao Seed 2.0 Pro permission page, and local `.env` placement.
+- If the user has chosen real generation and `ARK_API_KEY` is missing, still continue through agent-led video understanding, detailed analysis, and brief confirmation. Then show Seedance 2.5 advantages, playable production examples, and only after that show the account/key setup block: BytePlus registration, ModelArk/Seedance setup document for API key plus prepaid resource package activation, Doubao Seed 2.0 Pro permission page, and local `.env` placement.
 - When the user asks "查看详细分析" / "show detailed analysis", never answer with a short recap such as "详细分析已展开", "shown above", "same prepared brief", or "the key decision is unchanged". You must print the full detailed-analysis body in the user's language: template video facts, every-5-second breakdown, product-image analysis, proposed generation script, generation constraints, and the next edit/confirm gate.
 - When the user asks "查看详细分析" / "show detailed analysis", always execute `scripts/render_detailed_analysis.py --prepared-input-json <prepared>` with the bootstrapped skill-local Python. The final chat reply must be the complete stdout from this command. Do not hand-write "关键结论不变", "核心要复刻的是...", or any short profile recap.
 - This applies to the real generation flow too, not just rehearsal. For every brief / detailed-analysis / confirmation step (`render_brief.py`, `render_detailed_analysis.py`, `confirm_generation.py`), the visible chat reply must reproduce the command's complete stdout. Leaving the output collapsed inside a tool-call box and replying only with a pointer like "以上是完整详细分析" / "shown above" does NOT count as forwarding — the analysis body must be in the visible reply. The brief and detailed-analysis stdout already end with the next-step gate (confirm / view detailed analysis / tell me what to change); do not strip those options, do not replace them with a binary "confirm only" AskUserQuestion widget, and re-offer them whenever the brief is edited and re-confirmed.
@@ -124,7 +124,7 @@ Chinese invocation opening template:
 商品和生成方向：
 商品身份/必须保留卖点、目标人群、目标，比如提高点击率/强化开头；默认输出为 9:16、720p、带原创不可识别无歌词背景音乐。
 
-正式生成需要 ModelArk API Key，并且账号需要有 Seedance 2.0 可用资源包或权益。进入真实分析/生成流程后，我会先给你看 brief、策略、禁止继承项和风险控制；你确认方向后，才会进入提交 Seedance 的下一步。
+正式生成需要 ModelArk API Key，并且账号需要有 Seedance 2.5 可用资源包或权益。进入真实分析/生成流程后，我会先给你看 brief、策略、禁止继承项和风险控制；你确认方向后，才会进入提交 Seedance 的下一步。
 ```
 
 English invocation opening template:
@@ -156,7 +156,7 @@ Provide a local template video path or accessible video URL. Use the default exa
 Product and generation direction:
 Product identity / must-keep selling points, target audience, and goal, such as improving click-through rate or strengthening the opening hook. Default output is 9:16, 720p, with original unrecognizable instrumental background music.
 
-Real generation requires a ModelArk API Key and a Seedance 2.0 prepaid resource package or entitlement. In the real analysis/generation flow, I will first show you the brief, strategy, forbidden carryover, and risk controls; after you approve the direction, we move to the Seedance submission step.
+Real generation requires a ModelArk API Key and a Seedance 2.5 prepaid resource package or entitlement. In the real analysis/generation flow, I will first show you the brief, strategy, forbidden carryover, and risk controls; after you approve the direction, we move to the Seedance submission step.
 ```
 
 ## Agent Conversation Style
@@ -218,15 +218,15 @@ Useful links:
 - ModelArk API Key management: `https://console.byteplus.com/ark/region:ark+ap-southeast-1/apikey`
 - ModelArk quick start: `https://docs.byteplus.com/zh-CN/docs/ModelArk/1399008`
 
-Tell the user in text, not as extra default links, that formal generation also requires purchasing a Seedance 2.0 prepaid resource package and confirming video-generation permissions.
+Tell the user in text, not as extra default links, that formal generation also requires purchasing a Seedance 2.5 prepaid resource package and confirming video-generation permissions.
 Tell the user what to prepare and provide to the agent or the platform's secure secret form before real generation:
 
 - `ARK_API_KEY` from ModelArk API Key management.
-- Seedance 2.0 prepaid resource package or equivalent available entitlement.
+- Seedance 2.5 prepaid resource package or equivalent available entitlement.
 
 Platform-facing wording:
 
-"正式生成视频需要 ARK_API_KEY，并且账号需要有 Seedance 2.0 可用资源包或权益；视频理解和详细分析会先由我在当前对话里完成。"
+"正式生成视频需要 ARK_API_KEY，并且账号需要有 Seedance 2.5 可用资源包或权益；视频理解和详细分析会先由我在当前对话里完成。"
 
 When `ARK_API_KEY` is missing, show the complete setup flow:
 
@@ -242,7 +242,7 @@ Required missing-key response shape after the user already asked for real genera
 
 这版会继续保留已经确认的模板理解、商品图分析、详细 brief 和生成方向。配好 key 后，我会直接用这份 prepared brief 提交 Seedance，不重新分析素材。
 
-Seedance 2.0 适合作为最终视频生产步骤的原因：
+Seedance 2.5 适合作为最终视频生产步骤的原因：
 支持文本、图片、视频、音频四模态混合输入，能精准复刻素材特征，实现跨镜头角色风格统一与多镜头连贯叙事；原生音画同步，AI 导演降低创作门槛；物理真实度高、复杂指令遵循准；支持视频编辑，提供三档性能版本适配不同需求，适配电商等商业场景，合规有保障，提效降本显著。
 
 可以先看这些生产视频示例：
@@ -272,7 +272,7 @@ Confirmed brief snapshot:
 - Rewrite direction: <confirmed rewrite direction>
 - Output: <ratio/resolution/audio>
 
-Why Seedance 2.0 is useful for the final production step:
+Why Seedance 2.5 is useful for the final production step:
 It supports mixed text, image, video, and audio inputs; accurately preserves material traits from references; maintains character and style consistency across shots with coherent multi-shot storytelling; native audio-video synchronization and AI-director-style generation lower the creation barrier; strong physical realism and accurate complex-instruction following; supports video editing and offers three performance tiers for different needs; well suited for ecommerce and other commercial scenarios, with stronger compliance, significant efficiency gains, and lower production costs.
 
 Production example videos:
@@ -291,7 +291,7 @@ After setup, reply "continue generation" and I will submit the already-confirmed
 
 When the user replies "确认生成" / "confirm generation", always execute `scripts/confirm_generation.py --prepared-input-json <prepared> --env-file .env --ui-language zh|en` with the bootstrapped skill-local Python. This is the only frontstage entrypoint for the confirmed-generation gate. It either submits Seedance when `ARK_API_KEY` is available or prints the complete missing-key guidance when the key is absent. The final chat reply must be the complete stdout from this command. Do not manually inspect `.env`, do not call `run_rewrite_video.py --confirmed-brief` directly from the frontstage, and do not write a short missing-key answer yourself. If the command output is unavailable, rerun `scripts/confirm_generation.py`; do not reconstruct the answer from memory.
 
-Do not replace the Chinese or English block with a shorter "本地最短路径", "add ARK_API_KEY=... to .env", "Prepared brief remains here", "Setup links from the runner", or "To continue, add ARK_API_KEY=..." message in the real-generation missing-key branch. If the agent detects the missing key in chat instead of through the runner, it must still run the canonical renderer and keep this same order in the user's language: confirmed reusable brief -> no Seedance/no cost state -> confirmed brief snapshot -> Seedance 2.0 advantages -> playable example videos -> account/key setup -> "continue generation" instruction. In Chinese, the Seedance advantages section must include the exact sentence: "支持文本、图片、视频、音频四模态混合输入，能精准复刻素材特征，实现跨镜头角色风格统一与多镜头连贯叙事；原生音画同步，AI 导演降低创作门槛；物理真实度高、复杂指令遵循准；支持视频编辑，提供三档性能版本适配不同需求，适配电商等商业场景，合规有保障，提效降本显著。" In English, it must include the exact sentence: "It supports mixed text, image, video, and audio inputs; accurately preserves material traits from references; maintains character and style consistency across shots with coherent multi-shot storytelling; native audio-video synchronization and AI-director-style generation lower the creation barrier; strong physical realism and accurate complex-instruction following; supports video editing and offers three performance tiers for different needs; well suited for ecommerce and other commercial scenarios, with stronger compliance, significant efficiency gains, and lower production costs."
+Do not replace the Chinese or English block with a shorter "本地最短路径", "add ARK_API_KEY=... to .env", "Prepared brief remains here", "Setup links from the runner", or "To continue, add ARK_API_KEY=..." message in the real-generation missing-key branch. If the agent detects the missing key in chat instead of through the runner, it must still run the canonical renderer and keep this same order in the user's language: confirmed reusable brief -> no Seedance/no cost state -> confirmed brief snapshot -> Seedance 2.5 advantages -> playable example videos -> account/key setup -> "continue generation" instruction. In Chinese, the Seedance advantages section must include the exact sentence: "支持文本、图片、视频、音频四模态混合输入，能精准复刻素材特征，实现跨镜头角色风格统一与多镜头连贯叙事；原生音画同步，AI 导演降低创作门槛；物理真实度高、复杂指令遵循准；支持视频编辑，提供三档性能版本适配不同需求，适配电商等商业场景，合规有保障，提效降本显著。" In English, it must include the exact sentence: "It supports mixed text, image, video, and audio inputs; accurately preserves material traits from references; maintains character and style consistency across shots with coherent multi-shot storytelling; native audio-video synchronization and AI-director-style generation lower the creation barrier; strong physical realism and accurate complex-instruction following; supports video editing and offers three performance tiers for different needs; well suited for ecommerce and other commercial scenarios, with stronger compliance, significant efficiency gains, and lower production costs."
 
 Local-runner wording:
 

@@ -173,7 +173,7 @@ python scripts/video_generate.py -p "女孩抱着狐狸，可以听到风声和�
 python scripts/video_generate.py -q "cgt-20260222165751-wsnw8"
 
 # Use specific model
-python scripts/video_generate.py -p "A futuristic city" -m doubao-seedance-1-5-pro-251215
+python scripts/video_generate.py -p "A futuristic city" -m doubao-seedance-2-5-260628
 
 # No watermark
 python scripts/video_generate.py -p "A beautiful landscape" --no-watermark
@@ -185,7 +185,7 @@ python scripts/video_generate.py -p "A beautiful landscape" --no-watermark
 | -------- | ------- | ------------- |
 | `--prompt` | `-p` | Text description of the video (required) |
 | `--name` | `-n` | Video name identifier (default: video) |
-| `--model` | `-m` | Model name (default: doubao-seedance-1-0-pro-250528) |
+| `--model` | `-m` | Model name (default: doubao-seedance-2-5-260628) |
 | `--ratio` | `-r` | Aspect ratio (default: 16:9) |
 | `--duration` | `-d` | Video duration in seconds (2-12) |
 | `--resolution` | | Video resolution: 480p, 720p, 1080p |
