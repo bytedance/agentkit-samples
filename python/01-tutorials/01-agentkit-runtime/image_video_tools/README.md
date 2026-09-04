@@ -351,7 +351,7 @@ from veadk.tools.builtin_tools.web_search import web_search
 - [VeADK 官方文档](https://volcengine.github.io/veadk-python/)
 - [AgentKit 开发指南](https://volcengine.github.io/agentkit-sdk-python/)
 - [火山方舟模型服务](https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new&projectName=default)
-- [视频生成工具文档](https://volcengine.github.io/veadk-python/tools/builtin/#video-generate)
+- [视频生成工具文档](https://volcengine.github.io/veadk-python/cn/docs/framework/tools/builtin/#视频生成video_generate)
 
 ## 代码许可
 
