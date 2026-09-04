@@ -13,7 +13,9 @@ python3 -B <skill目录>/scripts/sms_cli.py auth-doctor
 
 - `install_ve`：有 npm 就安装官方 npm 包；否则下载匹配系统和架构的官方 Release，
   校验 SHA-256 后安装到用户可写路径。不要要求客户安装 Node/npm。
-- `run_login`：执行顶层 `argv`，不要改成裸 `ve login`；保留返回的 job/session。
+- `run_login`：执行顶层 `argv`，不要改成裸 `ve login`。`session.mode` 为
+  `managed_async` 时必须使用平台受管后台任务；只有返回可轮询且仍存活的 job/session
+  才进入网页授权选择。任务已退出时读取最终 JSON，不假设登录仍在等待。
 - `wait_for_customer_browser_login`：等待客户回复，再执行 `after_customer_ready`。
 - `run_auth_doctor`、`run_command`、`configure_environment`：原样执行并继续原任务。
 - 没有 remediation 或系统临时目录不可用时停止，不给客户命令或多套方案。

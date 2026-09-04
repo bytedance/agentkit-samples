@@ -32,7 +32,18 @@ const {
 const { useCallback, useEffect, useMemo, useRef, useState } = React;
 
 const rootElement = document.getElementById('qualification-root');
-const token = rootElement.dataset.wizardContext;
+const token = window.location.hash.slice(1);
+if (token) {
+  try {
+    window.history.replaceState(
+      null,
+      '',
+      window.location.pathname + window.location.search,
+    );
+  } catch (_) {
+    // Some embedded WebViews disallow history mutation; fragments still stay local.
+  }
+}
 const maxBytes = Number(rootElement.dataset.maxImageBytes);
 const imageAccept = '.jpg,.jpeg,.png,image/jpeg,image/png';
 const roles = {
@@ -69,13 +80,14 @@ function supportMessage(payload, fallback) {
 }
 
 async function requestApi(path, options = {}) {
-  const separator = path.includes('?') ? '&' : '?';
+  if (!token) {
+    throw new Error('本地预览链接无效，请重新打开最新预览链接。');
+  }
+  const headers = new Headers(options.headers || {});
+  headers.set('X-Qualification-Context', token);
   let response;
   try {
-    response = await fetch(
-      `${path}${separator}token=${encodeURIComponent(token)}`,
-      options,
-    );
+    response = await fetch(path, { ...options, headers });
   } catch (_) {
     throw new Error(
       '本地预览服务已停止或不可访问，请重新打开最新预览链接。',
@@ -581,11 +593,12 @@ function App() {
     };
     const detach = () => {
       if (lifecycleFinished.current) return;
-      const url = `/api/detach?token=${encodeURIComponent(token)}`;
-      navigator.sendBeacon(
-        url,
-        new Blob(['{}'], { type: 'application/json' }),
-      );
+      requestApi('/api/detach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+        keepalive: true,
+      }).catch(() => {});
     };
     const activityEvents = ['input', 'change', 'keydown', 'pointerdown'];
     activityEvents.forEach((eventName) => {

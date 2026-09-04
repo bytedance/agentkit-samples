@@ -40,6 +40,7 @@ from api_client import (
     SmsApiClient,
     cleanup_private_auth_home,
     emit_json,
+    prepare_cli_process_environment,
     select_cli_auth_home,
 )
 from qualification_display import qualification_display_adapter
@@ -103,7 +104,7 @@ def _run_login_process(argv: Sequence[str], env: Mapping[str, str]) -> None:
             signal.signal(signum, interrupt)
     try:
         try:
-            process.wait(timeout=LOGIN_PROCESS_LEASE_SECONDS)
+            return_code = process.wait(timeout=LOGIN_PROCESS_LEASE_SECONDS)
         except subprocess.TimeoutExpired as exc:
             _stop_process(process)
             raise CliError(
@@ -112,6 +113,11 @@ def _run_login_process(argv: Sequence[str], env: Mapping[str, str]) -> None:
             ) from exc
         if interrupted:
             raise CliError("Volcengine login was cancelled", "auth_login_cancelled")
+        if return_code != 0:
+            raise CliError(
+                "Volcengine login exited before authentication completed",
+                "auth_login_failed",
+            )
     finally:
         _stop_process(process)
         for signum, handler in previous_handlers.items():
@@ -1705,7 +1711,7 @@ def execute(
 ) -> Dict[str, Any]:
     if args.command == "auth-login":
         try:
-            login_env = dict(os.environ)
+            login_env = prepare_cli_process_environment(os.environ)
             login_env["HOME"] = select_cli_auth_home(login_env)
             if os.name == "nt":
                 login_env["USERPROFILE"] = login_env["HOME"]

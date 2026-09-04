@@ -47,6 +47,7 @@ MAX_JSON_BYTES = 64 * 1024
 QUALIFICATION_DISCONNECT_TIMEOUT_SECONDS = 5 * 60
 QUALIFICATION_DETACH_GRACE_SECONDS = 60
 QUALIFICATION_IDLE_TIMEOUT_SECONDS = 30 * 60
+QUALIFICATION_CONTEXT_HEADER = "X-Qualification-Context"
 PERSON_FILE_TYPES = {
     "operator": (8, 9),
     "responsible": (10, 11),
@@ -557,13 +558,13 @@ _STATIC_ASSETS = {
         / "react-dom.production.min.js"
     ),
     "/qualification-static/arco.min.js": (
-        _ASSET_DIRECTORY / "qualification_wizard_vendor" / "arco.min.js"
+        _ASSET_DIRECTORY / "qualification_wizard_vendor" / "arco.min.js.br"
     ),
     "/qualification-static/arco-icon.min.js": (
-        _ASSET_DIRECTORY / "qualification_wizard_vendor" / "arco-icon.min.js"
+        _ASSET_DIRECTORY / "qualification_wizard_vendor" / "arco-icon.min.js.br"
     ),
     "/qualification-static/arco.min.css": (
-        _ASSET_DIRECTORY / "qualification_wizard_vendor" / "arco.min.css"
+        _ASSET_DIRECTORY / "qualification_wizard_vendor" / "arco.min.css.br"
     ),
     "/qualification-static/qualification_wizard.css": (
         _ASSET_DIRECTORY / "qualification_wizard.css"
@@ -663,12 +664,14 @@ def run_qualification_wizard(
             except OSError:
                 self.send_error(HTTPStatus.NOT_FOUND)
                 return True
-            content_type = mimetypes.guess_type(asset_path.name)[0]
+            content_type, content_encoding = mimetypes.guess_type(asset_path.name)
             self.send_response(HTTPStatus.OK)
             self.send_header(
                 "Content-Type",
                 "{}; charset=utf-8".format(content_type or "application/octet-stream"),
             )
+            if content_encoding:
+                self.send_header("Content-Encoding", content_encoding)
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Content-Length", str(len(body)))
@@ -677,13 +680,7 @@ def run_qualification_wizard(
             return True
 
         def _authorized(self) -> bool:
-            parsed = parse.urlsplit(self.path)
-            query = parse.parse_qs(parsed.query)
-            supplied = (
-                str((query.get("token") or [""])[0])
-                if parsed.path.startswith(("/api/", "/qualification-static/"))
-                else parsed.path.lstrip("/")
-            )
+            supplied = self.headers.get(QUALIFICATION_CONTEXT_HEADER, "")
             return hmac.compare_digest(supplied, token)
 
         def _body(self, maximum: int = MAX_JSON_BYTES) -> bytes:
@@ -702,54 +699,53 @@ def run_qualification_wizard(
             return value
 
         def do_GET(self) -> None:
+            request_path = parse.urlsplit(self.path).path
+            if request_path.startswith("/qualification-static/"):
+                if not self._asset(request_path):
+                    self.send_error(HTTPStatus.NOT_FOUND)
+                return
+            if request_path == "/":
+                touch(active=True)
+                sys.stderr.write(
+                    "QUALIFICATION_DISPLAY_EVENT "
+                    + json.dumps(
+                        {
+                            "event": "wizard_document_requested",
+                            "display": display.name,
+                        },
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                    )
+                    + "\n"
+                )
+                sys.stderr.flush()
+                body = _HTML.replace(
+                    "__MAX_IMAGE_BYTES__", str(MAX_IMAGE_BYTES)
+                ).encode("utf-8")
+                self.send_response(HTTPStatus.OK)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Cache-Control", "no-store")
+                self.send_header(
+                    "Content-Security-Policy",
+                    "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' blob: data:; font-src 'self'; form-action 'none'; base-uri 'none'; object-src 'none'",
+                )
+                if not display.allows_embedding:
+                    self.send_header("X-Frame-Options", "DENY")
+                self.send_header("Referrer-Policy", "no-referrer")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
             if not self._authorized():
                 self.send_error(HTTPStatus.NOT_FOUND)
                 return
-            request_path = parse.urlsplit(self.path).path
             touch(active=True)
             if request_path == "/api/state":
                 with lock:
                     public = _public_state(state)
                 self._json(HTTPStatus.OK, {"success": True, "state": public})
                 return
-            if request_path.startswith("/qualification-static/"):
-                if not self._asset(request_path):
-                    self.send_error(HTTPStatus.NOT_FOUND)
-                return
-            if request_path != "/{}".format(token):
-                self.send_error(HTTPStatus.NOT_FOUND)
-                return
-            sys.stderr.write(
-                "QUALIFICATION_DISPLAY_EVENT "
-                + json.dumps(
-                    {
-                        "event": "wizard_document_requested",
-                        "display": display.name,
-                    },
-                    ensure_ascii=False,
-                    separators=(",", ":"),
-                )
-                + "\n"
-            )
-            sys.stderr.flush()
-            body = (
-                _HTML.replace("__MAX_IMAGE_BYTES__", str(MAX_IMAGE_BYTES))
-                .replace("__WIZARD_TOKEN__", token)
-                .encode("utf-8")
-            )
-            self.send_response(HTTPStatus.OK)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Cache-Control", "no-store")
-            self.send_header(
-                "Content-Security-Policy",
-                "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' blob: data:; font-src 'self'; form-action 'none'; base-uri 'none'; object-src 'none'",
-            )
-            if not display.allows_embedding:
-                self.send_header("X-Frame-Options", "DENY")
-            self.send_header("Referrer-Policy", "no-referrer")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
+            self.send_error(HTTPStatus.NOT_FOUND)
 
         def do_POST(self) -> None:
             if not self._authorized():
@@ -1488,7 +1484,7 @@ def run_qualification_wizard(
 
     server = HTTPServer(("127.0.0.1", 0), Handler)
     server.timeout = 1.0
-    url = "http://127.0.0.1:{}/{}".format(server.server_port, token)
+    url = "http://127.0.0.1:{}/#{}".format(server.server_port, token)
     try:
         display.present(url)
     except Exception:

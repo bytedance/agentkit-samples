@@ -1617,6 +1617,22 @@ def select_cli_auth_home(env: Optional[Mapping[str, str]] = None) -> str:
     return prepare_runtime_auth_home()
 
 
+def prepare_cli_process_environment(env: Mapping[str, str]) -> Dict[str, str]:
+    """Build a CLI environment that also works in sanitized POSIX sandboxes."""
+    values = dict(env)
+    if os.name != "posix" or str(values.get("USER") or ""):
+        return values
+    try:
+        import pwd
+
+        username = pwd.getpwuid(os.getuid()).pw_name
+    except (ImportError, KeyError, OSError):
+        username = ""
+    if username:
+        values["USER"] = username
+    return values
+
+
 def cleanup_private_auth_home(
     path: str, *, empty_only: bool = False
 ) -> Dict[str, Any]:
@@ -1785,7 +1801,11 @@ class SmsApiClient:
         timeout: float = DEFAULT_TIMEOUT,
     ) -> None:
         self._env = dict(os.environ if env is None else env)
-        self._cli_env = dict(self._env)
+        self._cli_env = (
+            prepare_cli_process_environment(self._env)
+            if env is None
+            else dict(self._env)
+        )
         self._cli_auth_home_error = False
         if env is None:
             try:

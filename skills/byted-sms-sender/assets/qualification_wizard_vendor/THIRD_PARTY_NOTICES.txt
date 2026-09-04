@@ -1,4 +1,6 @@
 This directory contains browser distributions of the following dependencies.
+Arco JavaScript and CSS distributions are stored with Brotli compression and
+served by the local qualification wizard with Content-Encoding: br.
 
 React 18.2.0
 React DOM 18.2.0
