@@ -41,7 +41,7 @@ Before you begin, please ensure that your development environment meets the foll
 - Playwright 1.55.0 or higher
 - It is recommended to use `uv` for dependency management.
 - <a target="_blank" href="https://console.byteplus.com/ark/region:ark+ap-southeast-1/apiKey">Get BytePlus ModelArk API key</a>
-- <a target="_blank" href="https://console.volcengine.com/iam/keymanage/">Get Volcano Engine AK/SK</a>
+- <a target="_blank" href="https://console.volcengine.com/iam/keymanage/">Get BytePlus AK/SK</a>
 
 ### Quick Start
 
@@ -75,7 +75,7 @@ export CLOUD_PROVIDER=byteplus
 export BYTEPLUS_REGION=ap-southeast-1
 ```
 
-Then, edit `config.yaml` and fill in your BytePlus ModelArk API key. Repeat this operation for `market-agent`, `evaluate-agent`, `release-agent`, and `multimedia-agent`. Set `CLOUD_PROVIDER=byteplus` and `BYTEPLUS_REGION=ap-southeast-1` before starting the Agents. Volcengine AK/SK is only needed by optional workflows that still access VikingDB, web search, or VOD.
+Then, edit `config.yaml` and fill in your BytePlus ModelArk API key. Repeat this operation for `market-agent`, `evaluate-agent`, `release-agent`, and `multimedia-agent`. Set `CLOUD_PROVIDER=byteplus` and `BYTEPLUS_REGION=ap-southeast-1` before starting the Agents. BytePlus AK/SK is only needed by optional workflows that still access VikingDB, web search, or VOD.
 
 For specific configuration items, please refer to the <a target="_blank" href="https://github.com/volcengine/veadk-python/blob/main/config.yaml.full">veadk-python config.yaml configuration document</a>.
 

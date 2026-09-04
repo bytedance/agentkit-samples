@@ -186,7 +186,7 @@ The web interface allows real-time viewing of web search calls and results.
 - Visit the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - Activate the model service.
 
-**2. Obtain Volcano Engine Access Credentials:**
+**2. Obtain BytePlus Access Credentials:**
 
 - Refer to the [User Guide](https://www.volcengine.com/docs/6291/65568?lang=zh) to get your AK/SK.
 

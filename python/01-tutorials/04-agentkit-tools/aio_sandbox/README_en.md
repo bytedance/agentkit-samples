@@ -55,9 +55,9 @@ source .venv/bin/activate
 cp .env.example .env
 # Edit the .env file and fill in the necessary AGENTKIT_TOOL_ID environment variable
 
-# Volcano Engine access credentials (required)
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
+# BytePlus access credentials (required)
+export BYTEPLUS_ACCESS_KEY=<Your Access Key>
+export BYTEPLUS_SECRET_KEY=<Your Secret Key>
 ```
 
 ### 2. Start the Service and Test

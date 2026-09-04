@@ -176,7 +176,7 @@ Current dependency versions:
 # BytePlus ModelArk model name; defaults to deepseek-v4-pro-260425 when unset
 export MODEL_AGENT_NAME=deepseek-v4-pro-260425
 
-# Volcano Engine access credentials (required)
+# BytePlus access credentials (required)
 export BYTEPLUS_ACCESS_KEY=<Your Access Key>
 export BYTEPLUS_SECRET_KEY=<Your Secret Key>
 export CLOUD_PROVIDER=byteplus

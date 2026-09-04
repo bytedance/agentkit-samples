@@ -188,7 +188,7 @@ uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
 ### Environment Setup
 
 ```bash
-# Volcano Engine access credentials (required)
+# BytePlus access credentials (required)
 export BYTEPLUS_ACCESS_KEY=<Your Access Key>
 export BYTEPLUS_SECRET_KEY=<Your Secret Key>
 export CLOUD_PROVIDER=byteplus

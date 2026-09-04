@@ -31,7 +31,7 @@ Before you begin, ensure your development environment meets the following requir
 - VeADK 0.2.28 or higher
 - It is recommended to use `uv` for dependency management.
 - <a target="_blank" href="https://console.byteplus.com/ark/region:ark+ap-southeast-1/apiKey">Get BytePlus ModelArk API key</a>
-- <a target="_blank" href="https://console.volcengine.com/iam/keymanage/">Get Volcano Engine AK/SK</a>
+- <a target="_blank" href="https://console.volcengine.com/iam/keymanage/">Get BytePlus AK/SK</a>
 
 ### Quick Start
 
@@ -52,8 +52,8 @@ uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
 ```bash
 export MODEL_AGENT_API_KEY="xxxxx"
-export VOLCENGINE_ACCESS_KEY="xxxxxx"
-export VOLCENGINE_SECRET_KEY="xxxxxx"
+export BYTEPLUS_ACCESS_KEY="xxxxxx"
+export BYTEPLUS_SECRET_KEY="xxxxxx"
 ```
 
 #### 4. Start the Service
@@ -109,9 +109,9 @@ cd python/02-use-cases/mini_aiops
 uv sync --python 3.12
 source .venv/bin/activate
 
-# 3. Configure Volcano Engine AK/SK
-export VOLCENGINE_ACCESS_KEY="xxxxxx"
-export VOLCENGINE_SECRET_KEY="xxxxxx"
+# 3. Configure BytePlus AK/SK
+export BYTEPLUS_ACCESS_KEY="xxxxxx"
+export BYTEPLUS_SECRET_KEY="xxxxxx"
 
 # 4. Run AgentKit configuration
 agentkit config

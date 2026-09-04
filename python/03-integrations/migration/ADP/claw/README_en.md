@@ -117,8 +117,8 @@ Note: `--codex-api-key-env` and `--model-api-key-env` take environment variable 
 Volcengine:
 
 ```bash
-VOLCENGINE_ACCESS_KEY=""
-VOLCENGINE_SECRET_KEY=""
+BYTEPLUS_ACCESS_KEY=""
+BYTEPLUS_SECRET_KEY=""
 
 CODEX_MODEL_AGENT_NAME=""
 CODEX_MIGRATE_MODEL_API_KEY=""

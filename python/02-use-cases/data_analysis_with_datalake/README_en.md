@@ -109,8 +109,8 @@ MODEL_AGENT_API_KEY=your_api_key_here
 ARK_BASE_URL=https://ark.ap-southeast.bytepluses.com/api/v3
 ARK_TEXT_EMBEDDING_MODEL=skylark-embedding-vision-251215
 ARK_MULTIMODAL_EMBEDDING_MODEL=skylark-embedding-vision-251215
-VOLCENGINE_ACCESS_KEY=your_ak
-VOLCENGINE_SECRET_KEY=your_sk
+BYTEPLUS_ACCESS_KEY=your_ak
+BYTEPLUS_SECRET_KEY=your_sk
 ```
 
 The `VOLCENGINE_*` credentials above are only used by this hybrid example to

@@ -267,9 +267,9 @@ In the next section, we will use the AgentKit CLI to actually deploy an intellig
 3. Run the deployment command
 
     ```bash
-    # Configure Volcano Engine AK/SK in environment variables, ensuring AK/SK has permission to publish runtimes
-    export VOLCENGINE_ACCESS_KEY=<Volcano Engine AK>
-    export VOLCENGINE_SECRET_KEY=<Volcano Engine SK>
+    # Configure BytePlus AK/SK in environment variables, ensuring AK/SK has permission to publish runtimes
+    export BYTEPLUS_ACCESS_KEY=<BytePlus AK>
+    export BYTEPLUS_SECRET_KEY=<BytePlus SK>
 
     # Make sure you are in the tutorial1_userpool_inbound/test_agent directory
     agentkit launch

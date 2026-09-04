@@ -95,7 +95,7 @@ realtime_voice/
 
 - Refer to [Console FAQ](https://www.volcengine.com/docs/6561/196768?lang=zh#q1%EF%BC%9A%E5%93%AA%E9%87%8C%E5%8F%AF%E4%BB%A5%E8%8E%B7%E5%8F%96%E5%88%B0%E4%BB%A5%E4%B8%8B%E5%8F%82%E6%95%B0appid%EF%BC%8Ccluster%EF%BC%8Ctoken%EF%BC%8Cauthorization-type%EF%BC%8Csecret-key-%EF%BC%9F) to get APP_ID and API_KEY
 
-**3. Obtain Volcano Engine Access Credentials:**
+**3. Obtain BytePlus Access Credentials:**
 
 - Refer to [User Guide](https://www.volcengine.com/docs/6291/65568?lang=zh) to get AK/SK
 
@@ -140,9 +140,9 @@ export MODEL=doubao_realtime_voice_model
 export MODEL_REALTIME_APP_ID=<Your APP_ID>
 export MODEL_REALTIME_API_KEY=<Your API_KEY>
 
-# Volcano Engine access credentials (required)
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
+# BytePlus access credentials (required)
+export BYTEPLUS_ACCESS_KEY=<Your Access Key>
+export BYTEPLUS_SECRET_KEY=<Your Secret Key>
 ```
 
 ### Debugging Methods
@@ -179,7 +179,7 @@ uv run agent.py
 
 - Refer to [Console FAQ](https://www.volcengine.com/docs/6561/196768?lang=zh#q1%EF%BC%9A%E5%93%AA%E9%87%8C%E5%8F%AF%E4%BB%A5%E8%8E%B7%E5%8F%96%E5%88%B0%E4%BB%A5%E4%B8%8B%E5%8F%82%E6%95%B0appid%EF%BC%8Ccluster%EF%BC%8Ctoken%EF%BC%8Cauthorization-type%EF%BC%8Csecret-key-%EF%BC%9F) to get APP_ID and API_KEY
 
-**3. Obtain Volcano Engine Access Credentials:**
+**3. Obtain BytePlus Access Credentials:**
 
 - Refer to [User Guide](https://www.volcengine.com/docs/6291/65568?lang=zh) to get AK/SK
 

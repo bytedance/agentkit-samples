@@ -46,7 +46,7 @@ stock_analysis/
 - Visit [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - Activate the model service
 
-**2. Obtain Volcano Engine Access Credentials:**
+**2. Obtain BytePlus Access Credentials:**
 
 - Refer to [User Guide](https://www.volcengine.com/docs/6291/65568?lang=zh) to obtain AK/SK
 
@@ -105,9 +105,9 @@ source .venv/bin/activate
 # BytePlus ModelArk model name
 export MODEL_AGENT_NAME=deepseek-v4-pro-260425
 
-# Volcano Engine access credentials (required)
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
+# BytePlus access credentials (required)
+export BYTEPLUS_ACCESS_KEY=<Your Access Key>
+export BYTEPLUS_SECRET_KEY=<Your Secret Key>
 
 export AGENTKIT_TOOL_ID=<Your Tool ID>
 ```
@@ -153,7 +153,7 @@ uv run client.py
 - Visit [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - Activate the model service
 
-**2. Obtain Volcano Engine Access Credentials:**
+**2. Obtain BytePlus Access Credentials:**
 
 - Refer to [User Guide](https://www.volcengine.com/docs/6291/65568?lang=zh) to obtain AK/SK
 
@@ -168,9 +168,9 @@ uv run client.py
 **5. Set environment variables:**
 
 ```bash
-# Volcano Engine access credentials (required)
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
+# BytePlus access credentials (required)
+export BYTEPLUS_ACCESS_KEY=<Your Access Key>
+export BYTEPLUS_SECRET_KEY=<Your Secret Key>
 ```
 
 ### AgentKit Cloud Deployment

@@ -109,8 +109,8 @@ If you need to deploy the generated artifacts to AgentKit Runtime, write the cor
 Volcengine China:
 
 ```text
-VOLCENGINE_ACCESS_KEY=<access-key>
-VOLCENGINE_SECRET_KEY=<secret-key>
+BYTEPLUS_ACCESS_KEY=<access-key>
+BYTEPLUS_SECRET_KEY=<secret-key>
 ```
 
 BytePlus overseas AgentKit:

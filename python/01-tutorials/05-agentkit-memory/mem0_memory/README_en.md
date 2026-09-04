@@ -97,7 +97,7 @@ viking_memory/
 - Visit [mem0 Console](https://console.volcengine.com/mem0/region:mem0+cn-beijing/list?projectName=default)
 - Create a memory store instance
 
-**3. Obtain Volcano Engine Access Credentials:**
+**3. Obtain BytePlus Access Credentials:**
 
 - Refer to the [User Guide](https://www.volcengine.com/docs/6291/65568?lang=en) to get AK/SK
 
@@ -139,9 +139,9 @@ source .venv/bin/activate
 # BytePlus ModelArk model name
 export MODEL_AGENT_NAME=deepseek-v4-pro-260425
 
-# Volcano Engine access credentials (required)
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
+# BytePlus access credentials (required)
+export BYTEPLUS_ACCESS_KEY=<Your Access Key>
+export BYTEPLUS_SECRET_KEY=<Your Secret Key>
 ```
 
 ### Debugging Methods
@@ -185,7 +185,7 @@ uv run client.py # Test memory effect
 - Visit [mem0 Console](https://console.volcengine.com/mem0/region:mem0+cn-beijing/list?projectName=default)
 - Create a memory store instance
 
-**3. Obtain Volcano Engine Access Credentials:**
+**3. Obtain BytePlus Access Credentials:**
 
 - Refer to the [User Guide](https://www.volcengine.com/docs/6291/65568?lang=en) to get AK/SK
 

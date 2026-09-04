@@ -69,7 +69,7 @@ Key features include:
 1. Log in to the [BytePlus Console](https://console.byteplus.com)
 2. Go to "Access Control" → "Users" -> Create a new user or search for an existing username -> Click the username to enter "User Details" -> Go to "Keys" -> Create a new key or copy an existing AK/SK
     - As shown in the figure below
-        ![Volcengine AK/SK Management](../img/volcengine_aksk.jpg)
+        ![BytePlus AK/SK Management](../img/volcengine_aksk.jpg)
 3. Configure access permissions for the services that AgentKit depends on for the user:
     - On the "User Details" page -> Go to "Permissions" -> Click "Add Permission", and grant the following policies to the user
     - `AgentKitFullAccess` (AgentKit full access)

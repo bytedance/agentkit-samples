@@ -341,7 +341,7 @@ Agent-to-Agent protocol, demonstrating:
 **A**: Please check the following:
 
 1. Have you visited the [AgentKit Console Authorization Page](https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/auth?projectName=default) to authorize services?
-2. Are the environment variables (`MODEL_AGENT_NAME`, `VOLCENGINE_ACCESS_KEY`, `VOLCENGINE_SECRET_KEY`) configured correctly?
+2. Are the environment variables (`MODEL_AGENT_NAME`, `BYTEPLUS_ACCESS_KEY`, `BYTEPLUS_SECRET_KEY`) configured correctly?
 3. Are the necessary dependencies (`veadk-python`, `agentkit-sdk-python`) installed?
 4. For cases requiring VikingDB, has it been activated and a knowledge base created?
 

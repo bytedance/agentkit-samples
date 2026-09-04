@@ -52,7 +52,7 @@ Before starting, make sure your environment meets these requirements:
 - `uv` is recommended for dependency management
 - `ffmpeg` available locally (used by `moviepy` for video composition)
 - <a target="_blank" href="https://console.byteplus.com/ark/region:ark+ap-southeast-1/apiKey">Get BytePlus ModelArk API key</a>
-- <a target="_blank" href="https://console.volcengine.com/iam/keymanage/">Get Volcengine AK/SK</a>
+- <a target="_blank" href="https://console.volcengine.com/iam/keymanage/">Get BytePlus AK/SK</a>
 
 ### Quick Start
 

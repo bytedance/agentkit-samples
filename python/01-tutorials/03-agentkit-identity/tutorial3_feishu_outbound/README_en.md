@@ -266,9 +266,9 @@ Remember the credential provider name (e.g., `feishu_oauth`), which will be used
 3. Run the deployment command
 
     ```bash
-    # Configure Volcano Engine AK/SK in environment variables, ensuring AK/SK has permission to publish runtimes
-    export VOLCENGINE_ACCESS_KEY=<Volcano Engine AK>
-    export VOLCENGINE_SECRET_KEY=<Volcano Engine SK>
+    # Configure BytePlus AK/SK in environment variables, ensuring AK/SK has permission to publish runtimes
+    export BYTEPLUS_ACCESS_KEY=<BytePlus AK>
+    export BYTEPLUS_SECRET_KEY=<BytePlus SK>
 
     # Make sure you are in the tutorial3_feishu_outbound/test_agent directory
     agentkit launch
@@ -393,10 +393,10 @@ AssumeRole: NoPermission - You have no permission for this action.
 
 ```bash
 # Check the environment variables of the current terminal
-echo $VOLCENGINE_ACCESS_KEY
+echo $BYTEPLUS_ACCESS_KEY
 
 # Check the configuration in the .env file
-cat .env | grep VOLCENGINE_ACCESS_KEY
+cat .env | grep BYTEPLUS_ACCESS_KEY
 ```
 
 **Solution**:

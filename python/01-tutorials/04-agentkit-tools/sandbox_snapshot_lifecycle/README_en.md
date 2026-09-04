@@ -7,8 +7,8 @@ state persistence.
 
 ## Environment
 
-The SDK reads Volcengine credentials from `VOLCENGINE_ACCESS_KEY` and
-`VOLCENGINE_SECRET_KEY` (the legacy `VOLC_ACCESSKEY` and `VOLC_SECRETKEY` names
+The SDK reads BytePlus credentials from `BYTEPLUS_ACCESS_KEY` and
+`BYTEPLUS_SECRET_KEY` (the legacy `VOLC_ACCESSKEY` and `VOLC_SECRETKEY` names
 also work).
 
 ```bash

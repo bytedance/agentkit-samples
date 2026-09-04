@@ -67,7 +67,7 @@ The main Volcano Engine products or Agent components are:
 - Visit the [BytePlus ModelArk Console](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 - Activate the model service
 
-**2. Obtain Volcano Engine Access Credentials:**
+**2. Obtain BytePlus Access Credentials:**
 
 - Refer to the [User Guide](https://www.volcengine.com/docs/6291/65568?lang=zh) to obtain AK/SK
 
@@ -144,9 +144,9 @@ Set the following environment variables:
 # BytePlus ModelArk model name (optional, deepseek-v4-pro-260425 is used by default)
 export MODEL_AGENT_NAME=<Your ModelArk model name>
 
-# Volcano Engine Access Credentials (required)
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
+# BytePlus Access Credentials (required)
+export BYTEPLUS_ACCESS_KEY=<Your Access Key>
+export BYTEPLUS_SECRET_KEY=<Your Secret Key>
 
 # Gaode MCP Service Access Credentials (required)
 export GAODE_MCP_API_KEY=<Your Gaode MCP API Key>
@@ -224,9 +224,9 @@ uv pip install agentkit-sdk-python==0.3.2
 ### Set Environment Variables
 
 ```bash
-# Volcano Engine Access Credentials (required)
-export VOLCENGINE_ACCESS_KEY=<Your Access Key>
-export VOLCENGINE_SECRET_KEY=<Your Secret Key>
+# BytePlus Access Credentials (required)
+export BYTEPLUS_ACCESS_KEY=<Your Access Key>
+export BYTEPLUS_SECRET_KEY=<Your Secret Key>
 ```
 
 ### AgentKit Cloud Deployment
