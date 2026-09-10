@@ -353,7 +353,7 @@ None.
 - [VeADK Official Documentation](https://volcengine.github.io/veadk-python/)
 - [AgentKit Development Guide](https://volcengine.github.io/agentkit-sdk-python/)
 - [BytePlus ModelArk Service](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
-- [Video Generation Tool Documentation](https://volcengine.github.io/veadk-python/tools/builtin/#video-generate)
+- [Video Generation Tool Documentation](https://volcengine.github.io/veadk-python/cn/docs/framework/tools/builtin/#视频生成video_generate)
 
 ## Code License
 

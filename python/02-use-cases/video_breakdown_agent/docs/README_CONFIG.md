@@ -27,7 +27,7 @@ VeADK 按以下优先级（从高到低）读取配置：
 | 2 | `.env` 文件 | 项目根目录下，推荐用于本地开发 |
 | 3 | `config.yaml` | 项目根目录下，作为备选 |
 
-> 参考：[VeADK 配置项文档](https://volcengine.github.io/veadk-python/configuration/)
+> 参考：[VeADK 配置项文档](https://volcengine.github.io/veadk-python/cn/docs/references/configuration/)
 
 ## 工具返回数据优化策略
 
@@ -177,7 +177,7 @@ VEADK_TRACER_COZELOOP=true     # 启用 CozeLoop Exporter
 VEADK_TRACER_TLS=true          # 启用 TLS Exporter
 ```
 
-> 三种后端可任选其一或组合使用。详见 [VeADK 可观测文档](https://volcengine.github.io/veadk-python/observability/)。
+> 三种后端可任选其一或组合使用。详见 [VeADK 可观测文档](https://volcengine.github.io/veadk-python/cn/docs/framework/observability/)。
 
 ## config.yaml 与 .env 的对应关系
 
