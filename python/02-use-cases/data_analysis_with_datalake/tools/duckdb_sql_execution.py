@@ -41,6 +41,14 @@ def duckdb_sql_execution(sql: str, user_question: str = "") -> str:
     except Exception as e:
         return dumps_json({"error": f"DuckDB 执行失败: {e}"})
 
+    # Embeddings are internal retrieval fields. Returning them for SELECT *
+    # creates multi-megabyte tool responses and can exceed the model request limit.
+    internal_columns = [
+        column for column in ("poster_embedding", "vector") if column in out_df
+    ]
+    if internal_columns:
+        out_df = out_df.drop(columns=internal_columns)
+
     # 构造 records（对象数组），并提供结构化响应
     header = [str(c) for c in out_df.columns]
     records_obj = out_df.to_dict(orient="records")

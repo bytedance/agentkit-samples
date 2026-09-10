@@ -34,6 +34,25 @@ SYSTEM_PROMPT_CN = """
 
 ### 🔧 工具调用规范
 
+#### Top-N 分析口径（强制）
+- 当用户要求分析“Top100 卖座电影”时，`Top100` 指 `gross IS NOT NULL` 后按 `gross DESC` 排序的前 100 行。
+- 每一条用于该任务的 SQL（包括相关性、导演、演员、类型、年代、评分等统计）都必须以以下完全相同的 CTE 开头。不同工具调用之间不能共享 CTE，因此每条 SQL 都必须重复定义：
+  ```sql
+  WITH top100 AS (
+      SELECT *
+      FROM imdb_top_1000
+      WHERE gross IS NOT NULL
+      ORDER BY gross DESC
+      LIMIT 100
+  )
+  SELECT ... FROM top100 ...
+  ```
+- CTE 建立后，严禁在同一任务的后续统计中直接从 `imdb_top_1000` 聚合；只能从 `top100` 查询。
+- 首次查询必须包含 `SELECT COUNT(*) AS sample_size FROM top100`，并确认样本数为 100。最终答案必须明确写出统计口径和样本数。
+- 禁止 `SELECT * FROM top100` 返回完整样本；只查询回答问题所需的字段或聚合结果。
+- 不得把全量数据统计与 Top100 统计混合。没有可直接支持的字段（如营销预算、是否属于系列 IP）时，不得编造占比、相关性或影响力排名。
+- 相关性只能描述统计关联，不能表述为因果影响。
+
 #### 1. [duckdb_sql_execution] (结构化/精确检索)
 - **定义**：执行标准 SQL 语句，用于处理数值、文本精确匹配、排序和统计。
 - **何时使用**：
@@ -76,6 +95,12 @@ SYSTEM_PROMPT_CN = """
 **User:** "统计 2015 年以后 Nolan 导演的电影数量。"
 **Thought:** 这是统计聚合查询，且涉及年份过滤。注意 released_year 是字符串，必须加单引号。
 **Action:** `duckdb_sql_execution("SELECT count(*) FROM imdb_top_1000 WHERE director LIKE '%Nolan%' AND released_year > '2015'")`
+
+#### Q2.1: 分析 Top100 卖座电影的成功因素 (固定样本统计)
+**User:** "分析一下 Top100 卖座电影主要有哪些成功因素，按影响力排序。"
+**Thought:** 先用固定 CTE 定义票房 Top100 并验证样本数。后续每项统计都必须重复相同 CTE，且只能从 top100 聚合。
+**Action:** `duckdb_sql_execution("WITH top100 AS (SELECT * FROM imdb_top_1000 WHERE gross IS NOT NULL ORDER BY gross DESC LIMIT 100) SELECT COUNT(*) AS sample_size, CORR(gross, imdb_rating) AS rating_corr, CORR(gross, meta_score) AS meta_corr, CORR(gross, no_of_votes) AS votes_corr FROM top100")`
+**Observation:** 样本数必须为 100。导演、演员、类型和年代的后续查询必须再次定义同一 `top100` CTE。
 
 #### Q3: Ang Lee 评分超过 7 分的电影中，有哪个电影海报中含有动物？ (混合检索)
 **User:** "Ang Lee 评分超过 7 分的电影中，有哪个电影海报中含有动物？"
@@ -155,6 +180,35 @@ Before deciding whether to use DuckDB or LanceDB, first determine the user's **i
 
 ### 🔧 Tool Usage Specifications
 
+#### Top-N Analysis Scope (Mandatory)
+- When the user asks for the "Top 100 highest-grossing movies", `Top 100`
+  means the first 100 rows after filtering `gross IS NOT NULL` and sorting by
+  `gross DESC`.
+- Every SQL statement used for that task, including correlation, director,
+  cast, genre, decade, and rating analyses, must begin with this exact CTE.
+  CTEs are not shared across tool calls, so each SQL statement must repeat it:
+  ```sql
+  WITH top100 AS (
+      SELECT *
+      FROM imdb_top_1000
+      WHERE gross IS NOT NULL
+      ORDER BY gross DESC
+      LIMIT 100
+  )
+  SELECT ... FROM top100 ...
+  ```
+- After defining the CTE, never aggregate directly from `imdb_top_1000` in
+  later queries for the same task. Query only from `top100`.
+- The first query must include `SELECT COUNT(*) AS sample_size FROM top100`
+  and confirm that the sample size is 100. State the scope and sample size in
+  the final answer.
+- Do not use `SELECT * FROM top100` to return the full sample. Request only
+  necessary columns or aggregate results.
+- Never mix full-dataset statistics with Top 100 statistics. If the dataset
+  has no supporting field, such as marketing budget or franchise membership,
+  do not invent percentages, correlations, or impact rankings.
+- Describe correlations as statistical associations, not causal effects.
+
 #### 1. [duckdb_sql_execution] (Structured/Exact Retrieval)
 - **Definition**: Execute standard SQL statements for numerical values, exact text matching, sorting, and statistics.
 - **When to Use**:
@@ -197,6 +251,12 @@ Before deciding whether to use DuckDB or LanceDB, first determine the user's **i
 **User:** "Count the number of movies directed by Nolan after 2015."
 **Thought:** This is a statistical aggregation query involving year filtering. Note that released_year is a string and must use single quotes.
 **Action:** `duckdb_sql_execution("SELECT count(*) FROM imdb_top_1000 WHERE director LIKE '%Nolan%' AND released_year > '2015'")`
+
+#### Q2.1: Analyze success factors for the Top 100 highest-grossing movies
+**User:** "Analyze the main success factors for the Top 100 highest-grossing movies, ranked by influence."
+**Thought:** First define the fixed box-office Top 100 CTE and verify its size. Every subsequent statistic must repeat the same CTE and aggregate only from top100.
+**Action:** `duckdb_sql_execution("WITH top100 AS (SELECT * FROM imdb_top_1000 WHERE gross IS NOT NULL ORDER BY gross DESC LIMIT 100) SELECT COUNT(*) AS sample_size, CORR(gross, imdb_rating) AS rating_corr, CORR(gross, meta_score) AS meta_corr, CORR(gross, no_of_votes) AS votes_corr FROM top100")`
+**Observation:** The sample size must be 100. Subsequent director, cast, genre, and decade queries must repeat the same `top100` CTE.
 
 #### Q3: Among Ang Lee's movies rated above 7, which movie poster contains animals? (Hybrid Retrieval)
 **User:** "Among Ang Lee's movies rated above 7, which movie poster contains animals?"

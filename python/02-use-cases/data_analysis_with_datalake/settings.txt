@@ -1,1 +1,7 @@
 # Ark (OpenAI compatible)
+
+# LanceDB tables in the public AgentKit TOS bucket.
+LANCEDB_URI=s3://agentkit/assets/data_analysis_Data/lance_catalog/default/imdb_top_1000
+LANCEDB_METADATA_URI=s3://agentkit/assets/data_analysis_Data/lance_catalog/default/metadata_table
+LANCEDB_AWS_ENDPOINT=https://agentkit.tos-s3-cn-beijing.volces.com
+TOS_REGION=cn-beijing

@@ -116,8 +116,17 @@ def get_text_embedding(text: str) -> Tuple[Optional[list], Optional[str]]:
                 input=[{"type": "text", "text": text}],
             )
             return _extract_multimodal_embedding(resp), None
-        resp = client.embeddings.create(model=ARK_TEXT_EMBEDDING_MODEL, input=[text])
-        return resp.data[0].embedding, None
+        try:
+            resp = client.embeddings.create(
+                model=ARK_TEXT_EMBEDDING_MODEL, input=[text]
+            )
+            return resp.data[0].embedding, None
+        except Exception:
+            resp = client.multimodal_embeddings.create(
+                model=ARK_MULTIMODAL_EMBEDDING_MODEL,
+                input=[{"type": "text", "text": text}],
+            )
+            return _extract_multimodal_embedding(resp), None
     except Exception as e:
         error_msg = f"Failed to get text embedding: {e}"
         console.print(f"[red]{error_msg}[/red]")

@@ -147,6 +147,12 @@ ENV/
 env.bak/
 venv.bak/
 
+# Generated data for the data_analysis_with_datalake sample
+python/02-use-cases/data_analysis_with_datalake/data/lance_catalog/
+python/02-use-cases/data_analysis_with_datalake/data/source/
+python/02-use-cases/data_analysis_with_datalake/data/poster_embeddings.jsonl
+python/02-use-cases/data_analysis_with_datalake/data/manifest.json
+
 # Spyder project settings
 .spyderproject
 .spyproject

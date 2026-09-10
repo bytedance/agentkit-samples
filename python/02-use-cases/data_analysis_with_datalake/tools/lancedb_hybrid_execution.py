@@ -27,7 +27,7 @@ def lancedb_hybrid_execution(
     # parse params
     vector_col = "poster_embedding"
     if select is None:
-        select = ["Series_Title", "poster_precision_link"]
+        select = ["series_title", "poster_precision_link"]
 
     # embed
     vec, v_err = _get_text_vector(query_text)
