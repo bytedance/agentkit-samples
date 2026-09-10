@@ -9,7 +9,7 @@ This use case demonstrates how to build a production-level AI programming assist
 - **Intelligent Programming Dialogue**: An AI-based intelligent programming assistant that understands user programming needs and provides accurate code solutions.
 - **Code Execution and Verification**: Executes code in a sandbox environment to verify its correctness and performance.
 - **Frontend Code Hosting**: Automatically uploads frontend code (HTML/CSS/JS) to TOS object storage and generates an accessible preview link.
-- **Multi-language Support**: Supports multiple programming languages such as Python, Java, JavaScript, and Go.
+- **Code Execution**: Executes Python or shell commands through `run_code` in an AIO Sandbox.
 - **Long-Term Memory**: Supports session memory and user history storage.
 - **Observability**: Integrated with OpenTelemetry for tracing and APMPlus for monitoring.
 
@@ -34,12 +34,14 @@ AI Programming Assistant
 | - | - |
 | **Agent Service** | [`agent.py`](agent.py) - The main agent application, containing configuration and runtime logic |
 | **Tool Module** | [`tools.py`](tools.py) - TOS upload, URL generation, and utility functions |
-| **Sandbox Execution** | A secure code execution environment supporting Python, Java, JavaScript, and Go |
+| **Sandbox Execution** | Secure Python or shell command execution through `run_code` in an AIO Sandbox |
 | **TOS Integration** | An object storage service for hosting frontend code and providing public access |
 
 ### Multi-language Support
 
-Supports mainstream programming languages like Python, Java, JavaScript, and Go, with automatic syntax validation.
+`run_code` accepts `python3` and `bash` natively. Other languages can only be
+executed through shell commands when their compiler or interpreter is available
+in the AIO Sandbox.
 
 ### Sandbox Execution
 
@@ -96,7 +98,7 @@ ai_coding/
 #### AgentKit Tool ID
 
 1. Log in to the BytePlus AgentKit console.
-2. Go to "Tools" → "Create Sandbox Tool".
+2. Go to "Tools" → "Create Sandbox Tool", then select "Preset Tool" → "AIO Sandbox".
 3. Create the tool:
    - Tool Name: `ai-coding-agent`
    - Description: AI Programming Assistant Tool
@@ -143,7 +145,7 @@ export MODEL_AGENT_API_KEY={{your_model_agent_api_key}} # Required for local deb
   - Format: `DATABASE_TOS_BUCKET=agentkit-platform-{{your_account_id}}`
   - Example: `DATABASE_TOS_BUCKET=agentkit-platform-12345678901234567890`
   - `{{your_account_id}}` needs to be replaced with your BytePlus account ID.
-- `AGENTKIT_TOOL_ID`: The Tool ID obtained from the AgentKit console.
+- `AGENTKIT_TOOL_ID`: The AIO Sandbox Tool ID used by `run_code`.
 - `MODEL_AGENT_API_KEY`: The Model Agent API Key obtained from BytePlus ModelArk.
 
 
@@ -190,7 +192,7 @@ agentkit config \
 --agent_name ai_coding \
 --entry_point 'agent.py' \
 --runtime_envs DATABASE_TOS_BUCKET=agentkit-platform-{{your_account_id}} \
---runtime_envs AGENTKIT_TOOL_ID={{your_tool_id}} \
+--tool_id {{your_tool_id}} \
 --launch_type cloud
 
 # 3. Deploy to runtime
@@ -202,6 +204,10 @@ agentkit launch
 ```bash
 agentkit invoke '{"prompt": "Create a binary search implementation in Python."}'
 ```
+
+`--tool_id` binds the AIO Sandbox as a Runtime component, allowing the platform
+to inject `AGENTKIT_TOOL_ID`. Do not configure the Tool ID only as a regular
+runtime environment variable, because that does not record the Sandbox binding.
 
 ## FAQ
 

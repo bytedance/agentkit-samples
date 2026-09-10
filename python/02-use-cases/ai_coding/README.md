@@ -9,7 +9,7 @@
 - **智能编程对话**：基于AI的智能编程助手，能够理解用户编程需求并提供准确代码解决方案
 - **代码执行验证**：在沙箱环境中执行代码，验证代码的正确性和运行效果
 - **前端代码托管**：自动将前端代码（HTML/CSS/JS）上传至TOS对象存储，并生成可访问的预览链接
-- **多语言支持**：支持Python、Java、JavaScript、Go等多种编程语言
+- **代码执行方式**：通过 `run_code` 在 AIO Sandbox 中执行 Python 或 Shell 命令
 - **长期记忆**：支持会话记忆和用户历史记录存储
 - **观测能力**：集成OpenTelemetry追踪和APMPlus监控
 
@@ -34,12 +34,13 @@ AI 编程助手
 | - | - |
 | **Agent 服务** | [`agent.py`](agent.py) - 主智能体应用,包含配置和运行逻辑 |
 | **工具模块** | [`tools.py`](tools.py) - TOS 上传、URL 生成和实用工具函数 |
-| **沙箱执行** | 支持 Python、Java、JavaScript、Go 的安全代码执行环境 |
+| **沙箱执行** | 通过 `run_code` 在 AIO Sandbox 中安全执行 Python 或 Shell 命令 |
 | **TOS 集成** | 用于托管前端代码并提供公共访问的对象存储服务 |
 
 ### 多语言支持
 
-支持 Python、Java、JavaScript、Go 等主流编程语言,具备自动语法验证。
+`run_code` 原生接受 `python3` 和 `bash`。其他语言只有在 AIO Sandbox
+已经提供相应编译器或解释器时，才能通过 Shell 命令执行。
 
 ### 沙箱执行
 
@@ -95,7 +96,7 @@ ai_coding/
 #### AgentKit 工具 ID
 
 1. 登录火山引擎 AgentKit 控制台
-2. 进入"工具" → "创建沙箱工具"
+2. 进入"工具" → "创建沙箱工具"，工具类型选择"预置工具" → "AIO Sandbox"
 3. 创建工具:
    - 工具名称: `ai-coding-agent`
    - 描述: AI 编程助手工具
@@ -141,7 +142,7 @@ export MODEL_AGENT_API_KEY={your_model_agent_api_key}
 - `DATABASE_TOS_BUCKET`: 用于存储生成的前端代码的 TOS 存储桶名称
   - 格式: `DATABASE_TOS_BUCKET={your_tos_bucket}`
   - 示例: `DATABASE_TOS_BUCKET=agentkit-platform-12345678901234567890`
-- `AGENTKIT_TOOL_ID`: 从 AgentKit 控制台获取的工具 ID
+- `AGENTKIT_TOOL_ID`: 从 AgentKit 控制台获取的 AIO Sandbox 工具 ID，供 `run_code` 使用
 - `MODEL_AGENT_API_KEY`: 从火山方舟获取的模型 Agent API Key
 
 > 如何创建 TOS桶 [参考](https://www.volcengine.com/docs/6349/75024?lang=zh)
@@ -181,7 +182,7 @@ agentkit config \
 --agent_name ai_coding \
 --entry_point 'agent.py' \
 --runtime_envs DATABASE_TOS_BUCKET={your_tos_bucket} \
---runtime_envs AGENTKIT_TOOL_ID={your_tool_id} \
+--tool_id {your_tool_id} \
 --launch_type cloud
 
 # 3. 部署到运行时
@@ -193,6 +194,10 @@ agentkit launch
 ```bash
 agentkit invoke '{"prompt": "用 Python 创建一个二分查找实现"}'
 ```
+
+`--tool_id` 会把 AIO Sandbox 绑定为 Runtime 关联组件，并由平台向运行时注入
+`AGENTKIT_TOOL_ID`。不要仅把工具 ID 配置成普通运行时环境变量，否则 Runtime
+关联关系中不会记录该 Sandbox。
 
 ## 常见问题
 
