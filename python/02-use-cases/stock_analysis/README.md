@@ -58,6 +58,33 @@ stock_analysis/
 
 - 工具类型选择：预置工具 -> AIO Sandbox
 
+### Sandbox 中安装 AkShare
+
+本案例在 `run_code` 的 Python 内核中使用固定版本 `akshare==1.18.88`，并通过火山引擎内网 PyPI 镜像安装：
+
+```python
+import subprocess
+import sys
+
+subprocess.run(
+    [
+        sys.executable,
+        "-m",
+        "pip",
+        "install",
+        "--user",
+        "--prefer-binary",
+        "--index-url",
+        "https://mirrors.ivolces.com/pypi/simple/",
+        "akshare==1.18.88",
+    ],
+    check=True,
+    timeout=25,
+)
+```
+
+必须使用 `sys.executable`。AIO Sandbox 的 Shell 和 `run_code` Python 内核可能使用不同的 Python 环境，在 Shell 中安装的包不一定能被 `run_code` 导入。
+
 ### 依赖安装
 
 #### 1. 安装 uv 包管理器

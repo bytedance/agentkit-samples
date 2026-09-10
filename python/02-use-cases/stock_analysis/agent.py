@@ -25,6 +25,8 @@ short_term_memory = ShortTermMemory(backend="local")
 MODEL_AGENT_NAME = "MODEL_AGENT_NAME"
 DEFAULT_MODEL_AGENT_NAME = "deepseek-v4-pro-260425"
 model_name = os.getenv(MODEL_AGENT_NAME, DEFAULT_MODEL_AGENT_NAME)
+AKSHARE_VERSION = "1.18.88"
+AKSHARE_INDEX_URL = "https://mirrors.ivolces.com/pypi/simple/"
 
 
 def get_current_time() -> str:
@@ -37,7 +39,7 @@ def get_current_time() -> str:
 agent = Agent(
     name="data_analysis_agent",
     description="A data analysis for stock marketing",
-    instruction="""
+    instruction=f"""
     You are a data analysis agent for stock marketing.
     Talk with user friendly. You can invoke your tools to finish user's task or question.
     If the user's request contains words like "recently", "lately", "latest" or with similar meanings,
@@ -47,7 +49,31 @@ agent = Agent(
     * If trading data is not found, download the stock trading data using run_code. You can use the Python library akshare to download relevant stock data.
     * After downloading, execute code through run_code to avoid installation checks each time.
     * You can use the web_search tool to search for relevant company operational data.
-    * If dependency libraries are missing, install them for the sandbox using Python code.
+    * If akshare is missing, install exactly akshare=={AKSHARE_VERSION} from {AKSHARE_INDEX_URL}.
+    * Install it inside run_code's Python kernel. Use sys.executable with subprocess; do not use a shell command or a bare pip executable because the shell and run_code Python environments are different.
+    * Use this installation pattern:
+      import importlib.util
+      import subprocess
+      import sys
+      if importlib.util.find_spec("akshare") is None:
+          subprocess.run(
+              [
+                  sys.executable,
+                  "-m",
+                  "pip",
+                  "install",
+                  "--user",
+                  "--prefer-binary",
+                  "--disable-pip-version-check",
+                  "--progress-bar",
+                  "off",
+                  "--index-url",
+                  "{AKSHARE_INDEX_URL}",
+                  "akshare=={AKSHARE_VERSION}",
+              ],
+              check=True,
+              timeout=25,
+          )
     Note: If a user asks a question in a certain language, you should respond in the same language as well.""",
     tools=[get_current_time, run_code, web_search],
     model_name=model_name,

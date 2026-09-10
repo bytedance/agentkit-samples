@@ -58,6 +58,33 @@ stock_analysis/
 
 - Tool type selection: Preset Tool -> AIO Sandbox
 
+### Installing AkShare in the Sandbox
+
+This sample installs the pinned version `akshare==1.18.88` in the `run_code` Python kernel from the Volcengine internal PyPI mirror:
+
+```python
+import subprocess
+import sys
+
+subprocess.run(
+    [
+        sys.executable,
+        "-m",
+        "pip",
+        "install",
+        "--user",
+        "--prefer-binary",
+        "--index-url",
+        "https://mirrors.ivolces.com/pypi/simple/",
+        "akshare==1.18.88",
+    ],
+    check=True,
+    timeout=25,
+)
+```
+
+Use `sys.executable` explicitly. The AIO Sandbox shell and the `run_code` Python kernel may use different Python environments, so a package installed from the shell may not be importable from `run_code`.
+
 ### Dependency Installation
 
 #### 1. Install uv package manager
