@@ -496,6 +496,38 @@ export class AgentkitToolsClient {
     return { ...session, toolId: session.toolId ?? normalizedToolId };
   }
 
+  async pauseSession(
+    toolId: string,
+    sessionId: string,
+  ): Promise<AgentkitSessionSummary> {
+    const normalizedToolId = required(toolId, "AgentKit Tool ID");
+    const { result, requestId } = await this.#invoke("PauseSession", {
+      ToolId: normalizedToolId,
+      SessionId: required(sessionId, "AgentKit Session ID"),
+    });
+    const session = parseSession(result, "Pausing");
+    if (!session) {
+      throw invalidResponse("PauseSession", "Result is missing SessionId", requestId);
+    }
+    return { ...session, toolId: session.toolId ?? normalizedToolId };
+  }
+
+  async resumeSession(
+    toolId: string,
+    sessionId: string,
+  ): Promise<AgentkitSessionSummary> {
+    const normalizedToolId = required(toolId, "AgentKit Tool ID");
+    const { result, requestId } = await this.#invoke("ResumeSession", {
+      ToolId: normalizedToolId,
+      SessionId: required(sessionId, "AgentKit Session ID"),
+    });
+    const session = parseSession(result, "Resuming");
+    if (!session) {
+      throw invalidResponse("ResumeSession", "Result is missing SessionId", requestId);
+    }
+    return { ...session, toolId: session.toolId ?? normalizedToolId };
+  }
+
   async resumeSessionFromSnapshot(
     toolId: string,
     snapshotId: string,

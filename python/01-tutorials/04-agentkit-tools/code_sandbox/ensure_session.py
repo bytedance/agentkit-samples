@@ -37,7 +37,7 @@ def _load_agentkit() -> None:
         )
     except ModuleNotFoundError as exc:
         raise SystemExit(
-            "Missing dependency. Run: pip install agentkit-sdk-python==0.8.0"
+            "Missing dependency. Run: pip install agentkit-sdk-python==0.8.7"
         ) from exc
 
     tools_types = loaded_tools_types

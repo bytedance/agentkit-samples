@@ -5,7 +5,7 @@ description = "agentkit skills sandbox samples with veadk-0.x.x"
 readme = "README.md"
 requires-python = ">=3.12,<3.14"
 dependencies = [
-    "agentkit-sdk-python==0.8.1",
+    "agentkit-sdk-python==0.8.7",
     "google-adk==2.2.0",
     "urllib3<2.0.0",
     "litellm",
