@@ -226,6 +226,25 @@ def wait_for_session(
     )
 
 
+def wait_for_paused_session(
+    client: AgentkitToolsClient, tool_id: str, session_id: str
+) -> tools_types.GetSessionResponse:
+    """Wait until a PauseSession request leaves the session paused."""
+    failed = {"failed", "error", "deleted", "terminated"}
+
+    def fetch() -> tools_types.GetSessionResponse:
+        return client.get_session(
+            tools_types.GetSessionRequest(tool_id=tool_id, session_id=session_id)
+        )
+
+    return wait_until(
+        f"session {session_id} to become paused",
+        fetch,
+        lambda value: normalized_status(value) == "paused",
+        lambda value: normalized_status(value) in failed,
+    )
+
+
 def wait_for_snapshot(
     client: AgentkitToolsClient, tool_id: str, snapshot_id: str
 ) -> tools_types.GetSessionSnapshotResponse:

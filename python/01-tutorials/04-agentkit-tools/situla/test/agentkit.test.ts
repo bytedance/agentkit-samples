@@ -243,6 +243,43 @@ test("AgentKit client creates a minute-TTL session and surfaces API errors", asy
   await assert.rejects(client.getSession("tool-2", "session-2"), /AccessDenied.*denied/);
 });
 
+test("AgentKit client pauses and resumes the same Session", async () => {
+  const calls: Array<{ action: string; body: Record<string, unknown> }> = [];
+  const client = new AgentkitToolsClient({
+    accessKey: "AKID",
+    secretKey: "SECRET",
+    fetch: async (input, init) => {
+      const action = new URL(String(input)).searchParams.get("Action") ?? "";
+      const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      calls.push({ action, body });
+      return Response.json({ Result: { SessionId: "session-2" } });
+    },
+  });
+
+  assert.deepEqual(await client.pauseSession("tool-2", "session-2"), {
+    sessionId: "session-2",
+    toolId: "tool-2",
+    status: "Pausing",
+  });
+  assert.deepEqual(await client.resumeSession("tool-2", "session-2"), {
+    sessionId: "session-2",
+    toolId: "tool-2",
+    status: "Resuming",
+  });
+  assert.deepEqual(calls, [
+    {
+      action: "PauseSession",
+      body: { ToolId: "tool-2", SessionId: "session-2" },
+    },
+    {
+      action: "ResumeSession",
+      body: { ToolId: "tool-2", SessionId: "session-2" },
+    },
+  ]);
+  await assert.rejects(client.pauseSession("tool-2", " "), /Session ID is required/);
+  await assert.rejects(client.resumeSession(" ", "session-2"), /Tool ID is required/);
+});
+
 test("AgentKit client paginates snapshots and resumes one with a bounded TTL", async () => {
   const calls: Array<{ action: string; body: Record<string, unknown> }> = [];
   const pagination = Object.fromEntries([["NextToken", "snapshot-next"]]);
