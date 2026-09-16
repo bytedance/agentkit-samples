@@ -1,10 +1,21 @@
-# 沙箱快照生命周期脚本
+# 沙箱 Session 与快照生命周期脚本
 
-这六个脚本按顺序演示完整的沙箱快照生命周期。脚本使用仓库中的
+这八个脚本按顺序演示完整的沙箱 Session 与快照生命周期。脚本使用仓库中的
 `agentkit.sdk.tools` 客户端，不会保存 AK/SK。带签名的 endpoint 中如果包含
 `Authorization` 查询参数，脚本会在输出或保存状态前自动脱敏。
 
+`PauseSession` / `ResumeSession` 用于暂停和恢复同一个 Session；
+`ResumeSessionFromSnapshot` 用于从快照恢复实例，两者不是同一个接口。
+
 英文说明请参阅 [README_en.md](README_en.md)。
+
+## 安装依赖
+
+这两个 Session 接口从 `agentkit-sdk-python==0.8.7` 开始可用：
+
+```bash
+pip install -r python/01-tutorials/04-agentkit-tools/sandbox_snapshot_lifecycle/requirements.txt
+```
 
 ## 环境变量
 
@@ -22,7 +33,7 @@ export AGENTKIT_TOOL_ID=t-xxxxxxxx
 - `AGENTKIT_SESSION_TTL_SECONDS`：Session 和恢复后实例的生命周期，默认
   `28800` 秒（8 小时）。
 - `AGENTKIT_USER_SESSION_ID`：逻辑会话 ID；如果不指定，脚本 01 会自动生成。
-- `AGENTKIT_LIFECYCLE_STATE`：六个脚本共享的状态文件路径；默认使用当前目录的
+- `AGENTKIT_LIFECYCLE_STATE`：八个脚本共享的状态文件路径；默认使用当前目录的
   `.sandbox_snapshot_state.json`。
 - `AGENTKIT_WAIT_TIMEOUT_SECONDS`：等待资源就绪或删除完成的超时时间，默认 600 秒。
 - `AGENTKIT_POLL_INTERVAL_SECONDS`：状态轮询间隔，默认 5 秒。
@@ -34,12 +45,14 @@ export AGENTKIT_TOOL_ID=t-xxxxxxxx
 在仓库根目录依次执行：
 
 ```bash
-python scripts/sandbox_snapshot_lifecycle/01_create_session.py
-python scripts/sandbox_snapshot_lifecycle/02_create_snapshot.py
-python scripts/sandbox_snapshot_lifecycle/03_list_and_get_snapshot.py
-python scripts/sandbox_snapshot_lifecycle/04_delete_session.py
-python scripts/sandbox_snapshot_lifecycle/05_restore_from_snapshot.py
-python scripts/sandbox_snapshot_lifecycle/06_delete_snapshot.py
+python python/01-tutorials/04-agentkit-tools/sandbox_snapshot_lifecycle/01_create_session.py
+python python/01-tutorials/04-agentkit-tools/sandbox_snapshot_lifecycle/02_create_snapshot.py
+python python/01-tutorials/04-agentkit-tools/sandbox_snapshot_lifecycle/03_list_and_get_snapshot.py
+python python/01-tutorials/04-agentkit-tools/sandbox_snapshot_lifecycle/04_delete_session.py
+python python/01-tutorials/04-agentkit-tools/sandbox_snapshot_lifecycle/05_restore_from_snapshot.py
+python python/01-tutorials/04-agentkit-tools/sandbox_snapshot_lifecycle/06_delete_snapshot.py
+python python/01-tutorials/04-agentkit-tools/sandbox_snapshot_lifecycle/07_pause_session.py
+python python/01-tutorials/04-agentkit-tools/sandbox_snapshot_lifecycle/08_resume_session.py
 ```
 
 各脚本的作用：
@@ -56,10 +69,14 @@ python scripts/sandbox_snapshot_lifecycle/06_delete_snapshot.py
    异步终止状态，脚本会自动等待并重试。
 6. `06_delete_snapshot.py`：删除状态文件记录的快照，分页检查 Tool 下的快照列表，
    并等待目标快照彻底消失。该脚本不会删除脚本 05 恢复出来的沙箱实例。
+7. `07_pause_session.py`：暂停状态文件中的 Session，轮询 `GetSession`，直到 Session
+   进入 `Paused` 状态。该脚本也可以在脚本 01 之后直接运行。
+8. `08_resume_session.py`：恢复同一个 Session，校验实例 ID 不变，并等待 Session
+   重新进入 `Ready` 状态。
 
 ## 状态文件
 
-六个脚本通过 `.sandbox_snapshot_state.json` 传递 `tool_id`、逻辑会话 ID、沙箱
+八个脚本通过 `.sandbox_snapshot_state.json` 传递 `tool_id`、逻辑会话 ID、沙箱
 实例 ID 和快照 ID。该文件已加入 `.gitignore`，不会被提交到 Git。
 
 重复运行脚本 01 且不指定 `AGENTKIT_USER_SESSION_ID` 时，会生成新的逻辑会话 ID、

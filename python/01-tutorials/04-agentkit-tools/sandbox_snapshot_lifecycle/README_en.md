@@ -1,9 +1,21 @@
-# Sandbox snapshot lifecycle scripts
+# Sandbox session and snapshot lifecycle scripts
 
-These six scripts exercise the complete snapshot lifecycle in order. They use
-the repository's `agentkit.sdk.tools` client and never store AK/SK credentials.
-Signed endpoint `Authorization` query parameters are redacted before output or
-state persistence.
+These eight scripts exercise the complete sandbox session and snapshot lifecycle
+in order. They use the repository's `agentkit.sdk.tools` client and never store
+AK/SK credentials. Signed endpoint `Authorization` query parameters are redacted
+before output or state persistence.
+
+`PauseSession` / `ResumeSession` pause and resume the same Session.
+`ResumeSessionFromSnapshot` restores an instance from a snapshot and is a
+different API.
+
+## Install dependencies
+
+The two Session APIs are available in `agentkit-sdk-python==0.8.7`:
+
+```bash
+pip install -r python/01-tutorials/04-agentkit-tools/sandbox_snapshot_lifecycle/requirements.txt
+```
 
 ## Environment
 
@@ -34,12 +46,14 @@ Optional settings:
 Run these commands from the repository root:
 
 ```bash
-python scripts/sandbox_snapshot_lifecycle/01_create_session.py
-python scripts/sandbox_snapshot_lifecycle/02_create_snapshot.py
-python scripts/sandbox_snapshot_lifecycle/03_list_and_get_snapshot.py
-python scripts/sandbox_snapshot_lifecycle/04_delete_session.py
-python scripts/sandbox_snapshot_lifecycle/05_restore_from_snapshot.py
-python scripts/sandbox_snapshot_lifecycle/06_delete_snapshot.py
+python python/01-tutorials/04-agentkit-tools/sandbox_snapshot_lifecycle/01_create_session.py
+python python/01-tutorials/04-agentkit-tools/sandbox_snapshot_lifecycle/02_create_snapshot.py
+python python/01-tutorials/04-agentkit-tools/sandbox_snapshot_lifecycle/03_list_and_get_snapshot.py
+python python/01-tutorials/04-agentkit-tools/sandbox_snapshot_lifecycle/04_delete_session.py
+python python/01-tutorials/04-agentkit-tools/sandbox_snapshot_lifecycle/05_restore_from_snapshot.py
+python python/01-tutorials/04-agentkit-tools/sandbox_snapshot_lifecycle/06_delete_snapshot.py
+python python/01-tutorials/04-agentkit-tools/sandbox_snapshot_lifecycle/07_pause_session.py
+python python/01-tutorials/04-agentkit-tools/sandbox_snapshot_lifecycle/08_resume_session.py
 ```
 
 Script 05 sends `CreateNewInstance=false`. This asks the backend to restore the
@@ -50,3 +64,10 @@ they differ.
 Script 06 deletes the recorded snapshot, follows snapshot-list pagination, and
 waits until that snapshot no longer appears under the tool. It does not delete
 the sandbox instance restored by script 05.
+
+Script 07 calls `PauseSession` for the Session recorded in the state file and
+polls `GetSession` until its status becomes `Paused`. It can also run directly
+after script 01.
+
+Script 08 calls `ResumeSession` for the same Session, verifies that the returned
+instance ID is unchanged, and waits until the Session becomes `Ready` again.

@@ -24,7 +24,7 @@ AgentKit Tool Sandbox，因此收录在本教程分类下。
 安装 AgentKit Python SDK：
 
 ```bash
-pip install agentkit-sdk-python==0.8.1
+pip install agentkit-sdk-python==0.8.7
 ```
 
 也可以在当前目录通过 `requirements.txt` 安装：

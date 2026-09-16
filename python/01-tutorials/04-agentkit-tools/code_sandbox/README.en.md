@@ -25,7 +25,7 @@ The script follows this order:
 Install the AgentKit Python SDK:
 
 ```bash
-pip install agentkit-sdk-python==0.8.1
+pip install agentkit-sdk-python==0.8.7
 ```
 
 Or install from the requirements file in this directory:
