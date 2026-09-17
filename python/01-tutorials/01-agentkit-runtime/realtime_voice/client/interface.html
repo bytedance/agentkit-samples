@@ -164,7 +164,7 @@
     <script src="stream_manager.js"></script>
 
     <script>
-        // Initialize variables
+        // Local development only. Never hard-code AgentKit runtime API keys in this static client.
         const stream = new StreamManager('ws://localhost:8000');
         stream.maxReconnectAttempts = 0;
         let isRecording = false;
