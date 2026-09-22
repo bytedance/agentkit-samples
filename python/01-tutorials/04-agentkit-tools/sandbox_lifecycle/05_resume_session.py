@@ -25,7 +25,7 @@ def main() -> None:
     instance_id = require_string(state, "instance_id")
     if not state.get("paused_at"):
         raise RuntimeError(
-            "state does not show a paused session; run 03_pause_session.py first"
+            "state does not show a paused session; run 04_pause_session.py first"
         )
 
     client = new_client()

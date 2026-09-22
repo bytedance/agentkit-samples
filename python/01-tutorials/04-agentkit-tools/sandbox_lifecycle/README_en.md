@@ -1,6 +1,6 @@
 # Sandbox instance (Session) lifecycle scripts
 
-This directory contains five scripts for creating, querying, pausing, resuming,
+This directory contains six scripts for creating, querying, invoking, pausing, resuming,
 and deleting sessions. `02_list_and_get_session.py` is read-only.
 They use the AgentKit SDK's `agentkit.sdk.tools` client and
 never store AK/SK credentials. Signed endpoint `Authorization` query parameters
@@ -21,8 +21,8 @@ pip install -r python/01-tutorials/04-agentkit-tools/sandbox_lifecycle/requireme
 
 ## Environment
 
-Choose the configuration for the cloud hosting your sandbox. All five scripts
-share the same client configuration.
+Choose the configuration for the cloud hosting your sandbox. All six scripts
+share the same credentials and region configuration.
 
 **BytePlus:**
 
@@ -47,6 +47,8 @@ export AGENTKIT_TOOL_ID=t-xxxxxxxx
 The tool must belong to the selected cloud, account, and region.
 The SDK selects the service endpoint for that cloud automatically. BytePlus defaults to
 `https://agentkit.ap-southeast-1.byteplusapi.com` in Singapore.
+Volcengine's `InvokeTool` uses the separate data-plane endpoint
+`https://agentkit.<region>.volces.com`, which script 03 selects automatically.
 
 `AGENTKIT_CLOUD_PROVIDER` takes precedence over the compatible `CLOUD_PROVIDER`
 variable. When neither is set, the SDK uses its global cloud configuration,
@@ -58,11 +60,17 @@ For temporary credentials, also set `BYTEPLUS_SESSION_TOKEN` or
 Optional settings:
 
 - `AGENTKIT_SESSION_TTL_SECONDS`: TTL passed when script 01 creates a session;
-  defaults to `28800` (8 hours). Script 04 does not send a TTL when resuming.
+  defaults to `28800` (8 hours). Scripts 03 and 05 do not send a TTL when invoking
+  or resuming the session.
 - `AGENTKIT_USER_SESSION_ID`: logical session ID used only by script 01, which
   generates one when omitted.
 - `AGENTKIT_SESSION_ID`: instance ID used only by script 02; overrides
   the saved `instance_id`.
+- `AGENTKIT_INVOKE_CODE`: Python code executed by script 03; defaults to
+  `print('Hello from AgentKit sandbox!')`.
+- `AGENTKIT_INVOKE_TIMEOUT_SECONDS`: code execution timeout for script 03;
+  defaults to 30 seconds and must be a positive integer.
+- `AGENTKIT_INVOKE_KERNEL_NAME`: kernel used by script 03; defaults to `python3`.
 - `AGENTKIT_SANDBOX_TOOL_ID`: compatible alias for `AGENTKIT_TOOL_ID`; if both
   are set, they must match.
 - `AGENTKIT_LIFECYCLE_STATE`: shared state JSON path; defaults to
@@ -79,7 +87,8 @@ Optional settings:
   and its defaults.
 - `BYTEPLUS_AGENTKIT_HOST` or `VOLCENGINE_AGENTKIT_HOST`: optional service host
   override for the selected cloud. Use a hostname without `https://`; normally
-  no override is needed.
+  no override is needed. Script 03 also honors this override, so the host must
+  support `InvokeTool`; do not use Volcengine's general OpenAPI host for it.
 
 When switching clouds or regions, update the tool ID and select a separate state
 file with `AGENTKIT_LIFECYCLE_STATE`. Start lifecycle operations from script 01;
@@ -117,48 +126,83 @@ explicit nor a saved instance ID is available, the script only lists sessions
 and outputs `session: null`. Empty lists are valid; `GetSession` API errors are
 reported directly. Signed endpoints in both the list and details are redacted.
 
+## Run code in a session
+
+`03_invoke_session.py` calls [InvokeTool](https://docs.volcengine.com/docs/AgentKit/InvokeTool-Executescommandinatool?lang=zh)
+to execute Python code in the sandbox instance recorded in the state file.
+Create the instance with script 01 first and ensure it is ready. If it is paused,
+run script 05 to resume it before invoking script 03. The sandbox image must
+support the `/v1/jupyter/execute` interface used by `RunCode` and the selected
+Python kernel.
+
+The request sends `ToolId`, the saved `instance_id` as `SessionId`,
+`OperationType="RunCode"`, and a JSON-string `OperationPayload` containing
+`code`, `timeout`, and `kernel_name`. The script explicitly selects the existing
+`SessionId` and verifies that the response returns the same instance ID. It does
+not use `UserSessionId` to resolve or create an instance.
+
+Run from the repository root, optionally customizing the code:
+
+```bash
+export AGENTKIT_INVOKE_CODE="print(sum([1, 2, 3]))"
+python python/01-tutorials/04-agentkit-tools/sandbox_lifecycle/03_invoke_session.py
+```
+
+The script saves `invoked_at`, `invoke_response`, and `invoke_result`, parsing
+the returned `Result` JSON string for readable output. Standard output is
+typically found in `invoke_result.data.outputs`. API errors are reported directly.
+Execution results with `success: false` or `data.status: error` cause the script
+to exit with an error after saving and printing the result.
+
+SDK 0.8.7 does not provide a dedicated `InvokeTool` method. The script registers
+this action and reuses the SDK's signing, credential refresh, and API error
+handling without upgrading dependencies.
+
 ## Scripts and execution order
 
-The five scripts are:
+The six scripts are:
 
 | Script | Behavior |
 | --- | --- |
 | `01_create_session.py` | Create a session with an eight-hour default TTL, wait until it is ready, and save the instance ID. |
 | `02_list_and_get_session.py` | List all session pages and get the selected instance's details; read-only. |
-| `03_pause_session.py` | Pause the saved session, wait for `Paused`, and record `paused_at`. |
-| `04_resume_session.py` | Require `paused_at`, resume the same session, verify the instance ID, and wait until it is ready. |
-| `05_delete_session.py` | Call `DeleteSession` using the tool ID and saved `instance_id`, then save the response without waiting for backend deletion. |
+| `03_invoke_session.py` | Execute Python code in the existing session through `InvokeTool`, verify the instance ID, and save the result. |
+| `04_pause_session.py` | Pause the saved session, wait for `Paused`, and record `paused_at`. |
+| `05_resume_session.py` | Require `paused_at`, resume the same session, verify the instance ID, and wait until it is ready. |
+| `06_delete_session.py` | Call `DeleteSession` using the tool ID and saved `instance_id`, then save the response without waiting for backend deletion. |
 
-To verify pause and resume, run **01 → 02 → 03 → 04 → 02**: create and query,
-pause and resume, then query the result. Use script 05 for cleanup after this
-verification.
+To verify invocation, pause, and resume, run **01 → 02 → 03 → 04 → 05 → 02 → 03**:
+create, query, and invoke the session, pause and resume it, then query and invoke
+the resumed instance again. Use script 06 for cleanup after this verification.
 
 Run from the repository root:
 
 ```bash
 python python/01-tutorials/04-agentkit-tools/sandbox_lifecycle/01_create_session.py
 python python/01-tutorials/04-agentkit-tools/sandbox_lifecycle/02_list_and_get_session.py
-python python/01-tutorials/04-agentkit-tools/sandbox_lifecycle/03_pause_session.py
-python python/01-tutorials/04-agentkit-tools/sandbox_lifecycle/04_resume_session.py
+python python/01-tutorials/04-agentkit-tools/sandbox_lifecycle/03_invoke_session.py
+python python/01-tutorials/04-agentkit-tools/sandbox_lifecycle/04_pause_session.py
+python python/01-tutorials/04-agentkit-tools/sandbox_lifecycle/05_resume_session.py
 python python/01-tutorials/04-agentkit-tools/sandbox_lifecycle/02_list_and_get_session.py
+python python/01-tutorials/04-agentkit-tools/sandbox_lifecycle/03_invoke_session.py
 ```
 
 Clean up the instance recorded in the state file with this command:
 
 ```bash
-python python/01-tutorials/04-agentkit-tools/sandbox_lifecycle/05_delete_session.py
+python python/01-tutorials/04-agentkit-tools/sandbox_lifecycle/06_delete_session.py
 ```
 
 ## State file
 
 The default state file is `.sandbox_state.json` in this directory. It
 stores `tool_id`, `user_session_id`, `instance_id`, lifecycle timestamps, and API
-responses. Scripts 01, 03, 04, and 05 write state; script 02 only reads it. The
+responses. Scripts 01, 03, 04, 05, and 06 write state; script 02 only reads it. The
 repository's root `.gitignore` ignores this filename. If `AGENTKIT_LIFECYCLE_STATE`
 selects a different filename, its ignore behavior depends on the Git rules for
 that path.
 
-Scripts 03, 04, and 05 select the instance using the saved `instance_id`; neither
+Scripts 03, 04, 05, and 06 select the instance using the saved `instance_id`; neither
 `AGENTKIT_USER_SESSION_ID` nor `AGENTKIT_SESSION_ID` changes their target.
 
 Running script 01 again without `AGENTKIT_USER_SESSION_ID` generates a new
