@@ -1,0 +1,7 @@
+agentkit-sdk-python==0.8.1
+google-adk==2.2.0
+tos==2.8.7
+veadk-python==1.1.2
+volcengine-python-sdk[ark]==5.0.45
+json-repair==0.63.2
+python-dotenv==1.2.2
