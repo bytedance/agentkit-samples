@@ -1,0 +1,209 @@
+# 沙箱实例 (Session) 生命周期 HTTP 示例
+
+本目录包含六个不依赖 `agentkit.sdk` 的脚本，覆盖 Session 的创建、查询、调用、暂停、恢复和
+删除。其中 `02_list_and_get_session.py` 是只读查询脚本。脚本直接调用 AgentKit Tools
+OpenAPI，通过本目录内的 `_http_client.py` 完成 HTTP 请求、HMAC-SHA256 签名、错误解析和
+基础重试。带签名的 endpoint 中如果包含 `Authorization` 查询参数，脚本会在输出或保存
+状态前自动脱敏。
+
+这套脚本与 `../sandbox_lifecycle` 的 SDK 示例并行存在，运行顺序和状态文件语义保持
+一致。
+
+`InvokeTool` 用于在已有 Session 中执行代码；`PauseSession` / `ResumeSession` 用于暂停和恢复同一个 Session。
+
+英文说明请参阅 [README_en.md](README_en.md)。
+
+## 安装依赖
+
+需要 Python 3.10 或更高版本。在仓库根目录安装：
+
+```bash
+pip install -r python/01-tutorials/04-agentkit-tools/sandbox_lifecycle_http/requirements.txt
+```
+
+## 火山站点配置
+
+火山站点是默认站点；也可以显式设置：
+
+```bash
+export AGENTKIT_CLOUD_PROVIDER=volcengine
+export VOLCENGINE_ACCESS_KEY=<your-access-key>
+export VOLCENGINE_SECRET_KEY=<your-secret-key>
+export AGENTKIT_TOOL_ID=t-xxxxxxxx
+```
+
+兼容旧变量名：
+
+- `VOLC_ACCESSKEY`
+- `VOLC_SECRETKEY`
+- `VOLC_SESSIONTOKEN`
+- `VOLC_REGION`
+
+可选配置：
+
+- `VOLCENGINE_SESSION_TOKEN`：STS 临时凭证 token。
+- `VOLCENGINE_AGENTKIT_REGION` 或 `AGENTKIT_REGION`：AgentKit OpenAPI 签名地域，
+  默认 `cn-beijing`。
+- `VOLCENGINE_AGENTKIT_HOST`：自定义 OpenAPI host，默认 `open.volcengineapi.com`。
+- `VOLCENGINE_AGENTKIT_SERVICE`：签名 service，默认 `agentkit`。
+- `VOLCENGINE_AGENTKIT_API_VERSION`：OpenAPI 版本，默认 `2025-10-30`。
+- `VOLCENGINE_AGENTKIT_SCHEME`：请求协议，默认 `https`。
+
+## BytePlus 站点配置
+
+```bash
+export AGENTKIT_CLOUD_PROVIDER=byteplus
+export BYTEPLUS_ACCESS_KEY=<your-access-key>
+export BYTEPLUS_SECRET_KEY=<your-secret-key>
+export AGENTKIT_TOOL_ID=t-xxxxxxxx
+```
+
+可选配置：
+
+- `BYTEPLUS_SESSION_TOKEN`：STS 临时凭证 token。
+- `BYTEPLUS_AGENTKIT_REGION`、`AGENTKIT_REGION` 或 `BYTEPLUS_REGION`：AgentKit
+  OpenAPI 签名地域，默认 `ap-southeast-1`。
+- `BYTEPLUS_AGENTKIT_HOST`：自定义 OpenAPI host，默认
+  `agentkit.<region>.byteplusapi.com`。
+- `BYTEPLUS_AGENTKIT_SERVICE`：签名 service，默认 `agentkit`。
+- `BYTEPLUS_AGENTKIT_API_VERSION`：OpenAPI 版本，默认 `2025-10-30`。
+- `BYTEPLUS_AGENTKIT_SCHEME`：请求协议，默认 `https`。
+
+## 生命周期参数
+
+- `AGENTKIT_SESSION_TTL_SECONDS`：脚本 01 创建 Session 时的生命周期，默认 `28800`
+  秒（8 小时）；脚本 03 调用和脚本 05 恢复时不传入 TTL。
+- `AGENTKIT_USER_SESSION_ID`：仅供脚本 01 使用的逻辑会话 ID；未指定时自动生成。
+- `AGENTKIT_SESSION_ID`：仅供脚本 02 使用的实例 ID，优先于状态文件中的
+  `instance_id`。
+- `AGENTKIT_INVOKE_CODE`：脚本 03 执行的 Python 代码，默认
+  `print('Hello from AgentKit sandbox!')`。
+- `AGENTKIT_INVOKE_TIMEOUT_SECONDS`：脚本 03 的代码执行超时，默认 30 秒，必须为正整数。
+- `AGENTKIT_INVOKE_KERNEL_NAME`：脚本 03 使用的内核，默认 `python3`。
+- `AGENTKIT_SANDBOX_TOOL_ID`：`AGENTKIT_TOOL_ID` 的兼容变量；同时设置时，两者必须一致。
+- `AGENTKIT_LIFECYCLE_STATE`：共享状态文件路径；默认是脚本所在目录中的
+  `.sandbox_state.json`，不是运行命令时所在的目录。查询脚本只读取该文件。
+- `AGENTKIT_WAIT_TIMEOUT_SECONDS`：创建、暂停和恢复时的状态等待超时，默认 600 秒；
+  删除脚本不轮询删除状态。
+- `AGENTKIT_POLL_INTERVAL_SECONDS`：状态轮询间隔，默认 5 秒。
+- `AGENTKIT_HTTP_TIMEOUT_SECONDS`：单次 HTTP 请求超时，默认 30 秒。
+- `AGENTKIT_HTTP_RETRIES`：连接错误、HTTP 429 和 HTTP 503 的重试次数，默认 2。
+
+切换云平台或区域时，请同步更换 Tool ID，并通过 `AGENTKIT_LIFECYCLE_STATE` 指定
+不同的状态文件。生命周期操作从脚本 01 开始；查询已有 Session 无需创建新实例。
+
+## 查询 Session 列表与详情
+
+`02_list_and_get_session.py` 分页调用 `ListSessions`，输出当前 Tool 下的全部 Session，
+再调用 `GetSession` 查询指定实例的详情。脚本只读取云端资源和本地状态，不修改状态文件。
+
+在仓库根目录运行：
+
+```bash
+pip install -r python/01-tutorials/04-agentkit-tools/sandbox_lifecycle_http/requirements.txt
+python python/01-tutorials/04-agentkit-tools/sandbox_lifecycle_http/02_list_and_get_session.py
+```
+
+默认读取本目录状态文件中的 `tool_id` 和 `instance_id`，也支持
+`AGENTKIT_LIFECYCLE_STATE` 指定状态文件。可以在创建、暂停或恢复 Session 后执行。
+
+也可以通过环境变量指定查询目标，无需先运行创建脚本：
+
+```bash
+export AGENTKIT_TOOL_ID=t-xxxxxxxx
+export AGENTKIT_SESSION_ID="<SessionId>"
+python python/01-tutorials/04-agentkit-tools/sandbox_lifecycle_http/02_list_and_get_session.py
+```
+
+`AGENTKIT_SESSION_ID` 优先于状态文件中的 `instance_id`，填写 API 返回的实例
+`SessionId`，不是逻辑会话 `UserSessionId`。Tool ID 沿用环境变量与状态文件的一致性检查。
+如果没有指定实例 ID，且状态文件中也没有 `instance_id`，则只列出 Session，输出中的
+`session` 为 `null`。空列表正常输出，`GetSession` 返回的 API 错误会直接报告。列表和
+详情中的带签名 endpoint 都会自动脱敏。
+
+## 调用 Session 执行代码
+
+`03_invoke_session.py` 调用 `InvokeTool`，在状态文件记录的沙箱实例中执行 Python 代码。
+请先运行脚本 01 创建实例，并确保实例已就绪；暂停后应先运行脚本 05 恢复，再调用脚本
+03。沙箱镜像需要支持 `RunCode` 对应的 `/v1/jupyter/execute` 接口和所选 Python 内核。
+
+请求传入 `ToolId`、状态中的 `instance_id`（作为 `SessionId`）、
+`OperationType="RunCode"`，以及 JSON 字符串形式的 `OperationPayload`，其中包含
+`code`、`timeout` 和 `kernel_name`。本示例显式传入已有 `SessionId`，并校验返回的
+实例 ID 一致；不通过 `UserSessionId` 查找或创建新实例。
+
+在仓库根目录运行，也可以自定义要执行的代码：
+
+```bash
+export AGENTKIT_INVOKE_CODE="print(sum([1, 2, 3]))"
+python python/01-tutorials/04-agentkit-tools/sandbox_lifecycle_http/03_invoke_session.py
+```
+
+脚本保存 `invoked_at`、`invoke_response` 和 `invoke_result`，并将返回的 `Result`
+JSON 字符串解析为可读结果；标准输出通常位于 `invoke_result.data.outputs`。API 错误
+直接报告；代码执行结果中的 `success: false` 或 `data.status: error` 会在保存和打印
+结果后报错退出。
+
+## 脚本与运行顺序
+
+六个脚本的作用如下：
+
+| 脚本 | 作用 |
+| --- | --- |
+| `01_create_session.py` | 创建 Session，默认 TTL 为 8 小时；等待就绪并保存实例 ID。 |
+| `02_list_and_get_session.py` | 分页列出 Session，查询指定实例详情；只读操作。 |
+| `03_invoke_session.py` | 通过 `InvokeTool` 在已有 Session 中执行 Python 代码，校验实例 ID 并保存执行结果。 |
+| `04_pause_session.py` | 暂停状态文件中的 Session，等待 `Paused` 并记录 `paused_at`。 |
+| `05_resume_session.py` | 要求状态文件中有 `paused_at`，恢复同一个 Session，校验实例 ID 不变并等待就绪。 |
+| `06_delete_session.py` | 根据 Tool ID 和状态中的 `instance_id` 调用 `DeleteSession` 并保存响应，不等待后台删除完成。 |
+
+验证调用、暂停和恢复时，按 **01 → 02 → 03 → 04 → 05 → 02 → 03** 执行：先创建、
+查询和调用，再暂停、恢复，最后查询并再次调用恢复后的实例。脚本 06 是删除操作，
+放在完成验证后清理资源时使用。
+
+在仓库根目录执行：
+
+```bash
+python python/01-tutorials/04-agentkit-tools/sandbox_lifecycle_http/01_create_session.py
+python python/01-tutorials/04-agentkit-tools/sandbox_lifecycle_http/02_list_and_get_session.py
+python python/01-tutorials/04-agentkit-tools/sandbox_lifecycle_http/03_invoke_session.py
+python python/01-tutorials/04-agentkit-tools/sandbox_lifecycle_http/04_pause_session.py
+python python/01-tutorials/04-agentkit-tools/sandbox_lifecycle_http/05_resume_session.py
+python python/01-tutorials/04-agentkit-tools/sandbox_lifecycle_http/02_list_and_get_session.py
+python python/01-tutorials/04-agentkit-tools/sandbox_lifecycle_http/03_invoke_session.py
+```
+
+执行以下命令清理状态文件记录的实例：
+
+```bash
+python python/01-tutorials/04-agentkit-tools/sandbox_lifecycle_http/06_delete_session.py
+```
+
+## HTTP 请求形态
+
+所有接口都使用 `POST /?Action=<Action>&Version=2025-10-30`，请求 body 使用
+PascalCase JSON 字段，例如：
+
+```json
+{
+  "ToolId": "t-xxxxxxxx",
+  "Ttl": 28800,
+  "TtlUnit": "second",
+  "UserSessionId": "session-demo-xxxx"
+}
+```
+
+响应中的业务数据来自 `Result` 字段；如果 `ResponseMetadata.Error` 存在，HTTP client
+会抛出异常并包含 action、错误码和错误信息。
+
+## 状态文件
+
+默认状态文件是本目录下的 `.sandbox_state.json`，保存 `tool_id`、`user_session_id`、
+`instance_id`、生命周期时间和 API 响应。脚本 01、03、04、05、06 会写入状态，脚本 02
+只读取。该文件已在本目录 `.gitignore` 中忽略，不会被提交到 Git。
+
+脚本 03、04、05、06 根据状态文件中的 `instance_id` 操作实例，不读取
+`AGENTKIT_USER_SESSION_ID` 或 `AGENTKIT_SESSION_ID` 来选择目标。
+
+重复运行脚本 01 且不指定 `AGENTKIT_USER_SESSION_ID` 时，会生成新的逻辑会话 ID、
+创建新的沙箱实例并覆盖状态文件；之前创建的实例不会被自动删除。
