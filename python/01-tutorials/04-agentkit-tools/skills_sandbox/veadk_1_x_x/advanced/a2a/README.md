@@ -40,7 +40,7 @@ Session 的 `/a2a` 接口发送消息并轮询任务结果。
 在 `veadk_1_x_x` 目录中执行：
 
 ```bash
-uv run --with agentkit-sdk-python==0.8.7 \
+uv run --with agentkit-sdk-python==0.8.0 \
   python3 advanced/a2a/direct_sandbox_a2a_invoke.py \
   --tool-id {{your_tool_id}} \
   --session-id skill-demo-1 \
@@ -55,7 +55,7 @@ uv run --with agentkit-sdk-python==0.8.7 \
 ```bash
 export MODEL_AGENT_API_KEY="{{your_model_api_key}}"
 
-uv run --with agentkit-sdk-python==0.8.7 \
+uv run --with agentkit-sdk-python==0.8.0 \
   python3 advanced/a2a/direct_sandbox_a2a_invoke.py \
   --sandbox-profile skill-env \
   --tool-id {{your_tool_id}} \

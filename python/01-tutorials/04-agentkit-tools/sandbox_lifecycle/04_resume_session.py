@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pause the sandbox session recorded in the lifecycle state."""
+"""Resume the paused sandbox session and wait until it is ready again."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from _common import (
     save_state,
     state_path,
     utc_now,
-    wait_for_paused_session,
+    wait_for_session,
 )
 
 
@@ -23,36 +23,38 @@ def main() -> None:
     state = load_state()
     tool_id = resolve_tool_id(state)
     instance_id = require_string(state, "instance_id")
-    client = new_client()
+    if not state.get("paused_at"):
+        raise RuntimeError(
+            "state does not show a paused session; run 03_pause_session.py first"
+        )
 
-    response = client.pause_session(
-        tools_types.PauseSessionRequest(
+    client = new_client()
+    response = client.resume_session(
+        tools_types.ResumeSessionRequest(
             tool_id=tool_id,
             session_id=instance_id,
         )
     )
-    response_session_id = (
-        getattr(response, "session_id", None) or instance_id
-    ).strip()
+    response_session_id = (getattr(response, "session_id", None) or instance_id).strip()
     if response_session_id != instance_id:
         raise RuntimeError(
-            f"PauseSession returned unexpected SessionId {response_session_id}; "
+            f"ResumeSession returned unexpected SessionId {response_session_id}; "
             f"expected {instance_id}"
         )
 
     state.update(
         {
-            "pause_requested_at": utc_now(),
-            "pause_response": model_to_dict(response),
+            "resume_requested_at": utc_now(),
+            "resume_session_response": model_to_dict(response),
         }
     )
     save_state(state)
 
-    session = wait_for_paused_session(client, tool_id, instance_id)
+    session = wait_for_session(client, tool_id, instance_id)
     state.update(
         {
-            "paused_at": utc_now(),
-            "paused_session": model_to_dict(session),
+            "resumed_at": utc_now(),
+            "resumed_session": model_to_dict(session),
         }
     )
     save_state(state)

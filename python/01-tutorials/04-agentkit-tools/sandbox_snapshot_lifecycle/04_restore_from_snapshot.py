@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Restore the deleted sandbox from its snapshot with the same instance ID."""
+"""Restore the sandbox with the same instance ID after its lifecycle ends.
+
+Let the original session expire naturally. DeleteSession also deletes its
+snapshots, so it must only be used for final cleanup in step 06.
+"""
 
 from __future__ import annotations
 
@@ -26,8 +30,11 @@ def main() -> None:
     tool_id = resolve_tool_id(state)
     snapshot_id = require_string(state, "snapshot_id")
     original_instance_id = require_string(state, "instance_id")
-    if not state.get("deleted_at"):
-        raise RuntimeError("state does not show a completed delete; run 04 first")
+    if state.get("deleted_at") or state.get("snapshot_deleted_at"):
+        raise RuntimeError(
+            "the session or snapshot has already been deleted; "
+            "start a new lifecycle from 01_create_session.py"
+        )
 
     ttl = ttl_seconds()
     client = new_client()
@@ -37,10 +44,18 @@ def main() -> None:
         ttl=ttl,
         create_new_instance=False,
     )
+    # The backend decides when restoration is allowed. An active instance or
+    # one still terminating after TTL expiry cannot be restored yet.
     response = retry_on_exception(
-        f"instance {original_instance_id} to finish terminating",
+        f"session {original_instance_id} to expire and finish terminating",
         lambda: client.resume_session_from_snapshot(request),
-        lambda exc: "InvalidSnapshot.InstanceTerminating" in str(exc),
+        lambda exc: any(
+            code in str(exc)
+            for code in (
+                "InvalidSnapshot.InstanceAlreadyExists",
+                "InvalidSnapshot.InstanceTerminating",
+            )
+        ),
     )
     restored_instance_id = (response.session_id or "").strip()
     if not restored_instance_id:

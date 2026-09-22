@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create a sandbox session with a configurable TTL and record its instance ID."""
+"""Create an eight-hour sandbox session and record its instance ID."""
 
 from __future__ import annotations
 
@@ -26,16 +26,9 @@ def main() -> None:
     ttl = ttl_seconds()
     user_session_id = os.getenv("AGENTKIT_USER_SESSION_ID", "").strip()
     if not user_session_id:
-        user_session_id = f"snapshot-demo-{uuid.uuid4().hex[:16]}"
+        user_session_id = f"session-demo-{uuid.uuid4().hex[:16]}"
 
     client = new_client()
-    tool = client.get_tool(tools_types.GetToolRequest(tool_id=tool_id))
-    if tool.enable_snapshot is not True:
-        raise RuntimeError(
-            f"tool {tool_id} does not have EnableSnapshot=true; "
-            "snapshots cannot be created for this tool"
-        )
-
     response = client.create_session(
         tools_types.CreateSessionRequest(
             tool_id=tool_id,

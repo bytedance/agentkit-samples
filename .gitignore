@@ -64,6 +64,9 @@ coverage.xml
 .pytest_cache/
 cover/
 
+.sandbox_*.json
+.sandbox_*.json.tmp
+
 # Translations
 *.mo
 *.pot

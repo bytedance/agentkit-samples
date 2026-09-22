@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Delete the session's sandbox instance while retaining its snapshot."""
+"""Delete the sandbox session recorded in the lifecycle state."""
 
 from __future__ import annotations
 
@@ -22,7 +22,6 @@ def main() -> None:
     state = load_state()
     tool_id = resolve_tool_id(state)
     instance_id = require_string(state, "instance_id")
-    require_string(state, "snapshot_id")
     client = new_client()
 
     response = client.delete_session(

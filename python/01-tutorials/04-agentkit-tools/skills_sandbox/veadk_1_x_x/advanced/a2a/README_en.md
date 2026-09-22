@@ -45,7 +45,7 @@ Notes:
 Run this command from the `veadk_1_x_x` directory:
 
 ```bash
-uv run --with agentkit-sdk-python==0.8.7 \
+uv run --with agentkit-sdk-python==0.8.0 \
   python3 advanced/a2a/direct_sandbox_a2a_invoke.py \
   --tool-id {{your_tool_id}} \
   --session-id skill-demo-1 \
@@ -60,7 +60,7 @@ pass any `--model-*` arguments for this profile.
 ```bash
 export MODEL_AGENT_API_KEY="{{your_model_api_key}}"
 
-uv run --with agentkit-sdk-python==0.8.7 \
+uv run --with agentkit-sdk-python==0.8.0 \
   python3 advanced/a2a/direct_sandbox_a2a_invoke.py \
   --sandbox-profile skill-env \
   --tool-id {{your_tool_id}} \

@@ -60,10 +60,6 @@ Codex / Hermes / OpenClaw 工作区
 Tool 的 `Ready` 只表示它可以用于创建 Session，不代表某个 Session 已经可访问；Situla 会继续
 检查 Session 状态，并仅在 Session 就绪且返回 Endpoint 后进入运行时工作区。
 
-控制面客户端还实现了 `pauseSession` 与 `resumeSession`，分别调用平台的
-`PauseSession` 和 `ResumeSession`；它们恢复的是同一个 Session，不等同于
-`ResumeSessionFromSnapshot`。当前 Admin UI 尚未提供暂停和恢复按钮。
-
 ### 安装后能直接用吗？
 
 > [!IMPORTANT]

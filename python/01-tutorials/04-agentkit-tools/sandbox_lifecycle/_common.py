@@ -1,4 +1,4 @@
-"""Shared helpers for the sandbox snapshot lifecycle example scripts."""
+"""Shared helpers for the sandbox session lifecycle example scripts."""
 
 from __future__ import annotations
 
@@ -60,7 +60,7 @@ def state_path() -> Path:
     configured = os.getenv(STATE_FILE_ENV, "").strip()
     if configured:
         return Path(configured).expanduser().resolve()
-    return Path(__file__).with_name(".sandbox_snapshot_state.json")
+    return Path(__file__).with_name(".sandbox_state.json")
 
 
 def load_state() -> dict[str, Any]:
@@ -178,33 +178,6 @@ def wait_until(
         time.sleep(interval)
 
 
-def retry_on_exception(
-    description: str,
-    call: Callable[[], _T],
-    retryable: Callable[[Exception], bool],
-) -> _T:
-    """Retry an API call while the backend reports a known transition state."""
-    timeout = positive_int_env(
-        "AGENTKIT_WAIT_TIMEOUT_SECONDS", DEFAULT_WAIT_TIMEOUT_SECONDS
-    )
-    interval = positive_int_env(
-        "AGENTKIT_POLL_INTERVAL_SECONDS", DEFAULT_POLL_INTERVAL_SECONDS
-    )
-    deadline = time.monotonic() + timeout
-    while True:
-        try:
-            return call()
-        except Exception as exc:
-            if not retryable(exc):
-                raise
-            if time.monotonic() >= deadline:
-                raise TimeoutError(
-                    f"timed out after {timeout}s waiting for {description}"
-                ) from exc
-            print(f"Waiting for {description}; retrying in {interval}s...")
-            time.sleep(interval)
-
-
 def normalized_status(value: Any) -> str:
     status = getattr(value, "status", None)
     return status.strip().lower() if isinstance(status, str) else ""
@@ -229,48 +202,44 @@ def wait_for_session(
     )
 
 
-def wait_for_snapshot(
-    client: AgentkitToolsClient, tool_id: str, snapshot_id: str
-) -> tools_types.GetSessionSnapshotResponse:
-    ready = {"ready", "available", "completed", "succeeded", "success"}
-    failed = {"failed", "error", "deleted"}
+def wait_for_paused_session(
+    client: AgentkitToolsClient, tool_id: str, session_id: str
+) -> tools_types.GetSessionResponse:
+    """Wait until a PauseSession request leaves the session paused."""
+    failed = {"failed", "error", "deleted", "terminated"}
 
-    def fetch() -> tools_types.GetSessionSnapshotResponse:
-        return client.get_session_snapshot(
-            tools_types.GetSessionSnapshotRequest(
-                tool_id=tool_id, snapshot_id=snapshot_id
-            )
+    def fetch() -> tools_types.GetSessionResponse:
+        return client.get_session(
+            tools_types.GetSessionRequest(tool_id=tool_id, session_id=session_id)
         )
 
     return wait_until(
-        f"snapshot {snapshot_id} to become ready",
+        f"session {session_id} to become paused",
         fetch,
-        lambda value: normalized_status(value.snapshot) in ready,
-        lambda value: normalized_status(value.snapshot) in failed,
+        lambda value: normalized_status(value) == "paused",
+        lambda value: normalized_status(value) in failed,
     )
 
 
-def list_all_snapshots(
+def list_all_sessions(
     client: AgentkitToolsClient, tool_id: str
 ) -> list[dict[str, Any]]:
-    """List every snapshot under a tool, following NextToken pagination."""
-    snapshots: list[dict[str, Any]] = []
+    """List every session under a tool, following NextToken pagination."""
+    sessions: list[dict[str, Any]] = []
     next_token: str | None = None
     seen_tokens: set[str] = set()
     while True:
-        response = client.list_session_snapshots(
-            tools_types.ListSessionSnapshotsRequest(
+        response = client.list_sessions(
+            tools_types.ListSessionsRequest(
                 tool_id=tool_id,
                 max_results=100,
                 next_token=next_token,
             )
         )
-        snapshots.extend(model_to_dict(item) for item in response.snapshots or [])
+        sessions.extend(model_to_dict(item) for item in response.session_infos or [])
         next_token = (response.next_token or "").strip() or None
         if not next_token:
-            return snapshots
+            return sessions
         if next_token in seen_tokens:
-            raise RuntimeError(
-                f"ListSessionSnapshots repeated NextToken {next_token!r}"
-            )
+            raise RuntimeError(f"ListSessions repeated NextToken {next_token!r}")
         seen_tokens.add(next_token)

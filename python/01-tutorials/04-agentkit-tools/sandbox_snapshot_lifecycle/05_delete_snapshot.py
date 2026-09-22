@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Delete the lifecycle snapshot and confirm it disappears from the tool."""
+"""Delete the snapshot after restoration, leaving the restored session intact."""
 
 from __future__ import annotations
 
