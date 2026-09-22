@@ -31,7 +31,9 @@ def main() -> None:
             session_id=instance_id,
         )
     )
-    response_session_id = (getattr(response, "session_id", None) or instance_id).strip()
+    response_session_id = (
+        getattr(response, "session_id", None) or instance_id
+    ).strip()
     if response_session_id != instance_id:
         raise RuntimeError(
             f"PauseSession returned unexpected SessionId {response_session_id}; "
