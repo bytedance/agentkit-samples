@@ -45,6 +45,10 @@ AgentKit 代码工坊为让您快速上手 AgentKit 平台，提供了不同入�
 | [`电商营销视频生成`](https://github.com/bytedance/agentkit-samples/tree/main/python/02-use-cases/ad_video_gen_a2a)                            | ![label](https://img.shields.io/badge/%E4%B8%93%E5%AE%B6-CD5C5C) | 基于A2A构建的多智能体电商营销视频生成示例，展示如何利用A2A以及图片、视频生成工具进行智能视频内容创作              |
 | [`运行skills的智能体`](https://github.com/bytedance/agentkit-samples/tree/main/python/01-tutorials/04-agentkit-tools/skills_sandbox)                            | ![label](https://img.shields.io/badge/%E4%B8%93%E5%AE%B6-CD5C5C) | 基于 AgentKit & VeADK & sandbox 构建可以运行 skills 的智能体 |
 | [`混合云企业智能客服`](https://github.com/bytedance/agentkit-samples/tree/main/python/02-use-cases/hybrid_cloud_customer_service) | ![label](https://img.shields.io/badge/%E4%B8%93%E5%AE%B6-CD5C5C) | 展示混合云部署、知识、记忆、工具、安全、可观测与多 Agent 协同的完整故事线 |
+| [`电商营销视频（BytePlus 版）`](https://github.com/bytedance/agentkit-samples/tree/main/python/02-use-cases/ad_video_gen_bp) | ![label](https://img.shields.io/badge/%E6%99%AE%E9%80%9A-008000) | ad_video_gen 的 BytePlus 平台适配版：单智能体电商营销视频生成 |
+| [`电商营销视频流水线（BytePlus 版）`](https://github.com/bytedance/agentkit-samples/tree/main/python/02-use-cases/ad_video_gen_seq_bp) | ![label](https://img.shields.io/badge/%E8%BF%9B%E9%98%B6-CD853F) | ad_video_gen_seq 的 BytePlus 平台适配版：顺序多智能体营销视频流水线 |
+| [`漫剧视频生成（BytePlus 版）`](https://github.com/bytedance/agentkit-samples/tree/main/python/02-use-cases/comic_drama_gen_bp) | ![label](https://img.shields.io/badge/%E8%BF%9B%E9%98%B6-CD853F) | comic_drama_gen 的 BytePlus 平台适配版：故事创意生成完整漫剧视频 |
+| [`绘本故事视频生成（BytePlus 版）`](https://github.com/bytedance/agentkit-samples/tree/main/python/02-use-cases/video_gen_bp) | ![label](https://img.shields.io/badge/%E8%BF%9B%E9%98%B6-CD853F) | video_gen 的 BytePlus 平台适配版：童话故事生成绘本插画与分镜视频 |
 
 每个用例都包含完整的实现，并详细说明如何结合 AgentKit 组件构建应用。
 
