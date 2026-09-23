@@ -31,10 +31,13 @@ import signal
 import subprocess
 import sys
 import threading
+import uuid
 from typing import Any, Dict, List, Mapping, Optional, Sequence, TextIO, Tuple
 from urllib import parse, request
 
-from analytics import AnalyticsError, build_report
+from action_contracts import PUBLIC_QUERY_ACTIONS
+import batch_confirmation
+import runtime_environment
 from api_client import (
     LOGIN_PROCESS_LEASE_SECONDS,
     SmsApiClient,
@@ -42,6 +45,7 @@ from api_client import (
     emit_json,
     prepare_cli_process_environment,
     select_cli_auth_home,
+    ve_login_flow,
 )
 from qualification_display import qualification_display_adapter
 from qualification_upload import QualificationUploadError
@@ -49,6 +53,7 @@ from qualification_wizard import run_qualification_wizard
 
 
 PROCESS_TERMINATION_GRACE_SECONDS = 5
+MESSAGE_GROUP_ID_HELP = "消息组 ID，取 list-message-groups 返回的 SubAccount"
 
 
 class CliError(ValueError):
@@ -192,46 +197,6 @@ def _items(envelope: Mapping[str, Any]) -> List[Mapping[str, Any]]:
     return [value for value in values if isinstance(value, Mapping)]
 
 
-def _is_approved(value: Any) -> bool:
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, int):
-        return value in (3, 5)
-    return str(value).strip().lower() in {
-        "3",
-        "5",
-        "approved",
-        "passed",
-        "success",
-        "completed",
-        "no_review",
-        "no-review",
-        "审核通过",
-        "免审",
-    }
-
-
-def _is_template_signature_usable(item: Mapping[str, Any]) -> bool:
-    value = item.get("usable")
-    if value is None:
-        value = item.get("Usable")
-    return value is None or value is True
-
-
-def _channels(item: Mapping[str, Any]) -> set:
-    values = item.get("ChannelTypes")
-    if values is None:
-        values = item.get("channelTypes")
-    if values is None:
-        single = item.get("ChannelType")
-        if single is None:
-            single = item.get("channelType")
-        values = [single] if single else []
-    if isinstance(values, str):
-        values = [part for part in values.split(",") if part]
-    return {str(value) for value in values}
-
-
 def _require_query_success(envelope: Mapping[str, Any]) -> None:
     if not envelope.get("success"):
         error_value = envelope.get("error")
@@ -259,6 +224,7 @@ def _require_query_success(envelope: Mapping[str, Any]) -> None:
                 if envelope.get("request_id") is not None
                 else None
             ),
+            log_id=envelope.get("log_id"),
             retryable=(
                 bool(error_value.get("retryable"))
                 if isinstance(error_value, Mapping)
@@ -273,117 +239,7 @@ def _require_query_success(envelope: Mapping[str, Any]) -> None:
         )
 
 
-def _validate_signature_resources(
-    client: SmsApiClient,
-    qualification_id: int,
-    purpose: int,
-    sub_accounts: Sequence[str],
-    channel_types: Sequence[str],
-) -> List[Dict[str, str]]:
-    qualification = client.call(
-        "GetSignatureIdentificationList",
-        {"id": qualification_id, "pageIndex": 1, "pageSize": 100},
-    )
-    _require_query_success(qualification)
-    matched = [
-        item
-        for item in _items(qualification)
-        if str(item.get("id")) == str(qualification_id)
-    ]
-    if not matched:
-        raise CliError("qualification is unavailable; apply for it in the SMS console")
-    selected = matched[0]
-    if not selected.get("usable") or not _is_approved(selected.get("auditStatus")):
-        raise CliError("qualification must be approved and usable")
-    if selected.get("purpose") is not None and int(selected["purpose"]) != purpose:
-        raise CliError("qualification purpose does not match the application")
-
-    groups = client.call("ListSubAccountForAgent", {})
-    _require_query_success(groups)
-    group_items = _items(groups)
-    available = {
-        str(item.get("SubAccount"))
-        for item in group_items
-        if item.get("SubAccount") is not None
-    }
-    missing = [group for group in sub_accounts if group not in available]
-    if missing:
-        raise CliError(
-            "unknown or unavailable message group: {}".format(", ".join(missing))
-        )
-    unsupported_by_group = []
-    for item in group_items:
-        group = str(item.get("SubAccount"))
-        if group not in sub_accounts:
-            continue
-        declared_channels = _channels(item)
-        if not declared_channels:
-            continue
-        unsupported = [
-            channel for channel in channel_types if channel not in declared_channels
-        ]
-        if unsupported:
-            unsupported_by_group.append(
-                "{}: {}".format(group, ", ".join(unsupported))
-            )
-    if unsupported_by_group:
-        raise CliError(
-            "selected message groups do not support channel type: {}".format(
-                "; ".join(unsupported_by_group)
-            )
-        )
-    groups_by_id = {
-        str(item.get("SubAccount")): item
-        for item in group_items
-        if item.get("SubAccount") is not None
-    }
-    summary = []
-    for group in sub_accounts:
-        raw_name = groups_by_id[group].get("SubAccountName")
-        name = str(raw_name) if isinstance(raw_name, (str, int, float, bool)) else ""
-        summary.append({"subAccount": group, "subAccountName": name})
-    return summary
-
-
-def _signature_body(args: argparse.Namespace) -> Dict[str, Any]:
-    if args.app_icp is not None and args.source != 2:
-        raise CliError("app-icp is valid only when source is 2 (App)")
-    if args.trademark is not None and args.source != 3:
-        raise CliError("trademark is valid only when source is 3 (trademark)")
-    body: Dict[str, Any] = {
-        "content": _normalize_signature(args.content),
-        "purpose": args.purpose,
-        "source": args.source,
-        "signatureIdentificationID": args.qualification_id,
-        "subAccounts": list(dict.fromkeys(args.sub_account)),
-        "channelTypes": list(dict.fromkeys(args.channel_type)),
-    }
-    optional = {
-        "desc": args.description,
-        "domain": args.domain,
-        "scene": args.scene,
-        "projectName": args.project_name,
-        "appIcp": _parse_typed_json_object(
-            args.app_icp,
-            "app-icp",
-            {"appIcpFilling": str},
-        ),
-        "trademark": _parse_typed_json_object(
-            args.trademark,
-            "trademark",
-            {
-                "trademarkCn": str,
-                "trademarkEn": str,
-                "trademarkNumber": str,
-            },
-        ),
-    }
-    body.update({key: value for key, value in optional.items() if value is not None})
-    return body
-
-
 _VARIABLE_RE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
-_SPECIAL_VARIABLES = {"url", "link", "short_url", "shortUrl"}
 _MOBILE_RE = re.compile(r"^1[3-9]\d{9}$")
 MAX_DIRECT_RECIPIENTS = 200
 MAX_BATCH_FILE_BYTES = 50 * 1024 * 1024
@@ -391,370 +247,6 @@ MAX_BATCH_ROWS = 1_000_000
 MAX_TEMPLATE_MATCH_PAGES = 100
 CHINA_TZ = datetime.timezone(datetime.timedelta(hours=8))
 CANCEL_LEAD_TIME = datetime.timedelta(minutes=1)
-
-
-def _parse_typed_json_object(
-    raw: Optional[str],
-    name: str,
-    field_types: Mapping[str, type],
-) -> Optional[Mapping[str, Any]]:
-    if raw is None:
-        return None
-    try:
-        value = json.loads(raw)
-    except json.JSONDecodeError as exc:
-        raise CliError("{} must be a JSON object".format(name)) from exc
-    if not isinstance(value, Mapping):
-        raise CliError("{} must be a JSON object".format(name))
-    unknown = sorted(set(value).difference(field_types))
-    if unknown:
-        raise CliError(
-            "{} contains unsupported fields: {}".format(name, ", ".join(unknown))
-        )
-    for key, item in value.items():
-        expected = field_types[key]
-        if isinstance(item, bool) or not isinstance(item, expected):
-            raise CliError(
-                "{}.{} must be {}".format(
-                    name, key, "an integer" if expected is int else "a string"
-                )
-            )
-    return dict(value)
-
-
-def _parse_short_url_config(raw: Optional[str]) -> Optional[Mapping[str, Any]]:
-    return _parse_typed_json_object(
-        raw,
-        "short-url-config",
-        {
-            "isEnabled": str,
-            "belong": str,
-            "isNeedClickDetails": str,
-            "uaCheckStrategy": int,
-        },
-    )
-
-
-def _template_body(args: argparse.Namespace) -> Dict[str, Any]:
-    declared = list(args.template_param)
-    if len(set(declared)) != len(declared):
-        raise CliError("template parameters must not contain duplicates")
-    extracted = _VARIABLE_RE.findall(args.content)
-    if set(declared) != set(extracted) or len(extracted) != len(set(extracted)):
-        raise CliError(
-            "template parameters must exactly match unique ${name} variables in content"
-        )
-    if args.channel_type == "CN_OTP" and not any(
-        name not in _SPECIAL_VARIABLES for name in declared
-    ):
-        raise CliError("OTP templates require at least one ordinary variable")
-    short_url = _parse_short_url_config(args.short_url_config)
-    if short_url is not None and args.channel_type != "CN_MKT":
-        raise CliError("short-link options are available only to marketing templates")
-
-    body: Dict[str, Any] = {
-        "content": args.content,
-        "channelType": args.channel_type,
-        "area": "cn",
-        "name": args.name,
-        "signatures": [_normalize_signature(value) for value in args.signature],
-        "subAccounts": list(dict.fromkeys(args.sub_account)),
-        "templateParams": [{"name": name} for name in declared],
-    }
-    if args.project is not None:
-        body["project"] = args.project
-    if args.description is not None:
-        body["desc"] = args.description
-    if short_url is not None:
-        body["shortUrlConfig"] = short_url
-    return body
-
-
-def _validate_template_resources(client: SmsApiClient, body: Mapping[str, Any]) -> None:
-    signatures = client.call(
-        "ListSignatureForAgent",
-        {
-            "Signature": body["signatures"][0] if len(body["signatures"]) == 1 else "",
-            "SubAccounts": body["subAccounts"],
-            "Page": 1,
-            "PageSize": 100,
-        },
-    )
-    _require_query_success(signatures)
-    requested_groups = set(body["subAccounts"])
-    available: Dict[str, Dict[str, set]] = {}
-    for item in _items(signatures):
-        if not _is_approved(item.get("Status")) or not _is_template_signature_usable(
-            item
-        ):
-            continue
-        name = _normalize_signature(str(item.get("Signature", "")))
-        entry = available.setdefault(name, {"groups": set(), "channels": set()})
-        entry["groups"].update(str(value) for value in item.get("SubAccounts", []))
-        entry["channels"].update(_channels(item))
-    for name in body["signatures"]:
-        if name not in available or not requested_groups.issubset(
-            available[name]["groups"]
-        ):
-            raise CliError(
-                "signature is not approved for every selected message group: {}".format(
-                    name
-                )
-            )
-        channels = available[name]["channels"]
-        if channels and body["channelType"] not in channels:
-            raise CliError(
-                "signature is not approved for channel type: {}".format(
-                    body["channelType"]
-                )
-            )
-
-
-def _signature_preview(
-    body: Mapping[str, Any], message_groups: Sequence[Mapping[str, str]]
-) -> Dict[str, Any]:
-    return {
-        "preview": dict(body),
-        "messageGroups": [dict(group) for group in message_groups],
-        "messageGroupCount": len(message_groups),
-        "digest": canonical_digest(body),
-    }
-
-
-def _template_preview(body: Mapping[str, Any]) -> Dict[str, Any]:
-    preview: Dict[str, Any] = {
-        "name": body["name"],
-        "channelType": body["channelType"],
-        "area": body["area"],
-        "signatures": body["signatures"],
-        "subAccounts": body["subAccounts"],
-        "templateParams": [item["name"] for item in body["templateParams"]],
-        "content_length": len(body["content"]),
-        "content_sha256": hashlib.sha256(body["content"].encode("utf-8")).hexdigest(),
-    }
-    for name in ("project", "desc", "shortUrlConfig"):
-        if name in body:
-            preview[name] = body[name]
-    return {"preview": preview, "digest": canonical_digest(body)}
-
-
-def _is_outcome_unknown(envelope: Mapping[str, Any]) -> bool:
-    error_value = envelope.get("error")
-    return bool(
-        not envelope.get("success")
-        and isinstance(error_value, Mapping)
-        and error_value.get("outcome_unknown")
-    )
-
-
-def _application_status_is_not_rejected(value: Any) -> bool:
-    if isinstance(value, int):
-        return value in {0, 1, 3, 5, 6}
-    return str(value).strip().lower() in {
-        "0",
-        "1",
-        "3",
-        "5",
-        "6",
-        "reviewing",
-        "pending",
-        "approved",
-        "passed",
-        "no_review",
-        "no-review",
-        "审核中",
-        "审核通过",
-        "免审",
-    }
-
-
-def _matches_optional_fields(
-    body: Mapping[str, Any],
-    item: Mapping[str, Any],
-    aliases: Mapping[str, Sequence[str]],
-) -> bool:
-    for body_name, response_names in aliases.items():
-        if body_name not in body:
-            continue
-        actual = _template_value(item, *response_names)
-        if actual is None or actual != body[body_name]:
-            return False
-    return True
-
-
-def _safe_template_item(item: Mapping[str, Any]) -> Dict[str, Any]:
-    safe = dict(item)
-    content = safe.pop("Content", None)
-    if content is None:
-        content = safe.pop("content", None)
-    if content is not None:
-        encoded = str(content).encode("utf-8")
-        safe["ContentLength"] = len(str(content))
-        safe["ContentSha256"] = hashlib.sha256(encoded).hexdigest()
-    return safe
-
-
-def _safe_template_envelope(envelope: Mapping[str, Any]) -> Dict[str, Any]:
-    output = dict(envelope)
-    result = output.get("result")
-    if not isinstance(result, Mapping):
-        return output
-    safe_result = dict(result)
-    for key in ("List", "list", "Items", "items"):
-        values = safe_result.get(key)
-        if isinstance(values, list):
-            safe_result[key] = [
-                _safe_template_item(item) if isinstance(item, Mapping) else item
-                for item in values
-            ]
-    safe_result = _safe_template_item(safe_result)
-    output["result"] = safe_result
-    return output
-
-
-def _reconciled_success(
-    action: str,
-    query: Mapping[str, Any],
-    summary: Mapping[str, Any],
-) -> Dict[str, Any]:
-    return {
-        "success": True,
-        "action": action,
-        "request_id": query.get("request_id"),
-        "result": {"reconciled": True, **dict(summary)},
-        "error": None,
-    }
-
-
-def _reconcile_signature_application(
-    client: SmsApiClient,
-    body: Mapping[str, Any],
-    unknown: Mapping[str, Any],
-) -> Dict[str, Any]:
-    query = client.call(
-        "ListSignatureForAgent",
-        {
-            "Signature": body["content"],
-            "SubAccounts": body["subAccounts"],
-            "Page": 1,
-            "PageSize": 100,
-        },
-    )
-    if not query.get("success"):
-        return dict(unknown)
-    requested_groups = {str(value) for value in body["subAccounts"]}
-    requested_channels = {str(value) for value in body["channelTypes"]}
-    matches = []
-    for item in _items(query):
-        qualification_id = item.get("IdentificationId") or item.get("IdentificationID")
-        if (
-            _normalize_signature(str(item.get("Signature", ""))) == body["content"]
-            and _application_status_is_not_rejected(item.get("Status"))
-            and requested_groups.issubset(
-                {str(value) for value in item.get("SubAccounts", [])}
-            )
-            and requested_channels.issubset(_channels(item))
-            and str(qualification_id or "") == str(body["signatureIdentificationID"])
-            and str(item.get("Purpose") or "") == str(body["purpose"])
-            and _matches_optional_fields(
-                body,
-                item,
-                {
-                    "source": ("Source", "source"),
-                    "desc": ("Description", "description", "desc"),
-                    "domain": ("Domain", "domain"),
-                    "scene": ("Scene", "scene"),
-                    "projectName": ("ProjectName", "projectName"),
-                    "appIcp": ("AppIcp", "appIcp"),
-                    "trademark": ("Trademark", "trademark"),
-                },
-            )
-        ):
-            matches.append(item)
-    if len(matches) != 1:
-        return dict(unknown)
-    item = matches[0]
-    return _reconciled_success(
-        "ApplySmsSignatureV2",
-        query,
-        {
-            "Signature": body["content"],
-            "Status": item.get("Status"),
-            "SubAccounts": sorted(requested_groups),
-            "ChannelTypes": sorted(requested_channels),
-        },
-    )
-
-
-def _reconcile_template_application(
-    client: SmsApiClient,
-    body: Mapping[str, Any],
-    unknown: Mapping[str, Any],
-) -> Dict[str, Any]:
-    query = client.call(
-        "ListSmsTemplateForAgent",
-        {
-            "SubAccounts": body["subAccounts"],
-            "Signatures": body["signatures"],
-            "Page": 1,
-            "PageSize": 100,
-        },
-    )
-    if not query.get("success"):
-        return dict(unknown)
-    requested_groups = {str(value) for value in body["subAccounts"]}
-    requested_signatures = {
-        _normalize_signature(str(value)) for value in body["signatures"]
-    }
-    expected_params = sorted(
-        str(value["name"]) for value in body.get("templateParams", [])
-    )
-    matches = []
-    for item in _items(query):
-        name = item.get("TemplateName") or item.get("Name") or item.get("name")
-        content = item.get("Content") or item.get("content")
-        channel = item.get("ChannelType") or item.get("channelType")
-        try:
-            returned_signatures = _normalized_template_signatures(item)
-        except CliError:
-            return dict(unknown)
-        if (
-            str(name or "") == str(body["name"])
-            and _application_status_is_not_rejected(item.get("Status"))
-            and str(content or "") == str(body["content"])
-            and str(channel or "") == str(body["channelType"])
-            and requested_groups.issubset(
-                {str(value) for value in item.get("SubAccounts", [])}
-            )
-            and returned_signatures is not None
-            and requested_signatures.issubset(returned_signatures)
-            and sorted(_template_param_names(item)) == expected_params
-            and _matches_optional_fields(
-                body,
-                item,
-                {
-                    "project": ("Project", "project"),
-                    "desc": ("Description", "description", "desc"),
-                    "shortUrlConfig": ("ShortUrlConfig", "shortUrlConfig"),
-                },
-            )
-        ):
-            matches.append(item)
-    if len(matches) != 1:
-        return dict(unknown)
-    item = matches[0]
-    return _reconciled_success(
-        "ApplySmsTemplateV2",
-        query,
-        {
-            "TemplateId": item.get("TemplateId") or item.get("templateId"),
-            "TemplateName": body["name"],
-            "Status": item.get("Status"),
-            "ContentSha256": hashlib.sha256(
-                str(body["content"]).encode("utf-8")
-            ).hexdigest(),
-        },
-    )
 
 
 def _normalize_mobile(value: str) -> str:
@@ -820,109 +312,6 @@ def _template_value(item: Mapping[str, Any], *names: str) -> Any:
         if value not in (None, "", []):
             return value
     return None
-
-
-def _complete_template_for_send(
-    client: SmsApiClient,
-    template: Mapping[str, Any],
-    template_id: str,
-    signature: str,
-    sub_account: str,
-) -> Dict[str, Any]:
-    completed = dict(template)
-    required = (
-        ("Content", "content"),
-        ("SubAccounts", "subAccounts"),
-        ("ChannelType", "channelType"),
-    )
-    has_template_params = any(
-        name in completed and isinstance(completed[name], list)
-        for name in ("TemplateParams", "templateParams")
-    )
-    if (
-        has_template_params
-        and all(_template_value(completed, *names) is not None for names in required)
-        and str(
-            _template_value(
-                completed, "TemplateName", "templateName", "Name", "name"
-            )
-            or ""
-        ).strip()
-    ):
-        return completed
-
-    second_template_id = str(
-        _template_value(completed, "SecondTemplateId", "secondTemplateId") or ""
-    )
-    detail_params = {
-        "templateId": template_id,
-        "signatures": signature,
-    }
-    if second_template_id:
-        detail_params["secondTemplateId"] = second_template_id
-    detail = client.call("ListSecondTemplate", detail_params)
-    _require_query_success(detail)
-    candidate = next(
-        (
-            item
-            for item in _items(detail)
-            if str(
-                _template_value(
-                    item,
-                    "TemplateId",
-                    "templateId",
-                    "SecondTemplateId",
-                )
-            )
-            in {template_id, second_template_id}
-            and _template_supports_sub_account(item, sub_account)
-            and _template_supports_signature(item, signature)
-        ),
-        None,
-    )
-    if candidate is None:
-        raise CliError("template detail is unavailable")
-    for target, source_names in (
-        ("Content", ("Content", "content")),
-        ("TemplateParams", ("TemplateParams", "templateParams")),
-        (
-            "Signatures",
-            ("Signatures", "signatures", "Signature", "signature"),
-        ),
-        ("SubAccounts", ("SubAccounts", "subAccounts")),
-        ("ChannelType", ("ChannelType", "channelType")),
-        ("TemplateName", ("TemplateName", "templateName", "Name", "name")),
-    ):
-        if completed.get(target) in (None, "", []):
-            if target == "Signatures" and any(
-                name in completed for name in source_names
-            ):
-                continue
-            if target == "TemplateParams":
-                resolved = next(
-                    (
-                        candidate[name]
-                        for name in source_names
-                        if name in candidate and isinstance(candidate[name], list)
-                    ),
-                    None,
-                )
-                if resolved is not None or any(
-                    name in completed for name in source_names
-                ):
-                    completed[target] = resolved
-            else:
-                if any(name in candidate for name in source_names):
-                    completed[target] = _template_value(candidate, *source_names)
-    has_template_params = any(
-        name in completed and isinstance(completed[name], list)
-        for name in ("TemplateParams", "templateParams")
-    )
-    if not has_template_params or any(
-        _template_value(completed, *names) is None for names in required
-    ):
-        raise CliError("template detail is incomplete")
-    return completed
 
 
 def _template_relationship_values(item: Mapping[str, Any], *names: str) -> set:
@@ -991,115 +380,125 @@ def _template_supports_signature(
     return True if values is None else signature in values
 
 
-def _signature_supports_sub_account(
-    item: Mapping[str, Any], sub_account: str
-) -> bool:
-    values = _template_relationship_values(item, "SubAccounts", "subAccounts")
-    return not values or bool(values.intersection({sub_account, "*", "All"}))
-
-
 def _template_content_body(content: str, signature: str) -> str:
     wrapper = "【{}】".format(signature)
     return content[len(wrapper) :] if content.startswith(wrapper) else content
 
 
-def _match_template(client: SmsApiClient, args: argparse.Namespace) -> Dict[str, Any]:
-    signature = _normalize_signature(args.signature)
-    approved_ids = set()
+def _query_pages(client: SmsApiClient, action: str, params: Mapping[str, Any], *, page_key: str = "Page", size_key: str = "PageSize"):
+    """Read the complete catalog with the existing bounded pagination checks."""
     seen_page_fingerprints = set()
-    page = 1
-    while True:
-        if page > MAX_TEMPLATE_MATCH_PAGES:
-            raise CliError(
-                "template pagination exceeded the safe page limit",
-                "resource_query_failed",
-            )
-        templates = client.call(
-            "ListSmsTemplateForAgent",
-            {
-                "SubAccounts": [args.sub_account],
-                "Signatures": [signature],
-                "Page": page,
-                "PageSize": 100,
-            },
-        )
-        _require_query_success(templates)
-        template_items = _items(templates)
-        fingerprint = canonical_digest({"items": template_items})
+    received = 0
+    page_size = params[size_key]
+    for page in range(1, MAX_TEMPLATE_MATCH_PAGES + 1):
+        response = client.call(action, {**params, page_key: page})
+        _require_query_success(response)
+        items = _items(response)
+        fingerprint = canonical_digest({"items": items})
         if fingerprint in seen_page_fingerprints:
-            raise CliError(
-                "template pagination repeated a page",
-                "resource_query_failed",
-            )
+            raise CliError("resource pagination repeated a page", "resource_query_failed")
         seen_page_fingerprints.add(fingerprint)
-        approved_ids.update(
-            str(_template_value(item, "TemplateId", "templateId"))
-            for item in template_items
-            if _template_value(item, "TemplateId", "templateId") is not None
-            and _is_approved(_template_value(item, "Status", "status"))
-            and _template_value(item, "ChannelType", "channelType")
-            == args.channel_type
-        )
-        result = templates.get("result")
-        total = (
-            result.get("Total", result.get("total"))
-            if isinstance(result, Mapping)
-            else None
-        )
+        yield response
+        total = response["result"].get("Total", response["result"].get("total"))
         if isinstance(total, str) and total.strip().isdigit():
             total = int(total.strip())
-        if (
-            len(template_items) < 100
-            or (
-                isinstance(total, int)
-                and not isinstance(total, bool)
-                and page * 100 >= total
+        received += len(items)
+        if type(total) is int:
+            if received >= total:
+                return
+            if not items:
+                raise CliError("resource pagination ended before Total", "resource_query_failed")
+        elif len(items) < page_size:
+            return
+    raise CliError("resource pagination exceeded the safe page limit", "resource_query_failed")
+
+
+def _list_templates(client: SmsApiClient, args: argparse.Namespace) -> Dict[str, Any]:
+    action, params = _query_params(args)
+    if args.page is not None:
+        if args.keyword:
+            raise CliError("关键词匹配需要完整目录，不能同时指定 --page", "argument_error")
+        return client.call(action, params)
+    pages = list(_query_pages(client, action, params))
+    items = [item for page in pages for item in _items(page)]
+    scanned_total = len(items)
+    if args.keyword:
+        items = [
+            item for item in items
+            if any(
+                word in str(item.get(field) or "")
+                for word in args.keyword
+                for field in ("TemplateName", "TemplateContent", "Description")
             )
-        ):
-            break
-        page += 1
-    candidates: Dict[str, Dict[str, Any]] = {}
-    if approved_ids:
-        details = client.call("ListSecondTemplate", {"signatures": signature})
-        _require_query_success(details)
-        for item in _items(details):
-            template_id = _template_value(item, "TemplateId", "templateId")
-            content = _template_value(item, "Content", "content")
-            if (
-                template_id is None
-                or str(template_id) not in approved_ids
-                or _template_value(item, "ChannelType", "channelType")
-                != args.channel_type
-                or not isinstance(content, str)
-                or not any(name in item for name in ("TemplateParams", "templateParams"))
-                or not _template_supports_sub_account(item, args.sub_account)
-                or not _template_supports_signature(item, signature)
-            ):
+        ]
+    return {
+        **pages[-1],
+        "result": {"List": items, "Total": len(items), "ScannedTotal": scanned_total},
+    }
+
+
+def _match_template(client: SmsApiClient, args: argparse.Namespace) -> Dict[str, Any]:
+    """逐条返回精确命中及原始记录；查询完整性与业务选择分别交给调用方。"""
+    signature = _normalize_signature(args.signature)
+    template_ids = set()
+    errors = []
+    try:
+        for templates in _query_pages(client, "ListBatchTemplatesForAgent", {
+            "SubAccounts": [args.sub_account], "Signatures": [signature], "PageSize": 100,
+        }):
+            for item in _items(templates):
+                if not item.get("TemplateId") or item.get("BatchOnly") is True:
+                    continue
+                channel = item.get("ChannelType")
+                if args.channel_type is not None and channel and channel != args.channel_type:
+                    continue
+                template_ids.add(str(item["TemplateId"]))
+    except CliError as exc:
+        errors.append(_local_error("ListBatchTemplatesForAgent", exc))
+
+    candidates = []
+    for template_id in sorted(template_ids):
+        response = client.call("ListSecondTemplate", {
+            "templateId": template_id, "signatures": signature,
+            "subAccounts": [args.sub_account],
+        })
+        if not response.get("success"):
+            errors.append({"templateId": template_id, **response})
+            continue
+        records = [
+            item for item in _items(response)
+            if _template_value(item, "TemplateId", "templateId") == template_id
+            and _template_supports_signature(item, signature)
+            and _template_supports_sub_account(item, args.sub_account)
+        ]
+        matching_records = []
+        for item in records:
+            channel = _template_value(item, "ChannelType", "channelType")
+            if args.channel_type is not None and channel != args.channel_type:
                 continue
-            body = _template_content_body(content, signature)
-            if body != args.content:
-                continue
-            variable_names = _template_param_names(item)
-            if len(variable_names) != len(set(variable_names)):
-                continue
-            normalized_id = str(template_id)
-            candidates.setdefault(
-                normalized_id,
-                {
-                    "templateId": normalized_id,
-                    "signature": signature,
-                    "subAccount": args.sub_account,
-                    "variableNames": sorted(variable_names),
-                    "contentLength": len(body),
-                    "contentSha256": hashlib.sha256(body.encode("utf-8")).hexdigest(),
-                },
-            )
-    ordered = [candidates[key] for key in sorted(candidates)]
-    classification = "none" if not ordered else "single" if len(ordered) == 1 else "ambiguous"
-    return _local_success(
-        args.command,
-        {"classification": classification, "candidates": ordered},
-    )
+            content = _template_value(item, "TemplateContent", "Content", "content")
+            if isinstance(content, str) and _template_content_body(content, signature) == args.content:
+                matching_records.append(item)
+        if matching_records:
+            candidates.append({
+                "templateId": template_id, "signature": signature,
+                "subAccount": args.sub_account, "templateRecords": records,
+                "matchingRecords": matching_records,
+            })
+    # 失败仍是失败；保留已有候选供 Agent 继续查询，不把不完整查询解释成无匹配。
+    classification = None
+    if not errors:
+        classification = "none" if not candidates else "single" if len(candidates) == 1 else "ambiguous"
+    envelope = _local_success(args.command, {
+        "classification": classification, "candidates": candidates,
+        "complete": not errors, "errors": errors,
+    })
+    if errors:
+        envelope.update(
+            success=False, error=errors[0]["error"],
+            request_id=errors[0].get("request_id"), log_id=errors[0].get("log_id"),
+        )
+    return envelope
 
 
 def _render_content(content: str, variables: Mapping[str, Any]) -> str:
@@ -1111,42 +510,56 @@ def _segments(content: str, signature: str) -> int:
     return 1 if length <= 70 else int(math.ceil(length / 67.0))
 
 
-def _direct_send_template_detail(
-    client: SmsApiClient,
-    template_id: str,
-    signature: str,
-    sub_account: str,
-) -> Mapping[str, Any]:
-    detail = client.call(
-        "ListSecondTemplate",
-        {"templateId": template_id, "signatures": signature},
-    )
-    _require_query_success(detail)
-    selected = next(
-        (
-            item
-            for item in _items(detail)
-            if str(_template_value(item, "TemplateId", "templateId")) == template_id
-            and _template_supports_sub_account(item, sub_account)
-            and _template_supports_signature(item, signature)
-        ),
-        None,
-    )
-    if selected is None:
-        raise CliError("template detail does not match message group and signature")
-    if not any(name in selected for name in ("TemplateParams", "templateParams")):
-        raise CliError("template detail is incomplete")
-    content = _template_value(selected, "Content", "content")
-    channel_type = _template_value(selected, "ChannelType", "channelType")
-    if not isinstance(content, str) or channel_type not in {
-        "CN_OTP",
-        "CN_NTC",
-        "CN_MKT",
-    }:
-        raise CliError("template detail is incomplete")
-    normalized = dict(selected)
-    normalized["Content"] = _template_content_body(content, signature)
-    return normalized
+def _template_for_preview(client: SmsApiClient, action: str, template_id: str,
+                          signature: str, sub_account: str) -> Mapping[str, Any]:
+    if action == "ListSecondTemplate":
+        params = {"templateId": template_id, "signatures": signature, "subAccounts": [sub_account]}
+    else:
+        params = {"TemplateId": template_id, "SubAccounts": [sub_account], "Signatures": [signature], "Page": 1, "PageSize": 100}
+    response = client.call(action, params)
+    _require_query_success(response)
+    records = [item for item in _items(response)
+               if _template_value(item, "TemplateId", "templateId") == template_id
+               and _template_supports_signature(item, signature)
+               and _template_supports_sub_account(item, sub_account)]
+    if not records:
+        raise CliError("查询未取得该模板、签名和消息组的预览信息", "template_preview_unavailable")
+    candidates = {}
+    for item in records:
+        content = _template_value(item, "TemplateContent", "Content", "content")
+        variable_field = next((key for key in ("TemplateParams", "templateParams") if key in item), None)
+        variables = item[variable_field] if variable_field is not None else None
+        # 现有 Go DTO 的无变量切片可序列化为 null；原始记录仍完整保留。
+        if variable_field is not None and variables is None and isinstance(content, str) and not _VARIABLE_RE.search(content):
+            variables = []
+        channel = _template_value(item, "ChannelType", "channelType")
+        if not isinstance(content, str) or not isinstance(variables, list) or not isinstance(channel, str):
+            raise CliError("接口返回的模板正文、变量或短信类型不完整", "invalid_response")
+        # 审核记录保留原结构；只有用于内容预览的字段完全相同时才共用一个预览。
+        view = {"TemplateId": template_id, "Signature": signature, "SubAccounts": [sub_account],
+                "TemplateName": _template_value(item, "TemplateName", "Name", "name") or "",
+                "TemplateContent": content, "TemplateParams": variables, "ChannelType": channel,
+                "BatchOnly": item.get("BatchOnly", False)}
+        for key in ("TaskFields", "Description"):
+            if key in item:
+                view[key] = item[key]
+        key = canonical_digest({field: view.get(field) for field in (
+            "TemplateContent", "TemplateParams", "ChannelType", "BatchOnly", "TaskFields")})
+        candidates[key] = view
+    if len(candidates) != 1:
+        raise CliError("查询到多种正文、变量或短信类型，请先核对各条模板记录", "ambiguous_template_preview")
+    # 具体消息组以模板返回的绑定为准；全消息组范围通过列表确认所选 ID。
+    explicit_group = any(sub_account in _template_relationship_values(item, "SubAccounts", "subAccounts") for item in records)
+    if not explicit_group:
+        groups = client.call("GetSubAccountListForAgent", {
+            "subAccount": sub_account, "pageIndex": 1, "pageSize": 100,
+        })
+        _require_query_success(groups)
+        if not any(item.get("subAccountId") == sub_account and str(item.get("status")) == "1" for item in _items(groups)):
+            raise CliError("所选消息组未出现在当前账号的启用列表中", "message_group_unavailable")
+    view = next(iter(candidates.values()))
+    view["TemplateRecords"] = records
+    return view
 
 
 def _send_summary(
@@ -1156,65 +569,13 @@ def _send_summary(
     original, recipients, variables = _send_local_inputs(args)
     signature = _normalize_signature(args.signature)
 
-    group = client.call("GetSubAccountDetail", {"subAccount": args.sub_account})
-    _require_query_success(group)
-    group_result = group.get("result")
-    if not isinstance(group_result, Mapping) or str(group_result.get("status")) != "1":
-        raise CliError("message group is unavailable")
-
-    signatures = client.call(
-        "ListSignatureForAgent",
-        {
-            "Signature": signature,
-            "SubAccounts": [args.sub_account],
-            "Page": 1,
-            "PageSize": 100,
-        },
-    )
-    _require_query_success(signatures)
-    selected_signature = next(
-        (
-            item
-            for item in _items(signatures)
-            if _is_approved(item.get("Status"))
-            and _is_template_signature_usable(item)
-            and _normalize_signature(str(item.get("Signature", ""))) == signature
-            and _signature_supports_sub_account(item, args.sub_account)
-        ),
-        None,
-    )
-    if selected_signature is None:
-        raise CliError("signature is not approved for the selected message group")
-
-    templates = client.call(
-        "ListSmsTemplateForAgent",
-        {
-            "TemplateId": args.template_id,
-            "SubAccounts": [args.sub_account],
-            "Signatures": [signature],
-            "Page": 1,
-            "PageSize": 100,
-        },
-    )
-    _require_query_success(templates)
-    selected_template = next(
-        (
-            item
-            for item in _items(templates)
-            if str(_template_value(item, "TemplateId", "templateId"))
-            == args.template_id
-            and _is_approved(_template_value(item, "Status", "status"))
-        ),
-        None,
-    )
-    if selected_template is None:
-        raise CliError("template is not approved or available")
-    selected_template = _direct_send_template_detail(
-        client,
-        args.template_id,
-        signature,
-        args.sub_account,
-    )
+    selected_template = dict(_template_for_preview(
+        client, "ListSecondTemplate", args.template_id, signature, args.sub_account,
+    ))
+    channel = selected_template.get("ChannelType")
+    if channel not in {"CN_OTP", "CN_NTC", "CN_MKT"}:
+        raise CliError("template channel type is not supported for SMS")
+    selected_template["Content"] = _template_content_body(selected_template["TemplateContent"], signature)
 
     expected_variables = _template_param_names(selected_template)
     if len(set(expected_variables)) != len(expected_variables):
@@ -1249,6 +610,7 @@ def _send_summary(
         "estimatedSegments": estimated_each * len(recipients),
     }
     preview: Dict[str, Any] = {
+        "templateRecords": selected_template["TemplateRecords"],
         "subAccount": args.sub_account,
         "signature": signature,
         "templateId": args.template_id,
@@ -1418,7 +780,10 @@ def _default_uploader(url: str, source: Any) -> None:
         or parsed.username is not None
         or parsed.password is not None
         or parsed.fragment
-        or not hostname.endswith(".volces.com")
+        or not any(
+            hostname.endswith(host) if host.startswith(".") else hostname == host
+            for host in runtime_environment.UPLOAD_HOSTS
+        )
     ):
         raise CliError("batch upload URL is not an approved Volcengine TOS URL")
 
@@ -1438,6 +803,155 @@ def _default_uploader(url: str, source: Any) -> None:
             raise CliError("batch file upload failed")
 
 
+def _batch_task_fields(template: Mapping[str, Any]) -> List[Mapping[str, Any]]:
+    fields = template.get("TaskFields", [])
+    if not isinstance(fields, list) or any(not isinstance(field, Mapping) for field in fields):
+        raise CliError("模板任务字段格式无效", "invalid_response")
+    names = [field.get("Name") for field in fields]
+    if any(name != "content" for name in names) or len(names) != len(set(names)):
+        raise CliError("当前版本不支持模板要求的任务字段，请升级 Skill", "unsupported_task_fields")
+    return fields
+
+
+def _batch_content_fields(template: Mapping[str, Any], content: Optional[str]) -> Dict[str, str]:
+    fields = _batch_task_fields(template)
+    if not fields:
+        if content is not None:
+            raise CliError("该模板不接受任务级正文，请按名单模板填写逐行变量", "argument_error")
+        return {}
+    field = fields[0]
+    if content is None or content == "":
+        if field.get("Required") is True:
+            raise CliError("请先补齐模板要求的任务正文", "argument_error")
+        return {}
+    if not isinstance(content, str) or _VARIABLE_RE.search(content):
+        raise CliError("请提供不含未填写变量的完整正文", "invalid_batch_content")
+    limit = field.get("MaxLength")
+    if isinstance(limit, int) and not isinstance(limit, bool) and limit > 0 and len(content) > limit:
+        raise CliError("正文超过模板规定的长度", "invalid_batch_content")
+    return {"content": content}
+
+
+def _check_batch_content(client: SmsApiClient, args: argparse.Namespace, template: Mapping[str, Any], *, scope: Optional[str] = None) -> Mapping[str, Any]:
+    fields = _batch_content_fields(template, args.content)
+    if not fields:
+        return {"Approved": True, "Reason": ""}
+    body = {"subAccount": args.sub_account, "signature": template["Signature"], "templateId": args.template_id, **fields}
+    options = {"expected_credential_scope": scope} if scope is not None else {}
+    review = _batch_task_data(client.call("ValidateBatchTaskContentForAgent", body, **options))
+    if review.get("Approved") is not True:
+        reason = review.get("Reason")
+        message = "正文审核未通过，请修改正文后重新预览"
+        if isinstance(reason, str) and reason:
+            message += "。审核原因：" + reason
+        raise CliError(message, "batch_content_rejected")
+    return review
+
+
+def _batch_demo(client: SmsApiClient, sub_account: str, template_id: str, *, scope: Optional[str] = None) -> Mapping[str, Any]:
+    options = {"expected_credential_scope": scope} if scope is not None else {}
+    return _batch_task_data(client.call("TemplateUploadDemoForAgent", {"subAccount": sub_account, "templateId": template_id}, **options))
+
+
+def _batch_demo_columns(demo: Mapping[str, Any]) -> List[str]:
+    value = demo.get("value")
+    if not isinstance(value, str) or not value:
+        raise CliError("名单模板内容无效", "invalid_response")
+    try:
+        columns = next(csv.reader(io.StringIO(value.lstrip("\ufeff"))))
+    except (csv.Error, StopIteration) as exc:
+        raise CliError("名单模板表头无效", "invalid_response") from exc
+    if not columns or columns[0] != "phone":
+        raise CliError("名单模板表头无效", "invalid_response")
+    return columns
+
+
+def _batch_creation_result(result: Mapping[str, Any]) -> Dict[str, Any]:
+    task_id = result.get("taskId")
+    if not isinstance(task_id, str) or not task_id:
+        raise CliError("任务创建结果缺少 taskId", "invalid_response", outcome_unknown=True)
+    counts = {}
+    for name in ("totalCount", "dupCount"):
+        value = result.get(name)
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise CliError("任务创建结果缺少有效的 {}".format(name), "invalid_response", outcome_unknown=True)
+        counts[name] = value
+    return {"taskId": task_id, **counts}
+
+
+def _create_batch_task(args: argparse.Namespace, client: SmsApiClient, *, uploader: Any, now: Any, batch_snapshot: Optional[bytes] = None, expected_scope: Optional[str] = None, expected_batch_resources: Optional[str] = None) -> Dict[str, Any]:
+    template, _ = _batch_resources(client, args.sub_account, args.signature, args.template_id)
+    if expected_batch_resources is not None and canonical_digest(template) != expected_batch_resources:
+        raise CliError("模板信息已变化，请重新预览", "resource_changed")
+    scope = client.credential_scope
+    if not scope:
+        raise CliError("无法绑定当前登录身份，请检查授权", "confirmation_identity_unavailable")
+    if expected_scope is not None and expected_scope != scope:
+        raise CliError("登录身份已变化，请重新预览", "confirmation_identity_changed")
+    fields = _batch_content_fields(template, args.content)
+    _check_batch_content(client, args, template, scope=scope)
+    demo = _batch_demo(client, args.sub_account, args.template_id, scope=scope)
+    columns = _batch_demo_columns(demo)
+    current = (now or (lambda: datetime.datetime.now(CHINA_TZ)))()
+    send_time = validate_batch_schedule(args.scheduled, args.send_time, current)
+    if batch_snapshot is None:
+        source = pathlib.Path(args.file)
+        if source.suffix.lower() != ".csv":
+            raise CliError("batch v1 supports CSV files only")
+        batch_snapshot = _read_batch_snapshot(source)
+    report = precheck_batch_csv(batch_snapshot, columns[1:])
+    body = {
+        "subAccount": args.sub_account, "name": args.task_name,
+        "signature": template["Signature"], "templateId": args.template_id,
+        "scheduled": args.scheduled, "sendTime": send_time, **fields,
+    }
+    fingerprint = canonical_digest({"scope": scope, "action": "SetBatchTaskForAgent", "request": body, "fileSha256": report["fileSha256"]})
+    upload = _batch_task_data(client.call("GetUploadTosURL", {"suffix": "csv"}, expected_credential_scope=scope))
+    file_key, upload_url = upload.get("file"), upload.get("url")
+    if not isinstance(file_key, str) or not file_key or not isinstance(upload_url, str) or not upload_url:
+        raise CliError("upload authorization is incomplete", "invalid_response")
+    uploader(upload_url, batch_snapshot)
+    digest = canonical_digest({"fingerprint": fingerprint, "fileKey": file_key})
+    store = batch_confirmation.ConfirmationStore()
+    store.save_preview(digest, scope, fingerprint, file_key)
+    prior_task_id = store.reserve(digest, scope, fingerprint)
+    if prior_task_id:
+        prior = store.task(scope, prior_task_id)
+        return _local_success(args.command, {**prior["summary"], "taskId": prior_task_id, "alreadyCreated": True})
+    body["fileUrl"] = file_key
+    # 复用已保存的提交标识；未知结果由确认记录阻止重复创建。
+    body["idempotencyKey"] = digest
+    try:
+        created = client.call("SetBatchTaskForAgent", body, expected_credential_scope=scope)
+    except Exception as exc:
+        raise CliError("任务创建结果待确认，请先查询任务，勿重复创建", "submission_outcome_unknown", outcome_unknown=True) from exc
+    result = created.get("result")
+    if not created.get("success") or not isinstance(result, Mapping):
+        error = dict(created.get("error") or {})
+        if error.get("request_sent") is False or (error.get("code") in batch_confirmation.CREATE_REJECTION_CODES and error.get("outcome_unknown") is not True):
+            store.discard_rejected(digest)
+            return created
+        error.update({"outcome_unknown": True, "retryable": False})
+        return {**created, "success": False, "result": None, "error": error}
+    validated = _batch_creation_result(result)
+    content = fields.get("content", template["Content"])
+    summary = {
+        "subAccount": args.sub_account, "taskName": args.task_name,
+        "signature": template["Signature"], "templateId": args.template_id,
+        "templateName": template["TemplateName"], "channelType": template["ChannelType"],
+        "contentSha256": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+        "fileSha256": report["fileSha256"], "scheduled": args.scheduled, "sendTime": send_time,
+        "totalCount": validated["totalCount"], "dupCount": validated["dupCount"],
+    }
+    saved = True
+    try:
+        store.save_task(scope, validated["taskId"], digest, summary)
+        store.finish(digest, validated["taskId"])
+    except batch_confirmation.BatchConfirmationError:
+        saved = False
+    return _local_success(args.command, {**summary, **validated, "status": "awaiting_confirmation", "localConfirmationSaved": saved})
+
+
 def _batch_resources(
     client: SmsApiClient,
     sub_account: str,
@@ -1445,109 +959,19 @@ def _batch_resources(
     template_id: str,
 ) -> Tuple[Mapping[str, Any], List[str]]:
     signature = _normalize_signature(signature_value)
-    groups = client.call("ListSubAccountForAgent", {})
-    _require_query_success(groups)
-    group = next(
-        (item for item in _items(groups) if str(item.get("SubAccount")) == sub_account),
-        None,
-    )
-    if group is None:
-        raise CliError("message group is unavailable")
-    signatures = client.call(
-        "ListSignatureForAgent",
-        {
-            "Signature": signature,
-            "SubAccounts": [sub_account],
-            "Page": 1,
-            "PageSize": 100,
-        },
-    )
-    _require_query_success(signatures)
-    signature_item = next(
-        (
-            item
-            for item in _items(signatures)
-            if _is_approved(item.get("Status"))
-            and _is_template_signature_usable(item)
-            and _normalize_signature(str(item.get("Signature", ""))) == signature
-            and sub_account in {str(value) for value in item.get("SubAccounts", [])}
-        ),
-        None,
-    )
-    if signature_item is None:
-        raise CliError("signature is unavailable for the message group")
-    qualification_id = signature_item.get("IdentificationId") or signature_item.get(
-        "IdentificationID"
-    )
-    if qualification_id is not None:
-        qualifications = client.call(
-            "GetSignatureIdentificationList",
-            {"id": qualification_id, "pageIndex": 1, "pageSize": 100},
-        )
-        _require_query_success(qualifications)
-        qualification = next(
-            (
-                item
-                for item in _items(qualifications)
-                if str(item.get("id")) == str(qualification_id)
-            ),
-            None,
-        )
-        if (
-            qualification is None
-            or not qualification.get("usable")
-            or not _is_approved(qualification.get("auditStatus"))
-        ):
-            raise CliError("signature qualification is no longer approved and usable")
-    templates = client.call(
-        "ListSmsTemplateForAgent",
-        {
-            "TemplateId": template_id,
-            "SubAccounts": [sub_account],
-            "Signatures": [signature],
-            "Page": 1,
-            "PageSize": 100,
-        },
-    )
-    _require_query_success(templates)
-    template = next(
-        (
-            item
-            for item in _items(templates)
-            if str(item.get("TemplateId")) == template_id
-            and _is_approved(item.get("Status"))
-        ),
-        None,
-    )
-    if template is None:
-        raise CliError("template is unavailable")
-    template = _complete_template_for_send(
-        client, template, template_id, signature, sub_account
-    )
+    template = dict(_template_for_preview(
+        client, "ListBatchTemplatesForAgent", template_id, signature, sub_account,
+    ))
+    content = _template_value(template, "TemplateContent", "Content", "content")
+    if not isinstance(content, str) or not content:
+        raise CliError("模板详情不完整，请检查接口版本", "invalid_response")
+    template["Content"] = content
     channel = str(template.get("ChannelType") or "")
     if channel == "CN_OTP":
         raise CliError("OTP templates cannot be used for batch tasks")
     if channel not in {"CN_NTC", "CN_MKT"}:
         raise CliError("batch task requires a notification or marketing template")
-    signature_channels = _channels(signature_item)
-    if signature_channels and channel not in {
-        str(value) for value in signature_channels
-    }:
-        raise CliError("signature does not support the batch template channel type")
-    group_channels = _channels(group)
-    if group_channels and channel not in {str(value) for value in group_channels}:
-        raise CliError("message group does not support the batch template channel type")
-    if not _template_supports_sub_account(template, sub_account):
-        raise CliError("template is not bound to the message group")
-    if not _template_supports_signature(template, signature):
-        raise CliError("template is not bound to the signature")
-    template_name = str(template.get("TemplateName") or "").strip()
-    if not template_name:
-        template_name = template_id
-        template = dict(template)
-        template["TemplateName"] = template_name
     return template, _template_param_names(template)
-
 
 def _batch_task_data(envelope: Mapping[str, Any]) -> Mapping[str, Any]:
     _require_query_success(envelope)
@@ -1557,116 +981,14 @@ def _batch_task_data(envelope: Mapping[str, Any]) -> Mapping[str, Any]:
     return result
 
 
-def _first_not_none(*values: Any) -> Any:
-    for value in values:
-        if value is not None:
-            return value
-    return None
-
-
-def _batch_summary(task: Mapping[str, Any]) -> Dict[str, Any]:
-    extra = task.get("extra") or task.get("Extra") or {}
-    if not isinstance(extra, Mapping):
-        extra = {}
-    return {
-        "taskId": str(task.get("taskId") or task.get("TaskId") or ""),
-        "taskName": task.get("taskName")
-        or task.get("TaskName")
-        or task.get("name")
-        or task.get("Name"),
-        "subAccount": str(task.get("subAccount") or task.get("SubAccount") or ""),
-        "signature": task.get("signature") or task.get("Signature"),
-        "templateId": task.get("templateId") or task.get("TemplateId"),
-        "templateName": task.get("templateName") or task.get("TemplateName"),
-        "channelType": task.get("channelType") or task.get("ChannelType"),
-        "fileUrl": task.get("fileUrl") or task.get("FileUrl"),
-        "fileSha256": extra.get("fileSha256"),
-        "totalCount": _first_not_none(extra.get("totalCount"), task.get("totalCount")),
-        "validCount": _first_not_none(extra.get("validCount"), task.get("validCount")),
-        "invalidCount": _first_not_none(
-            extra.get("invalidCount"), task.get("invalidCount")
-        ),
-        "dupCount": _first_not_none(extra.get("dupCount"), task.get("dupCount")),
-        "contentSha256": extra.get("contentSha256"),
-        "scheduled": task.get("scheduled"),
-        "sendTime": task.get("sendTime") or task.get("SendTime"),
-    }
-
-
-def _launch_summary(
-    client: SmsApiClient,
-    args: argparse.Namespace,
-    task: Mapping[str, Any],
-) -> Dict[str, Any]:
-    summary = _batch_summary(task)
-    if summary["taskId"] != args.task_id or summary["subAccount"] != args.sub_account:
-        raise CliError("batch task identity does not match")
-    template_id = str(summary["templateId"] or "")
-    signature = str(summary["signature"] or "")
-    if not template_id or not signature:
-        raise CliError("batch task resource identity is incomplete")
-    template, _ = _batch_resources(
-        client,
-        args.sub_account,
-        signature,
-        template_id,
-    )
-    current_content_sha = hashlib.sha256(
-        str(template.get("Content") or "").encode("utf-8")
-    ).hexdigest()
-    if summary["contentSha256"] not in (None, current_content_sha):
-        raise CliError("batch task template content changed", "digest_mismatch")
-    summary["contentSha256"] = current_content_sha
-    for summary_name, template_name in (
-        ("templateName", "TemplateName"),
-        ("channelType", "ChannelType"),
-    ):
-        current = str(template.get(template_name) or "")
-        if summary[summary_name] not in (None, "", current):
-            raise CliError("batch task template metadata changed", "digest_mismatch")
-        summary[summary_name] = current
-
-    handoff = {
-        "fileSha256": args.file_sha256,
-        "totalCount": args.total_count,
-        "validCount": args.valid_count,
-        "invalidCount": args.invalid_count,
-        "dupCount": args.dup_count,
-    }
-    for name, supplied in handoff.items():
-        if supplied is not None:
-            if summary[name] is not None and str(summary[name]) != str(supplied):
-                raise CliError(
-                    "batch task handoff metadata changed: {}".format(name),
-                    "digest_mismatch",
-                )
-            summary[name] = supplied
-    missing = [
-        name
-        for name in (
-            "fileSha256",
-            "totalCount",
-            "validCount",
-            "invalidCount",
-            "dupCount",
-        )
-        if summary[name] is None
-    ]
-    if missing:
-        raise CliError(
-            "provide creation handoff metadata for launch: {}".format(
-                ", ".join(missing)
-            )
-        )
-    return summary
-
-
 def _query_params(args: argparse.Namespace) -> Tuple[str, Dict[str, Any]]:
     if args.command == "list-message-groups":
-        return (
-            "ListSubAccountForAgent",
-            {"SubAccountName": args.name} if args.name else {},
-        )
+        params = {"pageIndex": args.page or 1, "pageSize": args.page_size}
+        if args.name:
+            params["subAccountName"] = args.name
+        if args.all_status:
+            params["allStatus"] = True
+        return "GetSubAccountListForAgent", params
     if args.command == "message-group-detail":
         return "GetSubAccountDetail", {"subAccount": args.sub_account}
     if args.command == "list-qualifications":
@@ -1685,11 +1007,19 @@ def _query_params(args: argparse.Namespace) -> Tuple[str, Dict[str, Any]]:
         params = {"Page": args.page, "PageSize": args.page_size}
         if args.signature:
             params["Signature"] = _normalize_signature(args.signature)
-        if args.sub_account:
-            params["SubAccounts"] = args.sub_account
-        return "ListSignatureForAgent", params
+        if args.exact_match:
+            params["ExactMatch"] = True
+        if args.project is not None:
+            params["ProjectName"] = args.project
+        for name, values in (
+            ("SubAccounts", args.sub_account), ("ChannelTypes", args.channel_type),
+            ("Industries", args.industry), ("Statuses", args.status),
+        ):
+            if values:
+                params[name] = values
+        return "ListSignaturesForAgent", params
     if args.command == "list-templates":
-        params = {"Page": args.page, "PageSize": args.page_size}
+        params = {"Page": args.page if args.page is not None else 1, "PageSize": args.page_size}
         if args.template_id:
             params["TemplateId"] = args.template_id
         if args.sub_account:
@@ -1698,8 +1028,198 @@ def _query_params(args: argparse.Namespace) -> Tuple[str, Dict[str, Any]]:
             params["Signatures"] = [
                 _normalize_signature(value) for value in args.signature
             ]
-        return "ListSmsTemplateForAgent", params
+        return "ListBatchTemplatesForAgent", params
     raise CliError("unknown query command")
+
+
+def _cancel_batch_task(args: argparse.Namespace, client: SmsApiClient, *, now: Any) -> Dict[str, Any]:
+    detail = client.call(
+        "GetBatchTaskDetail",
+        {"subAccount": args.sub_account, "taskId": args.task_id},
+    )
+    task = _batch_task_data(detail)
+    summary = {
+        "taskId": str(task.get("taskId") or task.get("TaskId") or ""),
+        "subAccount": str(task.get("subAccount") or task.get("SubAccount") or ""),
+        "sendTime": task.get("sendTime") or task.get("SendTime"),
+    }
+    if (
+        summary["taskId"] != args.task_id
+        or summary["subAccount"] != args.sub_account
+    ):
+        raise CliError("batch task identity does not match")
+    status = int(task.get("status", task.get("Status", -1)))
+    if status == 7:
+        return _local_success(
+            args.command,
+            {"alreadyCanceled": True, "status": 7, "taskId": args.task_id},
+        )
+    if status not in {0, 1, 2, 3, 4, 5}:
+        raise CliError("batch task can no longer be canceled")
+    if bool(task.get("scheduled", task.get("Scheduled", False))):
+        send_at = _task_send_time(summary["sendTime"])
+        current = (now or (lambda: datetime.datetime.now(CHINA_TZ)))().astimezone(
+            CHINA_TZ
+        )
+        if send_at is None or send_at <= current + CANCEL_LEAD_TIME:
+            raise CliError(
+                "batch task is inside the one-minute cancellation cutoff"
+            )
+    canceled = client.call(
+        "DeleteBatchTask",
+        {"subAccount": args.sub_account, "taskId": args.task_id},
+    )
+    if (
+        not canceled.get("success")
+        and isinstance(canceled.get("error"), Mapping)
+        and canceled["error"].get("outcome_unknown")
+    ):
+        reconciled = client.call(
+            "GetBatchTaskDetail",
+            {"subAccount": args.sub_account, "taskId": args.task_id},
+        )
+        if reconciled.get("success"):
+            reconciled_task = _batch_task_data(reconciled)
+            if (
+                int(
+                    reconciled_task.get("status", reconciled_task.get("Status", -1))
+                )
+                == 7
+            ):
+                return _local_success(
+                    args.command,
+                    {"reconciled": True, "status": 7, "taskId": args.task_id},
+                )
+    return canceled
+
+
+def _batch_launch(args: argparse.Namespace, client: SmsApiClient, *, now: Any) -> Dict[str, Any]:
+    # 用本次任务查询绑定签名身份；后续确认仍使用同一身份和本地授权记录。
+    task = _batch_task_data(client.call(
+        "GetBatchTaskDetail",
+        {"subAccount": args.sub_account, "taskId": args.task_id},
+        use_cli=False,
+    ))
+    scope = client.credential_scope
+    if not scope:
+        raise CliError("无法绑定当前登录身份，请检查授权", "confirmation_identity_unavailable")
+    store = batch_confirmation.ConfirmationStore()
+    record = store.task(scope, args.task_id)
+    if task.get("taskId") != args.task_id or task.get("subAccount") != args.sub_account:
+        raise CliError("任务身份不匹配", "resource_changed")
+    status = task.get("status")
+    if isinstance(status, bool) or not isinstance(status, int):
+        raise CliError("任务状态无效", "invalid_response")
+    if status in {3, 4, 5, 6}:
+        try:
+            store.finish_launch(scope, args.task_id)
+        except batch_confirmation.BatchConfirmationError:
+            pass  # A local record failure cannot erase the authoritative task status.
+        return _local_success(args.command, {"taskId": args.task_id, "alreadyStarted": True, "status": status})
+    if status != 2:
+        raise CliError("任务尚未通过校验或已结束，不能确认发送", "task_not_ready")
+    created = record["summary"]
+    content = task.get("sendContent")
+    if not isinstance(content, str) or not content:
+        template_id = str(task.get("templateId") or "")
+        if not template_id or template_id != created.get("templateId"):
+            raise CliError("任务模板信息缺失或已变化", "resource_changed")
+        template, _ = _batch_resources(client, args.sub_account, created["signature"], template_id)
+        content = template["Content"]
+    scheduled = task.get("scheduled")
+    if not isinstance(scheduled, bool):
+        raise CliError("任务发送时间类型无效", "invalid_response")
+    current = (now or (lambda: datetime.datetime.now(CHINA_TZ)))()
+    send_at = _task_send_time(task.get("sendTime"))
+    send_time = validate_batch_schedule(
+        scheduled, send_at.isoformat() if send_at is not None else None, current
+    )
+    checked = {
+        "subAccount": args.sub_account,
+        "signature": task.get("signature"),
+        "contentSha256": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+        "scheduled": scheduled,
+        "sendTime": send_time,
+        "totalCount": task.get("totalCount"),
+    }
+    if any(checked[key] != created[key] for key in checked):
+        raise CliError("任务内容、人数或发送时间已变化，请重新创建并确认", "resource_changed")
+    file_key = task.get("fileUrl")
+    if not isinstance(file_key, str) or not file_key:
+        raise CliError("任务名单信息缺失，不能确认发送", "invalid_response")
+    summary = {
+        **checked,
+        "taskId": args.task_id,
+        "taskName": task.get("taskName") or task.get("name"),
+        "templateId": created.get("templateId"),
+        "templateName": created.get("templateName"),
+        "fileKeySha256": hashlib.sha256(file_key.encode("utf-8")).hexdigest(),
+        "fileSha256": created["fileSha256"],
+        "dupCount": created["dupCount"],
+    }
+    snapshot_digest = canonical_digest(summary)
+    digest = canonical_digest({"scope": scope, "task": summary})
+    if args.command == "batch-launch-preview":
+        store.preview_launch(scope, args.task_id, digest, snapshot_digest)
+        return _local_success(args.command, {
+            "preview": {**summary, "content": content, "renderedContent": "【{}】{}".format(summary["signature"], content)},
+            "digest": digest,
+        })
+    if args.authorization_text != "确认启动任务 {}".format(args.task_id):
+        raise CliError("请明确确认启动当前任务", "authorization_mismatch")
+    if (
+        record["snapshotDigest"] != snapshot_digest
+        or not hmac.compare_digest(record["digest"], args.preview_digest)
+        or not hmac.compare_digest(digest, args.preview_digest)
+    ):
+        raise CliError("任务或确认摘要已变化，请重新预览", "digest_mismatch")
+    store.reserve_launch(scope, args.task_id, digest)
+    try:
+        launched = client.call(
+            "ConsentBatchTask",
+            {"subAccount": args.sub_account, "taskId": args.task_id},
+            expected_credential_scope=scope,
+        )
+    except Exception as exc:
+        raise CliError("确认结果未知，请查询同一任务，勿重新创建", "submission_outcome_unknown", outcome_unknown=True) from exc
+    if launched.get("success"):
+        try:
+            store.finish_launch(scope, args.task_id)
+        except batch_confirmation.BatchConfirmationError:
+            pass  # The known response and task ID remain authoritative.
+        return _local_success(args.command, {"taskId": args.task_id, "subAccount": args.sub_account, "confirmed": True})
+    error = launched.get("error") or {}
+    if error.get("request_sent") is False:
+        store.reject_launch(scope, args.task_id)
+        return launched
+    try:
+        reconciled = client.call(
+            "GetBatchTaskDetail",
+            {"subAccount": args.sub_account, "taskId": args.task_id},
+            expected_credential_scope=scope,
+        )
+    except Exception:
+        reconciled = {"success": False}
+    task = reconciled.get("result") if reconciled.get("success") else None
+    if (
+        isinstance(task, Mapping)
+        and task.get("taskId") == args.task_id
+        and task.get("subAccount") == args.sub_account
+        and task.get("status") in {3, 4, 5, 6}
+    ):
+        try:
+            store.finish_launch(scope, args.task_id)
+        except batch_confirmation.BatchConfirmationError:
+            pass
+        return _local_success(args.command, {"taskId": args.task_id, "subAccount": args.sub_account, "confirmed": True, "reconciled": True})
+    return {
+        **launched, "success": False,
+        "error": {**error, "outcome_unknown": True, "retryable": False},
+    }
+
+
+def _report_form_ready() -> None:
+    print('LOCAL_FORM_STATUS {"state":"ready"}', file=sys.stderr, flush=True)
 
 
 def execute(
@@ -1708,17 +1228,63 @@ def execute(
     *,
     uploader: Any = _default_uploader,
     now: Any = None,
+    batch_snapshot: Optional[bytes] = None,
+    expected_scope: Optional[str] = None,
+    expected_batch_resources: Optional[str] = None,
 ) -> Dict[str, Any]:
+    if args.command in {"batch-create", "batch-launch-preview", "batch-launch-submit"}:
+        try:
+            if args.command == "batch-create":
+                return _create_batch_task(args, client, uploader=uploader, now=now, batch_snapshot=batch_snapshot, expected_scope=expected_scope, expected_batch_resources=expected_batch_resources)
+            return _batch_launch(args, client, now=now)
+        except batch_confirmation.BatchConfirmationError as exc:
+            raise CliError(str(exc), exc.code, outcome_unknown=exc.outcome_unknown) from exc
+    if args.command == "account-info":
+        return client.call("ListAllSmsProduct", {})
+    if args.command == "runtime-info":
+        return _local_success(args.command, runtime_environment.CONFIG)
     if args.command == "auth-login":
         try:
             login_env = prepare_cli_process_environment(os.environ)
             login_env["HOME"] = select_cli_auth_home(login_env)
             if os.name == "nt":
                 login_env["USERPROFILE"] = login_env["HOME"]
+            try:
+                help_result = subprocess.run(
+                    ["ve", "login", "--help"], env=login_env,
+                    capture_output=True, timeout=5,
+                )
+            except FileNotFoundError:
+                raise
+            except subprocess.TimeoutExpired as exc:
+                raise CliError("CLI login inspection timed out", "ve_cli_timeout") from exc
+            except PermissionError as exc:
+                raise CliError("CLI executable cannot be started", "ve_cli_unexecutable") from exc
+            except OSError as exc:
+                raise CliError("Unable to inspect CLI login", "ve_cli_unavailable") from exc
+            flow = ve_login_flow(help_result.stdout + help_result.stderr)
+            if help_result.returncode != 0 or flow is None:
+                raise CliError("CLI login capabilities are unavailable", "ve_login_unsupported")
             login_argv = ["ve", "login"]
             if args.remote:
+                if flow != "loopback":
+                    raise CliError(
+                        "This CLI uses device authorization; run auth-login without --remote",
+                        "ve_login_unsupported",
+                    )
                 login_argv.append("--remote")
-            login_argv.extend(["--region", "cn-beijing"])
+            elif flow == "device_authorization":
+                # 设备码先交给 Agent 展示，避免网页先于设备码出现。
+                login_argv.append("--no-browser")
+            elif args.no_browser:
+                raise CliError(
+                    "This CLI uses a local callback; use --remote when it is unavailable",
+                    "ve_login_unsupported",
+                )
+            login_argv.extend([
+                "--region", runtime_environment.REGION,
+                "--endpoint-url", runtime_environment.SIGNIN_ENDPOINT,
+            ])
             if args.profile:
                 login_argv.extend(["--profile", args.profile])
             # Browser completion is authoritative only after an STS readiness probe.
@@ -1733,6 +1299,14 @@ def execute(
             ) from exc
     if args.command == "auth-doctor":
         return client.auth_doctor()
+    if args.command == "batch-wizard":
+        from batch_wizard import run_batch_wizard
+        draft = BatchFormDraft(client, args, uploader=uploader, now=now)
+        result = run_batch_wizard(
+            draft, display=qualification_display_adapter(args.display),
+            on_display_ready=_report_form_ready,
+        )
+        return _local_success(args.command, result)
     if args.command == "auth-cleanup":
         return cleanup_private_auth_home(
             args.path,
@@ -1744,6 +1318,7 @@ def execute(
             result = run_qualification_wizard(
                 client,
                 display=qualification_display_adapter(args.display),
+                on_display_ready=_report_form_ready,
             )
         except QualificationUploadError as exc:
             raise CliError(
@@ -1751,6 +1326,7 @@ def execute(
                 exc.code,
                 request_id=exc.request_id,
                 log_id=exc.log_id,
+                outcome_unknown=exc.outcome_unknown,
             ) from exc
         if result.get("outcomeUnknown") is True:
             raise CliError(
@@ -1762,92 +1338,51 @@ def execute(
             )
         return _local_success(args.command, result)
 
-    if args.command == "analytics":
-        try:
-            report = build_report(
-                client,
-                start=args.start,
-                end=args.end,
-                sub_account=args.sub_account,
-                channel_type=args.channel_type,
-                signature=args.signature,
-                template_id=args.template_id,
-                mobile=(
-                    _normalize_mobile(args.mobile)
-                    if args.mobile is not None
-                    else None
-                ),
-                bucket=args.bucket,
-                include_logs=args.include_logs,
-                page_size=args.page_size,
-                max_pages=args.max_pages,
-                dimension=args.dimension,
-            )
-        except AnalyticsError as exc:
-            raise CliError(str(exc), exc.code) from exc
-        return _local_success(args.command, report)
+    if args.command == "api-read":
+        # Native parameters are HTTP data, never CLI flags or authentication options.
+        return client.call(args.action, args.params, use_cli=False)
 
     if args.command == "match-template":
         return _match_template(client, args)
 
+    if args.command == "list-message-groups" and args.page is None:
+        action, params = _query_params(args)
+        pages = list(_query_pages(client, action, params, page_key="pageIndex", size_key="pageSize"))
+        items = [item for page in pages for item in _items(page)]
+        return {**pages[-1], "result": {**pages[-1]["result"], "list": items, "total": len(items)}}
+    if args.command == "list-templates":
+        return _list_templates(client, args)
+
     if args.command.startswith("list-") or args.command == "message-group-detail":
         action, params = _query_params(args)
-        result = client.call(action, params)
-        return (
-            _safe_template_envelope(result)
-            if action == "ListSmsTemplateForAgent"
-            else result
-        )
+        return client.call(action, params)
 
-    if args.command in {"signature-preview", "signature-submit"}:
-        body = _signature_body(args)
-        message_groups = _validate_signature_resources(
-            client,
-            body["signatureIdentificationID"],
-            body["purpose"],
-            body["subAccounts"],
-            body["channelTypes"],
-        )
+    if args.command in {
+        "signature-preview", "signature-submit", "template-preview", "template-submit",
+    }:
+        body = args.params
         digest = canonical_digest(body)
-        if args.command == "signature-preview":
-            return _local_success(
-                args.command, _signature_preview(body, message_groups)
-            )
+        if args.command.endswith("-preview"):
+            return _local_success(args.command, {"preview": body, "digest": digest})
         if not hmac.compare_digest(args.preview_digest, digest):
             raise CliError(
                 "input changed after preview; generate a new preview",
                 "digest_mismatch",
             )
-        submitted = client.call("ApplySmsSignatureV2", body)
-        if _is_outcome_unknown(submitted):
-            return _reconcile_signature_application(client, body, submitted)
-        return submitted
+        action = "ApplySmsSignatureV2" if args.command == "signature-submit" else "ApplySmsTemplateV2"
+        return client.call(action, body, use_cli=False)
 
-    if args.command in {"template-preview", "template-submit"}:
-        body = _template_body(args)
-        _validate_template_resources(client, body)
-        digest = canonical_digest(body)
-        if args.command == "template-preview":
-            return _local_success(args.command, _template_preview(body))
-        if not hmac.compare_digest(args.preview_digest, digest):
-            raise CliError(
-                "input changed after preview; generate a new preview",
-                "digest_mismatch",
-            )
-        submitted = client.call("ApplySmsTemplateV2", body)
-        if _is_outcome_unknown(submitted):
-            return _reconcile_template_application(client, body, submitted)
-        return _safe_template_envelope(submitted)
     if args.command == "send-status":
-        return client.call(
-            "ListSmsSendLogForAgent",
-            {
-                "SubAccount": args.sub_account,
-                "MessageId": args.message_id,
-                "Page": args.page,
-                "PageSize": args.page_size,
-            },
-        )
+        params = {"MessageId": args.message_id, "Page": args.page, "PageSize": args.page_size}
+        if args.from_time is not None:
+            params["FromTime"] = args.from_time
+        if args.to_time is not None:
+            params["ToTime"] = args.to_time
+        if args.from_time is not None and args.to_time is not None and args.to_time < args.from_time:
+            raise CliError("to-time 必须大于等于 from-time", "argument_error")
+        if args.sub_account is not None:
+            params["SubAccount"] = args.sub_account
+        return client.call("ListSmsSendLogForAgent", params)
     if args.command in {"send-preview", "send-submit"}:
         if args.command == "send-submit":
             if not hmac.compare_digest(args.preview_digest, args.authorization_digest):
@@ -1879,16 +1414,15 @@ def execute(
                 ),
             },
         )
+    if args.command == "batch-content-check":
+        body = {"subAccount": args.sub_account, "signature": _normalize_signature(args.signature), "templateId": args.template_id}
+        if args.content is not None:
+            body["content"] = args.content
+        return client.call("ValidateBatchTaskContentForAgent", body)
     if args.command == "batch-template-demo":
-        params = {"subAccount": args.sub_account, "templateId": args.template_id}
-        if args.force_update:
-            params["forceUpdate"] = True
-        return client.call("TemplateUploadDemo", params)
+        return client.call("TemplateUploadDemoForAgent", {"subAccount": args.sub_account, "templateId": args.template_id})
     if args.command == "batch-detail":
-        return client.call(
-            "GetBatchTaskDetail",
-            {"subAccount": args.sub_account, "taskId": args.task_id},
-        )
+        return client.call("GetBatchTaskDetail", {"subAccount": args.sub_account, "taskId": args.task_id})
     if args.command == "batch-list":
         params = {
             "subAccount": args.sub_account,
@@ -1904,277 +1438,533 @@ def execute(
                 params[target] = value
         return client.call("GetBatchTaskList", params)
     if args.command == "batch-precheck":
-        report = precheck_batch_csv(pathlib.Path(args.file), args.template_param or [])
-        return _local_success(args.command, report)
-    if args.command == "batch-create":
-        current = (now or (lambda: datetime.datetime.now(CHINA_TZ)))()
-        send_time = validate_batch_schedule(args.scheduled, args.send_time, current)
-        template, variables = _batch_resources(
-            client, args.sub_account, args.signature, args.template_id
+        demo = _batch_demo(client, args.sub_account, args.template_id)
+        return _local_success(args.command, precheck_batch_csv(args.file, _batch_demo_columns(demo)[1:]))
+    if args.command == "batch-cancel":
+        return _cancel_batch_task(args, client, now=now)
+    raise CliError("unsupported command", "argument_error")
+
+
+class BatchFormDraft:
+    """Own a private recipient snapshot through server validation and launch."""
+
+    def __init__(self, client: SmsApiClient, args: argparse.Namespace, *, uploader: Any = _default_uploader, now: Any = None):
+        self.client = client
+        self.args = argparse.Namespace(**vars(args))
+        if self.args.scheduled is False and self.args.send_time is not None:
+            raise CliError("立即发送与定时时间冲突，请使用会话中确认的发送方式", "argument_error")
+        self.uploader = uploader
+        self.now = now
+        self.revision = 0
+        self.result: Optional[Dict[str, Any]] = None
+        self._snapshot: Optional[bytes] = None
+        self._report: Optional[Dict[str, Any]] = None
+        self._preview: Optional[Dict[str, Any]] = None
+        self._file_key: Optional[str] = None
+        self._validation_task_id: Optional[str] = None
+        self._scope: Optional[str] = None
+        self._resource_digest: Optional[str] = None
+        self._submitting = False
+        self._test_send_lock = threading.Lock()
+        self._test_send_outcome_unknown = False
+        self._test_message_ids = {}
+        self._closed = False
+        self.metadata = self._resources()
+        _check_batch_content(self.client, self.args, self._template, scope=self._scope)
+        self._demo = _batch_demo(self.client, self.args.sub_account, self.args.template_id, scope=self._scope)
+        columns = _batch_demo_columns(self._demo)
+        self.metadata.update({"columns": columns, "templateVariables": columns[1:]})
+    def _resources(self) -> Dict[str, Any]:
+        template, variables = _batch_resources(self.client, self.args.sub_account, self.args.signature, self.args.template_id)
+        fields = _batch_content_fields(template, self.args.content)
+        self._scope = self.client.credential_scope
+        if not self._scope:
+            raise CliError("无法绑定当前登录身份，请检查授权", "confirmation_identity_unavailable")
+        self._template = template
+        self._resource_digest = canonical_digest({"template": template, "fields": fields})
+        initial_time = _task_send_time(self.args.send_time) if self.args.send_time else None
+        # 优先回填会话中的发送选择；未传方式的旧调用保留默认定时行为。
+        scheduled_initial = self.args.scheduled if self.args.scheduled is not None else True
+        return {
+            "taskName": self.args.task_name,
+            "subAccount": self.args.sub_account,
+            "signature": template["Signature"],
+            "templateId": self.args.template_id,
+            "templateName": template["TemplateName"],
+            "channelType": template["ChannelType"],
+            "content": fields.get("content", template["Content"]),
+            "description": template.get("Description", ""),
+            "testSendSupported": not template.get("BatchOnly", False),
+            "maxFileBytes": MAX_BATCH_FILE_BYTES,
+            "scheduled": scheduled_initial,
+            "sendTime": initial_time.strftime("%Y-%m-%dT%H:%M") if initial_time is not None else None,
+            "timezone": "Asia/Shanghai",
+        }
+    def _editable(self) -> None:
+        if self._closed or self._submitting or self.result is not None:
+            raise CliError("本次任务创建已结束或正在处理", "batch_form_closed")
+
+    def clear_file(self) -> None:
+        self._editable()
+        self._snapshot = self._report = self._preview = None
+        self._file_key = None
+        self.revision += 1
+
+    def set_file(self, data: bytes) -> Dict[str, Any]:
+        self.clear_file()
+        if not isinstance(data, (bytes, bytearray)):
+            raise CliError("群发文件内容无效", "invalid_batch_file")
+        snapshot = bytes(data)
+        if not snapshot:
+            raise CliError("群发文件不能为空", "invalid_batch_file")
+        if len(snapshot) > MAX_BATCH_FILE_BYTES:
+            raise CliError("群发文件不能超过 50 MB", "invalid_batch_file")
+        self._snapshot = snapshot
+        self._report = {
+            "fileSize": len(snapshot),
+            "fileSha256": hashlib.sha256(snapshot).hexdigest(),
+        }
+        return {"revision": self.revision, "file": dict(self._report)}
+
+    def template_file(self) -> Tuple[str, str, bytes]:
+        self._editable()
+        result = self._demo
+        value = result.get("value")
+        if not isinstance(value, str) or not value:
+            raise CliError("名单模板内容无效", "invalid_response")
+        file_name = pathlib.Path(str(result.get("fileName") or "TemplateUploadDemo.csv")).name
+        if not file_name.lower().endswith(".csv"):
+            file_name = "TemplateUploadDemo.csv"
+        content_type = str(result.get("contentType") or "text/csv; charset=utf-8")
+        return file_name, content_type, value.encode("utf-8")
+    def _refresh_resources(self) -> None:
+        old_scope = self._scope
+        old_digest = self._resource_digest
+        metadata = self._resources()
+        if self._scope != old_scope:
+            self.clear_file()
+            raise CliError(
+                "登录身份已变化，请重新选择文件和校验",
+                "confirmation_identity_changed",
+            )
+        if self._resource_digest != old_digest:
+            self._preview = None
+            self.revision += 1
+            raise CliError("群发资源已变化，请重新打开表单", "resource_changed")
+        metadata.update({"columns": self.metadata["columns"], "templateVariables": self.metadata["templateVariables"]})
+        self.metadata = metadata
+    def _ensure_uploaded(self) -> str:
+        if self._snapshot is None:
+            raise CliError("请先在页面选择 CSV 文件", "batch_file_required")
+        if self._file_key is not None:
+            return self._file_key
+        upload = _batch_task_data(
+            self.client.call(
+                "GetUploadTosURL",
+                {"suffix": "csv"},
+                expected_credential_scope=self._scope,
+            )
         )
-        source_path = pathlib.Path(args.file)
-        if source_path.suffix.lower() != ".csv":
-            raise CliError("batch v1 supports CSV files only")
-        snapshot = _read_batch_snapshot(source_path)
-        report = precheck_batch_csv(snapshot, variables)
-        upload = client.call(
-            "GetUploadTosURL",
-            {"suffix": "csv"},
-            preserve_presigned_url=True,
+        file_key = upload.get("file")
+        upload_url = upload.get("url")
+        if not isinstance(file_key, str) or not file_key:
+            raise CliError("上传授权缺少文件标识", "invalid_response")
+        if not isinstance(upload_url, str) or not upload_url:
+            raise CliError("上传授权缺少地址", "invalid_response")
+        self.uploader(upload_url, self._snapshot)
+        self._file_key = file_key
+        return file_key
+
+    def _create_body(self, send_time: int, file_key: str) -> Dict[str, Any]:
+        return {
+            "subAccount": self.args.sub_account,
+            "name": self.args.task_name,
+            "signature": self.metadata["signature"],
+            "templateId": self.args.template_id,
+            "scheduled": self.args.scheduled,
+            "sendTime": send_time,
+            "fileUrl": file_key,
+            **_batch_content_fields(self._template, self.args.content),
+        }
+    def send_test_sms(
+        self,
+        phone: Any,
+        template_params: Any,
+    ) -> Dict[str, Any]:
+        self._editable()
+        if not self.metadata["testSendSupported"]:
+            raise CliError(
+                "该模板不支持测试短信",
+                "test_send_not_supported",
+            )
+        if not isinstance(phone, str) or not isinstance(template_params, Mapping):
+            raise CliError("测试短信参数格式不正确", "argument_error")
+        mobile = _normalize_mobile(phone)
+        expected = list(self.metadata["templateVariables"])
+        if set(template_params) != set(expected) or len(template_params) != len(expected):
+            raise CliError(
+                "测试参数必须与模板变量完全一致",
+                "template_param_mismatch",
+            )
+        normalized_params = {}
+        for name in expected:
+            value = template_params[name]
+            if not isinstance(value, str) or not value:
+                raise CliError(
+                    "请填写测试参数 {}".format(name),
+                    "template_param_required",
+                )
+            normalized_params[name] = value
+        self._refresh_resources()
+        with self._test_send_lock:
+            if self._test_send_outcome_unknown:
+                raise CliError(
+                    "上一次测试短信结果未知，请勿重复发送",
+                    "test_send_outcome_unknown",
+                    outcome_unknown=True,
+                )
+            requested_at = int((self.now or (lambda: datetime.datetime.now(CHINA_TZ)))().timestamp())
+            try:
+                envelope = self.client.call(
+                    "SendSmsForAgent",
+                    {
+                        "SubAccount": self.args.sub_account,
+                        "Signature": self.metadata["signature"],
+                        "TemplateId": self.args.template_id,
+                        "Mobiles": mobile,
+                        "TemplateParam": (
+                            json.dumps(
+                                normalized_params,
+                                ensure_ascii=False,
+                                sort_keys=True,
+                                separators=(",", ":"),
+                            )
+                            if normalized_params
+                            else ""
+                        ),
+                    },
+                    expected_credential_scope=self._scope,
+                )
+            except Exception:
+                self._test_send_outcome_unknown = True
+                return {
+                    "status": "test_sms_outcome_unknown",
+                    "outcomeUnknown": True,
+                }
+        if envelope.get("success"):
+            result = envelope.get("result")
+            if not isinstance(result, Mapping):
+                self._test_send_outcome_unknown = True
+                raise CliError(
+                    "测试短信返回结果无效",
+                    "invalid_response",
+                    outcome_unknown=True,
+                )
+            message_id = result.get("MessageId")
+            message_ids = result.get("MessageIds")
+            if not message_id and not message_ids:
+                self._test_send_outcome_unknown = True
+                raise CliError(
+                    "测试短信返回结果缺少 Message ID",
+                    "invalid_response",
+                    outcome_unknown=True,
+                )
+            if isinstance(message_id, str) and message_id:
+                self._test_message_ids[message_id] = requested_at
+            if isinstance(message_ids, list):
+                self._test_message_ids.update({
+                    value: requested_at for value in message_ids if isinstance(value, str) and value
+                })
+            return {
+                "status": "test_sms_submitted",
+                "messageId": message_id,
+                "messageIds": message_ids,
+                "outcomeUnknown": False,
+            }
+        error = envelope.get("error") or {}
+        if error.get("outcome_unknown") is True:
+            self._test_send_outcome_unknown = True
+            return {
+                "status": "test_sms_outcome_unknown",
+                "outcomeUnknown": True,
+            }
+        raise CliError(
+            str(error.get("message") or "测试短信发送失败"),
+            str(error.get("code") or "test_send_failed"),
         )
-        upload_data = _batch_task_data(upload)
-        upload_url = upload_data.get("url") or upload_data.get("Url")
-        file_key = upload_data.get("file") or upload_data.get("File")
-        if not upload_url or not file_key:
-            raise CliError("upload authorization is incomplete")
+
+    def test_sms_status(self, message_id: Any) -> Dict[str, Any]:
+        self._editable()
+        if not self.metadata["testSendSupported"]:
+            raise CliError("该模板不支持测试短信", "test_send_not_supported")
+        if (
+            not isinstance(message_id, str)
+            or not message_id
+            or message_id not in self._test_message_ids
+        ):
+            raise CliError("测试短信 Message ID 无效", "invalid_test_message_id")
+        query_end = int((self.now or (lambda: datetime.datetime.now(CHINA_TZ)))().timestamp()) + 1
+        envelope = self.client.call(
+            "ListSmsSendLogForAgent",
+            {"MessageId": message_id, "Page": 1, "PageSize": 1,
+             "FromTime": self._test_message_ids[message_id], "ToTime": query_end},
+            expected_credential_scope=self._scope,
+        )
+        _require_query_success(envelope)
+        items = _items(envelope)
+        log = next(
+            (
+                item
+                for item in items
+                if str(item.get("MessageId") or item.get("MessageID") or "")
+                == message_id
+            ),
+            None,
+        )
+        if log is None:
+            return {"messageId": message_id, "found": False}
+        return {
+            "messageId": message_id,
+            "found": True,
+            "status": log.get("Status"),
+            "sendTime": log.get("SendTime"),
+            "receiptTime": log.get("ReceiptTime"),
+            "count": log.get("Count"),
+            "errorCode": log.get("ErrorCode"),
+            "errorType": log.get("ErrorType"),
+            "errorMessage": log.get("ErrorMessage"),
+            "channelType": log.get("ChannelType"),
+        }
+
+    def _create_attempt(self, send_time: int) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        file_key = self._ensure_uploaded()
+        body = self._create_body(send_time, file_key)
+        body["idempotencyKey"] = uuid.uuid4().hex
+        envelope = self.client.call(
+            "SetBatchTaskForAgent",
+            body,
+            expected_credential_scope=self._scope,
+        )
+        if not envelope.get("success"):
+            error = envelope.get("error") or {}
+            # 与 CLI 创建入口一致，系统错误可能发生在落库之后，不能换 key 重建。
+            rejected = error.get("request_sent") is False or (
+                error.get("code") in batch_confirmation.CREATE_REJECTION_CODES
+                and error.get("outcome_unknown") is not True
+            )
+            raise CliError(
+                str(error.get("message") or "群发任务创建失败"),
+                str(error.get("code") or "batch_creation_failed"),
+                outcome_unknown=not rejected,
+            )
+        result = envelope.get("result")
+        if not isinstance(result, Mapping):
+            raise CliError(
+                "群发任务创建结果无效",
+                "invalid_response",
+                outcome_unknown=True,
+            )
+        return _batch_creation_result(result), envelope
+
+    def _terminal_error(self, code: str, *, outcome_unknown: bool) -> Dict[str, Any]:
+        self.result = {
+            "subAccount": self.args.sub_account,
+            "status": (
+                "batch_creation_outcome_unknown"
+                if outcome_unknown
+                else "batch_creation_failed"
+            ),
+            "code": code,
+            "outcomeUnknown": outcome_unknown,
+            "fallbackAllowed": False,
+        }
+        self._snapshot = None
+        return dict(self.result)
+
+    def preview(self, scheduled: bool, send_time: Optional[str]) -> Dict[str, Any]:
+        self._editable()
+        self._preview = None
+        self.revision += 1
+        if not isinstance(scheduled, bool) or (send_time is not None and not isinstance(send_time, str)):
+            raise CliError("发送时间格式不正确", "argument_error")
+        if self._snapshot is None:
+            raise CliError("请先在页面选择 CSV 文件", "batch_file_required")
+        current = (self.now or (lambda: datetime.datetime.now(CHINA_TZ)))()
+        send_timestamp = validate_batch_schedule(scheduled, send_time, current)
+        self.args.scheduled, self.args.send_time = scheduled, send_time
+        self._submitting = True
         try:
-            uploader(str(upload_url), snapshot)
-        except CliError:
+            validation, _ = self._create_attempt(send_timestamp)
+        except CliError as exc:
+            if exc.outcome_unknown:
+                return {
+                    "terminalResult": self._terminal_error(
+                        exc.code, outcome_unknown=True
+                    )
+                }
+            raise
+        except Exception:
+            return {
+                "terminalResult": self._terminal_error(
+                    "submission_outcome_unknown", outcome_unknown=True
+                )
+            }
+        finally:
+            self._submitting = False
+        self._preview = {
+            **self.metadata,
+            **validation,
+            "fileSize": self._report["fileSize"],
+            "fileSha256": self._report["fileSha256"],
+            "scheduled": scheduled,
+            "sendTime": send_timestamp,
+            "revision": self.revision,
+        }
+        self._validation_task_id = validation["taskId"]
+        return dict(self._preview)
+
+    def create(self, revision: int, confirmed: bool) -> Dict[str, Any]:
+        self._editable()
+        if confirmed is not True or type(revision) is not int or revision != self.revision or self._preview is None:
+            raise CliError("请重新校验并确认当前文件和发送时间", "preview_changed")
+        self._refresh_resources()
+        current = (self.now or (lambda: datetime.datetime.now(CHINA_TZ)))()
+        send_timestamp = validate_batch_schedule(
+            self.args.scheduled, self.args.send_time, current
+        )
+        created: Optional[Dict[str, Any]] = None
+        self._submitting = True
+        confirming = False
+        try:
+            created = _batch_creation_result(self._preview)
+            envelope = self.client.call("GetBatchTaskDetail", {"subAccount": self.args.sub_account, "taskId": created["taskId"]}, expected_credential_scope=self._scope)
+            task = _batch_task_data(envelope)
+            for key in ("taskId", "subAccount", "signature", "scheduled", "totalCount"):
+                if task.get(key) != self._preview.get(key):
+                    raise CliError("任务信息已变化，请重新核对", "preview_changed")
+            if self.args.content is not None and task.get("sendContent") != self.args.content:
+                raise CliError("任务正文已变化，请重新核对", "preview_changed")
+            if task.get("templateId") and task["templateId"] != self.args.template_id:
+                raise CliError("任务模板已变化，请重新核对", "preview_changed")
+            if self.args.scheduled:
+                task_time = _task_send_time(task.get("sendTime"))
+                if task_time is None or int(task_time.timestamp()) != send_timestamp:
+                    raise CliError("任务时间已变化，请重新核对", "preview_changed")
+            if task.get("status") not in {2, 3, 4, 5, 6}:
+                raise CliError("当前任务不能确认发送", "task_not_ready")
+            if task["status"] in {3, 4, 5, 6}:
+                launched = {"success": True}
+            else:
+                confirming = True
+                launched = self.client.call(
+                    "ConsentBatchTask",
+                    {
+                        "subAccount": self.args.sub_account,
+                        "taskId": created["taskId"],
+                    },
+                    expected_credential_scope=self._scope,
+                )
+            confirmed_result = launched.get("success") is True
+            reconciled = False
+            if not confirmed_result:
+                error = launched.get("error") or {}
+                unknown = error.get("outcome_unknown") is True
+                if unknown:
+                    detail = self.client.call(
+                        "GetBatchTaskDetail",
+                        {
+                            "subAccount": self.args.sub_account,
+                            "taskId": created["taskId"],
+                        },
+                        expected_credential_scope=self._scope,
+                    )
+                    task = detail.get("result") if detail.get("success") else None
+                    if (
+                        isinstance(task, Mapping)
+                        and task.get("status") in {3, 4, 5, 6}
+                    ):
+                        confirmed_result = True
+                        reconciled = True
+                if not confirmed_result:
+                    self.result = {
+                        **created,
+                        "fileSha256": self._report["fileSha256"],
+                        "status": (
+                            "batch_confirmation_outcome_unknown"
+                            if unknown
+                            else "batch_confirmation_failed"
+                        ),
+                        "subAccount": self.args.sub_account,
+                        "taskName": self.args.task_name,
+                        "signature": self.args.signature,
+                        "templateId": self.args.template_id,
+                        "scheduled": self.args.scheduled,
+                        "sendTime": send_timestamp,
+                        "code": error.get("code"),
+                        "outcomeUnknown": unknown,
+                        "fallbackAllowed": False,
+                    }
+                    return dict(self.result)
+            self.result = {
+                **created,
+                "fileSha256": self._report["fileSha256"],
+                "status": "batch_task_confirmed",
+                "subAccount": self.args.sub_account,
+                "taskName": self.args.task_name,
+                "signature": self.args.signature,
+                "templateId": self.args.template_id,
+                "scheduled": self.args.scheduled,
+                "sendTime": send_timestamp,
+                "confirmed": True,
+                "reconciled": reconciled,
+                "requestId": envelope.get("request_id"),
+                "fallbackAllowed": False,
+            }
+            return dict(self.result)
+        except CliError as exc:
+            if exc.outcome_unknown:
+                return self._terminal_error(exc.code, outcome_unknown=True)
             raise
         except Exception as exc:
-            raise CliError("batch file upload failed") from exc
-        try:
-            current_file_sha = hashlib.sha256(snapshot).hexdigest()
-        except (TypeError, ValueError) as exc:
-            raise CliError("batch CSV snapshot is invalid") from exc
-        if not hmac.compare_digest(current_file_sha, report["fileSha256"]):
-            raise CliError("batch CSV snapshot changed during upload")
-        content = str(template.get("Content") or "")
-        handoff_metadata = {
-            "fileSha256": report["fileSha256"],
-            "totalCount": report["totalCount"],
-            "validCount": report["validCount"],
-            "invalidCount": report["invalidCount"],
-            "dupCount": report["dupCount"],
-            "contentSha256": hashlib.sha256(content.encode("utf-8")).hexdigest(),
-        }
-        body = {
-            "subAccount": args.sub_account,
-            "name": args.task_name,
-            "signature": _normalize_signature(args.signature),
-            "templateId": args.template_id,
-            "templateName": str(template["TemplateName"]),
-            "channelType": str(template["ChannelType"]),
-            "scheduled": args.scheduled,
-            "sendTime": send_time,
-            "fileUrl": str(file_key),
-            "extra": {},
-        }
-        created = client.call("SetBatchTask", body)
-        if not created.get("success"):
-            return created
-        service_result = created.get("result")
-        if not isinstance(service_result, Mapping):
-            raise CliError("batch create response is incomplete")
-        task_id = service_result.get("taskId") or service_result.get("TaskId")
-        if not task_id:
-            raise CliError("batch create response has no taskId")
-        authoritative = client.call(
-            "GetBatchTaskDetail",
-            {"subAccount": args.sub_account, "taskId": str(task_id)},
-        )
-        authoritative_result = (
-            authoritative.get("result") if authoritative.get("success") else None
-        )
-        status = None
-        if isinstance(authoritative_result, Mapping):
-            detail_id = authoritative_result.get("taskId") or authoritative_result.get(
-                "TaskId"
-            )
-            detail_group = authoritative_result.get(
-                "subAccount"
-            ) or authoritative_result.get("SubAccount")
-            if (
-                str(detail_id or "") == str(task_id)
-                and str(detail_group or "") == args.sub_account
-            ):
-                status = authoritative_result.get("status")
-                if status is None:
-                    status = authoritative_result.get("Status")
-        handoff = dict(service_result)
-        handoff.update(
-            {
-                "taskId": str(task_id),
-                "subAccount": args.sub_account,
-                "status": status,
-                "statusAuthoritative": status is not None,
-                "fileSha256": report["fileSha256"],
-                "totalCount": service_result.get("totalCount", report["totalCount"]),
-                "validCount": service_result.get("validCount", report["validCount"]),
-                "invalidCount": service_result.get(
-                    "invalidCount", report["invalidCount"]
-                ),
-                "dupCount": service_result.get("dupCount", report["dupCount"]),
-                "digest": canonical_digest(
-                    {
-                        "taskId": str(task_id),
-                        "subAccount": args.sub_account,
-                        "body": body,
-                        "handoff": handoff_metadata,
-                    }
-                ),
+            if confirming and created is not None:
+                self.result = {
+                    **created,
+                    "fileSha256": self._report["fileSha256"],
+                    "status": "batch_confirmation_outcome_unknown",
+                    "subAccount": self.args.sub_account,
+                    "taskName": self.args.task_name,
+                    "signature": self.args.signature,
+                    "templateId": self.args.template_id,
+                    "scheduled": self.args.scheduled,
+                    "sendTime": send_timestamp,
+                    "outcomeUnknown": True,
+                    "fallbackAllowed": False,
+                }
+                return dict(self.result)
+            raise CliError("无法获取任务最新状态，请稍后重试确认", "task_query_failed") from exc
+        finally:
+            self._submitting = False
+            if self.result is not None:
+                self._snapshot = None
+
+    def close(self, reason: str) -> Dict[str, Any]:
+        self._snapshot = self._preview = None
+        self._closed = True
+        if self.result is not None:
+            return dict(self.result)
+        if self._submitting:
+            return {"status": "batch_creation_outcome_unknown", "outcomeUnknown": True, "fallbackAllowed": False}
+        if self._validation_task_id is not None:
+            return {
+                "status": "batch_file_validated",
+                "taskId": self._validation_task_id,
+                "subAccount": self.args.sub_account,
+                "fallbackAllowed": False,
             }
-        )
         return {
-            "success": True,
-            "action": "SetBatchTask",
-            "request_id": created.get("request_id"),
-            "result": handoff,
-            "error": None,
+            "status": "batch_form_unavailable" if reason == "not_displayed" else "batch_form_closed",
+            "reason": reason, "fallbackAllowed": reason in {"not_displayed", "cancelled"},
         }
-    if args.command in {"batch-launch-preview", "batch-launch-submit"}:
-        if args.command == "batch-launch-submit":
-            expected_text = "确认启动任务 {}".format(args.task_id)
-            if args.authorization_text != expected_text:
-                raise CliError(
-                    "authorization must exactly be: {}".format(expected_text),
-                    "authorization_mismatch",
-                )
-        first = client.call(
-            "GetBatchTaskDetail",
-            {"subAccount": args.sub_account, "taskId": args.task_id},
-        )
-        task = _batch_task_data(first)
-        summary = _batch_summary(task)
-        if (
-            summary["taskId"] != args.task_id
-            or summary["subAccount"] != args.sub_account
-        ):
-            raise CliError("batch task identity does not match")
-        status = int(task.get("status", task.get("Status", -1)))
-        if 3 <= status <= 6:
-            return _local_success(
-                args.command,
-                {"alreadyStarted": True, "status": status, "taskId": args.task_id},
-            )
-        if status != 2:
-            raise CliError("batch task is not in Valid(2) state")
-        summary = _launch_summary(client, args, task)
-        digest = canonical_digest(summary)
-        preview = {
-            "taskId": args.task_id,
-            "subAccount": args.sub_account,
-            "taskName": summary["taskName"],
-            "signature": summary["signature"],
-            "templateId": summary["templateId"],
-            "channelType": summary["channelType"],
-            "fileKeySha256": hashlib.sha256(
-                str(summary["fileUrl"] or "").encode("utf-8")
-            ).hexdigest(),
-            "fileSha256": summary["fileSha256"],
-            "contentSha256": summary["contentSha256"],
-            "totalCount": summary["totalCount"],
-            "validCount": summary["validCount"],
-            "invalidCount": summary["invalidCount"],
-            "dupCount": summary["dupCount"],
-            "sendTime": summary["sendTime"],
-        }
-        if args.command == "batch-launch-preview":
-            return _local_success(args.command, {"preview": preview, "digest": digest})
-        if not hmac.compare_digest(args.preview_digest, digest):
-            raise CliError("batch task changed after preview", "digest_mismatch")
-        second = client.call(
-            "GetBatchTaskDetail",
-            {"subAccount": args.sub_account, "taskId": args.task_id},
-        )
-        latest = _batch_task_data(second)
-        latest_status = int(latest.get("status", latest.get("Status", -1)))
-        if 3 <= latest_status <= 6:
-            return _local_success(
-                args.command,
-                {
-                    "alreadyStarted": True,
-                    "status": latest_status,
-                    "taskId": args.task_id,
-                },
-            )
-        latest_summary = _launch_summary(client, args, latest)
-        if latest_status != 2 or canonical_digest(latest_summary) != digest:
-            raise CliError("batch task changed before launch", "digest_mismatch")
-        launched = client.call(
-            "ConsentBatchTask",
-            {"subAccount": args.sub_account, "taskId": args.task_id},
-        )
-        if (
-            not launched.get("success")
-            and isinstance(launched.get("error"), Mapping)
-            and launched["error"].get("outcome_unknown")
-        ):
-            reconciled = client.call(
-                "GetBatchTaskDetail",
-                {"subAccount": args.sub_account, "taskId": args.task_id},
-            )
-            if reconciled.get("success"):
-                reconciled_task = _batch_task_data(reconciled)
-                reconciled_status = int(
-                    reconciled_task.get("status", reconciled_task.get("Status", -1))
-                )
-                if 3 <= reconciled_status <= 6:
-                    return _local_success(
-                        args.command,
-                        {
-                            "reconciled": True,
-                            "status": reconciled_status,
-                            "taskId": args.task_id,
-                        },
-                    )
-        return launched
-    if args.command == "batch-cancel":
-        detail = client.call(
-            "GetBatchTaskDetail",
-            {"subAccount": args.sub_account, "taskId": args.task_id},
-        )
-        task = _batch_task_data(detail)
-        summary = _batch_summary(task)
-        if (
-            summary["taskId"] != args.task_id
-            or summary["subAccount"] != args.sub_account
-        ):
-            raise CliError("batch task identity does not match")
-        status = int(task.get("status", task.get("Status", -1)))
-        if status == 7:
-            return _local_success(
-                args.command,
-                {"alreadyCanceled": True, "status": 7, "taskId": args.task_id},
-            )
-        if status not in {0, 1, 2, 3, 4, 5}:
-            raise CliError("batch task can no longer be canceled")
-        if bool(task.get("scheduled", task.get("Scheduled", False))):
-            send_at = _task_send_time(summary["sendTime"])
-            current = (now or (lambda: datetime.datetime.now(CHINA_TZ)))().astimezone(
-                CHINA_TZ
-            )
-            if send_at is None or send_at <= current + CANCEL_LEAD_TIME:
-                raise CliError(
-                    "batch task is inside the one-minute cancellation cutoff"
-                )
-        canceled = client.call(
-            "DeleteBatchTask",
-            {"subAccount": args.sub_account, "taskId": args.task_id},
-        )
-        if (
-            not canceled.get("success")
-            and isinstance(canceled.get("error"), Mapping)
-            and canceled["error"].get("outcome_unknown")
-        ):
-            reconciled = client.call(
-                "GetBatchTaskDetail",
-                {"subAccount": args.sub_account, "taskId": args.task_id},
-            )
-            if reconciled.get("success"):
-                reconciled_task = _batch_task_data(reconciled)
-                if (
-                    int(
-                        reconciled_task.get("status", reconciled_task.get("Status", -1))
-                    )
-                    == 7
-                ):
-                    return _local_success(
-                        args.command,
-                        {"reconciled": True, "status": 7, "taskId": args.task_id},
-                    )
-        return canceled
-    raise CliError("unsupported command", "argument_error")
 
 
 def _bounded_int(name: str, minimum: int, maximum: int):
@@ -2199,15 +1989,6 @@ def _non_empty_text(name: str):
     return parse_value
 
 
-def _sha256_value(raw: str) -> str:
-    value = raw.strip().lower()
-    if not re.fullmatch(r"[0-9a-f]{64}", value):
-        raise argparse.ArgumentTypeError(
-            "file-sha256 must be 64 hexadecimal characters"
-        )
-    return value
-
-
 def _page_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--page", type=_bounded_int("page", 1, 100000), default=1)
     parser.add_argument(
@@ -2217,50 +1998,8 @@ def _page_options(parser: argparse.ArgumentParser) -> None:
     )
 
 
-def _signature_application_options(
-    parser: argparse.ArgumentParser, *, submit: bool
-) -> None:
-    parser.add_argument("--content", required=True)
-    parser.add_argument("--purpose", required=True, type=int, choices=(1, 2))
-    parser.add_argument("--qualification-id", required=True, type=int)
-    parser.add_argument("--sub-account", required=True, action="append")
-    parser.add_argument(
-        "--channel-type",
-        required=True,
-        action="append",
-        choices=("CN_OTP", "CN_NTC", "CN_MKT"),
-    )
-    parser.add_argument("--source", required=True, type=int, choices=(1, 2, 3))
-    parser.add_argument("--description")
-    parser.add_argument("--domain")
-    parser.add_argument("--scene")
-    parser.add_argument("--project-name")
-    parser.add_argument("--app-icp")
-    parser.add_argument("--trademark")
-    if submit:
-        parser.add_argument("--preview-digest", required=True)
-
-
-def _template_application_options(
-    parser: argparse.ArgumentParser, *, submit: bool
-) -> None:
-    parser.add_argument("--name", required=True)
-    parser.add_argument("--content", required=True)
-    parser.add_argument(
-        "--channel-type", required=True, choices=("CN_OTP", "CN_NTC", "CN_MKT")
-    )
-    parser.add_argument("--signature", required=True, action="append")
-    parser.add_argument("--sub-account", required=True, action="append")
-    parser.add_argument("--template-param", action="append", default=[])
-    parser.add_argument("--project")
-    parser.add_argument("--description")
-    parser.add_argument("--short-url-config")
-    if submit:
-        parser.add_argument("--preview-digest", required=True)
-
-
 def _send_options(parser: argparse.ArgumentParser, *, submit: bool) -> None:
-    parser.add_argument("--sub-account", required=True)
+    parser.add_argument("--sub-account", required=True, help=MESSAGE_GROUP_ID_HELP)
     parser.add_argument("--signature", required=True)
     parser.add_argument("--template-id", required=True)
     parser.add_argument("--mobile", required=True, action="append")
@@ -2274,30 +2013,34 @@ def _send_options(parser: argparse.ArgumentParser, *, submit: bool) -> None:
 
 
 def _batch_identity_options(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--sub-account", required=True)
+    parser.add_argument("--sub-account", required=True, help=MESSAGE_GROUP_ID_HELP)
     parser.add_argument("--task-id", required=True)
 
 
-def _batch_handoff_options(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--file-sha256", type=_sha256_value)
-    parser.add_argument("--total-count", type=_bounded_int("total-count", 0, 1000000))
-    parser.add_argument("--valid-count", type=_bounded_int("valid-count", 0, 1000000))
-    parser.add_argument(
-        "--invalid-count", type=_bounded_int("invalid-count", 0, 1000000)
-    )
-    parser.add_argument("--dup-count", type=_bounded_int("dup-count", 0, 1000000))
+def _json_object(raw: str) -> Dict[str, Any]:
+    try:
+        value = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise CliError("params must be a JSON object", "argument_error") from exc
+    if not isinstance(value, dict):
+        raise CliError("params must be a JSON object", "argument_error")
+    return value
 
 
 def build_parser() -> JsonArgumentParser:
     parser = JsonArgumentParser(description="Volcengine domestic SMS")
     commands = parser.add_subparsers(dest="command", required=True)
 
+    commands.add_parser("runtime-info", help="show the installed package environment")
     commands.add_parser("auth-doctor", help="check ve and credential readiness")
+    commands.add_parser("account-info", help="read account information for sending preparation")
     auth_login = commands.add_parser(
         "auth-login", help="start login with a system-temporary CLI HOME"
     )
-    auth_login.add_argument("--remote", action="store_true")
-    auth_login.add_argument("--profile")
+    login_mode = auth_login.add_mutually_exclusive_group()
+    login_mode.add_argument("--no-browser", action="store_true")
+    login_mode.add_argument("--remote", action="store_true")
+    auth_login.add_argument("--profile", default=os.environ.get("VOLCENGINE_PROFILE"))
     auth_cleanup = commands.add_parser(
         "auth-cleanup", help="remove a validated temporary authentication HOME"
     )
@@ -2306,18 +2049,22 @@ def build_parser() -> JsonArgumentParser:
 
     groups = commands.add_parser("list-message-groups")
     groups.add_argument("--name")
+    groups.add_argument("--page", type=_bounded_int("page", 1, 100000))
+    groups.add_argument("--page-size", type=_bounded_int("page-size", 1, 100), default=100)
+    groups.add_argument("--all-status", action="store_true", help="查询全部消息组状态；省略查询启用组")
 
     group_detail = commands.add_parser("message-group-detail")
     group_detail.add_argument(
         "--sub-account",
         required=True,
         type=_non_empty_text("sub-account"),
+        help=MESSAGE_GROUP_ID_HELP,
     )
 
     qualifications = commands.add_parser("list-qualifications")
     qualifications.add_argument("--id", dest="qualification_id", type=int)
     qualifications.add_argument("--material-name")
-    qualifications.add_argument("--status", action="append", type=int)
+    qualifications.add_argument("--status", action="append", type=int, help="审核状态：1 审核中、2 拒绝、3 通过；可重复传入")
     _page_options(qualifications)
 
     qualification = commands.add_parser(
@@ -2330,84 +2077,85 @@ def build_parser() -> JsonArgumentParser:
         default="browser",
     )
 
-    signatures = commands.add_parser("list-signatures")
+    signatures = commands.add_parser("list-signatures", help="分页查询签名列表及其适用范围和审核状态")
     signatures.add_argument("--signature")
-    signatures.add_argument("--sub-account", action="append")
+    signatures.add_argument("--exact-match", action="store_true", help="精确匹配签名；默认按前缀匹配")
+    signatures.add_argument("--project")
+    signatures.add_argument("--sub-account", action="append", help=MESSAGE_GROUP_ID_HELP)
+    signatures.add_argument("--channel-type", action="append", choices=("CN_OTP", "CN_NTC", "CN_MKT"))
+    signatures.add_argument("--industry", action="append")
+    signatures.add_argument("--status", action="append", type=int, help="审核状态；可重复传入")
     _page_options(signatures)
 
     templates = commands.add_parser("list-templates")
     templates.add_argument("--template-id")
-    templates.add_argument("--sub-account", action="append")
+    templates.add_argument("--sub-account", action="append", help=MESSAGE_GROUP_ID_HELP)
     templates.add_argument("--signature", action="append")
     _page_options(templates)
+    templates.set_defaults(page=None)
+    templates.add_argument("--keyword", action="append", default=[], type=_non_empty_text("keyword"),
+                           help="find candidates by name/content/description; repeat for OR matching")
 
     match_template = commands.add_parser("match-template")
     match_template.add_argument("--content", required=True)
     match_template.add_argument("--signature", required=True)
-    match_template.add_argument("--sub-account", required=True)
+    match_template.add_argument("--sub-account", required=True, help=MESSAGE_GROUP_ID_HELP)
     match_template.add_argument(
-        "--channel-type", required=True, choices=("CN_OTP", "CN_NTC", "CN_MKT")
+        "--channel-type", choices=("CN_OTP", "CN_NTC", "CN_MKT"),
+        help="按指定短信类型比较；省略时保留全部类型",
     )
 
-    analytics = commands.add_parser("analytics")
-    analytics.add_argument("--start", required=True)
-    analytics.add_argument("--end", required=True)
-    analytics.add_argument("--sub-account")
-    analytics.add_argument(
-        "--channel-type", choices=("CN_OTP", "CN_NTC", "CN_MKT")
-    )
-    analytics.add_argument("--signature")
-    analytics.add_argument("--template-id")
-    analytics.add_argument("--mobile")
-    analytics.add_argument(
-        "--bucket",
-        choices=("total", "hour", "day"),
-        default="day",
-    )
-    analytics.add_argument("--include-logs", action="store_true")
-    analytics.add_argument(
-        "--dimension",
-        choices=("subAccount", "signature", "template", "time"),
-        default="time",
-    )
-    analytics.add_argument(
-        "--page-size",
-        type=_bounded_int("page-size", 1, 100),
-        default=100,
-    )
-    analytics.add_argument(
-        "--max-pages",
-        type=_bounded_int("max-pages", 1, 100),
-        default=10,
-    )
+    query = commands.add_parser("api-read", help="query an SMS Action with its native JSON parameters")
+    query.add_argument("--action", required=True, choices=sorted(PUBLIC_QUERY_ACTIONS))
+    query.add_argument("--params", required=True, type=_json_object)
 
-    _signature_application_options(
-        commands.add_parser("signature-preview"), submit=False
-    )
-    _signature_application_options(commands.add_parser("signature-submit"), submit=True)
-    _template_application_options(commands.add_parser("template-preview"), submit=False)
-    _template_application_options(commands.add_parser("template-submit"), submit=True)
+    for name in ("signature-preview", "signature-submit", "template-preview", "template-submit"):
+        application = commands.add_parser(name)
+        application.add_argument("--params", required=True, type=_json_object)
+        if name.endswith("-submit"):
+            application.add_argument("--preview-digest", required=True)
+
     _send_options(commands.add_parser("send-preview"), submit=False)
     _send_options(commands.add_parser("send-submit"), submit=True)
     send_status = commands.add_parser("send-status")
-    send_status.add_argument("--sub-account", required=True)
+    send_status.add_argument("--sub-account", help=MESSAGE_GROUP_ID_HELP + "；省略时查询当前主账户")
     send_status.add_argument("--message-id", required=True)
+    send_status.add_argument("--from-time", type=int, help="查询起点，Unix 秒")
+    send_status.add_argument("--to-time", type=int, help="查询终点，Unix 秒")
     _page_options(send_status)
     precheck = commands.add_parser("batch-precheck")
     precheck.add_argument("--file", required=True)
-    precheck.add_argument("--template-param", action="append")
+    precheck.add_argument("--sub-account", required=True, help=MESSAGE_GROUP_ID_HELP)
+    precheck.add_argument("--template-id", required=True)
 
     demo = commands.add_parser("batch-template-demo")
-    demo.add_argument("--sub-account", required=True)
+    demo.add_argument("--sub-account", required=True, help=MESSAGE_GROUP_ID_HELP)
     demo.add_argument("--template-id", required=True)
-    demo.add_argument("--force-update", action="store_true")
+
+    wizard = commands.add_parser(
+        "batch-wizard", help="打开群发表单，由客户在页面选择名单并确认发送",
+        description="在会话中确认模板、正文、消息组和发送时间，再打开表单预填；客户选择 CSV 名单并最终确认发送。",
+    )
+    wizard.add_argument("--sub-account", required=True, help=MESSAGE_GROUP_ID_HELP)
+    wizard.add_argument("--task-name", required=True)
+    wizard.add_argument("--signature", required=True)
+    wizard.add_argument("--template-id", required=True)
+    wizard.add_argument("--content")
+    wizard_time = wizard.add_mutually_exclusive_group()
+    wizard_time.add_argument("--scheduled", dest="scheduled", action="store_const", const=True, default=None,
+                            help="预选会话中确认的定时发送")
+    wizard_time.add_argument("--immediate", dest="scheduled", action="store_const", const=False,
+                            help="预选会话中确认的立即发送，仍需在表单确认")
+    wizard.add_argument("--send-time", help="会话确认的 ISO 8601 发送时间")
+    wizard.add_argument("--display", choices=("host", "browser"), default="browser")
 
     create = commands.add_parser("batch-create")
     create.add_argument("--file", required=True)
-    create.add_argument("--sub-account", required=True)
+    create.add_argument("--sub-account", required=True, help=MESSAGE_GROUP_ID_HELP)
     create.add_argument("--task-name", required=True)
     create.add_argument("--signature", required=True)
     create.add_argument("--template-id", required=True)
+    create.add_argument("--content")
     create.add_argument("--scheduled", action="store_true")
     create.add_argument("--send-time")
 
@@ -2415,7 +2163,7 @@ def build_parser() -> JsonArgumentParser:
     _batch_identity_options(detail)
 
     tasks = commands.add_parser("batch-list")
-    tasks.add_argument("--sub-account", required=True)
+    tasks.add_argument("--sub-account", required=True, help=MESSAGE_GROUP_ID_HELP)
     tasks.add_argument("--task-name")
     tasks.add_argument("--signature")
     tasks.add_argument("--template-id")
@@ -2423,16 +2171,20 @@ def build_parser() -> JsonArgumentParser:
 
     launch_preview = commands.add_parser("batch-launch-preview")
     _batch_identity_options(launch_preview)
-    _batch_handoff_options(launch_preview)
 
     launch_submit = commands.add_parser("batch-launch-submit")
     _batch_identity_options(launch_submit)
-    _batch_handoff_options(launch_submit)
     launch_submit.add_argument("--preview-digest", required=True)
     launch_submit.add_argument("--authorization-text", required=True)
 
     cancel = commands.add_parser("batch-cancel")
     _batch_identity_options(cancel)
+
+    content_check = commands.add_parser("batch-content-check")
+    content_check.add_argument("--sub-account", required=True, help=MESSAGE_GROUP_ID_HELP)
+    content_check.add_argument("--signature", required=True)
+    content_check.add_argument("--template-id", required=True)
+    content_check.add_argument("--content")
     return parser
 
 
@@ -2449,9 +2201,10 @@ def main(
     command = effective_argv[0] if effective_argv else "sms"
     try:
         args = build_parser().parse_args(effective_argv)
+        client = client or SmsApiClient(profile=getattr(args, "profile", None))
         result = execute(
             args,
-            client or SmsApiClient(),
+            client,
             uploader=uploader,
             now=now,
         )
@@ -2462,7 +2215,10 @@ def main(
             command,
             CliError("unexpected local error", "internal_error"),
         )
-    output = emit_json(result)
+    output = emit_json(
+        result, secrets=tuple(getattr(client, "output_secrets", ())),
+        preserve_business_values=command == "match-template",
+    )
     if result.get("success"):
         stdout.write(output + "\n")
         return 0

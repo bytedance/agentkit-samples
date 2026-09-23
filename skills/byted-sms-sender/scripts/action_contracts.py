@@ -14,18 +14,27 @@ SMS_API_VERSION = "2026-01-01"
 LIVE_VALIDATION_ACTIONS = frozenset(
     {
         "ListSubAccountForAgent",
+        "GetSubAccountListForAgent",
         "GetSubAccountDetail",
         "GetSignatureIdentificationList",
         "ListAllSmsProduct",
         "ListSignatureForAgent",
+        "ListSignaturesForAgent",
         "ListSmsTemplateForAgent",
+        "ListBatchTemplatesForAgent",
         "ListSecondTemplate",
         "ListSmsSendLogForAgent",
-        "ListTotalSendCountStatForAgent",
+        "GetTotalSendCountStatV4ForAgent",
         "GetBatchTaskDetail",
         "GetBatchTaskList",
     }
 )
+
+
+# Public account queries only; private qualification/OCR/upload Actions stay in forms.
+PUBLIC_QUERY_ACTIONS = LIVE_VALIDATION_ACTIONS | {
+    "ValidateBatchTaskContentForAgent", "TemplateUploadDemoForAgent",
+}
 
 
 @dataclass(frozen=True)
@@ -40,6 +49,10 @@ class ActionSpec:
     required_result_fields: frozenset = frozenset()
     required_result_any: frozenset = frozenset()
     cli_supported: bool = True
+    request_timeout: Optional[float] = None
+    private_result_fields: frozenset = frozenset()
+    # Material APIs retain code-only diagnostics; public resource APIs can expose the message.
+    public_error_message: bool = False
 
 
 COMMON_PAGE_FIELDS = {
@@ -55,36 +68,7 @@ COMMON_PAGE_FIELDS = {
     "pageSize",
     "PageIndex",
     "pageIndex",
-}
-_MESSAGE_GROUP_FIELDS = {
-    "SubAccount",
-    "SubAccountName",
-    "ChannelType",
-    "ChannelTypes",
-    "Status",
-    "CreatedAt",
-}
-MESSAGE_GROUP_DETAIL_FIELDS = {
-    "subAccountId",
-    "subAccountName",
-    "status",
-    "channelTypeToIndustryConfig",
-    "channelType",
-    "channelTypeCn",
-    "industry",
-    "industryCn",
-}
-_QUALIFICATION_FIELDS = {
-    "id",
-    "purpose",
-    "materialName",
-    "businessCertificateName",
-    "effectSignatures",
-    "auditStatus",
-    "auditOpinion",
-    "auditedAt",
-    "usable",
-    "isOrder",
+    "ScannedTotal",
 }
 _QUALIFICATION_REQUIREMENT_FIELDS = {
     "isOnlyTwoElement",
@@ -121,80 +105,6 @@ _QUALIFICATION_UPLOAD_TOKEN_FIELDS = {
     "expiredTime",
     "currentTime",
 }
-_SIGNATURE_FIELDS = {
-    "Signature",
-    "Description",
-    "Source",
-    "Domain",
-    "Scene",
-    "ProjectName",
-    "AppIcp",
-    "Trademark",
-    "Status",
-    "StatusDescription",
-    "SubAccounts",
-    "ChannelTypes",
-    "ChannelType",
-    "Purpose",
-    "IdentificationId",
-    "IdentificationID",
-    "usable",
-    "Usable",
-    "CreatedAt",
-    "UpdatedAt",
-}
-TEMPLATE_FIELDS = {
-    "TemplateId",
-    "templateId",
-    "SecondTemplateId",
-    "secondTemplateId",
-    "TemplateName",
-    "templateName",
-    "Name",
-    "name",
-    "Content",
-    "content",
-    "TemplateParams",
-    "templateParams",
-    "ParamName",
-    "ChannelType",
-    "channelType",
-    "Signature",
-    "signature",
-    "Signatures",
-    "signatures",
-    "SubAccounts",
-    "subAccounts",
-    "Status",
-    "status",
-    "StatusDescription",
-    "statusDescription",
-    "Description",
-    "description",
-    "Project",
-    "project",
-    "CreatedAt",
-    "createdAt",
-    "UpdatedAt",
-    "updatedAt",
-    "Area",
-    "area",
-    "ShortUrlConfig",
-    "shortUrlConfig",
-}
-TEMPLATE_PARAM_FIELDS = {"name", "Name", "ParamName"}
-TEMPLATE_SCALAR_LIST_FIELDS = {
-    "Signatures",
-    "signatures",
-    "SubAccounts",
-    "subAccounts",
-}
-_SHORT_URL_CONFIG_FIELDS = {
-    "isEnabled",
-    "belong",
-    "isNeedClickDetails",
-    "uaCheckStrategy",
-}
 _SIGNATURE_APPLICATION_FIELDS = {"applyId", "status", "reason"}
 _TEMPLATE_APPLICATION_FIELDS = {
     "templateId",
@@ -203,22 +113,13 @@ _TEMPLATE_APPLICATION_FIELDS = {
     "auditOpinion",
 }
 _SEND_RESULT_FIELDS = {"MessageId", "MessageIds"}
-_SEND_LOG_FIELDS = {
-    "MessageId",
-    "ErrorCode",
-    "SendTime",
-    "ReceiptTime",
-    "TemplateId",
-    "Signature",
-    "SubAccount",
-    "Count",
-}
 _STAT_FIELDS = {
     "TotalSendCount",
     "TotalAllSendCount",
     "TotalSendSuccessCount",
     "TotalReceiptSuccessCount",
     "TotalReceiptFailureCount",
+    "TotalNoReceipt72HourCount",
 }
 _UPLOAD_FIELDS = {"file", "url"}
 _TEMPLATE_DEMO_FIELDS = {"fileName", "value", "contentType", "size"}
@@ -241,11 +142,16 @@ _BATCH_TASK_FIELDS = {
     "channelType",
     "scheduled",
     "sendTime",
-    "fileUrl",
     "status",
     "totalCount",
+    "dupCount",
+    "sendContent",
 }
-_BATCH_CREATE_FIELDS = {"taskId", "dupCount", "totalCount"}
+_BATCH_CREATE_FIELDS = {
+    "taskId",
+    "totalCount",
+    "dupCount",
+}
 _PAGE_RESULT_FIELDS = frozenset({"List", "list", "Items", "items"})
 
 
@@ -256,30 +162,50 @@ def _fields(*groups: Iterable[str]) -> frozenset:
     return frozenset(result)
 
 
+_RESOURCE_PRIVATE_FIELDS = frozenset({
+    "operatorperson", "responsiblepersoninfo", "legalperson", "powerofattorney",
+    "othermaterials", "businesscertificate", "legalpersonname", "authfilelist",
+    "appicpfilelist", "trademarkfilelist", "fileurl", "filecontent",
+})
+
 ACTION_REGISTRY: Dict[str, ActionSpec] = {
     "ListSubAccountForAgent": ActionSpec(
         SMS_API_VERSION,
         "POST",
         True,
         "ListSubAccountForAgent",
-        _fields(_MESSAGE_GROUP_FIELDS),
+        None,
         required_result_any=_PAGE_RESULT_FIELDS,
+        private_result_fields=_RESOURCE_PRIVATE_FIELDS,
+        cli_supported=False,
+    ),
+    "GetSubAccountListForAgent": ActionSpec(
+        SMS_API_VERSION,
+        "POST",
+        True,
+        "GetSubAccountListForAgent",
+        None,
+        required_result_any=_PAGE_RESULT_FIELDS,
+        private_result_fields=_RESOURCE_PRIVATE_FIELDS,
+        cli_supported=False,
     ),
     "GetSubAccountDetail": ActionSpec(
         SMS_API_VERSION,
         "GET",
         True,
         "GetSubAccountDetail",
-        frozenset(MESSAGE_GROUP_DETAIL_FIELDS),
+        None,
         required_result_fields=frozenset({"subAccountId"}),
+        private_result_fields=_RESOURCE_PRIVATE_FIELDS,
     ),
     "GetSignatureIdentificationList": ActionSpec(
         SMS_API_VERSION,
         "POST",
         True,
         "GetSignatureIdentificationList",
-        _fields(_QUALIFICATION_FIELDS),
+        None,
         required_result_any=_PAGE_RESULT_FIELDS,
+        private_result_fields=_RESOURCE_PRIVATE_FIELDS,
     ),
     "GetAccountIdentRankForAgent": ActionSpec(
         SMS_API_VERSION,
@@ -298,6 +224,16 @@ ACTION_REGISTRY: Dict[str, ActionSpec] = {
         frozenset(_ACCOUNT_IDENTITY_FIELDS),
         required_result_fields=frozenset(_ACCOUNT_IDENTITY_FIELDS),
         cli_supported=False,
+    ),
+    "ValidateBatchTaskContentForAgent": ActionSpec(
+        SMS_API_VERSION,
+        "POST",
+        True,
+        "ValidateBatchTaskContentForAgent",
+        frozenset({"Approved", "Reason"}),
+        required_result_fields=frozenset({"Approved"}),
+        cli_supported=False,
+        public_error_message=True,
     ),
     "GetMUploadParam": ActionSpec(
         SMS_API_VERSION,
@@ -324,6 +260,7 @@ ACTION_REGISTRY: Dict[str, ActionSpec] = {
         frozenset(_QUALIFICATION_CHECK_FIELDS),
         required_result_fields=frozenset({"status"}),
         cli_supported=False,
+        public_error_message=True,
     ),
     "ThreeElementPersonCheckForAgent": ActionSpec(
         SMS_API_VERSION,
@@ -365,24 +302,48 @@ ACTION_REGISTRY: Dict[str, ActionSpec] = {
         "POST",
         True,
         "ListSignatureForAgent",
-        _fields(_SIGNATURE_FIELDS),
+        None,
         required_result_any=_PAGE_RESULT_FIELDS,
+        private_result_fields=_RESOURCE_PRIVATE_FIELDS,
+    ),
+    "ListSignaturesForAgent": ActionSpec(
+        SMS_API_VERSION,
+        "POST",
+        True,
+        "ListSignaturesForAgent",
+        None,
+        required_result_any=_PAGE_RESULT_FIELDS,
+        cli_supported=False,
+        private_result_fields=_RESOURCE_PRIVATE_FIELDS,
     ),
     "ListSmsTemplateForAgent": ActionSpec(
         SMS_API_VERSION,
         "POST",
         True,
         "ListSmsTemplateForAgent",
-        _fields(TEMPLATE_FIELDS),
+        None,
         required_result_any=_PAGE_RESULT_FIELDS,
+        private_result_fields=_RESOURCE_PRIVATE_FIELDS,
+        cli_supported=False,
+    ),
+    "ListBatchTemplatesForAgent": ActionSpec(
+        SMS_API_VERSION,
+        "POST",
+        True,
+        "ListBatchTemplatesForAgent",
+        None,
+        required_result_any=_PAGE_RESULT_FIELDS,
+        cli_supported=False,
+        private_result_fields=_RESOURCE_PRIVATE_FIELDS,
     ),
     "ListSecondTemplate": ActionSpec(
         SMS_API_VERSION,
         "GET",
         True,
         "ListSecondTemplate",
-        _fields(TEMPLATE_FIELDS),
+        None,
         required_result_any=_PAGE_RESULT_FIELDS,
+        private_result_fields=_RESOURCE_PRIVATE_FIELDS,
     ),
     "ApplySmsSignatureV2": ActionSpec(
         SMS_API_VERSION,
@@ -391,6 +352,7 @@ ACTION_REGISTRY: Dict[str, ActionSpec] = {
         "ListSignatureForAgent",
         frozenset(_SIGNATURE_APPLICATION_FIELDS),
         required_result_any=frozenset({"applyId", "status"}),
+        public_error_message=True,
     ),
     "ApplySmsTemplateV2": ActionSpec(
         SMS_API_VERSION,
@@ -399,6 +361,7 @@ ACTION_REGISTRY: Dict[str, ActionSpec] = {
         "ListSmsTemplateForAgent",
         frozenset(_TEMPLATE_APPLICATION_FIELDS),
         required_result_any=frozenset({"templateId", "status"}),
+        public_error_message=True,
     ),
     "SendSmsForAgent": ActionSpec(
         SMS_API_VERSION,
@@ -413,16 +376,18 @@ ACTION_REGISTRY: Dict[str, ActionSpec] = {
         "POST",
         True,
         "ListSmsSendLogForAgent",
-        _fields(_SEND_LOG_FIELDS),
+        None,
         required_result_any=_PAGE_RESULT_FIELDS,
+        private_result_fields=frozenset({"mobile", "content"}),
     ),
-    "ListTotalSendCountStatForAgent": ActionSpec(
+    "GetTotalSendCountStatV4ForAgent": ActionSpec(
         SMS_API_VERSION,
         "POST",
         True,
-        "ListTotalSendCountStatForAgent",
-        _fields(_STAT_FIELDS),
+        "GetTotalSendCountStatV4ForAgent",
+        None,
         required_result_any=frozenset(_STAT_FIELDS),
+        cli_supported=False,
     ),
     "GetUploadTosURL": ActionSpec(
         SMS_API_VERSION,
@@ -432,20 +397,24 @@ ACTION_REGISTRY: Dict[str, ActionSpec] = {
         frozenset(_UPLOAD_FIELDS),
         required_result_fields=frozenset(_UPLOAD_FIELDS),
     ),
-    "TemplateUploadDemo": ActionSpec(
+    "TemplateUploadDemoForAgent": ActionSpec(
         SMS_API_VERSION,
         "POST",
         True,
-        "TemplateUploadDemo",
+        "TemplateUploadDemoForAgent",
         frozenset(_TEMPLATE_DEMO_FIELDS),
+        cli_supported=False,
     ),
-    "SetBatchTask": ActionSpec(
+    "SetBatchTaskForAgent": ActionSpec(
         SMS_API_VERSION,
         "POST",
         False,
         "GetBatchTaskDetail",
         frozenset(_BATCH_CREATE_FIELDS),
-        required_result_fields=frozenset({"taskId"}),
+        idempotency_field="idempotencyKey",
+        required_result_fields=frozenset(_BATCH_CREATE_FIELDS),
+        cli_supported=False,
+        request_timeout=60.0,
     ),
     "GetBatchTaskDetail": ActionSpec(
         SMS_API_VERSION,

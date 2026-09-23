@@ -6,21 +6,18 @@
 from __future__ import annotations
 
 import datetime
-import hmac
 import json
-import mimetypes
 import re
 import secrets
 import sys
 import threading
-import time
 from http import HTTPStatus
-from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
-from typing import Any, Callable, Dict, Mapping, MutableMapping, Optional
+from typing import Any, Callable, Dict, Mapping, MutableMapping, Optional, Tuple
 from urllib import parse
 
 from api_client import SmsApiClient
+from local_form import LocalFormHandler, LocalFormLifecycle, serve_local_form
 from qualification_display import (
     QualificationDisplayAdapter,
     browser_display_adapter,
@@ -43,7 +40,6 @@ from qualification_upload import (
 )
 
 
-MAX_JSON_BYTES = 64 * 1024
 QUALIFICATION_DISCONNECT_TIMEOUT_SECONDS = 5 * 60
 QUALIFICATION_DETACH_GRACE_SECONDS = 60
 QUALIFICATION_IDLE_TIMEOUT_SECONDS = 30 * 60
@@ -86,6 +82,20 @@ def _optional_text(value: Any, *, maximum: int = 256) -> str:
     if len(value) > maximum:
         raise ValueError
     return value
+
+
+def _resolved_material_name(
+    value: Any,
+    source: Any,
+    business_certificate_name: str,
+) -> Tuple[str, str]:
+    material_name = _optional_text(value, maximum=20)
+    material_name_source = str(source or "auto")
+    if material_name_source not in ("auto", "manual"):
+        raise ValueError
+    if material_name_source == "auto" or not material_name:
+        return _text(business_certificate_name, maximum=20), "auto"
+    return material_name, "manual"
 
 
 def _date(value: Any) -> str:
@@ -162,13 +172,21 @@ def _public_check(state: Mapping[str, Any], target: str) -> Dict[str, Any]:
     check = state.get("checks", {}).get(target)
     if not isinstance(check, Mapping):
         return {"attempted": False, "matched": False, "canContinue": False}
-    return {
+    public = {
         "attempted": True,
         "matched": bool(check.get("matched")),
         "canContinue": bool(check.get("canContinue")),
         "status": normalize_check_status(check.get("status")),
         "forceSkip": check.get("ticket") == BUSINESS_CHECK_SKIP_TICKET,
     }
+    error = check.get("error")
+    if isinstance(error, Mapping):
+        public["error"] = {
+            key: error.get(key)
+            for key in ("code", "message", "requestId", "logId")
+            if error.get(key)
+        }
+    return public
 
 
 def _verification_params(state: Mapping[str, Any], target: str) -> Dict[str, Any]:
@@ -558,13 +576,13 @@ _STATIC_ASSETS = {
         / "react-dom.production.min.js"
     ),
     "/qualification-static/arco.min.js": (
-        _ASSET_DIRECTORY / "qualification_wizard_vendor" / "arco.min.js.br"
+        _ASSET_DIRECTORY / "qualification_wizard_vendor" / "arco.min.js"
     ),
     "/qualification-static/arco-icon.min.js": (
-        _ASSET_DIRECTORY / "qualification_wizard_vendor" / "arco-icon.min.js.br"
+        _ASSET_DIRECTORY / "qualification_wizard_vendor" / "arco-icon.min.js"
     ),
     "/qualification-static/arco.min.css": (
-        _ASSET_DIRECTORY / "qualification_wizard_vendor" / "arco.min.css.br"
+        _ASSET_DIRECTORY / "qualification_wizard_vendor" / "arco.min.css"
     ),
     "/qualification-static/qualification_wizard.css": (
         _ASSET_DIRECTORY / "qualification_wizard.css"
@@ -597,8 +615,11 @@ def run_qualification_wizard(
     rank = get_account_ident_rank(client)
     account_identity = get_account_identity(client)
     token = secrets.token_urlsafe(24)
+    display_ready = False
     lock = threading.Lock()
-    started_at = time.monotonic()
+    lifecycle = LocalFormLifecycle(
+        disconnect_timeout_seconds, detach_grace_seconds, idle_timeout_seconds
+    )
     state: Dict[str, Any] = {
         "rank": rank,
         "revision": 0,
@@ -621,18 +642,7 @@ def run_qualification_wizard(
         "abandoned": False,
         "terminationReason": "",
         "result": None,
-        "lastActivity": started_at,
-        "lastHeartbeat": started_at,
-        "detachedAt": None,
     }
-
-    def touch(*, active: bool) -> None:
-        now = time.monotonic()
-        with lock:
-            state["lastHeartbeat"] = now
-            state["detachedAt"] = None
-            if active:
-                state["lastActivity"] = now
 
     def stop(reason: str) -> None:
         with lock:
@@ -642,61 +652,11 @@ def run_qualification_wizard(
             state["abandoned"] = True
             state["done"] = True
 
-    class Handler(BaseHTTPRequestHandler):
-        def log_message(self, format: str, *args: Any) -> None:
-            return
-
-        def _json(self, status_code: int, payload: Mapping[str, Any]) -> None:
-            body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-            self.send_response(status_code)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Cache-Control", "no-store")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-
-        def _asset(self, path: str) -> bool:
-            asset_path = _STATIC_ASSETS.get(path)
-            if asset_path is None:
-                return False
-            try:
-                body = asset_path.read_bytes()
-            except OSError:
-                self.send_error(HTTPStatus.NOT_FOUND)
-                return True
-            content_type, content_encoding = mimetypes.guess_type(asset_path.name)
-            self.send_response(HTTPStatus.OK)
-            self.send_header(
-                "Content-Type",
-                "{}; charset=utf-8".format(content_type or "application/octet-stream"),
-            )
-            if content_encoding:
-                self.send_header("Content-Encoding", content_encoding)
-            self.send_header("Cache-Control", "no-store")
-            self.send_header("X-Content-Type-Options", "nosniff")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-            return True
-
-        def _authorized(self) -> bool:
-            supplied = self.headers.get(QUALIFICATION_CONTEXT_HEADER, "")
-            return hmac.compare_digest(supplied, token)
-
-        def _body(self, maximum: int = MAX_JSON_BYTES) -> bytes:
-            try:
-                length = int(self.headers.get("Content-Length") or "0")
-            except ValueError as exc:
-                raise ValueError from exc
-            if length <= 0 or length > maximum:
-                raise ValueError
-            return self.rfile.read(length)
-
-        def _document(self) -> MutableMapping[str, Any]:
-            value = json.loads(self._body().decode("utf-8"))
-            if not isinstance(value, MutableMapping):
-                raise ValueError
-            return value
+    class Handler(LocalFormHandler):
+        context_header = QUALIFICATION_CONTEXT_HEADER
+        context_token = token
+        static_assets = _STATIC_ASSETS
+        allows_embedding = display.allows_embedding
 
         def do_GET(self) -> None:
             request_path = parse.urlsplit(self.path).path
@@ -705,7 +665,7 @@ def run_qualification_wizard(
                     self.send_error(HTTPStatus.NOT_FOUND)
                 return
             if request_path == "/":
-                touch(active=True)
+                lifecycle.touch(active=True)
                 sys.stderr.write(
                     "QUALIFICATION_DISPLAY_EVENT "
                     + json.dumps(
@@ -739,7 +699,7 @@ def run_qualification_wizard(
             if not self._authorized():
                 self.send_error(HTTPStatus.NOT_FOUND)
                 return
-            touch(active=True)
+            lifecycle.touch(active=True)
             if request_path == "/api/state":
                 with lock:
                     public = _public_state(state)
@@ -748,6 +708,7 @@ def run_qualification_wizard(
             self.send_error(HTTPStatus.NOT_FOUND)
 
         def do_POST(self) -> None:
+            nonlocal display_ready
             if not self._authorized():
                 self.send_error(HTTPStatus.NOT_FOUND)
                 return
@@ -756,34 +717,51 @@ def run_qualification_wizard(
             try:
                 if path == "/api/heartbeat":
                     document = self._document()
-                    if on_display_ready is not None:
-                        on_display_ready()
-                    touch(active=document.get("active") is True)
+                    if not display_ready:
+                        display_ready = True
+                        if on_display_ready is not None:
+                            on_display_ready()
+                    lifecycle.touch(active=document.get("active") is True)
                     self._json(HTTPStatus.OK, {"success": True})
                     return
                 if path == "/api/detach":
-                    with lock:
-                        state["detachedAt"] = time.monotonic()
+                    lifecycle.detach()
                     self._json(HTTPStatus.OK, {"success": True})
                     return
-                touch(active=True)
+                lifecycle.touch(active=True)
                 if path == "/api/base":
                     document = self._document()
                     purpose = int(document.get("purpose") or 0)
                     if purpose not in (1, 2):
                         raise ValueError
-                    material_name = str(document.get("materialName") or "").strip()
-                    if not material_name or len(material_name) > 20:
+                    material_name = _optional_text(
+                        document.get("materialName"), maximum=20
+                    )
+                    material_name_source = str(
+                        document.get("materialNameSource")
+                        or ("manual" if material_name else "auto")
+                    )
+                    if material_name_source not in ("auto", "manual"):
                         raise ValueError
+                    if not material_name:
+                        material_name_source = "auto"
                     account_business_name = (
                         state["accountBusinessName"] if purpose == 2 else ""
                     )
                     with lock:
+                        existing_business = state["sections"].get("business")
+                        if material_name_source == "auto" and isinstance(
+                            existing_business, Mapping
+                        ):
+                            material_name = _text(
+                                existing_business.get("businessCertificateName"),
+                                maximum=20,
+                            )
                         old_purpose = state.get("purpose")
                         old_authorizee = state.get("authorizee")
                         state["purpose"] = purpose
                         state["materialName"] = material_name
-                        state["materialNameSource"] = "manual" if material_name else "auto"
+                        state["materialNameSource"] = material_name_source
                         state["baseSaved"] = True
                         state["authorizee"] = account_business_name
                         if (
@@ -851,15 +829,14 @@ def run_qualification_wizard(
                         if isinstance(image_source, Mapping) and image_source.get("imageUri"):
                             section["imageUri"] = image_source["imageUri"]
                             section["imageSuffix"] = image_source["imageSuffix"]
-                        material_name = document.get("materialName")
-                        material_name_source = str(
-                            document.get("materialNameSource") or "auto"
+                        material_name, material_name_source = (
+                            _resolved_material_name(
+                                document.get("materialName"),
+                                document.get("materialNameSource"),
+                                section["businessCertificateName"],
+                            )
                         )
-                        if material_name_source not in ("auto", "manual"):
-                            raise ValueError
-                        if material_name_source == "auto":
-                            material_name = section["businessCertificateName"]
-                        state["materialName"] = _text(material_name, maximum=20)
+                        state["materialName"] = material_name
                         state["materialNameSource"] = material_name_source
                         purpose = int(document.get("purpose") or state["purpose"])
                         if purpose not in (1, 2):
@@ -1482,35 +1459,14 @@ def run_qualification_wizard(
                     {"success": False, "message": "请检查当前页面中的必填项和格式"},
                 )
 
-    server = HTTPServer(("127.0.0.1", 0), Handler)
-    server.timeout = 1.0
-    url = "http://127.0.0.1:{}/#{}".format(server.server_port, token)
     try:
-        display.present(url)
-    except Exception:
-        server.server_close()
-        raise
-    try:
-        while not state["done"]:
-            server.handle_request()
-            now = time.monotonic()
-            with lock:
-                detached_at = state["detachedAt"]
-                last_heartbeat = state["lastHeartbeat"]
-                last_activity = state["lastActivity"]
-            if cancel_event.is_set():
-                stop("cancelled")
-            elif (
-                detached_at is not None
-                and now - detached_at >= detach_grace_seconds
-            ):
-                stop("detached")
-            elif now - last_heartbeat >= disconnect_timeout_seconds:
-                stop("disconnected")
-            elif now - last_activity >= idle_timeout_seconds:
-                stop("idle")
+        reason = serve_local_form(
+            Handler, display, token, lifecycle,
+            completed=lambda: state["done"], cancel_event=cancel_event,
+        )
+        if reason is not None:
+            stop(reason)
     finally:
-        server.server_close()
         state["pending"].clear()
         state["sections"].clear()
         state["checks"].clear()

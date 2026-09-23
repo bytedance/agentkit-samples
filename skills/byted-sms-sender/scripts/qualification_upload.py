@@ -25,16 +25,17 @@ from typing import Any, Dict, Mapping, Optional, Sequence, Tuple
 from urllib import error, parse, request
 
 from api_client import ACTION_REGISTRY, SmsApiClient
+import runtime_environment
 
 
-IMAGEX_ENDPOINT = "https://imagex.bytedanceapi.com"
+IMAGEX_ENDPOINT = runtime_environment.IMAGEX_ENDPOINT
 IMAGEX_REGION = "cn-north-1"
 IMAGEX_SERVICE = "ImageX"
 IMAGEX_VERSION = "2018-08-01"
-IMAGEX_SERVICE_ID = "2rcdq6eupd"
+IMAGEX_SERVICE_ID = runtime_environment.IMAGEX_SERVICE_ID
 IMAGEX_APP_ID = "5997"
 IMAGEX_USER_ID = "sms"
-MAX_IMAGE_BYTES = 2 * 1024 * 1024
+MAX_IMAGE_BYTES = 10 * 1024 * 1024
 ALLOWED_DOCUMENT_TYPES = frozenset({1, 4, 6, 7})
 BUSINESS_CHECK_SKIP_TICKET = "force_skip_check"
 MOBILE_VERIFY_APP_ID = 482875
@@ -834,12 +835,29 @@ def check_signature_qualification_information(
         if target == "business"
         else "ThreeElementPersonCheckForAgent"
     )
-    payload = _sms_agent_call(
-        client,
-        action,
-        params,
-        diagnostic_context={"phase": "verification", "role": target},
-    )
+    try:
+        payload = _sms_agent_call(
+            client,
+            action,
+            params,
+            diagnostic_context={"phase": "verification", "role": target},
+        )
+    except QualificationUploadError as exc:
+        if target != "business":
+            raise
+        return {
+            "target": target,
+            "status": "",
+            "matched": False,
+            "canContinue": True,
+            "ticket": BUSINESS_CHECK_SKIP_TICKET,
+            "error": {
+                "code": exc.code,
+                "message": str(exc),
+                "requestId": exc.request_id,
+                "logId": exc.log_id,
+            },
+        }
     result = _response_result(payload, action)
     status = normalize_check_status(result.get("status"))
     ticket = str(result.get("ticket") or "")
@@ -1070,7 +1088,7 @@ def _load_image_credentials(client: SmsApiClient) -> ImageXCredentials:
 def _validated_image_bytes(data: bytes, content_type: str) -> Tuple[bytes, str]:
     if not data or len(data) > MAX_IMAGE_BYTES:
         raise QualificationUploadError(
-            "invalid_image_size", "Use a non-empty JPG, JPEG, or PNG no larger than 2 MB."
+            "invalid_image_size", "Use a non-empty JPG, JPEG, or PNG no larger than 10 MB."
         )
     if data.startswith(b"\x89PNG\r\n\x1a\n"):
         return data, "image/png"

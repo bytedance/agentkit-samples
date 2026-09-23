@@ -22,6 +22,7 @@ credentials are read only from the Skill-owned private temporary CLI HOME.
 
 from __future__ import annotations
 
+import base64
 import csv
 import datetime
 import hashlib
@@ -33,6 +34,7 @@ import pathlib
 import re
 import shutil
 import socket
+import ssl
 import stat
 import subprocess
 import tempfile
@@ -56,37 +58,27 @@ from typing import (
 )
 from urllib import error, parse, request
 
+import runtime_environment
+
 from action_contracts import (
     ACTION_REGISTRY,
-    COMMON_PAGE_FIELDS,
     LIVE_VALIDATION_ACTIONS,
     TEMPLATE_DEMO_CSV_MEDIA_TYPES,
-    TEMPLATE_FIELDS,
-    TEMPLATE_PARAM_FIELDS,
-    TEMPLATE_SCALAR_LIST_FIELDS,
     ActionSpec,
 )
 
-DEFAULT_ENDPOINT = "https://sms.volcengineapi.com"
+DEFAULT_ENDPOINT = runtime_environment.API_ENDPOINT
 DEFAULT_SERVICE = "volcSMS"
-DEFAULT_REGION = "cn-north-1"
+DEFAULT_REGION = runtime_environment.REGION
 VE_CLI_SERVICE = "volcsms"
-MIN_VE_CLI_VERSION = (1, 1, 0)
-MIN_VE_CLI_VERSION_TEXT = "1.1.0"
-VE_CLI_INSTALL_ARGV = ("npm", "install", "-g", "@volcengine/cli@1.1.1")
-VE_CLI_RELEASE_URL = (
-    "https://github.com/volcengine/volcengine-cli/releases/tag/v1.1.1"
-)
-VE_CLI_CHECKSUMS_URL = (
-    "https://github.com/volcengine/volcengine-cli/releases/download/v1.1.1/"
-    "volcengine-cli_1.1.1_SHA256SUMS"
-)
+VE_CLI_INSTALL_ARGV = ("npm", "install", "-g", "@volcengine/cli")
+VE_CLI_RELEASE_URL = "https://github.com/volcengine/volcengine-cli/releases"
 DEFAULT_TIMEOUT = 15.0
 DEFAULT_ENV_PATH = "~/.openclaw/.env"
 LOGIN_PROCESS_LEASE_SECONDS = 30 * 60
 MAX_READ_RETRIES = 2
 MAX_CLI_CACHE_BYTES = 256 * 1024
-AUTH_HOME_PREFIX = "volcengine-sms-auth-"
+AUTH_HOME_PREFIX = runtime_environment.AUTH_HOME_PREFIX
 RETRYABLE_BUSINESS_ERROR_CODES = frozenset({"1015", "1999"})
 
 Params = Union[Mapping[str, Any], Sequence[Tuple[str, Any]]]
@@ -155,6 +147,7 @@ class ResolvedCredentials:
     access_key: str
     secret_key: str
     session_token: str = ""
+    identity: Optional[Mapping[str, str]] = None
 
 
 @dataclass(frozen=True)
@@ -279,7 +272,27 @@ def _credentials_from_cli_cache(
         return None
     if not access_key or not secret_key or not session_token:
         return None
-    return ResolvedCredentials(access_key, secret_key, session_token)
+    # The official CLI cache owns the console-login session and ID token.
+    # Bind a local preview to its stable principal, not rotating STS credentials.
+    # Request authorization remains the server's responsibility.
+    identity = None
+    session = value.get("login_session")
+    id_token = value.get("id_token")
+    if isinstance(session, str) and session and isinstance(id_token, str):
+        parts = id_token.split(".")
+        if len(parts) == 3:
+            try:
+                claims = json.loads(base64.urlsafe_b64decode(parts[1] + "=" * (-len(parts[1]) % 4)))
+            except (ValueError, UnicodeError):
+                claims = None
+            if isinstance(claims, Mapping) and all(isinstance(claims.get(key), str) and claims[key] for key in ("iss", "sub", "trn")):
+                identity = {
+                    "session": session,
+                    "issuer": claims["iss"],
+                    "subject": claims["sub"],
+                    "principal": claims["trn"],
+                }
+    return ResolvedCredentials(access_key, secret_key, session_token, identity=identity)
 
 
 def _profile_login_session(home: pathlib.Path, profile: str) -> str:
@@ -315,7 +328,7 @@ def _resolve_cli_login_cache(
         return None
     for path in paths:
         value = _safe_cli_json_file(path)
-        if value is None:
+        if value is None or value.get("endpoint_url") != runtime_environment.SIGNIN_ENDPOINT:
             continue
         session = str(value.get("login_session") or "").strip()
         if expected_session and session != expected_session:
@@ -554,10 +567,14 @@ def build_ve_cli_command(
 
     profile = _validated_credential_value(env.get("VOLCENGINE_PROFILE"))
     if profile:
-        command.extend(["---profile", profile])
-    region = _validated_credential_value(env.get("VOLCENGINE_REGION"))
-    command.extend(["---region", region or DEFAULT_REGION])
-    command.extend(["---lang", "EN"])
+        command.extend(["--profile", profile])
+    command.extend([
+        "--region", DEFAULT_REGION,
+        "--endpoint", parse.urlsplit(DEFAULT_ENDPOINT).netloc,
+        "--version", spec.version, "--method", spec.method, "--lang", "EN",
+    ])
+    for name, value in runtime_environment.HEADERS.items():
+        command.extend(["--header", "{}={}".format(name, value)])
     return command
 
 
@@ -605,7 +622,10 @@ def build_signed_request(
     if method == "GET":
         body = b""
         query_items = [("Action", action), ("Version", spec.version)]
-        query_items.extend(_query_items(params))
+        business_items = _query_items(params)
+        if any(key.lower() in {"action", "version"} for key, _ in business_items):
+            raise ValueError("Action and Version are fixed transport parameters")
+        query_items.extend(business_items)
     else:
         body = _compact_json(params)
         query_items = [("Action", action), ("Version", spec.version)]
@@ -692,7 +712,11 @@ def _urllib_transport(req: request.Request, timeout: float) -> TransportResponse
         )
     except (socket.timeout, TimeoutError) as exc:
         raise ResponseLostError(str(exc)) from exc
+    except ssl.SSLCertVerificationError:
+        raise
     except error.URLError as exc:
+        if isinstance(exc.reason, ssl.SSLCertVerificationError):
+            raise exc.reason from exc
         # urllib does not expose a reliable "zero request bytes written" signal.
         # Keep failures ambiguous for mutations; reads can safely retry them.
         raise ResponseLostError(str(exc.reason)) from exc
@@ -723,6 +747,15 @@ _VE_UNSUPPORTED_PATTERNS = (
 )
 _SENSITIVE_KEYS = {
     "authorization",
+    "accesskeyid",
+    "secretaccesskey",
+    "refreshtoken",
+    "accesstoken",
+    "clientsecret",
+    "cookie",
+    "setcookie",
+    "password",
+    "securitytoken",
     "accesskey",
     "access_key",
     "secretkey",
@@ -742,6 +775,10 @@ _SENSITIVE_KEYS = {
     "uploadfilelist",
     "materialurl",
     "callbackurl",
+}
+_URL_CREDENTIAL_KEYS = _SENSITIVE_KEYS | {
+    "signature", "xamzsignature", "xamzcredential", "xamzsecuritytoken",
+    "xtossignature", "xtoscredential", "xtossecuritytoken",
 }
 
 
@@ -788,23 +825,12 @@ def _classify_ve_failure(value: bytes) -> Optional[str]:
     return None
 
 
-_VE_VERSION_RE = re.compile(r"(?<!\d)(\d+)\.(\d+)\.(\d+)(?:[-+][0-9A-Za-z.-]+)?")
-
-
-def _parse_ve_version(value: bytes) -> Optional[Tuple[str, Tuple[int, int, int]]]:
-    text = _ANSI_RE.sub("", value.decode("utf-8", errors="replace"))
-    for line in text.splitlines():
-        match = _VE_VERSION_RE.fullmatch(line.strip())
-        if match is not None:
-            return match.group(0), tuple(int(part) for part in match.groups())
-    return None
-
-
 def _sanitize_text(
     value: str,
     secrets: Sequence[str],
     *,
     strip_url_query: bool = True,
+    truncate: bool = True,
 ) -> str:
     safe = reduce(
         lambda redacted, literal: (
@@ -824,160 +850,62 @@ def _sanitize_text(
         parsed = parse.urlsplit(raw)
         return parse.urlunsplit((parsed.scheme, parsed.netloc, parsed.path, "", ""))
 
-    if strip_url_query:
-        safe = _URL_RE.sub(strip_url, safe)
-    if len(safe) > 1024:
+    def redact_url(match: re.Match) -> str:
+        raw = match.group(0)
+        parsed = parse.urlsplit(raw)
+        fields = parsed.query.split("&")
+        changed = False
+        for index, field in enumerate(fields):
+            name, separator, _ = field.partition("=")
+            key = parse.unquote_plus(name).replace("-", "").replace("_", "").lower()
+            if separator and key in _URL_CREDENTIAL_KEYS:
+                # 只替换凭据值，保留其他参数的编码、顺序、重复项和空值。
+                fields[index] = name + "=" + parse.quote("[REDACTED]", safe="")
+                changed = True
+        if not changed:
+            return raw
+        return parse.urlunsplit(parsed._replace(query="&".join(fields)))
+
+    safe = _URL_RE.sub(strip_url if strip_url_query else redact_url, safe)
+    if truncate and len(safe) > 1024:
         safe = safe[:1021] + "..."
     return safe
 
 
-def sanitize_output(value: Any, *, secrets: Sequence[str] = ()) -> Any:
+def sanitize_output(
+    value: Any, *, secrets: Sequence[str] = (), private_fields: frozenset = frozenset(),
+    preserve_business_values: bool = False,
+) -> Any:
     """Recursively remove credential-bearing keys and redact sensitive strings."""
     if isinstance(value, Mapping):
         cleaned: Dict[str, Any] = {}
         for key, item in value.items():
             canonical_key = str(key).replace("-", "").replace("_", "").lower()
-            if canonical_key in _SENSITIVE_KEYS:
+            if canonical_key in _SENSITIVE_KEYS or canonical_key in private_fields:
                 continue
-            cleaned[str(key)] = sanitize_output(item, secrets=secrets)
+            cleaned[str(key)] = sanitize_output(item, secrets=secrets, private_fields=private_fields, preserve_business_values=preserve_business_values)
         return cleaned
     if isinstance(value, (list, tuple)):
-        return [sanitize_output(item, secrets=secrets) for item in value]
+        return [sanitize_output(item, secrets=secrets, private_fields=private_fields, preserve_business_values=preserve_business_values) for item in value]
     if isinstance(value, str):
-        return _sanitize_text(value, secrets)
+        return _sanitize_text(value, secrets, strip_url_query=not preserve_business_values, truncate=not preserve_business_values)
     return value
 
 
 def _filter_result(
-    value: Any,
-    allowed_fields: Optional[frozenset],
-    secrets: Sequence[str],
-    *,
-    preserve_presigned_url: bool = False,
+    value: Any, allowed_fields: Optional[frozenset], secrets: Sequence[str],
+    private_fields: frozenset = frozenset(),
 ) -> Any:
     if allowed_fields is None:
-        return sanitize_output(value, secrets=secrets)
+        return sanitize_output(value, secrets=secrets, private_fields=private_fields, preserve_business_values=True)
     if isinstance(value, Mapping):
-        output: Dict[str, Any] = {}
-        for key, item in value.items():
-            if key not in allowed_fields:
-                continue
-            if (
-                preserve_presigned_url
-                and str(key).lower() == "url"
-                and isinstance(item, str)
-            ):
-                output[str(key)] = _sanitize_text(item, secrets, strip_url_query=False)
-            else:
-                output[str(key)] = _filter_result(
-                    item,
-                    allowed_fields,
-                    secrets,
-                    preserve_presigned_url=preserve_presigned_url,
-                )
-        return output
+        return {
+            str(key): _filter_result(item, allowed_fields, secrets)
+            for key, item in value.items() if key in allowed_fields
+        }
     if isinstance(value, (list, tuple)):
-        return [
-            _filter_result(
-                item,
-                allowed_fields,
-                secrets,
-                preserve_presigned_url=preserve_presigned_url,
-            )
-            for item in value
-        ]
+        return [_filter_result(item, allowed_fields, secrets) for item in value]
     return sanitize_output(value, secrets=secrets)
-
-
-def _filter_template_result(value: Any, secrets: Sequence[str]) -> Any:
-    """Filter template results with allowlists scoped to each published path."""
-    if not isinstance(value, Mapping):
-        return {}
-
-    def filter_nested(item: Any, allowed: Set[str]) -> Any:
-        if isinstance(item, Mapping):
-            return {
-                str(key): sanitize_output(nested, secrets=secrets)
-                for key, nested in item.items()
-                if key in allowed
-                and not isinstance(nested, (Mapping, list, tuple, set))
-            }
-        if isinstance(item, (list, tuple)):
-            return [filter_nested(nested, allowed) for nested in item]
-        return sanitize_output(item, secrets=secrets)
-
-    def filter_item(item: Any) -> Any:
-        if not isinstance(item, Mapping):
-            return sanitize_output(item, secrets=secrets)
-        output: Dict[str, Any] = {}
-        for key, nested in item.items():
-            if key not in TEMPLATE_FIELDS:
-                continue
-            if key in {"TemplateParams", "templateParams"}:
-                output[str(key)] = filter_nested(nested, TEMPLATE_PARAM_FIELDS)
-            elif key in {"ShortUrlConfig", "shortUrlConfig"}:
-                output[str(key)] = filter_nested(
-                    nested, _SHORT_URL_CONFIG_FIELDS
-                )
-            elif key in TEMPLATE_SCALAR_LIST_FIELDS:
-                values = nested if isinstance(nested, (list, tuple)) else ()
-                output[str(key)] = [
-                    sanitize_output(value, secrets=secrets)
-                    for value in values
-                    if not isinstance(value, (Mapping, list, tuple, set))
-                ]
-            elif isinstance(nested, (Mapping, list, tuple, set)):
-                # No other template field has a published container contract.
-                continue
-            else:
-                output[str(key)] = sanitize_output(nested, secrets=secrets)
-        return output
-
-    output: Dict[str, Any] = {}
-    for key, item in value.items():
-        if key in {"List", "list", "Items", "items"}:
-            values = item if isinstance(item, (list, tuple)) else ()
-            output[str(key)] = [
-                filter_item(nested) for nested in values if isinstance(nested, Mapping)
-            ]
-        elif key in COMMON_PAGE_FIELDS and not isinstance(
-            item, (Mapping, list, tuple, set)
-        ):
-            output[str(key)] = sanitize_output(item, secrets=secrets)
-        elif key in TEMPLATE_FIELDS:
-            filtered = filter_item({key: item})
-            if key in filtered:
-                output[str(key)] = filtered[key]
-    return output
-
-
-def _filter_message_group_detail(value: Any, secrets: Sequence[str]) -> Any:
-    """Filter GetSubAccountDetail with field allowlists scoped by JSON path."""
-    if not isinstance(value, Mapping):
-        return {}
-
-    def is_scalar(item: Any) -> bool:
-        return not isinstance(item, (Mapping, list, tuple, set))
-
-    output: Dict[str, Any] = {}
-    for key in ("subAccountId", "subAccountName", "status"):
-        if key in value and is_scalar(value[key]):
-            output[key] = sanitize_output(value[key], secrets=secrets)
-
-    mapping_key = "channelTypeToIndustryConfig"
-    if mapping_key in value:
-        raw_mappings = value[mapping_key]
-        mappings = raw_mappings if isinstance(raw_mappings, (list, tuple)) else ()
-        output[mapping_key] = [
-            {
-                key: sanitize_output(item[key], secrets=secrets)
-                for key in ("channelType", "channelTypeCn", "industry", "industryCn")
-                if key in item and is_scalar(item[key])
-            }
-            for item in mappings
-            if isinstance(item, Mapping)
-        ]
-    return output
 
 
 def _header(headers: Mapping[str, str], name: str) -> Optional[str]:
@@ -1039,6 +967,7 @@ def _error_envelope(
     outcome_unknown: bool = False,
     secrets: Sequence[str] = (),
     remediation: Optional[Mapping[str, Any]] = None,
+    request_sent: Optional[bool] = None,
 ) -> Dict[str, Any]:
     error_value: Dict[str, Any] = {
         "code": code,
@@ -1050,6 +979,8 @@ def _error_envelope(
         error_value["remediation"] = sanitize_output(
             dict(remediation), secrets=secrets
         )
+    if request_sent is not None:
+        error_value["request_sent"] = request_sent
     return {
         "success": False,
         "action": action,
@@ -1106,11 +1037,22 @@ def _result_contract_error(spec: ActionSpec, result: Any) -> Optional[str]:
     return None
 
 
+def ve_login_flow(help_output: bytes) -> Optional[str]:
+    """根据 CLI 公开的登录参数识别支持的授权流程。"""
+    if b"--endpoint-url" not in help_output:
+        return None
+    if b"--no-browser" in help_output:
+        return "device_authorization"
+    if b"--remote" in help_output:
+        return "loopback"
+    return None
+
+
 def _skill_login_argv(profile: str = "", *, remote: bool = False) -> List[str]:
     script_path = os.path.realpath(
         os.path.join(os.path.dirname(__file__), "sms_cli.py")
     )
-    argv = ["python3", "-B", script_path, "auth-login"]
+    argv = ["python3", "-E", "-B", script_path, "auth-login"]
     if remote:
         argv.append("--remote")
     if profile:
@@ -1123,23 +1065,15 @@ def _login_completion_contract() -> Dict[str, Any]:
         "wait_for_process_exit": True,
         "poll_same_job_if_async": True,
         "consume_final_json": True,
-        "no_customer_login_timeout": True,
         "process_lease_seconds": LOGIN_PROCESS_LEASE_SECONDS,
         "success_match": {"success": True, "result.status": "auth_ready"},
-        "conversation_gate": {
-            "forbid_business_questions": True,
-            "forbid_business_commands": True,
-            "forbid_finishing_turn": True,
-            "until": "auth_ready",
-        },
         "on_success": {
-            "customer_message": "授权已完成，我继续处理短信任务。",
             "resume_original_task": True,
         },
     }
 
 
-def _login_attempt_remediation(
+def _login_remediation(
     profile: str = "",
     *,
     target: str = "current",
@@ -1147,41 +1081,41 @@ def _login_attempt_remediation(
     continue_with_env: bool = False,
     cleanup: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
+    session = {
+        "mode": "managed_async",
+        "return_job_handle": True,
+        "must_remain_addressable": True,
+        "exclusive": True,
+        "detach": False,
+    }
     remediation: Dict[str, Any] = {
         "action": "run_login",
         "target": target,
         "argv": _skill_login_argv(profile),
-        "session": {
-            "mode": "managed_async",
-            "return_job_handle": True,
-            "must_remain_addressable": True,
-            "exclusive": True,
-            "detach": False,
-        },
+        "session": session,
         "completion": _login_completion_contract(),
-        "browser": {"callback": "loopback", "open_automatically": True},
+        "browser": {
+            "url_source": "process_stdout",
+            "user_controls_authentication": True,
+        },
         "fallback": {
             "when": "loopback_unavailable",
             "argv": _skill_login_argv(profile, remote=True),
             "session": {
-                "mode": "managed_async",
-                "return_job_handle": True,
-                "must_remain_addressable": True,
-                "exclusive": True,
-                "detach": False,
+                **session,
+                "interactive": True,
             },
-            "completion": _login_completion_contract(),
             "stdin": {
                 "kind": "oauth_authorization_code",
+                "keep_open": True,
                 "append_newline": True,
                 "sensitive": True,
             },
-            "browser": {
-                "url_source": "process_stdout",
-                "user_controls_authentication": True,
-                "prefer_agent_code_handoff": True,
-                "fallback": "user_enters_code_in_same_session",
-            },
+        },
+        "customer_interaction": {
+            "audience": "nontechnical",
+            "show_commands": False,
+            "message": "请在授权页面完成登录，完成后我会自动继续。",
         },
     }
     if target == "host":
@@ -1195,211 +1129,14 @@ def _login_attempt_remediation(
     return remediation
 
 
-def _alternate_login_browser_handoff(
-    profile: str = "",
-    *,
-    target: str = "current",
-    env: Optional[Mapping[str, str]] = None,
-    continue_with_env: bool = False,
-    cleanup: Optional[Mapping[str, Any]] = None,
-) -> Dict[str, Any]:
-    retry = _login_attempt_remediation(
-        profile,
-        target=target,
-        env=env,
-        continue_with_env=continue_with_env,
-        cleanup=cleanup,
-    )
-    retry["customer_interaction"] = {
-        "audience": "nontechnical",
-        "show_commands": False,
-        "presentation": "standalone",
-        "render_verbatim": True,
-        "message": (
-            "已重新打开授权页面，请在浏览器确认授权。完成后我会自动继续；如果仍"
-            "无法完成授权，请回复“仍无法授权”。"
-        ),
-        "suppress_repeated_status": True,
-    }
-    cancel_current_login = {
-        "action": "cancel_current_login",
-        "required": True,
-        "skip_if_already_exited": True,
-        "wait_for_exit": True,
-        "discard_previous_oauth_state": True,
-    }
-    handoff: Dict[str, Any] = {
-        "action": "wait_for_customer_browser_login",
-        "state": "waiting_for_customer_browser_login",
-        "current_login_watch": {
-            "job_source": "parent_run_login",
-            "observe": [
-                "before_customer_prompt",
-                "while_waiting_for_customer_reply",
-                "before_retry_login",
-            ],
-            "poll_same_job_if_async": True,
-            "consume_final_json": True,
-            "success_match": {"success": True, "result.status": "auth_ready"},
-            "on_success": {
-                "action": "resume_original_task",
-                "dismiss_customer_wait": True,
-                "skip_after_customer_ready": True,
-                "customer_message": "授权已完成，我继续处理短信任务。",
-            },
-            "on_pending_or_non_success": "continue_customer_handoff",
-        },
-        "customer_interaction": {
-            "presentation": "standalone",
-            "render_verbatim": True,
-            "message": (
-                "请在同一个浏览器中，按你平时的方式登录并进入火山引擎控制台；"
-                "看到控制台后回复“已进入”。"
-            ),
-        },
-        "wait_for": {
-            "customer_reply": "已进入",
-            "meaning": "customer_can_see_volcengine_console",
-            "is_authentication_proof": False,
-        },
-        "after_customer_ready": {
-            "before_enter": dict(cancel_current_login),
-            "next": retry,
-        },
-        "max_login_retries_after_customer_ready": 1,
-        "on_retry_unrecognized": {
-            "action": "stop",
-            "when": {
-                "browser_visible": "agent_observes_authorization_cannot_continue",
-                "browser_not_visible": {"customer_reply": "仍无法授权"},
-            },
-            "before_stop": dict(cancel_current_login),
-            "customer_message": (
-                "授权页仍未识别到浏览器登录状态。请确认登录火山引擎控制台和授权页"
-                "使用的是同一个浏览器。当前环境暂时无法继续自动授权。"
-            ),
-        },
-        "never_request": [
-            "enterprise_login_url",
-            "account",
-            "password",
-            "verification_code",
-            "authorization_code",
-        ],
-        "on_abandon": {
-            "action": "stop",
-            "before_stop": dict(cancel_current_login),
-        },
-    }
-    if cleanup:
-        handoff["on_retry_unrecognized"]["cleanup"] = dict(cleanup)
-        handoff["on_abandon"]["cleanup"] = dict(cleanup)
-    return handoff
-
-
-def _login_remediation(
-    profile: str = "",
-    *,
-    target: str = "current",
-    env: Optional[Mapping[str, str]] = None,
-    continue_with_env: bool = False,
-    cleanup: Optional[Mapping[str, Any]] = None,
-) -> Dict[str, Any]:
-    remediation = _login_attempt_remediation(
-        profile,
-        target=target,
-        env=env,
-        continue_with_env=continue_with_env,
-        cleanup=cleanup,
-    )
-    remediation["customer_interaction"] = {
-        "audience": "nontechnical",
-        "show_diagnostics": False,
-        "show_commands": False,
-        "start_without_confirmation": True,
-        "selection": {
-            "action": "request_login_method_choice",
-            "invoke_after_login_started": True,
-            "render_as_plain_text": False,
-            "current_login_watch": {
-                "job_source": "parent_run_login",
-                "observe": ["before_selection", "while_selection_open"],
-                "poll_same_job_if_async": True,
-                "consume_final_json": True,
-                "success_match": {
-                    "success": True,
-                    "result.status": "auth_ready",
-                },
-                "on_success": {
-                    "action": "dismiss_or_skip_selection",
-                    "resume_original_task": True,
-                    "customer_message": "授权已完成，我继续处理短信任务。",
-                },
-                "on_pending_or_non_success": "show_or_keep_selection",
-            },
-            "tool": {
-                "preferred": "AskUserQuestion",
-                "alternatives": [
-                    "request_user_input",
-                    "equivalent_structured_choice_tool",
-                ],
-            },
-            "header": "火山引擎授权",
-            "question": "授权页面已经打开，请选择接下来的登录方式",
-            "options": [
-                {
-                    "id": "password",
-                    "label": "账号密码登录",
-                    "description": "在已打开的页面输入账号密码并完成授权",
-                },
-                {
-                    "id": "alternate",
-                    "label": "其他方式登录",
-                    "description": "先按平时方式登录，之后由我继续完成授权",
-                },
-            ],
-            "on_select": {
-                "password": {
-                    "action": "wait_for_current_login",
-                    "use_parent_completion": True,
-                },
-                "alternate": _alternate_login_browser_handoff(
-                    profile,
-                    target=target,
-                    env=env,
-                    continue_with_env=continue_with_env,
-                    cleanup=cleanup,
-                ),
-            },
-            "fallback_when_tool_unavailable": {
-                "presentation": "standalone_markdown",
-                "render_verbatim": True,
-                "message": (
-                    "## 火山引擎授权\n\n"
-                    "授权页面已经打开，请选择接下来的登录方式：\n\n"
-                    "1. **账号密码登录** — 在已打开的页面输入账号密码并完成授权\n"
-                    "2. **其他方式登录** — 先按平时方式登录，之后由我继续完成授权"
-                ),
-            },
-            "suppress_surrounding_text": True,
-            "suppress_repeated_status": True,
-        },
-    }
-    return remediation
-
-
 def _ve_install_remediation() -> Dict[str, Any]:
     return {
         "action": "install_ve",
-        "selection": "npm_if_available_else_official_release",
         "ask_user_to_choose": False,
         "strategies": {
             "npm": {"argv": list(VE_CLI_INSTALL_ARGV)},
             "official_release": {
-                "version": "1.1.1",
                 "release_url": VE_CLI_RELEASE_URL,
-                "checksums_url": VE_CLI_CHECKSUMS_URL,
-                "asset_pattern": "volcengine-cli_1.1.1_{os}_{arch}",
                 "verify_sha256": True,
                 "install_scope": "user_writable_path",
             },
@@ -1562,7 +1299,7 @@ def _auth_cleanup_remediation(
     script_path = os.path.realpath(
         os.path.join(os.path.dirname(__file__), "sms_cli.py")
     )
-    argv = ["python3", "-B", script_path, "auth-cleanup", "--path", path]
+    argv = ["python3", "-E", "-B", script_path, "auth-cleanup", "--path", path]
     if empty_only:
         argv.append("--empty-only")
     return {"action": "run_command", "argv": argv}
@@ -1721,7 +1458,6 @@ def _configure_environment_remediation(source: str) -> Dict[str, Any]:
 
 def _normalize_template_demo_csv(
     action: str,
-    spec: ActionSpec,
     response: TransportResponse,
     secrets: Sequence[str],
 ) -> Dict[str, Any]:
@@ -1732,7 +1468,7 @@ def _normalize_template_demo_csv(
         return _error_envelope(
             action,
             "invalid_response",
-            "TemplateUploadDemo returned an empty response body",
+            "TemplateUploadDemoForAgent returned an empty response body",
             request_id=request_id,
             secrets=secrets,
         )
@@ -1740,7 +1476,7 @@ def _normalize_template_demo_csv(
         return _error_envelope(
             action,
             "invalid_response",
-            "TemplateUploadDemo response was not an expected CSV file",
+            "TemplateUploadDemoForAgent response was not an expected CSV file",
             request_id=request_id,
             secrets=secrets,
         )
@@ -1750,7 +1486,7 @@ def _normalize_template_demo_csv(
         return _error_envelope(
             action,
             "invalid_response",
-            "TemplateUploadDemo CSV was not valid UTF-8",
+            "TemplateUploadDemoForAgent CSV was not valid UTF-8",
             request_id=request_id,
             secrets=secrets,
         )
@@ -1762,7 +1498,7 @@ def _normalize_template_demo_csv(
         return _error_envelope(
             action,
             "invalid_response",
-            "TemplateUploadDemo CSV must use phone as its first column",
+            "TemplateUploadDemoForAgent CSV must use phone as its first column",
             request_id=request_id,
             secrets=secrets,
         )
@@ -1771,7 +1507,7 @@ def _normalize_template_demo_csv(
         "fileName": _filename_from_content_disposition(
             _header(response.headers, "Content-Disposition")
         )
-        or "TemplateUploadDemo.csv",
+        or "TemplateUploadDemoForAgent.csv",
         "value": value,
         "contentType": content_type,
         "size": len(response.body),
@@ -1780,7 +1516,7 @@ def _normalize_template_demo_csv(
         "success": True,
         "action": action,
         "request_id": _sanitize_text(request_id, secrets) if request_id else None,
-        "result": _filter_result(demo, spec.result_fields, secrets),
+        "result": demo,
         "error": None,
     }
 
@@ -1790,6 +1526,7 @@ class SmsApiClient:
         self,
         *,
         env: Optional[Mapping[str, str]] = None,
+        profile: Optional[str] = None,
         clock: Optional[Callable[[], datetime.datetime]] = None,
         transport: Optional[
             Callable[[request.Request, float], TransportResponse]
@@ -1801,6 +1538,8 @@ class SmsApiClient:
         timeout: float = DEFAULT_TIMEOUT,
     ) -> None:
         self._env = dict(os.environ if env is None else env)
+        if profile is not None:
+            self._env["VOLCENGINE_PROFILE"] = profile
         self._cli_env = (
             prepare_cli_process_environment(self._env)
             if env is None
@@ -1839,6 +1578,13 @@ class SmsApiClient:
             self._prefer_ve_cli = prefer_ve_cli
         self._timeout = timeout
         self._idempotency_payloads: MutableMapping[Tuple[str, str], str] = {}
+        self._credential_scope: Optional[str] = None
+        self.output_secrets: Set[str] = set()
+
+    @property
+    def credential_scope(self) -> Optional[str]:
+        """Opaque binding to the CLI session/principal or supplied credentials."""
+        return self._credential_scope
 
     def _refresh_cli_cache(self) -> None:
         cli_env = dict(self._cli_env)
@@ -1848,15 +1594,12 @@ class SmsApiClient:
         command = [ve_path, "sts", "GetCallerIdentity"]
         profile = str(self._env.get("VOLCENGINE_PROFILE") or "").strip()
         if profile:
-            command.extend(["---profile", profile])
-        command.extend(
-            [
-                "---region",
-                str(self._env.get("VOLCENGINE_REGION") or "cn-beijing"),
-                "---lang",
-                "EN",
-            ]
-        )
+            command.extend(["--profile", profile])
+        command.extend([
+            "--region", DEFAULT_REGION,
+            "--endpoint", parse.urlsplit(runtime_environment.STS_ENDPOINT).netloc,
+            "--lang", "EN",
+        ])
         try:
             self._cli_runner(command, cli_env, min(self._timeout, 30.0))
         except (OSError, subprocess.SubprocessError):
@@ -1865,6 +1608,43 @@ class SmsApiClient:
     def auth_doctor(self) -> Dict[str, Any]:
         """Check CLI capabilities and validate credentials without exposing identity."""
         action = "auth-doctor"
+        try:
+            direct_credentials = _resolve_environment_credentials(self._env)
+        except IncompleteCredentialsError as exc:
+            return _error_envelope(
+                action,
+                "auth_credentials_incomplete",
+                str(exc),
+                remediation=_configure_environment_remediation(
+                    "process_environment"
+                ),
+            )
+        except CredentialResolutionError as exc:
+            return _error_envelope(action, "credential_error", str(exc))
+        if direct_credentials is not None:
+            validation = self.call_live_read_only("ListSubAccountForAgent", {})
+            if validation.get("success"):
+                return {
+                    "success": True,
+                    "action": action,
+                    "request_id": validation.get("request_id"),
+                    "result": {"status": "auth_ready", "credentialSource": "environment"},
+                    "error": None,
+                }
+            error_value = validation.get("error")
+            if isinstance(error_value, Mapping):
+                return {
+                    "success": False,
+                    "action": action,
+                    "request_id": validation.get("request_id"),
+                    "result": None,
+                    "error": sanitize_output(error_value),
+                }
+            return _error_envelope(
+                action,
+                "auth_check_failed",
+                "Credential validation failed without a structured error.",
+            )
         if self._cli_auth_home_error:
             return _error_envelope(
                 action,
@@ -1880,72 +1660,25 @@ class SmsApiClient:
         if ve_path is None:
             return _ve_fallback_error(action, "ve_cli_missing")
 
-        try:
-            version_result = self._cli_runner(
-                [ve_path, "--version"], cli_env, probe_timeout
-            )
-        except FileNotFoundError:
-            return _ve_fallback_error(action, "ve_cli_missing")
-        except PermissionError:
-            return _error_envelope(
-                action,
-                "ve_cli_unexecutable",
-                "The Volcengine CLI executable cannot be started.",
-                remediation={"action": "inspect_ve_executable"},
-            )
-        except subprocess.TimeoutExpired:
-            return _error_envelope(
-                action,
-                "ve_cli_timeout",
-                "Volcengine CLI version inspection timed out.",
-                retryable=True,
-                remediation={"action": "retry"},
-            )
-        except OSError:
-            return _ve_fallback_error(action, "ve_cli_unavailable")
-        except Exception:
-            return _error_envelope(
-                action,
-                "ve_cli_unavailable",
-                "Unable to inspect the official Volcengine CLI.",
-            )
-
-        version_output = _completed_bytes(
-            getattr(version_result, "stdout", b"")
-        ) + b"\n" + _completed_bytes(getattr(version_result, "stderr", b""))
-        parsed_version = _parse_ve_version(version_output)
-        if int(getattr(version_result, "returncode", 1)) != 0 or parsed_version is None:
-            return _error_envelope(
-                action,
-                "ve_cli_version_unknown",
-                "Unable to determine the installed Volcengine CLI version.",
-                remediation=install_remediation,
-            )
-        version_text, version_tuple = parsed_version
-        if version_tuple < MIN_VE_CLI_VERSION:
-            return _error_envelope(
-                action,
-                "ve_cli_too_old",
-                "Volcengine CLI {} is older than the required {}.".format(
-                    version_text, MIN_VE_CLI_VERSION_TEXT
-                ),
-                remediation=install_remediation,
-            )
-
+        # 按实际使用的参数和接口判断兼容性，不以版本号阻断可用的 CLI。
         capability_checks = (
-            ([ve_path, "login", "--help"], b"--remote", "ve_login_unsupported"),
+            (
+                [ve_path, "login", "--help"],
+                ve_login_flow,
+                "ve_login_unsupported",
+            ),
             (
                 [ve_path, VE_CLI_SERVICE, "--help"],
-                b"ListSubAccountForAgent",
+                lambda output: b"ListSubAccountForAgent" in output,
                 "ve_volcsms_unsupported",
             ),
             (
                 [ve_path, "sts", "GetCallerIdentity", "--help"],
-                b"GetCallerIdentity",
+                lambda output: b"GetCallerIdentity" in output,
                 "ve_sts_unsupported",
             ),
         )
-        for command, marker, error_code in capability_checks:
+        for command, supported, error_code in capability_checks:
             try:
                 completed = self._cli_runner(command, cli_env, probe_timeout)
             except FileNotFoundError:
@@ -1977,7 +1710,7 @@ class SmsApiClient:
             output = _completed_bytes(
                 getattr(completed, "stdout", b"")
             ) + b"\n" + _completed_bytes(getattr(completed, "stderr", b""))
-            if int(getattr(completed, "returncode", 1)) != 0 or marker not in output:
+            if int(getattr(completed, "returncode", 1)) != 0 or not supported(output):
                 return _error_envelope(
                     action,
                     error_code,
@@ -1989,15 +1722,16 @@ class SmsApiClient:
             profile = _validated_credential_value(
                 self._env.get("VOLCENGINE_PROFILE")
             )
-            auth_region = _validated_credential_value(
-                self._env.get("VOLCENGINE_REGION")
-            ) or "cn-beijing"
         except CredentialResolutionError as exc:
             return _error_envelope(action, "credential_error", str(exc))
         identity_command = [ve_path, "sts", "GetCallerIdentity"]
         if profile:
-            identity_command.extend(["---profile", profile])
-        identity_command.extend(["---region", auth_region, "---lang", "EN"])
+            identity_command.extend(["--profile", profile])
+        identity_command.extend([
+            "--region", DEFAULT_REGION,
+            "--endpoint", parse.urlsplit(runtime_environment.STS_ENDPOINT).netloc,
+            "--lang", "EN",
+        ])
         try:
             identity_result = self._cli_runner(
                 identity_command, cli_env, self._timeout
@@ -2044,7 +1778,7 @@ class SmsApiClient:
                 "success": True,
                 "action": action,
                 "request_id": None,
-                "result": {"status": "auth_ready", "veVersion": version_text},
+                "result": {"status": "auth_ready"},
                 "error": None,
             }
 
@@ -2052,21 +1786,7 @@ class SmsApiClient:
         failure_code = _classify_ve_failure(failure_output)
         if failure_code == "auth_config_unwritable":
             return _temporary_auth_home_error(action, profile=profile)
-        try:
-            direct_credentials = _resolve_environment_credentials(self._env)
-        except IncompleteCredentialsError as exc:
-            return _error_envelope(
-                action,
-                "auth_credentials_incomplete",
-                str(exc),
-                remediation=_configure_environment_remediation(
-                    "process_environment"
-                ),
-            )
-        except CredentialResolutionError as exc:
-            return _error_envelope(action, "credential_error", str(exc))
-
-        if direct_credentials is None and self._env_path is not None:
+        if self._env_path is not None:
             try:
                 direct_credentials = _resolve_environment_credentials(
                     _read_env_file(self._env_path)
@@ -2088,7 +1808,7 @@ class SmsApiClient:
                     "success": True,
                     "action": action,
                     "request_id": validation.get("request_id"),
-                    "result": {"status": "auth_ready", "veVersion": version_text},
+                    "result": {"status": "auth_ready"},
                     "error": None,
                 }
             error_value = validation.get("error")
@@ -2119,8 +1839,6 @@ class SmsApiClient:
         spec: ActionSpec,
         params: Params,
         secrets: Sequence[str],
-        *,
-        preserve_presigned_url: bool,
     ) -> VeCallOutcome:
         """Use ``ve volcsms`` first and preserve safe fallback failures."""
         if not self._prefer_ve_cli:
@@ -2256,19 +1974,15 @@ class SmsApiClient:
                     spec,
                     response,
                     secrets,
-                    preserve_presigned_url=(
-                        preserve_presigned_url and action == "GetUploadTosURL"
-                    ),
                 )
             )
 
         return_code = int(getattr(completed, "returncode", 1))
         if return_code == 0:
-            if action == "TemplateUploadDemo" and stdout:
+            if action == "TemplateUploadDemoForAgent" and stdout:
                 return VeCallOutcome(
                     _normalize_template_demo_csv(
                         action,
-                        spec,
                         TransportResponse(
                             200,
                             {"Content-Type": "application/octet-stream"},
@@ -2356,7 +2070,8 @@ class SmsApiClient:
         params: Params,
         *,
         idempotency_key: Optional[str] = None,
-        preserve_presigned_url: bool = False,
+        expected_credential_scope: Optional[str] = None,
+        use_cli: bool = True,
     ) -> Dict[str, Any]:
         spec = ACTION_REGISTRY.get(action)
         if spec is None:
@@ -2378,6 +2093,8 @@ class SmsApiClient:
             if isinstance(value, str) and value
         )
 
+        self.output_secrets.update(environment_secrets)
+
         if idempotency_key is not None:
             if spec.idempotency_field is None:
                 return _error_envelope(
@@ -2398,13 +2115,21 @@ class SmsApiClient:
                 )
             self._idempotency_payloads[identity] = payload_hash
 
-        cli_outcome = self._call_via_ve(
-            action,
-            spec,
-            params,
-            environment_secrets,
-            preserve_presigned_url=preserve_presigned_url,
-        )
+        # A locally confirmed write must be signed by the same identity. The
+        # direct path can check this before dispatch; it never retries a write.
+        cli_outcome = VeCallOutcome(result=None)
+        if use_cli and expected_credential_scope is None:
+            cli_outcome = self._call_via_ve(
+                action,
+                spec,
+                params,
+                environment_secrets,
+            )
+        elif not use_cli:
+            cli_outcome = VeCallOutcome(None, _ve_fallback_error(
+                action, "auth_required",
+                profile=_validated_credential_value(self._env.get("VOLCENGINE_PROFILE")),
+            ))
         if cli_outcome.result is not None:
             return cli_outcome.result
 
@@ -2445,6 +2170,29 @@ class SmsApiClient:
                 str(exc),
                 secrets=environment_secrets,
             )
+        self._credential_scope = _sha256(
+            _compact_json(
+                {
+                    "environment": runtime_environment.NAME,
+                    "headers": runtime_environment.HEADERS,
+                    "identity": credentials.identity if credentials.identity is not None else {
+                        "access_key": credentials.access_key,
+                        "session_token": credentials.session_token,
+                    },
+                }
+            )
+        )
+        if (
+            expected_credential_scope is not None
+            and expected_credential_scope != self._credential_scope
+        ):
+            return _error_envelope(
+                action,
+                "confirmation_identity_changed",
+                "Login identity changed after preview; prepare a new preview",
+                secrets=environment_secrets,
+                request_sent=False,
+            )
         resolved_secrets = (
             credentials.access_key,
             credentials.secret_key,
@@ -2453,6 +2201,7 @@ class SmsApiClient:
         secrets = environment_secrets + tuple(
             value for value in resolved_secrets if value
         )
+        self.output_secrets.update(secrets)
 
         try:
             outbound_request = build_signed_request(
@@ -2475,11 +2224,26 @@ class SmsApiClient:
         except (TypeError, ValueError) as exc:
             return _error_envelope(action, "invalid_request", str(exc), secrets=secrets)
 
+        outbound = outbound_request.to_urllib_request()
+        for name, value in runtime_environment.HEADERS.items():
+            outbound.add_header(name, value)
         attempts = 1 + (MAX_READ_RETRIES if spec.read_only else 0)
         for attempt in range(attempts):
             try:
                 transport_response = self._transport(
-                    outbound_request.to_urllib_request(), self._timeout
+                    outbound,
+                    spec.request_timeout if spec.request_timeout is not None else self._timeout,
+                )
+            except ssl.SSLCertVerificationError as exc:
+                # Verification can fail after urllib follows a redirect, so a
+                # write may already have reached the original endpoint.
+                return _error_envelope(
+                    action,
+                    "tls_certificate_error" if spec.read_only else "outcome_unknown",
+                    "TLS certificate verification failed. Check this Python "
+                    "runtime's trusted CA configuration: {}".format(exc),
+                    outcome_unknown=not spec.read_only,
+                    secrets=secrets,
                 )
             except RequestNotSentError as exc:
                 if spec.read_only and attempt + 1 < attempts:
@@ -2491,6 +2255,7 @@ class SmsApiClient:
                     str(exc),
                     retryable=spec.read_only,
                     secrets=secrets,
+                    request_sent=False,
                 )
             except ResponseLostError as exc:
                 if spec.read_only and attempt + 1 < attempts:
@@ -2543,9 +2308,6 @@ class SmsApiClient:
                 spec,
                 transport_response,
                 secrets,
-                preserve_presigned_url=(
-                    preserve_presigned_url and action == "GetUploadTosURL"
-                ),
             )
 
         return _error_envelope(  # Defensive: the loop always returns.
@@ -2558,20 +2320,18 @@ class SmsApiClient:
         spec: ActionSpec,
         response: TransportResponse,
         secrets: Sequence[str],
-        *,
-        preserve_presigned_url: bool = False,
     ) -> Dict[str, Any]:
         if (
-            action == "TemplateUploadDemo"
+            action == "TemplateUploadDemoForAgent"
             and 200 <= response.status < 300
             and not response.body
         ):
-            return _normalize_template_demo_csv(action, spec, response, secrets)
+            return _normalize_template_demo_csv(action, response, secrets)
         try:
             payload = json.loads(response.body.decode("utf-8")) if response.body else {}
         except (UnicodeDecodeError, json.JSONDecodeError):
-            if action == "TemplateUploadDemo" and 200 <= response.status < 300:
-                return _normalize_template_demo_csv(action, spec, response, secrets)
+            if action == "TemplateUploadDemoForAgent" and 200 <= response.status < 300:
+                return _normalize_template_demo_csv(action, response, secrets)
             if 200 <= response.status < 300:
                 return _invalid_success_response(
                     action,
@@ -2604,12 +2364,13 @@ class SmsApiClient:
             business_code = str(
                 business_error.get("Code") or "service_error"
             )
+            message = business_error.get("Message") if spec.public_error_message else None
+            if not isinstance(message, str) or not message:
+                message = "Service returned error {}".format(business_code)
             return _error_envelope(
                 action,
                 business_code,
-                "Service returned error {}".format(
-                    business_code
-                ),
+                message,
                 request_id=request_id,
                 retryable=spec.read_only
                 and (
@@ -2637,17 +2398,7 @@ class SmsApiClient:
                 request_id=request_id,
                 secrets=secrets,
             )
-        if action == "GetSubAccountDetail":
-            result = _filter_message_group_detail(payload.get("Result"), secrets)
-        elif action in {"ListSmsTemplateForAgent", "ListSecondTemplate"}:
-            result = _filter_template_result(payload.get("Result"), secrets)
-        else:
-            result = _filter_result(
-                payload.get("Result"),
-                spec.result_fields,
-                secrets,
-                preserve_presigned_url=preserve_presigned_url,
-            )
+        result = payload.get("Result")
         contract_error = _result_contract_error(spec, result)
         if contract_error is not None:
             return _invalid_success_response(
@@ -2666,11 +2417,19 @@ class SmsApiClient:
         }
 
 
-def emit_json(value: Any, *, secrets: Sequence[str] = ()) -> str:
-    """Return stable JSON suitable for stdout/stderr without leaking secrets."""
-    return json.dumps(
-        sanitize_output(value, secrets=secrets),
-        ensure_ascii=False,
-        sort_keys=True,
-        separators=(",", ":"),
-    )
+def emit_json(
+    value: Any, *, secrets: Sequence[str] = (), preserve_business_values: bool = False,
+) -> str:
+    """Project public API fields and redact only at the model-output boundary."""
+    action = value.get("action") if isinstance(value, Mapping) else None
+    spec = ACTION_REGISTRY.get(action) if isinstance(action, str) else None
+    if spec is not None and value.get("success"):
+        result = value.get("result")
+        result = _filter_result(result, spec.result_fields, secrets, spec.private_result_fields)
+        output = sanitize_output({key: item for key, item in value.items() if key != "result"}, secrets=secrets)
+        output["result"] = result
+    else:
+        output = sanitize_output(
+            value, secrets=secrets, preserve_business_values=preserve_business_values,
+        )
+    return json.dumps(output, ensure_ascii=False, sort_keys=True, separators=(",", ":"))

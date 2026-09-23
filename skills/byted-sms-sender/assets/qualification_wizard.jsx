@@ -142,7 +142,7 @@ function uploadItemName(item) {
 
 function validateImageFile(file) {
   if (!file) throw new Error('请选择图片');
-  if (file.size > maxBytes) throw new Error('单张图片不能大于 2 MB');
+  if (file.size > maxBytes) throw new Error('单张图片不能大于 10 MB');
   if (!/\.(jpe?g|png)$/i.test(file.name)) {
     throw new Error('仅支持 JPG、JPEG、PNG 图片');
   }
@@ -199,7 +199,12 @@ function statusForCheck(target, state) {
   if (target === 'business' && !check.matched) {
     return {
       type: 'warning',
-      text: '自动校验未通过，将转人工审核；你仍可继续。',
+      text: check.error
+        ? supportMessage(
+            { message: check.error.message, error: check.error },
+            '校验失败，请检查相应信息是否正确',
+          )
+        : '自动校验未通过，将转人工审核；你仍可继续。',
     };
   }
   return check.matched
@@ -340,7 +345,7 @@ function StepStatus({ status }) {
 function FilePicker({
   fileKey,
   title,
-  tip = '支持 JPG、JPEG、PNG，单张不大于 2 MB',
+  tip = '支持 JPG、JPEG、PNG，单张不大于 10 MB',
   required = false,
   files,
   setFiles,
@@ -740,7 +745,7 @@ function App() {
 
   const saveBase = async () => {
     try {
-      const values = await validateForm(baseForm, ['purpose', 'materialName']);
+      const values = await validateForm(baseForm, ['purpose']);
       setLoadingAction('base');
       updateStatus('base', '正在保存基础信息…');
       await requestApi('/api/base', {
@@ -749,6 +754,8 @@ function App() {
         body: JSON.stringify({
           purpose: Number(values.purpose),
           materialName: String(values.materialName || '').trim(),
+          materialNameSource:
+            values.materialName && materialNameTouched ? 'manual' : 'auto',
         }),
       });
       removeDirty('base');
@@ -856,11 +863,6 @@ function App() {
         baseForm.getFieldValue('materialName') || '',
       ).trim();
       const businessName = String(values.businessCertificateName || '').trim();
-      if (!materialName) {
-        updateStatus('business', '请先填写资质名称。', 'error');
-        showStep('base');
-        return false;
-      }
       const validityPeriod = values.businessCertificateValidityPeriod;
       if (!Array.isArray(validityPeriod) || validityPeriod.length !== 2) {
         updateStatus('business', '请选择营业证件有效期。', 'error');
@@ -882,7 +884,8 @@ function App() {
             validityPeriod[0],
           businessCertificateValidityPeriodEnd: validityPeriod[1],
           materialName,
-          materialNameSource: materialNameTouched ? 'manual' : 'auto',
+          materialNameSource:
+            materialName && materialNameTouched ? 'manual' : 'auto',
           purpose: Number(baseForm.getFieldValue('purpose') || 1),
         }),
       });
@@ -1925,7 +1928,7 @@ function App() {
         <>
           <StepHeader
             title="基础信息"
-            description="先确认资质归属和资质名称，后续步骤会复用这里的草稿值。"
+            description="先确认资质归属；资质名称未填写时，将使用营业证件名称。"
             status={stepDone('base', state) ? 'done' : 'active'}
           />
           <Form
@@ -1970,10 +1973,9 @@ function App() {
             />
             <Form.Item
               field="materialName"
-              label="资质名称"
-              extra="仅用于标识该资质信息，最多 20 个字。"
+              label="资质名称（选填）"
+              extra="未填写时默认使用营业证件名称，最多 20 个字。"
               rules={[
-                { required: true, message: '请输入资质名称' },
                 { maxLength: 20, message: '资质名称最多 20 个字' },
               ]}
             >
@@ -1981,7 +1983,7 @@ function App() {
                 allowClear
                 maxLength={20}
                 showWordLimit
-                placeholder="请输入易识别的资质名称"
+                placeholder="未填写时使用营业证件名称"
               />
             </Form.Item>
           </Form>
@@ -1991,7 +1993,7 @@ function App() {
                 type: state.baseSaved ? 'success' : 'info',
                 text: state.baseSaved
                   ? '基础信息已保存。'
-                  : '请确认资质归属并填写资质名称。',
+                  : '请确认资质归属；资质名称可选填。',
               }
             }
           />
@@ -2049,7 +2051,7 @@ function App() {
                 fileKey="business"
                 title="营业证件附件"
                 required={businessImageRequired}
-                tip="支持jpg、png、jpeg格式的图片，每张图片不大于2MB；当营业证件照片为复印件、黑白照片时需要加盖红色企业公章，彩色图片无需加盖公章"
+                tip="支持jpg、png、jpeg格式的图片，每张图片不大于10MB；当营业证件照片为复印件、黑白照片时需要加盖红色企业公章，彩色图片无需加盖公章"
                 rectangular
                 files={files}
                 setFiles={setFiles}
@@ -2396,7 +2398,7 @@ function App() {
             <FilePicker
               fileKey="legalOther"
               title="非身份证证件附件（选填）"
-              tip="支持 JPG、JPEG、PNG，单张不大于 2 MB；最多支持上传两张"
+              tip="支持 JPG、JPEG、PNG，单张不大于 10 MB；最多支持上传两张"
               files={files}
               setFiles={setFiles}
               markChanged={() => {
@@ -2569,7 +2571,7 @@ function App() {
             <FilePicker
               fileKey="otherMaterials"
               title="其他材料（选填）"
-              tip="支持 JPG、JPEG、PNG，单张不大于 2 MB；最多支持上传五张"
+              tip="支持 JPG、JPEG、PNG，单张不大于 10 MB；最多支持上传五张"
               files={files}
               setFiles={setFiles}
               markChanged={() => markChanged('authorization')}

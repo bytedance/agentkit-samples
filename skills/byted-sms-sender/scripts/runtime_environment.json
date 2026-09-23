@@ -1,0 +1,14 @@
+{
+  "environment": "prod",
+  "api_endpoint": "https://sms.volcengineapi.com",
+  "signin_endpoint": "https://signin.volcengine.com",
+  "sts_endpoint": "https://open.volcengineapi.com",
+  "console_url": "https://console.volcengine.com/sms",
+  "region": "cn-north-1",
+  "headers": {},
+  "upload_hosts": [
+    ".volces.com"
+  ],
+  "imagex_endpoint": "https://imagex.bytedanceapi.com",
+  "imagex_service_id": "2rcdq6eupd"
+}
