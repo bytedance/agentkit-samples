@@ -1,0 +1,37 @@
+name: 云端编程 Agent（AIO Sandbox 演示）
+name_en: Cloud Coding Agent (AIO Sandbox Demo)
+description: 基于 AgentKit AIO Sandbox 的云端编程 Agent，沙箱内写码测试并交付下载链接
+details: 展示 AgentKit AIO Sandbox 的"云端编程 Agent"：收到 Web 编程任务后，Agent 通过 veADK 内置的 run_code 工具在隔离的云端沙箱内搭建项目、写入源码，并进行真实测试（语法检查、单元测试、启动服务后用 curl 验证），随后在沙箱内打包为 zip，经预签名 URL 直接上传到 TOS，最终返回签名下载链接。沙箱会话有状态且支持快照恢复，云凭证从不进入沙箱。
+tags:
+  industry: 信息技术服务
+  from: community
+  framework: veADK
+  language: Python
+  tech:
+    - AIO Sandbox
+    - run_code
+    - TOS
+type: tutorial
+scenarios:
+  - name: 云端代码生成
+    desc: 沙箱内编写并调试代码
+  - name: 项目打包交付
+    desc: 打包上传生成下载链接
+prompts:
+  - text: Build a single-page countdown timer that counts down to New Year 2027
+  - text: Write a Flask JSON API for a todo list, with unit tests
+envs:
+  - name: BytePlus ModelArk API Key
+    key: MODEL_AGENT_API_KEY
+    url: https://console.byteplus.com/ark
+  - name: AIO Sandbox 工具 ID
+    key: AGENTKIT_TOOL_ID
+    url: https://console.byteplus.com/agentkit
+  - name: TOS 交付桶名称
+    key: DATABASE_TOS_BUCKET
+    url: https://console.byteplus.com/tos
+components:
+  - type: sandbox
+    product: aio_sandbox
+models:
+  - deepseek-v4-pro-260425

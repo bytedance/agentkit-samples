@@ -1,0 +1,41 @@
+name: Code Coach 编程练习教练（Harness 无代码版）
+name_en: Code Coach Harness (BytePlus)
+description: 基于 AgentKit Harness 的无代码编程练习教练，在沙箱中运行学员代码并按隐藏测试评分
+details: 整个 Agent 由一个 harness.yaml 与一个 Claude-Code 风格技能（SKILL.md）定义，无需编写任何应用代码：技能发布到 Skill Hub 后按引用挂载，运行时通过内置 run_code 工具在 CodeEnv 沙箱中真实执行学员提交的代码并跑隐藏测试，再按 100 分制评分标准打分、给出渐进式提示，并借助服务端会话记忆完成布置、点评、测试、评分到总结的完整培训闭环。使用独立版 agentkit CLI 部署到 BytePlus（ap-southeast-1）。样例移植自 Windrichie 的 byteplus-agentkit-samples（Apache 2.0）。
+tags:
+  industry: 教育
+  from: community
+  framework: AgentKit Harness
+  language: Python
+  tech:
+    - Harness
+    - Skill
+    - CodeEnv
+    - Sandbox
+type: tutorial
+scenarios:
+  - name: 编程练习陪练
+    desc: 布置练习并评审学员代码
+  - name: 隐藏用例判分
+    desc: 沙箱运行隐藏测试评分
+  - name: 无代码部署
+    desc: 仅用配置文件定义智能体
+prompts:
+  - text: Hi! I'd like a Python exercise, please.
+  - text: Can I get a hint on what I'm missing?
+  - text: Let's wrap up. What exercise was I working on, and how did I do?
+envs:
+  - name: BytePlus Access Key
+    key: BYTEPLUS_ACCESS_KEY
+    url: https://console.byteplus.com/iam/keymanage
+  - name: BytePlus Secret Key
+    key: BYTEPLUS_SECRET_KEY
+    url: https://console.byteplus.com/iam/keymanage
+  - name: AgentKit 技能空间 ID
+    key: SKILL_SPACE_ID
+    url: https://console.byteplus.com/agentkit/region:agentkit+ap-southeast-1/overview?projectName=default
+  - name: BytePlus ModelArk API Key
+    key: MODEL_AGENT_API_KEY
+    url: https://console.byteplus.com/ark
+models:
+  - deepseek-v4-pro-260425
