@@ -63,9 +63,13 @@ def main() -> None:
         form={},
         header={},
     )
-    # Volcengine InvokeTool uses the regional data plane, not the OpenAPI host.
-    # Keep an explicit host override; BytePlus uses its SDK-resolved endpoint.
-    if VolcConfiguration().provider == CloudProvider.VOLCENGINE:
+    # InvokeTool uses a regional data-plane host on both clouds.
+    # Keep an explicit host override for the selected cloud.
+    provider = VolcConfiguration().provider
+    if provider == CloudProvider.BYTEPLUS:
+        host = os.getenv("BYTEPLUS_AGENTKIT_HOST", "").strip()
+        client.set_host(host or f"agentkit.{client.region}.bytepluses.com")
+    else:
         host = os.getenv("VOLCENGINE_AGENTKIT_HOST", "").strip()
         client.set_host(host or f"agentkit.{client.region}.volces.com")
 

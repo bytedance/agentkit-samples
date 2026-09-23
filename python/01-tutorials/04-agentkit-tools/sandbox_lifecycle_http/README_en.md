@@ -139,6 +139,15 @@ reported directly. Signed endpoints in both the list and details are redacted.
 
 ## Run code in a session
 
+`InvokeTool` uses a separate data-plane endpoint: Volcengine uses
+`https://agentkit.<region>.volces.com`; the [BytePlus documentation](https://docs.byteplus.com/en/docs/AgentKit/InvokeTool_-_Executes_command_in_a_tool)
+specifies `https://agentkit.ap-southeast-1.bytepluses.com` for Singapore,
+which differs from the management host `agentkit.ap-southeast-1.byteplusapi.com`.
+Script 03 selects the invocation endpoint for the cloud and region automatically.
+The API version remains `2025-10-30`. A host override is normally unnecessary;
+if `BYTEPLUS_AGENTKIT_HOST` or `VOLCENGINE_AGENTKIT_HOST` is set, the selected
+host must support `InvokeTool`.
+
 `03_invoke_session.py` calls `InvokeTool` to execute Python code in the sandbox
 instance recorded in the state file. Create the instance with script 01 first
 and ensure it is ready. If it is paused, run script 05 to resume it before

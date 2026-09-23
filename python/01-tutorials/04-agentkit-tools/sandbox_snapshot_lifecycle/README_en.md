@@ -51,11 +51,18 @@ export AGENTKIT_TOOL_ID=t-xxxxxxxx
 ```
 
 The tool must belong to the selected cloud, account, and region, with snapshots
-enabled (`EnableSnapshot=true`). The SDK selects the service endpoint for that
+enabled (`EnableSnapshot=true`). The SDK selects the management endpoint for that
 cloud automatically. BytePlus defaults to
 `https://agentkit.ap-southeast-1.byteplusapi.com` in Singapore.
-Volcengine's `InvokeTool` uses the separate data-plane endpoint
-`https://agentkit.<region>.volces.com`, which script 02 selects automatically.
+
+`InvokeTool` uses a separate data-plane endpoint: Volcengine uses
+`https://agentkit.<region>.volces.com`; the [BytePlus documentation](https://docs.byteplus.com/en/docs/AgentKit/InvokeTool_-_Executes_command_in_a_tool)
+specifies `https://agentkit.ap-southeast-1.bytepluses.com` for Singapore,
+which differs from the management host `agentkit.ap-southeast-1.byteplusapi.com`.
+Script 02 selects the invocation endpoint for the cloud and region automatically.
+The API version remains `2025-10-30`. A host override is normally unnecessary;
+if `BYTEPLUS_AGENTKIT_HOST` or `VOLCENGINE_AGENTKIT_HOST` is set, the selected
+host must support `InvokeTool`.
 
 `AGENTKIT_CLOUD_PROVIDER` takes precedence over the compatible `CLOUD_PROVIDER`
 variable. When neither is set, the SDK uses its global cloud configuration,
@@ -90,7 +97,8 @@ Optional settings:
 - `BYTEPLUS_AGENTKIT_HOST` or `VOLCENGINE_AGENTKIT_HOST`: optional service host
   override for the selected cloud. Use a hostname without `https://`; normally
   no override is needed. Script 02 also honors this override, so the host must
-  support `InvokeTool`; do not use Volcengine's general OpenAPI host for it.
+  support `InvokeTool`; do not use Volcengine's general OpenAPI host or the BytePlus
+  management host for it.
 
 When switching clouds or regions, update the tool ID, select a separate state
 file with `AGENTKIT_LIFECYCLE_STATE`, and start again from script 01.

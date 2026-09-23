@@ -89,9 +89,13 @@ export AGENTKIT_TOOL_ID=t-xxxxxxxx
 - `AGENTKIT_HTTP_TIMEOUT_SECONDS`：单次 HTTP 请求超时，默认 30 秒。
 - `AGENTKIT_HTTP_RETRIES`：连接错误、HTTP 429 和 HTTP 503 的重试次数，默认 2。
 
-火山引擎的 `InvokeTool` 使用独立的数据面地址
-`https://agentkit.<region>.volces.com`。脚本 02 会自动选择该地址；如通过
-`VOLCENGINE_AGENTKIT_HOST` 覆盖服务域名，所填地址也必须支持 `InvokeTool`。
+`InvokeTool` 使用独立的数据面地址：火山引擎为
+`https://agentkit.<region>.volces.com`；[BytePlus 官方文档](https://docs.byteplus.com/en/docs/AgentKit/InvokeTool_-_Executes_command_in_a_tool)
+指定新加坡地址为 `https://agentkit.ap-southeast-1.bytepluses.com`，
+与管理接口的 `agentkit.ap-southeast-1.byteplusapi.com` 不同。
+脚本 02 会按云平台和区域自动选择调用地址，API 版本仍为 `2025-10-30`。
+通常无需设置 host 覆盖；如果设置了 `BYTEPLUS_AGENTKIT_HOST` 或
+`VOLCENGINE_AGENTKIT_HOST`，该地址必须支持 `InvokeTool`。
 
 ## 调用 Session 执行代码
 

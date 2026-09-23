@@ -98,10 +98,14 @@ Optional settings:
 - `AGENTKIT_HTTP_RETRIES`: retry count for connection errors, HTTP 429, and HTTP
   503; defaults to 2.
 
-Volcengine `InvokeTool` uses the separate data-plane endpoint
-`https://agentkit.<region>.volces.com`. Script 02 selects that endpoint
-automatically. If you override `VOLCENGINE_AGENTKIT_HOST`, the selected host
-must also support `InvokeTool`.
+`InvokeTool` uses a separate data-plane endpoint: Volcengine uses
+`https://agentkit.<region>.volces.com`; the [BytePlus documentation](https://docs.byteplus.com/en/docs/AgentKit/InvokeTool_-_Executes_command_in_a_tool)
+specifies `https://agentkit.ap-southeast-1.bytepluses.com` for Singapore,
+which differs from the management host `agentkit.ap-southeast-1.byteplusapi.com`.
+Script 02 selects the invocation endpoint for the cloud and region automatically.
+The API version remains `2025-10-30`. A host override is normally unnecessary;
+if `BYTEPLUS_AGENTKIT_HOST` or `VOLCENGINE_AGENTKIT_HOST` is set, the selected
+host must support `InvokeTool`.
 
 ## Run Code In A Session
 

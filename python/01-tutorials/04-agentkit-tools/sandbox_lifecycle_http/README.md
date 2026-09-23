@@ -123,6 +123,14 @@ python python/01-tutorials/04-agentkit-tools/sandbox_lifecycle_http/02_list_and_
 
 ## 调用 Session 执行代码
 
+`InvokeTool` 使用独立的数据面地址：火山引擎为
+`https://agentkit.<region>.volces.com`；[BytePlus 官方文档](https://docs.byteplus.com/en/docs/AgentKit/InvokeTool_-_Executes_command_in_a_tool)
+指定新加坡地址为 `https://agentkit.ap-southeast-1.bytepluses.com`，
+与管理接口的 `agentkit.ap-southeast-1.byteplusapi.com` 不同。
+脚本 03 会按云平台和区域自动选择调用地址，API 版本仍为 `2025-10-30`。
+通常无需设置 host 覆盖；如果设置了 `BYTEPLUS_AGENTKIT_HOST` 或
+`VOLCENGINE_AGENTKIT_HOST`，该地址必须支持 `InvokeTool`。
+
 `03_invoke_session.py` 调用 `InvokeTool`，在状态文件记录的沙箱实例中执行 Python 代码。
 请先运行脚本 01 创建实例，并确保实例已就绪；暂停后应先运行脚本 05 恢复，再调用脚本
 03。沙箱镜像需要支持 `RunCode` 对应的 `/v1/jupyter/execute` 接口和所选 Python 内核。

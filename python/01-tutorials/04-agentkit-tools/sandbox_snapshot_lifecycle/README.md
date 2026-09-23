@@ -48,10 +48,16 @@ export AGENTKIT_TOOL_ID=t-xxxxxxxx
 ```
 
 Tool ID 必须属于所选云平台、账号和区域，且已开启快照功能（`EnableSnapshot=true`）。
-SDK 会按云平台自动选择服务地址；BytePlus 新加坡区域默认为
+SDK 会按云平台自动选择管理接口地址；BytePlus 新加坡区域默认为
 `https://agentkit.ap-southeast-1.byteplusapi.com`。
-火山引擎的 `InvokeTool` 使用独立的数据面地址
-`https://agentkit.<region>.volces.com`，脚本 02 会自动选择该地址。
+
+`InvokeTool` 使用独立的数据面地址：火山引擎为
+`https://agentkit.<region>.volces.com`；[BytePlus 官方文档](https://docs.byteplus.com/en/docs/AgentKit/InvokeTool_-_Executes_command_in_a_tool)
+指定新加坡地址为 `https://agentkit.ap-southeast-1.bytepluses.com`，
+与管理接口的 `agentkit.ap-southeast-1.byteplusapi.com` 不同。
+脚本 02 会按云平台和区域自动选择调用地址，API 版本仍为 `2025-10-30`。
+通常无需设置 host 覆盖；如果设置了 `BYTEPLUS_AGENTKIT_HOST` 或
+`VOLCENGINE_AGENTKIT_HOST`，该地址必须支持 `InvokeTool`。
 
 `AGENTKIT_CLOUD_PROVIDER` 优先于兼容变量 `CLOUD_PROVIDER`；均未设置时沿用 SDK
 全局配置中的云平台，未配置则使用火山引擎。火山引擎凭证兼容旧变量名
@@ -77,7 +83,7 @@ SDK 会按云平台自动选择服务地址；BytePlus 新加坡区域默认为
   由 SDK 按 `BYTEPLUS_REGION` / `VOLCENGINE_REGION`、全局配置及默认区域解析。
 - `BYTEPLUS_AGENTKIT_HOST` 或 `VOLCENGINE_AGENTKIT_HOST`：可选的当前云平台服务域名
   覆盖，仅填写主机名，不含 `https://`；通常无需设置。脚本 02 也会遵循该覆盖，
-  所填地址必须支持 `InvokeTool`，不能为其配置火山引擎通用 OpenAPI 域名。
+  所填地址必须支持 `InvokeTool`，不能为其配置火山引擎通用 OpenAPI 或 BytePlus 管理接口域名。
 
 切换云平台或区域时，请同步更换 Tool ID，并通过 `AGENTKIT_LIFECYCLE_STATE` 指定
 不同的状态文件，从脚本 01 开始运行。

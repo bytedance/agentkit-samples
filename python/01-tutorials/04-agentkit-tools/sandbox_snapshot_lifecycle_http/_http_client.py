@@ -301,13 +301,20 @@ class AgentKitToolsHttpClient:
         )
 
     def _invoke_endpoint(self) -> EndpointConfig:
-        if self.endpoint.provider != "volcengine":
-            return self.endpoint
-
-        host = _env("VOLCENGINE_AGENTKIT_HOST") or _env("VOLC_AGENTKIT_HOST")
-        if not host:
-            host = f"agentkit.{self.endpoint.region}.volces.com"
-        scheme = _env("VOLCENGINE_AGENTKIT_SCHEME") or _env("VOLC_AGENTKIT_SCHEME")
+        if self.endpoint.provider == "byteplus":
+            host = self.endpoint.host
+            # Preserve custom endpoints, but route the default management host
+            # to the documented InvokeTool data plane.
+            if not _env("BYTEPLUS_AGENTKIT_HOST") and host == (
+                f"agentkit.{self.endpoint.region}.byteplusapi.com"
+            ):
+                host = f"agentkit.{self.endpoint.region}.bytepluses.com"
+            scheme = self.endpoint.scheme
+        else:
+            host = _env("VOLCENGINE_AGENTKIT_HOST") or _env("VOLC_AGENTKIT_HOST")
+            if not host:
+                host = f"agentkit.{self.endpoint.region}.volces.com"
+            scheme = _env("VOLCENGINE_AGENTKIT_SCHEME") or _env("VOLC_AGENTKIT_SCHEME")
         return EndpointConfig(
             provider=self.endpoint.provider,
             region=self.endpoint.region,
