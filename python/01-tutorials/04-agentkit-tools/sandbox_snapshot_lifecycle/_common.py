@@ -10,9 +10,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, TypeVar
 
-from agentkit.platform import VolcConfiguration
+from agentkit.platform import CloudProvider, VolcConfiguration
 from agentkit.sdk.tools.client import AgentkitToolsClient
 from agentkit.sdk.tools import types as tools_types
+from volcengine.ApiInfo import ApiInfo
 
 
 DEFAULT_TTL_SECONDS = 8 * 60 * 60
@@ -152,6 +153,24 @@ def new_client() -> AgentkitToolsClient:
         os.getenv(region_env, "").strip() or os.getenv("AGENTKIT_REGION", "").strip()
     )
     return AgentkitToolsClient(region=region)
+
+
+def new_data_plane_client(*actions: str) -> AgentkitToolsClient:
+    """Register data-plane actions missing from SDK 0.8.7."""
+    client = new_client()
+    for action in actions:
+        client.api_info[action] = ApiInfo(
+            method="POST",
+            path="/",
+            query={"Action": action, "Version": "2025-10-30"},
+            form={},
+            header={},
+        )
+    provider = VolcConfiguration().provider
+    host = os.getenv(f"{provider.value.upper()}_AGENTKIT_HOST", "").strip()
+    suffix = "bytepluses.com" if provider == CloudProvider.BYTEPLUS else "volces.com"
+    client.set_host(host or f"agentkit.{client.region}.{suffix}")
+    return client
 
 
 def wait_until(

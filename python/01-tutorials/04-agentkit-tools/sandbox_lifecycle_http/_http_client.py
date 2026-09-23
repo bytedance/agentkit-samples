@@ -304,7 +304,7 @@ class AgentKitToolsHttpClient:
         if self.endpoint.provider == "byteplus":
             host = self.endpoint.host
             # Preserve custom endpoints, but route the default management host
-            # to the documented InvokeTool data plane.
+            # to the documented data plane for tool execution.
             if not _env("BYTEPLUS_AGENTKIT_HOST") and host == (
                 f"agentkit.{self.endpoint.region}.byteplusapi.com"
             ):
@@ -415,6 +415,12 @@ class AgentKitToolsHttpClient:
 
     def invoke_tool(self, body: dict[str, Any]) -> dict[str, Any]:
         return self.call("InvokeTool", body, endpoint=self._invoke_endpoint())
+
+    def async_exec_command(self, body: dict[str, Any]) -> dict[str, Any]:
+        return self.call("AsyncExecCommand", body, endpoint=self._invoke_endpoint())
+
+    def view_async_command(self, body: dict[str, Any]) -> dict[str, Any]:
+        return self.call("ViewAsyncCommand", body, endpoint=self._invoke_endpoint())
 
     def list_sessions(self, body: dict[str, Any]) -> dict[str, Any]:
         return self.call("ListSessions", body)

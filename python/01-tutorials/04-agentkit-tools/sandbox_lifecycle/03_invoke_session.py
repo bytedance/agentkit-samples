@@ -6,14 +6,12 @@ from __future__ import annotations
 import json
 import os
 
-from agentkit.platform import CloudProvider, VolcConfiguration
 from pydantic import BaseModel, ConfigDict, Field
-from volcengine.ApiInfo import ApiInfo
 
 from _common import (
     load_state,
     model_to_dict,
-    new_client,
+    new_data_plane_client,
     positive_int_env,
     print_json,
     require_string,
@@ -53,25 +51,9 @@ def main() -> None:
         or "python3",
     }
 
-    client = new_client()
     # SDK 0.8.7 has no generated InvokeTool method. Register the action while
     # reusing its signing, credential refresh, and API error handling.
-    client.api_info["InvokeTool"] = ApiInfo(
-        method="POST",
-        path="/",
-        query={"Action": "InvokeTool", "Version": "2025-10-30"},
-        form={},
-        header={},
-    )
-    # InvokeTool uses a regional data-plane host on both clouds.
-    # Keep an explicit host override for the selected cloud.
-    provider = VolcConfiguration().provider
-    if provider == CloudProvider.BYTEPLUS:
-        host = os.getenv("BYTEPLUS_AGENTKIT_HOST", "").strip()
-        client.set_host(host or f"agentkit.{client.region}.bytepluses.com")
-    else:
-        host = os.getenv("VOLCENGINE_AGENTKIT_HOST", "").strip()
-        client.set_host(host or f"agentkit.{client.region}.volces.com")
+    client = new_data_plane_client("InvokeTool")
 
     response = client._invoke_api(
         api_action="InvokeTool",

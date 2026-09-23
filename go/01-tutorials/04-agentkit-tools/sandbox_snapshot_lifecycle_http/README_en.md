@@ -101,10 +101,11 @@ Optional settings:
 - `AGENTKIT_HTTP_RETRIES`: retry count for connection errors, HTTP 429, and HTTP
   503; defaults to 2.
 
-Volcengine `InvokeTool` uses the separate data-plane endpoint
-`https://agentkit.<region>.volces.com`. Command 02 selects that endpoint
-automatically. If you override `VOLCENGINE_AGENTKIT_HOST`, the selected host
-must also support `InvokeTool`.
+`InvokeTool`, `AsyncExecCommand`, and `ViewAsyncCommand` use data-plane endpoints:
+`https://agentkit.<region>.volces.com` for Volcengine and
+`https://agentkit.<region>.bytepluses.com` for BytePlus. BytePlus management APIs
+still use `byteplusapi.com`. Both invocation commands select the endpoint
+automatically; a host override must support the requested data-plane action.
 
 ## Run Code In A Session
 
@@ -133,6 +134,67 @@ the returned `Result` JSON string for readable output. Standard output is
 typically found in `invoke_result.data.outputs`. API errors are reported
 directly. Execution results with `success: false` or `data.status: error` cause
 the command to exit with an error after saving and printing the result.
+
+## Run a Shell command asynchronously
+
+`02_async_invoke_session` submits a command through
+[AsyncExecCommand](https://docs.volcengine.com/docs/agentkit/AsyncExecCommand_-_Asynchronously_executes_a_Shell_command_in_a_tool?lang=zh),
+then repeatedly calls [ViewAsyncCommand](https://docs.volcengine.com/docs/agentkit/ViewAsyncCommand_-_Queries_the_execution_result_of_an_asynchronous_command?lang=zh)
+with the returned `TaskId` until completion or a local timeout.
+Run after step 01 creates a ready Session, or after step 05 restores the Session and waits for readiness.
+The sandbox image must support asynchronous Shell execution through these APIs.
+Both actions reuse the standard-library HTTP client, signing, and data-plane routing in `internal/lifecycle` without the AgentKit SDK.
+
+Submission sends top-level `ToolId`, the saved `instance_id` as `SessionId`,
+`Command`, and optional `ExecDir`. Queries send the same `ToolId`, `SessionId`,
+and returned `TaskId`. Neither request sends `UserSessionId` or `Ttl`.
+The response tool, instance, and task IDs are validated. Both Volcengine and
+BytePlus reuse this directory's credential, region, and host configuration.
+
+Optional environment variables:
+
+- `AGENTKIT_ASYNC_COMMAND`: Shell command; defaults to `sleep 20 && echo 'Hello from AgentKit sandbox!'` and must not be empty.
+- `AGENTKIT_ASYNC_EXEC_DIR`: existing working directory inside the sandbox; when omitted, the sandbox default is used.
+- `AGENTKIT_ASYNC_WAIT_TIMEOUT_SECONDS`: local polling timeout; defaults to 600 seconds.
+- `AGENTKIT_ASYNC_POLL_INTERVAL_SECONDS`: query interval; defaults to 2 seconds.
+  Both timing settings must be positive integers and do not control remote execution time or Session TTL.
+
+Run from this example directory as an alternative or addition to each `02_invoke_session` invocation in the main flow:
+
+```bash
+export AGENTKIT_ASYNC_COMMAND="sleep 20 && echo 'Hello from AgentKit sandbox!'"
+export AGENTKIT_ASYNC_EXEC_DIR=/tmp
+go run ./cmd/02_async_invoke_session
+```
+
+Terminal output uses `*` separators for submission (or loading a saved task),
+polling, and completion. Each query prints its number, status, and elapsed time;
+`-` separators mark combined stdout/stderr output and the state file path.
+Status comparisons are case-insensitive: `running` keeps polling and ignores
+exit codes; `succeeded` or `completed` requires `ExitCode=0` to succeed.
+`failed`, `unknown`, unrecognized statuses, or missing/nonzero completion exit
+codes raise an error after saving and printing results. API errors surface directly.
+
+Submission immediately saves `async_task_id`, `async_invoked_at`, and
+`async_invoke_response`. Each query saves `async_viewed_at` and
+`async_view_response` in the existing state file, or the file selected by
+`AGENTKIT_LIFECYCLE_STATE`. Full responses remain in that file; combined output
+is in `async_view_response.Output`. A local timeout or interruption does not
+cancel the remote task. Continue polling the saved task with:
+
+```bash
+go run ./cmd/02_async_invoke_session --view-only
+```
+
+`--view-only` ignores command/directory settings, submits no new command, and
+still updates query results. Running without it submits a new task and replaces
+the saved task record; previous remote tasks are not cancelled.
+
+Wait for the asynchronous command to finish before step 03 creates a snapshot.
+Step 05 still restores only after the original Session lifecycle ends. Once
+restored and ready, run the asynchronous entry again without `--view-only` to
+submit a new verification task. Do not assume snapshot restoration restores an
+old task execution or query record. Keep Session deletion as the final step.
 
 ## Run The Main Flow In Order
 
@@ -172,6 +234,7 @@ Command purposes:
 2. `02_invoke_session`: executes Python code in the existing session through
    `InvokeTool`, verifies the instance ID, and saves the result; run it again
    after restoration.
+   Step 02 can also use `02_async_invoke_session` to submit a Shell command and poll; run it again after restoration.
 3. `03_create_snapshot`: creates a snapshot for the Session's sandbox instance
    and waits until the snapshot becomes `Ready`.
 4. `04_list_and_get_snapshot`: lists all snapshots under the Tool with
@@ -240,7 +303,7 @@ action, error code, and error message.
 
 ## State File
 
-The seven commands share `.sandbox_snapshot_state.json` to pass the `tool_id`,
+The eight commands share `.sandbox_snapshot_state.json` to pass the `tool_id`,
 logical user session ID, sandbox instance ID, and snapshot ID. Command 02 also
 saves `invoked_at`, `invoke_response`, and `invoke_result`; invoking it again
 updates these fields. This file is ignored by the `.gitignore` in this

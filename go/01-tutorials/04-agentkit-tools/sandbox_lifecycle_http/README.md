@@ -87,9 +87,11 @@ export AGENTKIT_TOOL_ID=t-xxxxxxxx
 - `AGENTKIT_HTTP_TIMEOUT_SECONDS`：单次 HTTP 请求超时，默认 30 秒。
 - `AGENTKIT_HTTP_RETRIES`：连接错误、HTTP 429 和 HTTP 503 的重试次数，默认 2。
 
-火山引擎的 `InvokeTool` 使用独立的数据面地址
-`https://agentkit.<region>.volces.com`。命令 03 会自动选择该地址；如通过
-`VOLCENGINE_AGENTKIT_HOST` 覆盖服务域名，所填地址也必须支持 `InvokeTool`。
+`InvokeTool`、`AsyncExecCommand` 和 `ViewAsyncCommand` 使用数据面地址：
+火山引擎为 `https://agentkit.<region>.volces.com`，BytePlus 为
+`https://agentkit.<region>.bytepluses.com`；BytePlus 管理接口仍使用 `byteplusapi.com`。
+同步和异步调用均自动选择地址；若设置当前云平台的 host 覆盖，
+该地址必须支持所调用的数据面 Action。
 
 切换云平台或区域时，请同步更换 Tool ID，并通过 `AGENTKIT_LIFECYCLE_STATE` 指定
 不同的状态文件。生命周期操作从命令 01 开始；查询已有 Session 无需创建新实例。
@@ -135,15 +137,65 @@ JSON 字符串解析为可读结果；标准输出通常位于 `invoke_result.da
 直接报告；代码执行结果中的 `success: false` 或 `data.status: error` 会在保存和打印
 结果后报错退出。
 
+## 异步执行 Shell 命令
+
+`03_async_invoke_session` 先调用 [AsyncExecCommand](https://docs.volcengine.com/docs/agentkit/AsyncExecCommand_-_Asynchronously_executes_a_Shell_command_in_a_tool?lang=zh)
+提交命令，再使用返回的 `TaskId` 循环调用
+[ViewAsyncCommand](https://docs.volcengine.com/docs/agentkit/ViewAsyncCommand_-_Queries_the_execution_result_of_an_asynchronous_command?lang=zh)，直到任务结束或本地等待超时。
+请先运行步骤 01 创建并等待 Session 就绪；暂停后先通过步骤 05 恢复。
+沙箱镜像需要支持这两个 API 对应的异步 Shell 执行能力。复用 `internal/lifecycle` 的标准库 HTTP 客户端、签名和数据面地址选择，无需 AgentKit SDK。
+
+提交请求的顶层字段为 `ToolId`、状态中的 `instance_id`（作为 `SessionId`）、
+`Command` 和可选的 `ExecDir`；查询使用同一个 `ToolId`、`SessionId` 和返回的 `TaskId`。
+不传 `UserSessionId` 或 `Ttl`，并校验响应中的工具、实例和任务 ID。
+火山引擎和 BytePlus 均沿用本目录的凭证、区域与 host 配置。
+
+可选环境变量：
+
+- `AGENTKIT_ASYNC_COMMAND`：Shell 命令，默认 `sleep 20 && echo 'Hello from AgentKit sandbox!'`，不能为空。
+- `AGENTKIT_ASYNC_EXEC_DIR`：沙箱内已存在的起始目录；未设置时使用沙箱默认目录。
+- `AGENTKIT_ASYNC_WAIT_TIMEOUT_SECONDS`：本地轮询等待超时，默认 600 秒。
+- `AGENTKIT_ASYNC_POLL_INTERVAL_SECONDS`：查询间隔，默认 2 秒。
+  两个时间配置必须为正整数；它们不控制远端命令执行时间或 Session TTL。
+
+在本示例目录执行，可替换或补充主流程中每次 `03_invoke_session` 调用：
+
+```bash
+export AGENTKIT_ASYNC_COMMAND="sleep 20 && echo 'Hello from AgentKit sandbox!'"
+export AGENTKIT_ASYNC_EXEC_DIR=/tmp
+go run ./cmd/03_async_invoke_session
+```
+
+终端用 `*` 分隔提交（或读取已有任务）、轮询和结束三个阶段；每次查询打印
+次数、状态和已等待时间，最后用 `-` 分隔合并的 stdout/stderr 输出与状态文件路径。
+状态判断不区分大小写：`running` 继续查询并忽略退出码；`succeeded` 或 `completed`
+只有同时满足 `ExitCode=0` 才成功退出。`failed`、`unknown`、未识别状态或完成时
+缺失/非零退出码会在保存并打印结果后报错。API 错误直接报告。
+
+提交成功立即保存 `async_task_id`、`async_invoked_at` 和 `async_invoke_response`；
+每次查询保存 `async_viewed_at` 与 `async_view_response`。完整响应保留在本目录现有
+状态文件（或 `AGENTKIT_LIFECYCLE_STATE` 指定的文件）中，输出位于 `async_view_response.Output`。
+等待超时或中断不会取消远端任务；可继续查询已保存的任务：
+
+```bash
+go run ./cmd/03_async_invoke_session --view-only
+```
+
+`--view-only` 不提交新命令，忽略命令和目录配置，但仍更新查询结果；不带此参数
+重复运行会提交新任务并覆盖本地任务记录，不会取消之前的远端任务。
+
+请在异步命令结束后再暂停或删除 Session。
+
 ## 脚本与运行顺序
 
-六个命令的作用如下：
+七个命令的作用如下：
 
 | 命令 | 作用 |
 | --- | --- |
 | `01_create_session` | 创建 Session，默认 TTL 为 8 小时；等待就绪并保存实例 ID。 |
 | `02_list_and_get_session` | 分页列出 Session，查询指定实例详情；只读操作。 |
 | `03_invoke_session` | 通过 `InvokeTool` 在已有 Session 中执行 Python 代码，校验实例 ID 并保存执行结果。 |
+| `03_async_invoke_session` | 异步提交 Shell 命令并轮询结果；`--view-only` 继续查询已有任务。 |
 | `04_pause_session` | 暂停状态文件中的 Session，等待 `Paused` 并记录 `paused_at`。 |
 | `05_resume_session` | 要求状态文件中有 `paused_at`，恢复同一个 Session，校验实例 ID 不变并等待就绪。 |
 | `06_delete_session` | 根据 Tool ID 和状态中的 `instance_id` 调用 `DeleteSession` 并保存响应，不等待后台删除完成。 |
@@ -189,10 +241,10 @@ PascalCase JSON 字段，例如：
 ## 状态文件
 
 默认状态文件是本目录下的 `.sandbox_state.json`，保存 `tool_id`、`user_session_id`、
-`instance_id`、生命周期时间和 API 响应。命令 01、03、04、05、06 会写入状态，命令 02
+`instance_id`、生命周期时间和 API 响应。命令 01、两个 03、04、05、06 会写入状态，命令 02
 只读取。该文件已在本目录 `.gitignore` 中忽略，不会被提交到 Git。
 
-命令 03、04、05、06 根据状态文件中的 `instance_id` 操作实例，不读取
+两个命令 03 及命令 04、05、06 根据状态文件中的 `instance_id` 操作实例，不读取
 `AGENTKIT_USER_SESSION_ID` 或 `AGENTKIT_SESSION_ID` 来选择目标。
 
 重复运行命令 01 且不指定 `AGENTKIT_USER_SESSION_ID` 时，会生成新的逻辑会话 ID、

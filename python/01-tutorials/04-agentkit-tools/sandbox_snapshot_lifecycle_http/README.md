@@ -82,20 +82,20 @@ export AGENTKIT_TOOL_ID=t-xxxxxxxx
   `print('Hello from AgentKit sandbox!')`。
 - `AGENTKIT_INVOKE_TIMEOUT_SECONDS`：脚本 02 的代码执行超时，默认 30 秒，必须为正整数。
 - `AGENTKIT_INVOKE_KERNEL_NAME`：脚本 02 使用的内核，默认 `python3`。
-- `AGENTKIT_LIFECYCLE_STATE`：七个脚本共享的状态文件路径；默认使用本示例目录的
+- `AGENTKIT_LIFECYCLE_STATE`：八个脚本共享的状态文件路径；默认使用本示例目录的
   `.sandbox_snapshot_state.json`。
 - `AGENTKIT_WAIT_TIMEOUT_SECONDS`：等待资源就绪或删除完成的超时时间，默认 600 秒。
 - `AGENTKIT_POLL_INTERVAL_SECONDS`：状态轮询间隔，默认 5 秒。
 - `AGENTKIT_HTTP_TIMEOUT_SECONDS`：单次 HTTP 请求超时，默认 30 秒。
 - `AGENTKIT_HTTP_RETRIES`：连接错误、HTTP 429 和 HTTP 503 的重试次数，默认 2。
 
-`InvokeTool` 使用独立的数据面地址：火山引擎为
+`InvokeTool`、`AsyncExecCommand` 和 `ViewAsyncCommand` 使用独立的数据面地址：火山引擎为
 `https://agentkit.<region>.volces.com`；[BytePlus 官方文档](https://docs.byteplus.com/en/docs/AgentKit/InvokeTool_-_Executes_command_in_a_tool)
 指定新加坡地址为 `https://agentkit.ap-southeast-1.bytepluses.com`，
 与管理接口的 `agentkit.ap-southeast-1.byteplusapi.com` 不同。
-脚本 02 会按云平台和区域自动选择调用地址，API 版本仍为 `2025-10-30`。
+两个脚本 02 会按云平台和区域自动选择调用地址，API 版本仍为 `2025-10-30`。
 通常无需设置 host 覆盖；如果设置了 `BYTEPLUS_AGENTKIT_HOST` 或
-`VOLCENGINE_AGENTKIT_HOST`，该地址必须支持 `InvokeTool`。
+`VOLCENGINE_AGENTKIT_HOST`，该地址必须支持对应的数据面 Action。
 
 ## 调用 Session 执行代码
 
@@ -119,6 +119,57 @@ python python/01-tutorials/04-agentkit-tools/sandbox_snapshot_lifecycle_http/02_
 JSON 字符串解析为可读结果；标准输出通常位于 `invoke_result.data.outputs`。API 错误
 直接报告；代码执行结果中的 `success: false` 或 `data.status: error` 会在保存和打印
 结果后报错退出。
+
+## 异步执行 Shell 命令
+
+`02_async_invoke_session.py` 先调用 [AsyncExecCommand](https://docs.volcengine.com/docs/agentkit/AsyncExecCommand_-_Asynchronously_executes_a_Shell_command_in_a_tool?lang=zh)
+提交命令，再使用返回的 `TaskId` 循环调用
+[ViewAsyncCommand](https://docs.volcengine.com/docs/agentkit/ViewAsyncCommand_-_Queries_the_execution_result_of_an_asynchronous_command?lang=zh)，直到任务结束或本地等待超时。
+请在步骤 01 创建 Session 并等待就绪后运行；步骤 05 从快照恢复并就绪后，也可再次运行。
+沙箱镜像需要支持这两个 API 对应的异步 Shell 执行能力。复用本目录 `_http_client.py` 的签名、错误处理和数据面地址选择，无需 AgentKit SDK。
+
+提交请求的顶层字段为 `ToolId`、状态中的 `instance_id`（作为 `SessionId`）、
+`Command` 和可选的 `ExecDir`；查询使用同一个 `ToolId`、`SessionId` 和返回的 `TaskId`。
+不传 `UserSessionId` 或 `Ttl`，并校验响应中的工具、实例和任务 ID。
+火山引擎和 BytePlus 均沿用本目录的凭证、区域与 host 配置。
+
+可选环境变量：
+
+- `AGENTKIT_ASYNC_COMMAND`：Shell 命令，默认 `sleep 20 && echo 'Hello from AgentKit sandbox!'`，不能为空。
+- `AGENTKIT_ASYNC_EXEC_DIR`：沙箱内已存在的起始目录；未设置时使用沙箱默认目录。
+- `AGENTKIT_ASYNC_WAIT_TIMEOUT_SECONDS`：本地轮询等待超时，默认 600 秒。
+- `AGENTKIT_ASYNC_POLL_INTERVAL_SECONDS`：查询间隔，默认 2 秒。
+  两个时间配置必须为正整数；它们不控制远端命令执行时间或 Session TTL。
+
+在仓库根目录执行，可替换或补充主流程中每次 `02_invoke_session.py` 调用：
+
+```bash
+export AGENTKIT_ASYNC_COMMAND="sleep 20 && echo 'Hello from AgentKit sandbox!'"
+export AGENTKIT_ASYNC_EXEC_DIR=/tmp
+python python/01-tutorials/04-agentkit-tools/sandbox_snapshot_lifecycle_http/02_async_invoke_session.py
+```
+
+终端用 `*` 分隔提交（或读取已有任务）、轮询和结束三个阶段；每次查询打印
+次数、状态和已等待时间，最后用 `-` 分隔合并的 stdout/stderr 输出与状态文件路径。
+状态判断不区分大小写：`running` 继续查询并忽略退出码；`succeeded` 或 `completed`
+只有同时满足 `ExitCode=0` 才成功退出。`failed`、`unknown`、未识别状态或完成时
+缺失/非零退出码会在保存并打印结果后报错。API 错误直接报告。
+
+提交成功立即保存 `async_task_id`、`async_invoked_at` 和 `async_invoke_response`；
+每次查询保存 `async_viewed_at` 与 `async_view_response`。完整响应保留在本目录现有
+状态文件（或 `AGENTKIT_LIFECYCLE_STATE` 指定的文件）中，输出位于 `async_view_response.Output`。
+等待超时或中断不会取消远端任务；可继续查询已保存的任务：
+
+```bash
+python python/01-tutorials/04-agentkit-tools/sandbox_snapshot_lifecycle_http/02_async_invoke_session.py --view-only
+```
+
+`--view-only` 不提交新命令，忽略命令和目录配置，但仍更新查询结果；不带此参数
+重复运行会提交新任务并覆盖本地任务记录，不会取消之前的远端任务。
+
+异步命令结束后再运行步骤 03 创建快照。仍须等待原 Session 生命周期结束后才运行
+步骤 05 恢复；恢复就绪后重新运行异步脚本（不带 `--view-only`）提交新任务验证。
+不要假定快照恢复会恢复旧任务的执行状态或查询记录。删除 Session 仍放在最后。
 
 ## 按顺序运行主流程
 
@@ -173,6 +224,7 @@ python python/01-tutorials/04-agentkit-tools/sandbox_snapshot_lifecycle_http/07_
    `Ready`。
 2. `02_invoke_session.py`：通过 `InvokeTool` 在已有 Session 中执行 Python 代码，
    校验实例 ID 并保存执行结果；恢复后可再次运行。
+   步骤 02 也可使用 `02_async_invoke_session.py` 异步执行 Shell 命令并轮询；恢复后可再次运行。
 3. `03_create_snapshot.py`：主动为 Session 对应的沙箱实例创建快照，并等待快照进入
    `Ready`。
 4. `04_list_and_get_snapshot.py`：分页列出 Tool 下的全部快照，并单独获取刚创建的
@@ -208,7 +260,7 @@ PascalCase JSON 字段，例如：
 
 ## 状态文件
 
-七个脚本通过 `.sandbox_snapshot_state.json` 传递 `tool_id`、逻辑会话 ID、沙箱实例
+八个脚本通过 `.sandbox_snapshot_state.json` 传递 `tool_id`、逻辑会话 ID、沙箱实例
 ID 和快照 ID。脚本 02 还保存 `invoked_at`、`invoke_response` 和 `invoke_result`，
 再次调用会更新这些字段。该文件已在本目录 `.gitignore` 中忽略，不会被提交到 Git。
 

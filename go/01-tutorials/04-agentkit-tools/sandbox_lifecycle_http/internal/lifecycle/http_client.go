@@ -232,10 +232,14 @@ func (c *Client) Call(action string, body map[string]any) (map[string]any, error
 }
 
 func (c *Client) invokeEndpoint() EndpointConfig {
-	if c.endpoint.Provider != "volcengine" {
-		return c.endpoint
-	}
 	endpoint := c.endpoint
+	if endpoint.Provider == "byteplus" {
+		// Keep custom hosts, but route default management traffic to the data plane.
+		if env("BYTEPLUS_AGENTKIT_HOST") == "" && endpoint.Host == fmt.Sprintf("agentkit.%s.byteplusapi.com", endpoint.Region) {
+			endpoint.Host = fmt.Sprintf("agentkit.%s.bytepluses.com", endpoint.Region)
+		}
+		return endpoint
+	}
 	host := firstEnv("VOLCENGINE_AGENTKIT_HOST", "VOLC_AGENTKIT_HOST")
 	if host == "" {
 		host = fmt.Sprintf("agentkit.%s.volces.com", endpoint.Region)
@@ -352,6 +356,14 @@ func (c *Client) GetSession(body map[string]any) (map[string]any, error) {
 
 func (c *Client) InvokeTool(body map[string]any) (map[string]any, error) {
 	return c.call("InvokeTool", body, c.invokeEndpoint())
+}
+
+func (c *Client) AsyncExecCommand(body map[string]any) (map[string]any, error) {
+	return c.call("AsyncExecCommand", body, c.invokeEndpoint())
+}
+
+func (c *Client) ViewAsyncCommand(body map[string]any) (map[string]any, error) {
+	return c.call("ViewAsyncCommand", body, c.invokeEndpoint())
 }
 
 func (c *Client) ListSessions(body map[string]any) (map[string]any, error) {

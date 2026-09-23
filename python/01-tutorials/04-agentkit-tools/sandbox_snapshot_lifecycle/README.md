@@ -1,6 +1,6 @@
 # 沙箱 Session 与快照生命周期脚本
 
-这七个脚本按顺序演示沙箱 Session 与快照生命周期。脚本使用 `agentkit-sdk-python` 的
+这八个脚本按顺序演示沙箱 Session 与快照生命周期。脚本使用 `agentkit-sdk-python` 的
 `agentkit.sdk.tools` 客户端，不会保存 AK/SK。带签名的 endpoint 中如果包含
 `Authorization` 查询参数，脚本会在输出或保存状态前自动脱敏。
 
@@ -25,7 +25,7 @@ pip install -r python/01-tutorials/04-agentkit-tools/sandbox_snapshot_lifecycle/
 
 ## 环境变量
 
-根据沙箱所在云平台，选择下面一组配置。七个脚本共用同一套凭证和区域配置。
+根据沙箱所在云平台，选择下面一组配置。八个脚本共用同一套凭证和区域配置。
 
 **火山引擎：**
 
@@ -51,13 +51,13 @@ Tool ID 必须属于所选云平台、账号和区域，且已开启快照功能
 SDK 会按云平台自动选择管理接口地址；BytePlus 新加坡区域默认为
 `https://agentkit.ap-southeast-1.byteplusapi.com`。
 
-`InvokeTool` 使用独立的数据面地址：火山引擎为
+`InvokeTool`、`AsyncExecCommand` 和 `ViewAsyncCommand` 使用独立的数据面地址：火山引擎为
 `https://agentkit.<region>.volces.com`；[BytePlus 官方文档](https://docs.byteplus.com/en/docs/AgentKit/InvokeTool_-_Executes_command_in_a_tool)
 指定新加坡地址为 `https://agentkit.ap-southeast-1.bytepluses.com`，
 与管理接口的 `agentkit.ap-southeast-1.byteplusapi.com` 不同。
-脚本 02 会按云平台和区域自动选择调用地址，API 版本仍为 `2025-10-30`。
+两个脚本 02 会按云平台和区域自动选择调用地址，API 版本仍为 `2025-10-30`。
 通常无需设置 host 覆盖；如果设置了 `BYTEPLUS_AGENTKIT_HOST` 或
-`VOLCENGINE_AGENTKIT_HOST`，该地址必须支持 `InvokeTool`。
+`VOLCENGINE_AGENTKIT_HOST`，该地址必须支持对应的数据面 Action。
 
 `AGENTKIT_CLOUD_PROVIDER` 优先于兼容变量 `CLOUD_PROVIDER`；均未设置时沿用 SDK
 全局配置中的云平台，未配置则使用火山引擎。火山引擎凭证兼容旧变量名
@@ -73,7 +73,7 @@ SDK 会按云平台自动选择管理接口地址；BytePlus 新加坡区域默�
   `print('Hello from AgentKit sandbox!')`。
 - `AGENTKIT_INVOKE_TIMEOUT_SECONDS`：脚本 02 的代码执行超时，默认 30 秒，必须为正整数。
 - `AGENTKIT_INVOKE_KERNEL_NAME`：脚本 02 使用的内核，默认 `python3`。
-- `AGENTKIT_LIFECYCLE_STATE`：七个脚本共享的状态文件路径；默认使用本示例目录的
+- `AGENTKIT_LIFECYCLE_STATE`：八个脚本共享的状态文件路径；默认使用本示例目录的
   `.sandbox_snapshot_state.json`。
 - `AGENTKIT_WAIT_TIMEOUT_SECONDS`：每次等待资源就绪、恢复条件满足或快照删除完成的
   超时时间，默认 600 秒；不会改变 Session 的 TTL。
@@ -82,8 +82,8 @@ SDK 会按云平台自动选择管理接口地址；BytePlus 新加坡区域默�
   当前云平台的 AgentKit 区域，优先于通用覆盖变量 `AGENTKIT_REGION`；均未设置时，
   由 SDK 按 `BYTEPLUS_REGION` / `VOLCENGINE_REGION`、全局配置及默认区域解析。
 - `BYTEPLUS_AGENTKIT_HOST` 或 `VOLCENGINE_AGENTKIT_HOST`：可选的当前云平台服务域名
-  覆盖，仅填写主机名，不含 `https://`；通常无需设置。脚本 02 也会遵循该覆盖，
-  所填地址必须支持 `InvokeTool`，不能为其配置火山引擎通用 OpenAPI 或 BytePlus 管理接口域名。
+  覆盖，仅填写主机名，不含 `https://`；通常无需设置。两个脚本 02 也会遵循该覆盖，
+  所填地址必须支持对应的数据面 Action，不能为其配置火山引擎通用 OpenAPI 或 BytePlus 管理接口域名。
 
 切换云平台或区域时，请同步更换 Tool ID，并通过 `AGENTKIT_LIFECYCLE_STATE` 指定
 不同的状态文件，从脚本 01 开始运行。
@@ -115,6 +115,57 @@ API 错误直接报告；代码执行结果中的 `success: false` 或 `data.sta
 
 SDK 0.8.7 尚未提供 `InvokeTool` 专用方法，因此脚本补充该 Action 的注册，
 复用 SDK 的签名、凭证刷新和 API 错误处理，无需升级依赖。
+
+## 异步执行 Shell 命令
+
+`02_async_invoke_session.py` 先调用 [AsyncExecCommand](https://docs.volcengine.com/docs/agentkit/AsyncExecCommand_-_Asynchronously_executes_a_Shell_command_in_a_tool?lang=zh)
+提交命令，再使用返回的 `TaskId` 循环调用
+[ViewAsyncCommand](https://docs.volcengine.com/docs/agentkit/ViewAsyncCommand_-_Queries_the_execution_result_of_an_asynchronous_command?lang=zh)，直到任务结束或本地等待超时。
+请在步骤 01 创建 Session 并等待就绪后运行；步骤 05 从快照恢复并就绪后，也可再次运行。
+沙箱镜像需要支持这两个 API 对应的异步 Shell 执行能力。复用 SDK 0.8.7 的签名和错误处理，由共享 helper 注册两个 Action。
+
+提交请求的顶层字段为 `ToolId`、状态中的 `instance_id`（作为 `SessionId`）、
+`Command` 和可选的 `ExecDir`；查询使用同一个 `ToolId`、`SessionId` 和返回的 `TaskId`。
+不传 `UserSessionId` 或 `Ttl`，并校验响应中的工具、实例和任务 ID。
+火山引擎和 BytePlus 均沿用本目录的凭证、区域与 host 配置。
+
+可选环境变量：
+
+- `AGENTKIT_ASYNC_COMMAND`：Shell 命令，默认 `sleep 20 && echo 'Hello from AgentKit sandbox!'`，不能为空。
+- `AGENTKIT_ASYNC_EXEC_DIR`：沙箱内已存在的起始目录；未设置时使用沙箱默认目录。
+- `AGENTKIT_ASYNC_WAIT_TIMEOUT_SECONDS`：本地轮询等待超时，默认 600 秒。
+- `AGENTKIT_ASYNC_POLL_INTERVAL_SECONDS`：查询间隔，默认 2 秒。
+  两个时间配置必须为正整数；它们不控制远端命令执行时间或 Session TTL。
+
+在仓库根目录执行，可替换或补充主流程中每次 `02_invoke_session.py` 调用：
+
+```bash
+export AGENTKIT_ASYNC_COMMAND="sleep 20 && echo 'Hello from AgentKit sandbox!'"
+export AGENTKIT_ASYNC_EXEC_DIR=/tmp
+python python/01-tutorials/04-agentkit-tools/sandbox_snapshot_lifecycle/02_async_invoke_session.py
+```
+
+终端用 `*` 分隔提交（或读取已有任务）、轮询和结束三个阶段；每次查询打印
+次数、状态和已等待时间，最后用 `-` 分隔合并的 stdout/stderr 输出与状态文件路径。
+状态判断不区分大小写：`running` 继续查询并忽略退出码；`succeeded` 或 `completed`
+只有同时满足 `ExitCode=0` 才成功退出。`failed`、`unknown`、未识别状态或完成时
+缺失/非零退出码会在保存并打印结果后报错。API 错误直接报告。
+
+提交成功立即保存 `async_task_id`、`async_invoked_at` 和 `async_invoke_response`；
+每次查询保存 `async_viewed_at` 与 `async_view_response`。完整响应保留在本目录现有
+状态文件（或 `AGENTKIT_LIFECYCLE_STATE` 指定的文件）中，输出位于 `async_view_response.Output`。
+等待超时或中断不会取消远端任务；可继续查询已保存的任务：
+
+```bash
+python python/01-tutorials/04-agentkit-tools/sandbox_snapshot_lifecycle/02_async_invoke_session.py --view-only
+```
+
+`--view-only` 不提交新命令，忽略命令和目录配置，但仍更新查询结果；不带此参数
+重复运行会提交新任务并覆盖本地任务记录，不会取消之前的远端任务。
+
+异步命令结束后再运行步骤 03 创建快照。仍须等待原 Session 生命周期结束后才运行
+步骤 05 恢复；恢复就绪后重新运行异步脚本（不带 `--view-only`）提交新任务验证。
+不要假定快照恢复会恢复旧任务的执行状态或查询记录。删除 Session 仍放在最后。
 
 ## 按顺序运行
 
@@ -166,6 +217,7 @@ python python/01-tutorials/04-agentkit-tools/sandbox_snapshot_lifecycle/07_delet
 | --- | --- | --- |
 | 01 | `01_create_session.py` | 创建 Session，记录实例 ID，并等待实例就绪。 |
 | 02 | `02_invoke_session.py` | 通过 `InvokeTool` 在已有 Session 中执行 Python 代码，校验实例 ID 并保存执行结果；恢复后可再次运行。 |
+| 02（可选） | `02_async_invoke_session.py` | 异步提交 Shell 命令并轮询结果；`--view-only` 继续查询已有任务。 |
 | 03 | `03_create_snapshot.py` | 为该实例创建快照，记录快照 ID，并等待快照就绪。 |
 | 04 | `04_list_and_get_snapshot.py` | 分页列出 Tool 下全部快照，再获取本次快照详情。 |
 | 05 | `05_restore_from_snapshot.py` | 等原 Session 生命周期结束，以 `CreateNewInstance=false` 恢复，校验 `SessionId` 与步骤 01 一致，并等待实例就绪。 |
@@ -177,7 +229,7 @@ Session 请参阅相邻的 [sandbox_lifecycle](../sandbox_lifecycle/README.md) �
 
 ## 状态文件
 
-七个脚本通过 `.sandbox_snapshot_state.json` 传递 `tool_id`、逻辑会话 ID、沙箱
+八个脚本通过 `.sandbox_snapshot_state.json` 传递 `tool_id`、逻辑会话 ID、沙箱
 实例 ID 和快照 ID。脚本 02 还保存 `invoked_at`、`invoke_response` 和 `invoke_result`，
 再次调用会更新这些字段。默认状态文件及其临时文件已加入本目录的 `.gitignore`。
 若自定义状态文件路径，请自行确保该文件不会被提交到 Git。

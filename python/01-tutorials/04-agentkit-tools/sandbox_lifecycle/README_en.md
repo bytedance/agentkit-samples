@@ -1,6 +1,7 @@
 # Sandbox instance (Session) lifecycle scripts
 
-This directory contains six scripts for creating, querying, invoking, pausing, resuming,
+This directory contains seven scripts for creating, querying, invoking synchronously
+or asynchronously, pausing, resuming,
 and deleting sessions. `02_list_and_get_session.py` is read-only.
 They use the AgentKit SDK's `agentkit.sdk.tools` client and
 never store AK/SK credentials. Signed endpoint `Authorization` query parameters
@@ -21,7 +22,7 @@ pip install -r python/01-tutorials/04-agentkit-tools/sandbox_lifecycle/requireme
 
 ## Environment
 
-Choose the configuration for the cloud hosting your sandbox. All six scripts
+Choose the configuration for the cloud hosting your sandbox. All seven scripts
 share the same credentials and region configuration.
 
 **BytePlus:**
@@ -48,14 +49,14 @@ The tool must belong to the selected cloud, account, and region.
 The SDK selects the management endpoint for that cloud automatically. BytePlus defaults to
 `https://agentkit.ap-southeast-1.byteplusapi.com` in Singapore.
 
-`InvokeTool` uses a separate data-plane endpoint: Volcengine uses
+`InvokeTool`, `AsyncExecCommand`, and `ViewAsyncCommand` use a separate data-plane endpoint: Volcengine uses
 `https://agentkit.<region>.volces.com`; the [BytePlus documentation](https://docs.byteplus.com/en/docs/AgentKit/InvokeTool_-_Executes_command_in_a_tool)
 specifies `https://agentkit.ap-southeast-1.bytepluses.com` for Singapore,
 which differs from the management host `agentkit.ap-southeast-1.byteplusapi.com`.
-Script 03 selects the invocation endpoint for the cloud and region automatically.
+Both scripts numbered 03 select the invocation endpoint for the cloud and region automatically.
 The API version remains `2025-10-30`. A host override is normally unnecessary;
 if `BYTEPLUS_AGENTKIT_HOST` or `VOLCENGINE_AGENTKIT_HOST` is set, the selected
-host must support `InvokeTool`.
+host must support the data-plane action being called.
 
 `AGENTKIT_CLOUD_PROVIDER` takes precedence over the compatible `CLOUD_PROVIDER`
 variable. When neither is set, the SDK uses its global cloud configuration,
@@ -78,6 +79,15 @@ Optional settings:
 - `AGENTKIT_INVOKE_TIMEOUT_SECONDS`: code execution timeout for script 03;
   defaults to 30 seconds and must be a positive integer.
 - `AGENTKIT_INVOKE_KERNEL_NAME`: kernel used by script 03; defaults to `python3`.
+- `AGENTKIT_ASYNC_COMMAND`: Shell command executed by `03_async_invoke_session.py`;
+  defaults to `sleep 20 && echo 'Hello from AgentKit sandbox!'` and must not be empty.
+- `AGENTKIT_ASYNC_EXEC_DIR`: starting directory inside the sandbox; when omitted,
+  the sandbox's default working directory is used.
+- `AGENTKIT_ASYNC_WAIT_TIMEOUT_SECONDS`: local timeout for polling asynchronous
+  results; defaults to 600 seconds.
+- `AGENTKIT_ASYNC_POLL_INTERVAL_SECONDS`: asynchronous result polling interval;
+  defaults to 2 seconds. Both timing settings must be positive integers; they do
+  not control remote command execution time or the Session TTL.
 - `AGENTKIT_SANDBOX_TOOL_ID`: compatible alias for `AGENTKIT_TOOL_ID`; if both
   are set, they must match.
 - `AGENTKIT_LIFECYCLE_STATE`: shared state JSON path; defaults to
@@ -94,8 +104,8 @@ Optional settings:
   and its defaults.
 - `BYTEPLUS_AGENTKIT_HOST` or `VOLCENGINE_AGENTKIT_HOST`: optional service host
   override for the selected cloud. Use a hostname without `https://`; normally
-  no override is needed. Script 03 also honors this override, so the host must
-  support `InvokeTool`; do not use Volcengine's general OpenAPI host or the BytePlus
+  no override is needed. Both scripts numbered 03 honor this override, so the host
+  must support the corresponding data-plane actions; do not use Volcengine's general OpenAPI host or the BytePlus
   management host for it.
 
 When switching clouds or regions, update the tool ID and select a separate state
@@ -166,15 +176,69 @@ SDK 0.8.7 does not provide a dedicated `InvokeTool` method. The script registers
 this action and reuses the SDK's signing, credential refresh, and API error
 handling without upgrading dependencies.
 
+## Run a Shell command asynchronously
+
+`03_async_invoke_session.py` submits a command through
+[AsyncExecCommand](https://docs.volcengine.com/docs/agentkit/AsyncExecCommand_-_Asynchronously_executes_a_Shell_command_in_a_tool?lang=zh),
+then polls [ViewAsyncCommand](https://docs.volcengine.com/docs/agentkit/ViewAsyncCommand_-_Queries_the_execution_result_of_an_asynchronous_command?lang=zh)
+using the returned `TaskId`. First create a ready Session with script 01; if it
+is paused, resume it with script 05. The sandbox image must support asynchronous
+Shell execution through these APIs.
+
+The submission sends top-level `ToolId`, `SessionId`, `Command`, and optional
+`ExecDir` fields. Queries send `ToolId`, the same `SessionId`, and `TaskId`.
+Both requests use the saved `instance_id` and omit `UserSessionId` and `Ttl`.
+The script validates the returned tool, instance, and task IDs. SDK 0.8.7 also
+lacks dedicated methods for these actions; a shared helper registers them and
+reuses the SDK transport.
+
+Run from the repository root, as an alternative or addition to synchronous script 03:
+
+```bash
+export AGENTKIT_ASYNC_COMMAND="sleep 20 && echo 'Hello from AgentKit sandbox!'"
+# Optional: select an existing directory inside the sandbox
+export AGENTKIT_ASYNC_EXEC_DIR=/tmp
+python python/01-tutorials/04-agentkit-tools/sandbox_lifecycle/03_async_invoke_session.py
+```
+
+After submission, the script immediately saves `async_task_id`, `async_invoked_at`,
+and `async_invoke_response`. Each query saves `async_viewed_at` and
+`async_view_response`. The `async_view_response.Output` field combines stdout and
+stderr. Terminal output uses `*` separators for submission (or loading a saved
+task), polling, and completion. Each query shows its number, current status, and
+elapsed time. The final output uses `-` separators for command output and the
+state file path. Full API responses and lifecycle records remain in the state
+file instead of being printed in full.
+Status comparisons are case-insensitive. `Running` keeps polling and
+ignores `ExitCode`. Both the documented `Succeeded` and the `completed` status
+observed in sandbox responses are accepted, but require `ExitCode=0` to exit
+successfully. `Failed`, `Unknown` (a missing or expired task),
+nonzero or missing completion exit codes, and unrecognized statuses cause an
+error after saving and printing the result. API errors are reported directly;
+the saved task ID remains available.
+
+A local timeout or interruption does not cancel the remote command. Continue
+polling the saved task with:
+
+```bash
+python python/01-tutorials/04-agentkit-tools/sandbox_lifecycle/03_async_invoke_session.py --view-only
+```
+
+`--view-only` submits no new command and ignores command/directory settings,
+but still updates local query results. Running without this flag submits a new
+task and replaces the locally saved task ID; previous remote tasks are not
+cancelled. Wait for the command to finish before pausing or deleting the Session.
+
 ## Scripts and execution order
 
-The six scripts are:
+The seven scripts are (the two scripts numbered 03 demonstrate synchronous and asynchronous invocation):
 
 | Script | Behavior |
 | --- | --- |
 | `01_create_session.py` | Create a session with an eight-hour default TTL, wait until it is ready, and save the instance ID. |
 | `02_list_and_get_session.py` | List all session pages and get the selected instance's details; read-only. |
 | `03_invoke_session.py` | Execute Python code in the existing session through `InvokeTool`, verify the instance ID, and save the result. |
+| `03_async_invoke_session.py` | Submit a Shell command asynchronously and poll its result; use `--view-only` to query the saved task. |
 | `04_pause_session.py` | Pause the saved session, wait for `Paused`, and record `paused_at`. |
 | `05_resume_session.py` | Require `paused_at`, resume the same session, verify the instance ID, and wait until it is ready. |
 | `06_delete_session.py` | Call `DeleteSession` using the tool ID and saved `instance_id`, then save the response without waiting for backend deletion. |
@@ -182,6 +246,8 @@ The six scripts are:
 To verify invocation, pause, and resume, run **01 → 02 → 03 → 04 → 05 → 02 → 03**:
 create, query, and invoke the session, pause and resume it, then query and invoke
 the resumed instance again. Use script 06 for cleanup after this verification.
+Each `03_invoke_session.py` invocation can be replaced or supplemented with
+`03_async_invoke_session.py`.
 
 Run from the repository root:
 
@@ -205,12 +271,12 @@ python python/01-tutorials/04-agentkit-tools/sandbox_lifecycle/06_delete_session
 
 The default state file is `.sandbox_state.json` in this directory. It
 stores `tool_id`, `user_session_id`, `instance_id`, lifecycle timestamps, and API
-responses. Scripts 01, 03, 04, 05, and 06 write state; script 02 only reads it. The
+responses. Scripts 01, both 03 scripts, 04, 05, and 06 write state; script 02 only reads it. The
 repository's root `.gitignore` ignores this filename. If `AGENTKIT_LIFECYCLE_STATE`
 selects a different filename, its ignore behavior depends on the Git rules for
 that path.
 
-Scripts 03, 04, 05, and 06 select the instance using the saved `instance_id`; neither
+Both 03 scripts and scripts 04, 05, and 06 select the instance using the saved `instance_id`; neither
 `AGENTKIT_USER_SESSION_ID` nor `AGENTKIT_SESSION_ID` changes their target.
 
 Running script 01 again without `AGENTKIT_USER_SESSION_ID` generates a new
