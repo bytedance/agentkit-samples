@@ -66,6 +66,8 @@ cover/
 
 .sandbox_*.json
 .sandbox_*.json.tmp
+.environment_*.json
+.environment_*.json.tmp
 
 # Translations
 *.mo

@@ -1,0 +1,5 @@
+.environment_resource_state.json
+.environment_resource_state.json.tmp
+__pycache__/
+.venv/
+.env
