@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync, mkdirSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { loadSitulaConfiguration, writeSitulaConfiguration } from "../src/config.ts";
@@ -31,13 +31,16 @@ test("configuration writer creates one private config file without credentials",
   const initial = loadSitulaConfiguration({ XDG_CONFIG_HOME: root });
   const values = { ...initial.values, VOLCENGINE_SERVICE: "agentkit_custom", VOLCENGINE_HOST: "agentkit-custom.example.com" };
   writeSitulaConfiguration(values, initial.paths);
-  assert.equal(statSync(initial.paths.directory).mode & 0o777, 0o700);
-  assert.equal(statSync(initial.paths.config).mode & 0o777, 0o600);
+  if (process.platform !== "win32") {
+    assert.equal(statSync(initial.paths.directory).mode & 0o777, 0o700);
+    assert.equal(statSync(initial.paths.config).mode & 0o777, 0o600);
+  }
   const config = JSON.parse(readFileSync(initial.paths.config, "utf8"));
   assert.equal(config.TOOL_TYPE, undefined);
   assert.equal(config.VOLCENGINE_SERVICE, "agentkit_custom");
   assert.equal(config.VOLCENGINE_ACCESS_KEY, undefined);
   assert.equal(config.VOLCENGINE_SESSION_TOKEN, undefined);
+  assert.deepEqual(readdirSync(initial.paths.directory), ["config.json"]);
 });
 
 test("legacy TOOL_TYPE is accepted while reading and removed on the next write", (context) => {
