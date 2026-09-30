@@ -127,16 +127,16 @@ Skills Sandbox
 
 | Component | Description |
 | - | - |
-| **Agent Service** | [agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-1.x.x/agent.py) - Main application that defines the Agent and memory component |
-| **Test Client** | [client.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-1.x.x/client.py) - SSE streaming invocation client |
-| **Project Configuration** | [pyproject.toml](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-1.x.x/pyproject.toml) - Dependency management with uv |
+| **Agent Service** | [agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk_1_x_x/agent.py) - Main application that defines the Agent and memory component |
+| **Test Client** | [client.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk_1_x_x/client.py) - SSE streaming invocation client |
+| **Project Configuration** | [pyproject.toml](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk_1_x_x/pyproject.toml) - Dependency management with uv |
 | **AgentKit Configuration** | agentkit.yaml - Cloud deployment configuration file |
 | **Short-Term Memory** | Stores session context using a local backend |
 
 ## Directory Structure
 
 ```bash
-skills_sandbox/veadk-1.x.x/
+skills_sandbox/veadk_1_x_x/
 ├── agent.py           # Agent runs a skills task
 ├── client.py          # Test client (SSE streaming invocation)
 ├── requirements.txt   # Python dependency list (must be specified during AgentKit deployment)
@@ -175,7 +175,7 @@ brew install uv
 
 ```bash
 # Enter the project directory
-cd python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-1.x.x
+cd python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk_1_x_x
 ```
 
 You can install this project's dependencies with `pip`:
@@ -222,7 +222,7 @@ export BYTEPLUS_REGION=ap-southeast-1
 
 ```bash
 # Enter the project directory
-cd python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-1.x.x
+cd python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk_1_x_x
 
 # Start the VeADK web UI
 veadk web --port 8080
@@ -235,7 +235,7 @@ The web UI provides a graphical conversation testing environment and supports re
 You can also use the command line to test and debug `agent.py`.
 
 ```bash
-cd python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-1.x.x
+cd python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk_1_x_x
 
 # Start the Agent service
 uv run agent.py
@@ -283,7 +283,7 @@ export BYTEPLUS_REGION=ap-southeast-1
 ### Deploy to AgentKit Cloud
 
 ```bash
-cd python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-1.x.x
+cd python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk_1_x_x
 
 # Configure deployment parameters
 # Optional: if you do not add --runtime_envs AGENTKIT_TOOL_ID={{your_tool_id}} in agentkit config,
