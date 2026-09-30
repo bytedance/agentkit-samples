@@ -431,7 +431,8 @@ def test_roadmap_summaries_align_to_readme_and_offer_copyable_codex_prompts() ->
         "步骤 05：Sandbox 与 MCP",
         "步骤 06：Skill 中心",
         "步骤 07：A2A 外部 Agent",
-        "步骤 07：身份与安全边界",
+        "先执行：创建独立 OAuth Runtime",
+        "创建后执行：身份与安全边界",
         "步骤 08：评测、Trace 与发布验收",
     ):
         assert label in app_js
@@ -452,7 +453,7 @@ def test_roadmap_summaries_align_to_readme_and_offer_copyable_codex_prompts() ->
     assert "promptKeys: ['knowledge']" in app_js
     assert "promptKeys: ['memory']" in app_js
     assert "promptKeys: ['associate', 'verify']" in app_js
-    assert "promptKeys: ['identity']" in app_js
+    assert "promptKeys: ['oauthDeploy', 'identity']" in app_js
     assert "deploy_oauth_interactive.sh" in app_js
     assert "verify_oauth_interactive.sh --show-response" in app_js
     assert "hybrid-cloud-customer-service-oauth" in app_js
@@ -563,7 +564,7 @@ def test_readme_starts_with_interactive_deploy_then_routes_to_skill_prompts() ->
         assert f"docs/steps/{document}" in readme
         assert (PROJECT_ROOT / "docs/steps" / document).is_file()
         assert f"docs/steps/{document}" in skill
-    assert app_js.count("请按上述项目 Skill 执行 docs/steps/") == 9
+    assert app_js.count("请按上述项目 Skill 执行 docs/steps/") == 10
     assert "scripts/deploy_hybrid.sh" in skill
     assert "scripts/deploy_a2a_interactive.sh" in skill
     assert "scripts/configure_a2a_peer_interactive.sh" in skill

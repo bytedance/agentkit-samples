@@ -79,6 +79,13 @@ Knowledge、Memory、Sandbox、MCP、Skills 和 A2A，必须创建独立兄弟 R
 身份 Runtime：hybrid-cloud-customer-service-oauth OAuth JWT，仅做身份验收
 ```
 
+路线图第五步提供两个独立 Prompt，按顺序执行：
+
+1. **先执行：创建独立 OAuth Runtime**：只准备 Client、部署和发布，到 Runtime 就绪为止。
+2. **创建后执行：身份与安全边界**：只验收已经就绪的 OAuth Runtime，不重复部署。
+
+## 阶段一：创建独立 OAuth Runtime
+
 ### 1. 准备用户池 Client
 
 在控制台打开目标 Runtime 可访问的用户池，确认或创建一个仅用于 Demo 的
@@ -120,6 +127,16 @@ launch_types:
 不会修改已安装 SDK，也不会影响主 Runtime。正式环境必须选择 HTTPS。若旧版脚本在
 `Checking configured .../ping` 后直接退出且平台没有出现 OAuth Runtime，这是部署前
 校验失败，并不代表 Runtime 创建失败；更新脚本后重试即可。
+
+创建阶段完成后，只记录独立 Runtime 的 Name/ID、用户池 ID、Client ID 及
+`Ready / RUNNING / Healthy` 状态，选择路线图的身份验收 Prompt。此时无需 Client Secret，
+不获取 Token，也不运行 `verify_oauth_interactive.sh`。
+
+## 阶段二：身份与安全验收
+
+开始前只读核对 `agentkit.oauth.yaml` 的 Runtime Name/ID、可访问用户池及
+`Ready / RUNNING / Healthy` 状态。缺少独立 Runtime 或尚未就绪时，返回阶段一；
+验收阶段不创建、更新或重新发布 Runtime。
 
 ### 3. 获取短期 Token 并调用 Runtime
 

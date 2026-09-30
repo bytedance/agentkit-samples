@@ -183,7 +183,7 @@ Token 粘贴到 Prompt。
 > `complaint-trend-analysis`），不是步骤 06 的 Skills 中心 Skill，也不是
 > `SKILL_SPACE_ID` 或 Skills Sandbox。
 
-同一步骤的身份安全验收使用另一个独立入口
+第五步分为“先执行：创建独立 OAuth Runtime”和“创建后执行：身份与安全边界”两个 Prompt：创建阶段发布至 `Ready / RUNNING / Healthy`；验收阶段只核对前置条件、调用和 Trace，不重复部署。创建入口为
 `./scripts/deploy_oauth_interactive.sh`。它只创建或更新
 `hybrid-cloud-customer-service-oauth`，不会替换主 Runtime 的 API Key 鉴权、Name/ID
 或任何 Knowledge、Memory、Sandbox、MCP、Skills、A2A 关联。发布后使用

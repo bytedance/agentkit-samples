@@ -145,6 +145,14 @@ instructions call it **AgentCard capability ID**. It is not a published Skills C
 Skill, `SKILL_SPACE_ID`, Skills ZIP, or Skills Sandbox association; never route an A2A
 peer configuration through `execute_skills`.
 
+The roadmap's fifth stage splits OAuth creation and identity verification into two
+independent Prompts. For creation, prepare the user-pool Client and deploy/release the
+sibling Runtime, then stop at Ready/RUNNING/Healthy and record only non-secret IDs.
+Do not obtain tokens or run verification as part of the creation Prompt. For verification,
+first read-only check the independent binding, allowed user pool, and readiness. If a
+prerequisite is missing, route back to creation; do not create, update, or release a Runtime
+inside the verification Prompt.
+
 Treat OAuth identity as a third, separate Runtime. Never change the primary API-Key
 Runtime in place. Run `scripts/deploy_oauth_interactive.sh`; its first-run name is
 `hybrid-cloud-customer-service-oauth`, and its independent `agentkit.oauth.yaml`

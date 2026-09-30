@@ -91,12 +91,23 @@ const CODEX_PROMPTS = {
 明确说明：A2A 规范虽然把能力数组命名为 skills，但这里不创建或调用 Skills 中心 Skill，不使用 SKILL_SPACE_ID、Skills ZIP 或 Skills Sandbox。
 最后让用户运行 ./scripts/verify_a2a_interactive.sh --show-response 并手动输入两端 Endpoint/Key、所选 Agent 和 AgentCard 能力 ID。同一轮 A2A_CANARY 确认码必须同时出现在数据 Agent 直接 message/send 和主 Runtime 委派结果；用脚本输出的 user_id/session_id 找到主 Runtime Trace，确认 execute_tool delegate_complaint_trend_analysis，并在数据 Runtime 日志确认 AgentCard GET 200、POST /a2a 200。三项证据缺一不可，不用 demo fallback 代替真实平台通过。`,
   },
-  identity: {
-    label: '步骤 07：身份与安全边界',
-    text: `请按上述项目 Skill 执行 docs/steps/07-a2a-identity-session.md 的身份部分。
+  oauthDeploy: {
+    label: '先执行：创建独立 OAuth Runtime',
+    usage: '准备用户池 Client，创建并发布独立 Runtime；完成后再选择身份验收 Prompt',
+    text: `请按上述项目 Skill 执行 docs/steps/07-a2a-identity-session.md 的“阶段一：创建独立 OAuth Runtime”。
 主客服 Runtime 必须保持现有 API Key、Name/ID 和全部组件关联不变；不要把它原地切换为 OAuth。
-先让我在 Demo 终端手动运行 ./scripts/deploy_oauth_interactive.sh。该脚本使用独立 agentkit.oauth.yaml，首次只创建 hybrid-cloud-customer-service-oauth；按提示输入认证域名、用户池 ID 和允许的 Client ID，Client Secret 不参与部署。
-发布后确认 OAuth Runtime 的可访问用户池正确且 Ready/Healthy，再让我运行 ./scripts/verify_oauth_interactive.sh --show-response，在终端交互输入 OAuth Runtime Endpoint、用户池 ID 与 Client ID，并隐藏输入 Client Secret。脚本从用户池取得短期 Token 后直接以 Bearer Token 调用该 Runtime；HTTP 200 和最终回答就是默认验收，不要另造一套 OAuth 服务测试。只有需要演示拒绝行为时才增加 --negative-checks；Token 和 Client Secret 不得输出或落盘。
+先指导我在控制台确认或创建 Demo 用户池 Client，只记录非敏感用户池 ID 和 Client ID，不读取或索取 Client Secret。
+让我在 Demo 终端手动运行 ./scripts/deploy_oauth_interactive.sh。该脚本使用独立 agentkit.oauth.yaml，首次只创建 hybrid-cloud-customer-service-oauth；按提示输入认证域名、用户池 ID 和允许的 Client ID，再确认 Region、控制面及模型配置。Client Secret 不参与部署。
+发布后确认 OAuth Runtime 的可访问用户池正确且 Ready/RUNNING/Healthy，记录独立 Runtime Name/ID 和部署结果，不输出密钥。
+本阶段到 Runtime 就绪为止，不获取 Token、不运行身份验收脚本。明确提示我选择下一张“创建后执行：身份与安全边界”Prompt。`,
+  },
+  identity: {
+    label: '创建后执行：身份与安全边界',
+    usage: '仅在独立 OAuth Runtime 已发布且 Ready/Healthy 后执行；不重复创建或更新 Runtime',
+    text: `请按上述项目 Skill 执行 docs/steps/07-a2a-identity-session.md 的“阶段二：身份与安全验收”。
+先只读确认独立 agentkit.oauth.yaml 的非敏感 Runtime Name/ID，核对目标 OAuth Runtime 的可访问用户池及 Ready/RUNNING/Healthy 状态。任一前置条件缺失时，返回“先执行：创建独立 OAuth Runtime”，不要在本次验收中创建、更新或重新发布 Runtime。
+主客服 Runtime 必须保持现有 API Key、Name/ID 和全部组件关联不变。
+让我运行 ./scripts/verify_oauth_interactive.sh --show-response，在终端交互输入 OAuth Runtime Endpoint、用户池 ID 与 Client ID，并隐藏输入 Client Secret。脚本从用户池取得短期 Token 后直接以 Bearer Token 调用该 Runtime；HTTP 200 和最终回答就是默认验收，不要另造一套 OAuth 服务测试。只有需要演示拒绝行为时才增加 --negative-checks；Token 和 Client Secret 不得输出或落盘。
 首个 OAuth 请求必须无工具，随后在该独立 Runtime 的 Trace 中确认 /invoke → workflow → agent → llm，且没有 Authorization/JWT 原文。明确说明 client_credentials 只证明应用身份；真人用户登录需 Authorization Code + PKCE，网关通过也不等于 sub/自定义 tenant_id 已完成业务映射。
 PostgreSQL 会话与跨会话记忆已经在步骤 02–04 验收，本步骤不要重复创建、绑定或验证，也不要把入站 JWT 复用给 Knowledge、MCP、Skills 或 A2A。`,
   },
@@ -214,9 +225,9 @@ const STEPS = [
     badgeClass: 'required',
     title: '建立身份与安全边界',
     readmeSections: ['步骤 07：身份权限'],
-    promptKeys: ['identity'],
-    summary: '在接入 MCP、Skills 或 A2A 之前，保留主 Runtime 的 API Key 基线，另建 -oauth Runtime 验证用户池 JWT。PostgreSQL 会话与跨会话记忆已在步骤 02–04 验收，不重复执行。',
-    outcome: '用完全独立的数据面证明用户池签发 Token、网关验签和拒绝无效凭据，不覆盖已经验收的客服主 Runtime。',
+    promptKeys: ['oauthDeploy', 'identity'],
+    summary: '在接入 MCP、Skills 或 A2A 之前，保留主 Runtime 的 API Key 基线，先通过独立 Prompt 创建并发布 -oauth Runtime，就绪后再通过身份验收 Prompt 验证用户池 JWT。PostgreSQL 会话与跨会话记忆已在步骤 02–04 验收，不重复执行。',
+    outcome: '先交付独立 OAuth Runtime，再证明短期 Token 可调用它；需要时额外演示无效凭据拒绝。',
     platform: [
       '运行 deploy_oauth_interactive.sh 创建 hybrid-cloud-customer-service-oauth',
       '绑定允许访问的用户池 Client，主 Runtime 继续保持 API Key',
