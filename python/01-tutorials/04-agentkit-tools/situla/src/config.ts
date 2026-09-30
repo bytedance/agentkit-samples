@@ -7,7 +7,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, isAbsolute, join } from "node:path";
+import { basename, dirname, isAbsolute, join } from "node:path";
 
 export const CONFIG_KEYS = [
   "VOLCENGINE_REGION",
@@ -135,7 +135,7 @@ function readSettingsFile<Key extends string>(
 function writeJsonAtomic(path: string, value: Record<string, string>): void {
   const temporaryPath = join(
     dirname(path),
-    `.${path.split("/").at(-1)}.${process.pid}.${randomBytes(6).toString("hex")}.tmp`,
+    `.${basename(path)}.${process.pid}.${randomBytes(6).toString("hex")}.tmp`,
   );
   writeFileSync(temporaryPath, `${JSON.stringify(value, null, 2)}\n`, { mode: 0o600 });
   renameSync(temporaryPath, path);
