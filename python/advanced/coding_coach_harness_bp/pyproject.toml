@@ -1,0 +1,11 @@
+[project]
+name = "coding_coach_harness"
+version = "0.1.0"
+description = "AgentKit Harness demo (BytePlus): a no-code coding-exercise trainer that runs trainee code against hidden tests in a sandbox and scores it with a rubric"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "veadk-python==1.1.2",
+    "requests==2.34.2",
+    "python-dotenv==1.2.2",
+]
