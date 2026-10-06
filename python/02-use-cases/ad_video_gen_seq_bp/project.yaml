@@ -1,0 +1,40 @@
+name: 营销视频生成 Agent（顺序多智能体版）
+name_en: Ad Video Generation Agent (Sequential Multi-Agent)
+description: 基于 AgentKit 与 VeADK 的顺序多智能体电商营销视频生成流水线，适配 BytePlus 平台
+details: 输入商品名称、卖点、目标人群与可选商品图片后，SequentialAgent 按固定顺序编排七个子智能体：营销策划（可用 Web 搜索）、AIDA 四镜头分镜、候选首帧图生成（Seedream 5.0 Pro）、图像质量评估、首帧引导候选视频生成（Dreamina Seedance 2.5）、视频质量评估，以及成片拼接与 TOS 上传，最终返回有效期 7 天的可播放签名 URL。每个阶段结束后向用户流式返回进度消息。样例针对 BytePlus 平台（ap-southeast 区域）配置了模型与 Endpoint，是 ad_video_gen 的顺序多智能体版本。
+tags:
+  industry: 广告营销
+  from: community
+  framework: veADK
+  language: Python
+  tech:
+    - Seedance
+    - Seedream
+    - WebSearch
+    - TOS
+    - MultiAgent
+type: application
+scenarios:
+  - name: 营销视频量产
+    desc: 多智能体流水线生成广告
+  - name: 候选质量评估
+    desc: 自动评估挑选最优视频
+  - name: 成片合成发布
+    desc: 拼接成片并上传对象存储
+prompts:
+  - text: 请为巧克力生成一条圣诞营销视频。商品名称：圣诞限定黑巧克力礼盒。目标人群：追求节日风味、甜蜜分享与能量补给的巧克力爱好者。使用场景：圣诞下午茶、节日聚会、温暖送礼。口感：入口即化、丝滑浓郁、微苦回甘。http://lf3-static.bytednsdoc.com/obj/eden-cn/lm_sth/ljhwZthlaukjlkulzlp/ark/assistant/images/ad_chocolate.png
+  - text: 请生成一条面包营销视频。商品名称：奶香手撕吐司。使用场景：早餐搭配、下午茶点心、日常代餐。目标人群：上班族、学生、家庭用户。特点：奶香浓郁、内里松软、烤后外皮带微焦斑点。http://lf3-static.bytednsdoc.com/obj/eden-cn/lm_sth/ljhwZthlaukjlkulzlp/ark/assistant/images/ad_bread.jpeg
+envs:
+  - name: BytePlus ModelArk API Key
+    key: MODEL_AGENT_API_KEY
+    url: https://console.byteplus.com/ark
+  - name: TOS Bucket 名称
+    key: DATABASE_TOS_BUCKET
+    url: https://console.byteplus.com/tos
+  - name: BytePlus Searchinfinity API Key
+    key: BYTEPLUS_WEB_SEARCH_API_KEY
+    url: https://console.byteplus.com
+models:
+  - dola-seed-2-1-turbo-260628
+  - dola-seedream-5-0-pro-260628
+  - dreamina-seedance-2-5-260628

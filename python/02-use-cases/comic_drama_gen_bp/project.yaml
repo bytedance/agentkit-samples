@@ -1,0 +1,37 @@
+name: 漫剧生成 Agent（BytePlus 版）
+name_en: Comic Drama Generation Agent (BytePlus)
+description: 基于 AgentKit 与 VeADK 的 AI 漫剧自动化制作样例，适配 BytePlus 平台
+details: 输入一个故事创意后，Agent 通过本地技能与脚本自动完成 8 步流水线：剧本创作与智能时长分配、角色设计与并行立绘生成（Seedream 5.0 Pro）、分镜图生成、逐分镜视频生成（Seedance 2.5，单镜 4~30 秒）、ffmpeg 视频合并与 TOS 上传，最终交付带签名下载链接的完整漫剧视频，并附带产物校验与 AI 质量评分。内置内容安全预审、断点续跑与自动续跑守卫，全程无人值守；视频剪辑能力通过本地 MCP 工具提供。
+tags:
+  industry: 文娱内容
+  from: community
+  framework: veADK
+  language: Python
+  tech:
+    - Seedance
+    - Seedream
+    - Skill
+    - MCP
+    - TOS
+type: application
+scenarios:
+  - name: 漫剧一键生成
+    desc: 故事创意生成完整漫剧
+  - name: 分镜图像生成
+    desc: 生成角色一致分镜画面
+  - name: 视频合成上传
+    desc: 剪辑合并并生成访问链接
+prompts:
+  - text: Sun Wukong battles Erlang Shen, Chinese anime 3D realistic style
+  - text: Little fox searching for star fragments
+envs:
+  - name: BytePlus ModelArk API Key
+    key: MODEL_AGENT_API_KEY
+    url: https://console.byteplus.com/ark
+  - name: TOS Bucket Name
+    key: DATABASE_TOS_BUCKET
+    url: https://console.byteplus.com/tos
+models:
+  - deepseek-v4-pro-260425
+  - dola-seedream-5-0-pro-260628
+  - dreamina-seedance-2-5-260628
