@@ -53,8 +53,15 @@ def signboard_detection_tool(picture_url: str) -> str:
                 "role": "user",
                 "content": [
                     {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": picture_url,
+                            "detail": "high",
+                        },
+                    },
+                    {
                         "type": "text",
-                        "text": f"Please select the complete signboard area in the image, including the logo and the English and Chinese name. Try to remove any irrelevant areas as much as possible. Represent the selected area in the form of <bbox>x1 y1 x2 y2</bbox>. Note to ensure the integrity of the logo and text. url: {picture_url}",
+                        "text": "Please select the complete signboard area in the image, including the logo and the English and Chinese name. Try to remove any irrelevant areas as much as possible. Use coordinates normalized to the range 0-1000 and represent the selected area in the form of <bbox>x1 y1 x2 y2</bbox>. Note to ensure the integrity of the logo and text.",
                     },
                 ],
             }
@@ -153,6 +160,6 @@ def led_status_analysis_tool(cropped_image_path: str) -> str:
             }
         ],
         thinking={"typed": "enabled"},
-        reasoning_effort="high",
+        reasoning_effort="medium",
     )
     return response.choices[0].message.content
