@@ -60,9 +60,10 @@ async def repair_evaluate_input(
             if len(reference_media.strip()) == 0:
                 continue
 
+            resolved_reference_media = resolve_code2url(reference_media)
             reference_part = {
                 "type": "input_image",
-                "image_url": reference_media,
+                "image_url": resolved_reference_media,
             }  # Only images will be referenced
             reference_part_list.append(reference_part)
 

@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import override, AsyncGenerator
+import asyncio
+from contextlib import suppress
+from typing import AsyncGenerator, override
 
 from google.adk.agents import InvocationContext, BaseAgent
 from google.adk.agents.run_config import StreamingMode
@@ -85,6 +87,8 @@ class CallBackAgent(BaseAgent):
 
 
 class MMSequentialAgent(SequentialAgent):
+    _heartbeat_interval_seconds = 15
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         if self.sub_agents:
@@ -101,11 +105,47 @@ class MMSequentialAgent(SequentialAgent):
     async def _run_async_impl(
         self, ctx: InvocationContext
     ) -> AsyncGenerator[Event, None]:
-        async for event in super()._run_async_impl(ctx):
-            if isinstance(event, Event):
-                yield event
-            if ctx.session.state.get("end_invocation", False):
-                break
+        event_stream = super()._run_async_impl(ctx)
+        if ctx.run_config.streaming_mode == StreamingMode.NONE:
+            async for event in event_stream:
+                if isinstance(event, Event):
+                    yield event
+                if ctx.session.state.get("end_invocation", False):
+                    break
+            return
+
+        pending_event = asyncio.create_task(event_stream.__anext__())
+        try:
+            while True:
+                done, _ = await asyncio.wait(
+                    {pending_event},
+                    timeout=self._heartbeat_interval_seconds,
+                )
+                if not done:
+                    yield Event(
+                        invocation_id=ctx.invocation_id,
+                        author=self.name,
+                        partial=True,
+                        custom_metadata={"type": "heartbeat"},
+                    )
+                    continue
+
+                try:
+                    event = pending_event.result()
+                except StopAsyncIteration:
+                    break
+
+                if isinstance(event, Event):
+                    yield event
+                if ctx.session.state.get("end_invocation", False):
+                    break
+                pending_event = asyncio.create_task(event_stream.__anext__())
+        finally:
+            if not pending_event.done():
+                pending_event.cancel()
+                with suppress(asyncio.CancelledError):
+                    await pending_event
+            await event_stream.aclose()
 
 
 def get_root_agent() -> MMSequentialAgent:
