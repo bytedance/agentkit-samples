@@ -7,6 +7,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -23,13 +24,34 @@ PROVIDERS = {"volcengine", "byteplus"}
 
 
 class AgentKitHttpError(RuntimeError):
-    """Raised when AgentKit OpenAPI returns ResponseMetadata.Error."""
+    """OpenAPI or direct HTTP failure, retaining diagnostic fields."""
 
-    def __init__(self, action: str, code: str, message: str) -> None:
-        super().__init__(f"Failed to {action}: {code}: {message}")
+    def __init__(
+        self,
+        action: str,
+        code: str,
+        message: str,
+        *,
+        status_code: int,
+        request_id: str = "",
+        biz_code: int | None = None,
+        reason: str = "",
+    ) -> None:
+        details = [f"HTTP {status_code}", code, message]
+        if biz_code is not None:
+            details.append(f"bizCode={biz_code}")
+        if reason and reason != code:
+            details.append(f"reason={reason}")
+        if request_id:
+            details.append(f"RequestId={request_id}")
+        super().__init__(f"Failed to {action}: " + ": ".join(filter(None, details)))
         self.action = action
         self.code = code
         self.message = message
+        self.status_code = status_code
+        self.request_id = request_id
+        self.biz_code = biz_code
+        self.reason = reason
 
 
 @dataclass(frozen=True)
@@ -316,6 +338,98 @@ def endpoint_scope() -> str:
     return f"{endpoint.scheme}://{endpoint.host}/{endpoint.provider}/{endpoint.region}/{endpoint.service}/{endpoint.api_version}"
 
 
+def response_json(action: str, response: requests.Response) -> dict[str, Any]:
+    """Decode shared IAM/AgentKit errors without printing arbitrary bodies."""
+    try:
+        result = response.json()
+    except ValueError:
+        request_id = response.headers.get("request-id", "")
+        raise RuntimeError(
+            f"{action}: non-JSON HTTP {response.status_code} response"
+            + (f"; RequestId={request_id}" if request_id else "")
+        ) from None
+    if not isinstance(result, dict):
+        raise RuntimeError(f"{action}: response must be a JSON object")
+    metadata = result.get("ResponseMetadata")
+    metadata = metadata if isinstance(metadata, dict) else {}
+    request_id = str(
+        metadata.get("RequestId")
+        or result.get("RequestId")
+        or response.headers.get("request-id")
+        or ""
+    )
+    error = metadata.get("Error")
+    if isinstance(error, dict) and error:
+        raise AgentKitHttpError(
+            action,
+            str(error.get("Code") or ""),
+            str(error.get("Message") or ""),
+            status_code=response.status_code,
+            request_id=request_id,
+        )
+    if not 200 <= response.status_code < 300:
+        reason = result.get("reason")
+        reason = reason if isinstance(reason, str) else ""
+        message = result.get("message")
+        biz_code = result.get("bizCode")
+        raise AgentKitHttpError(
+            action,
+            reason or "HTTPError",
+            message if isinstance(message, str) else "",
+            status_code=response.status_code,
+            request_id=request_id,
+            biz_code=biz_code if type(biz_code) is int else None,
+            reason=reason,
+        )
+    return result
+
+
+def _snake_case(value: str) -> str:
+    value = re.sub(r"(.)([A-Z][a-z]+)", r"\1_\2", value)
+    return re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", value).lower()
+
+
+def normalize_resource_response(value: Any) -> Any:
+    """Normalize TOP PascalCase fields to the scripts' snake_case contract.
+
+    The TOP list uses EnvironmentResources instead of data. Opaque maps in
+    the specification belong to the caller and must retain their exact keys.
+    This applies to responses only; request bodies and IAM are unchanged.
+    """
+    if isinstance(value, list):
+        return [normalize_resource_response(item) for item in value]
+    if not isinstance(value, dict):
+        return value
+    result = {}
+    for key, item in value.items():
+        if key == "EnvironmentResources":
+            field = "data"
+        elif key == "RequestId":
+            field = key
+        else:
+            field = _snake_case(key)
+        normalized = (
+            item
+            if field in {"env_vars", "resources", "networking", "agentkit"}
+            else normalize_resource_response(item)
+        )
+        if isinstance(normalized, str) and field in {
+            "status",
+            "step",
+            "type",
+            "resource_mode",
+            "profile",
+            "provider",
+            "ownership",
+            "runtime_type",
+        }:
+            normalized = _snake_case(normalized)
+        if field in result and result[field] != normalized:
+            raise RuntimeError(f"conflicting response fields for {field}")
+        result[field] = normalized
+    return result
+
+
 class EnvironmentResourceHttpClient:
     """TOP uses AK/SK; direct HTTP uses an account-scoped API key."""
 
@@ -386,37 +500,25 @@ class EnvironmentResourceHttpClient:
                 continue
             break
 
-        try:
-            result = response.json()
-        except ValueError:
-            raise RuntimeError(
-                f"{action}: non-JSON HTTP {response.status_code} response"
-            ) from None
-        if not isinstance(result, dict):
-            raise RuntimeError(f"{action}: response must be a JSON object")
-        metadata = result.get("ResponseMetadata") or {}
-        error = metadata.get("Error") if isinstance(metadata, dict) else None
-        if error:
-            raise AgentKitHttpError(
-                action, str(error.get("Code", "")), str(error.get("Message", ""))
-            )
-        if not 200 <= response.status_code < 300:
-            # Avoid dumping arbitrary response bodies or authorization headers.
-            reason = result.get("reason", "HTTPError")
-            message = result.get("message", "")
-            raise RuntimeError(
-                f"{action}: HTTP {response.status_code}: {reason}: {message}"
-            )
+        result = response_json(action, response)
         # A signed TOP route can forward the backend's plain resource JSON.
         # Transport/authentication does not determine the response envelope.
-        value = result.get("Result") if "Result" in result else result
+        raw_value = result.get("Result") if "Result" in result else result
+        value = normalize_resource_response(raw_value)
         if isinstance(value, dict):
             if action == "ListEnvironmentResources":
-                valid = isinstance(value.get("data"), list) and all(
-                    isinstance(item, dict)
-                    and isinstance(item.get("resource_id"), str)
-                    and bool(item["resource_id"])
-                    for item in value["data"]
+                valid = (
+                    isinstance(value.get("data"), list)
+                    and all(
+                        isinstance(item, dict)
+                        and isinstance(item.get("resource_id"), str)
+                        and bool(item["resource_id"])
+                        for item in value["data"]
+                    )
+                    and (
+                        value.get("next_page") is None
+                        or isinstance(value["next_page"], str)
+                    )
                 )
             else:
                 valid = (
@@ -428,12 +530,31 @@ class EnvironmentResourceHttpClient:
             if valid:
                 return value
         # Report shape only: arbitrary response values may contain secrets.
+        metadata = result.get("ResponseMetadata")
+        metadata = metadata if isinstance(metadata, dict) else {}
+        request_id = (
+            metadata.get("RequestId")
+            or result.get("RequestId")
+            or response.headers.get("request-id")
+        )
+        advice = (
+            "The request may already be accepted; query List/Get before resubmitting."
+            if action
+            in {
+                "CreateEnvironmentResource",
+                "UpdateEnvironmentResource",
+                "DeleteEnvironmentResource",
+            }
+            else "Check the response fields and endpoint API contract."
+        )
         raise RuntimeError(
             f"{action}: unexpected HTTP {response.status_code} response; "
             f"top-level fields={sorted(result)}; "
-            f"Result type={type(result.get('Result')).__name__}. "
-            "Expected a resource object or data[] list, plain or inside Result. "
-            "The request may already be accepted; query List/Get before resubmitting."
+            f"Result type={type(result.get('Result')).__name__}; "
+            f"Result fields={sorted(raw_value) if isinstance(raw_value, dict) else []}; "
+            f"RequestId={request_id or '-'}. "
+            "Expected a resource object or data[]/EnvironmentResources[] list, plain or inside Result. "
+            + advice
         )
 
     def create_environment_resource(self, body: dict[str, Any]) -> dict[str, Any]:

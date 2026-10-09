@@ -12,6 +12,7 @@ from _common import (
     submit,
     validate_env_vars,
 )
+from _iam_roles import prepare_runtime_role
 
 
 DEFAULT_ARK_SANDBOX_IMAGE = (
@@ -29,6 +30,11 @@ def main() -> None:
     add_target_argument(cli)
     cli.add_argument("--name")
     cli.add_argument("--description")
+    cli.add_argument(
+        "--role-name",
+        default=os.getenv("AGENTKIT_RUNTIME_ROLE_NAME"),
+        help="Ark Runtime IAM role; Volcengine TOP validates it, or selects/creates one when omitted",
+    )
     cli.add_argument(
         "--region", help="Optional; must match the server's configured region"
     )
@@ -51,6 +57,12 @@ def main() -> None:
         cli.error("AGENTKIT_RESOURCE_TARGET must be ark or agentkit")
     if args.target_type == "agentkit" and args.runtime_image:
         cli.error("--runtime-image is only supported for ark")
+    if args.role_name is not None:
+        args.role_name = args.role_name.strip()
+        if not args.role_name:
+            cli.error("--role-name / AGENTKIT_RUNTIME_ROLE_NAME must not be empty")
+        if args.target_type != "ark":
+            cli.error("--role-name is only supported for ark")
 
     body = {
         "client_token": args.client_token,
@@ -107,6 +119,11 @@ def main() -> None:
             else args.runtime_image
         )
         body["runtime"] = {"image_url": runtime_image} if runtime_image else {}
+        role_name = prepare_runtime_role(
+            args.role_name, dry_run=args.dry_run, region=args.region
+        )
+        if role_name:
+            body["role_name"] = role_name
     submit("CreateEnvironmentResource", body, args)
 
 

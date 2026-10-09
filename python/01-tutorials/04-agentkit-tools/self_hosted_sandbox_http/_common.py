@@ -126,6 +126,10 @@ def emit(event: dict[str, Any], *, json_output: bool = False) -> None:
             hint(f"更新字段: {', '.join(body['update_mask'])}")
         if body.get("client_token"):
             hint(f"本次请求 token: {body['client_token']}（重试时复用）")
+        if body.get("role_name"):
+            hint(
+                f"Runtime IAM Role: {body['role_name']}（创建重试时用 --role-name 复用）"
+            )
         if phase == "dry_run":
             hint("查看完整请求: 添加 --json")
         return
@@ -484,6 +488,10 @@ def submit(
         },
         json_output=args.json_output,
     )
+    if operation_failed(response):
+        raise RuntimeError(
+            "resource operation failed (possibly rolled back); inspect last_operation and components.history"
+        )
     if args.wait:
         response = wait_for_resource(
             client,
