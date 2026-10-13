@@ -1,0 +1,5 @@
+tts_env/
+output/
+__pycache__/
+*.pyc
+.DS_Store
