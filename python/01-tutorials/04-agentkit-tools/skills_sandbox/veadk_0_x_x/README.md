@@ -30,16 +30,16 @@ Skills Sandbox
 
 | 组件 | 描述 |
 | - | - |
-| **Agent 服务** | [agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-0.x.x/agent.py) - 主应用程序，定义 Agent 和记忆组件 |
-| **测试客户端** | [client.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-0.x.x/client.py) - SSE 流式调用客户端 |
-| **项目配置** | [pyproject.toml](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-0.x.x/pyproject.toml) - 依赖管理（uv 工具） |
+| **Agent 服务** | [agent.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk_0_x_x/agent.py) - 主应用程序，定义 Agent 和记忆组件 |
+| **测试客户端** | [client.py](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk_0_x_x/client.py) - SSE 流式调用客户端 |
+| **项目配置** | [pyproject.toml](https://github.com/bytedance/agentkit-samples/blob/main/python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk_0_x_x/pyproject.toml) - 依赖管理（uv 工具） |
 | **AgentKit 配置** | agentkit.yaml - 云端部署配置文件 |
 | **短期记忆** | 使用本地后端存储会话上下文 |
 
 ## 目录结构说明
 
 ```bash
-skills_sandbox/veadk-0.x.x/
+skills_sandbox/veadk_0_x_x/
 ├── agent.py           # Agent 运行一个 skills 任务
 ├── client.py          # 测试客户端（SSE 流式调用）
 ├── requirements.txt   # Python 依赖列表 （agentkit部署时需要指定依赖文件)
@@ -78,7 +78,7 @@ brew install uv
 
 ```bash
 # 进入项目目录
-cd python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-0.x.x
+cd python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk_0_x_x
 ```
 
 您可以通过 `pip` 工具来安装本项目依赖：
@@ -120,7 +120,7 @@ export VOLCENGINE_SECRET_KEY=<Your Secret Key>
 
 ```bash
 # 进入项目目录
-cd python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-0.x.x
+cd python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk_0_x_x
 
 # 启动 VeADK Web 界面
 veadk web --port 8080
@@ -133,7 +133,7 @@ Web 界面提供图形化对话测试环境，支持实时查看消息流和调�
 此外，还可以使用命令行测试，调试 agent.py。
 
 ```bash
-cd python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-0.x.x
+cd python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk_0_x_x
 
 # 启动 Agent 服务
 uv run agent.py
@@ -176,7 +176,7 @@ export VOLCENGINE_SECRET_KEY=<Your Secret Key>
 ### AgentKit 云上部署
 
 ```bash
-cd python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk-0.x.x
+cd python/01-tutorials/04-agentkit-tools/skills_sandbox/veadk_0_x_x
 
 # 配置部署参数
 # optional：如果 agentkit config 中不添加 --runtime_envs AGENTKIT_TOOL_ID={{your_tool_id}}，可以在 AgentKit 控制台 智能体运行时 中，关键组件，选择 沙箱工具，并发布
