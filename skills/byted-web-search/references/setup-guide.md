@@ -33,7 +33,12 @@ https://www.volcengine.com → 注册（手机/飞书/抖音）→ 实名认证
   ```
 - **其他 Claw**：在技能配置界面填写 `WEB_SEARCH_API_KEY` 即可
 
-**本地使用**：skill 根目录创建 `.env`（内容 `WEB_SEARCH_API_KEY=your_key`），或 `export WEB_SEARCH_API_KEY="..."` 写入 ~/.bashrc。
+**本地使用**（内容均为 `WEB_SEARCH_API_KEY=your_key`，优先级从高到低，任一即可）：
+1. `~/.openclaw/.env` —— OpenClaw 用户
+2. `$XDG_CONFIG_HOME/byted-web-search/.env`（默认 `~/.config/byted-web-search/.env`）—— **推荐**
+3. skill 根目录 `.env` —— 注意该目录由 skills CLI 管理，更新时可能被清除
+
+也可 `export WEB_SEARCH_API_KEY="..."` 写入 shell 配置。注意：以守护进程方式启动的 Agent（如由 launchd 拉起的网关）不继承 shell 环境变量，这类场景请改用上述 `.env` 方式。
 
 ## 5. 验证
 
