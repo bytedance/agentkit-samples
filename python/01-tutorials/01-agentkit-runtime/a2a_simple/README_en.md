@@ -403,7 +403,7 @@ None.
 
 - [VeADK Official Documentation](https://volcengine.github.io/veadk-python/)
 - [AgentKit Development Guide](https://volcengine.github.io/agentkit-sdk-python/)
-- [A2A Protocol Specification](https://github.com/google/adk)
+- [A2A Protocol Specification](https://github.com/google/adk-python)
 - [BytePlus ModelArk Service](https://console.byteplus.com/ark/region:ark+ap-southeast-1/overview)
 
 ## License
