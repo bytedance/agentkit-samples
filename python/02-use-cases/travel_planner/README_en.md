@@ -212,13 +212,13 @@ Refer to the Prerequisites section of the Local Operation part.
 Use `pip` to install the AgentKit command-line tool:
 
 ```bash
-pip install agentkit-sdk-python==0.3.2
+pip install agentkit-sdk-python==0.8.1
 ```
 
 Or use `uv` to install the AgentKit command-line tool:
 
 ```bash
-uv pip install agentkit-sdk-python==0.3.2
+uv pip install agentkit-sdk-python==0.8.1
 ```
 
 ### Set Environment Variables
