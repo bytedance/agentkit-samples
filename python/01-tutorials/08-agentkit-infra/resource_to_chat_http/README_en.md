@@ -4,7 +4,7 @@ This pure HTTP example covers the complete Harness Infra onboarding flow:
 
 1. Call the control-plane TOP endpoint with account AK/SK.
 2. Create or reuse an Endpoint.
-3. Create a Cloud Environment and wait for its Cloud Sandbox.
+3. Create the selected Environment; only Cloud waits for its Cloud Sandbox.
 4. Create a Harness.
 5. Create a managed `SERVERLESS_PG` SessionStore and wait for `Ready`.
 6. Create a RuntimeTemplate associated with that SessionStore, preparing
@@ -88,7 +88,7 @@ the Session `id`, `name`, and `endpoint_base_url`; steps 01 and 03 manage them.
 default Ark project is usually named `default`.
 
 `agent_loop` belongs to the Harness. RuntimeTemplate accepts `resources`,
-`image_url`, `envs`, and `runtime`. Environment uses `type: Cloud` plus
+`image_url`, `envs`, and `runtime`. Environment supports `type: Cloud` / `SelfHosted`; Cloud uses
 `cpu_milli` and `memory_mb`. The sample always creates a managed `SERVERLESS_PG`
 SessionStore. Public networking needs no additional values; private networking
 requires `use_private_network: true`, `vpc_id`, and exactly one `subnet_ids`
@@ -112,6 +112,27 @@ and can run repeated model turns in the same Session without calling the control
 plane. Step 03 deletes the Session and cloud Key and clears the runtime YAML
 fields. Do not commit or share this file while plaintext is present.
 
+### Environment mode
+
+Interactive terminal runs ask whether to use Cloud (`[Y/n]`). Enter or `y` selects Cloud;
+`n` selects SelfHosted. The answer overrides YAML. Non-interactive and `--json` runs
+read `environment.type` from YAML (Cloud if omitted). Use `--env-mode cloud|selfhost`
+to select a mode directly without prompting; this also works with `--dry-run`.
+
+SelfHosted allows omitted Environment resources and skips Cloud Sandbox creation and
+readiness polling. The existing model RuntimeTemplate and SessionStore are still created.
+After all resources and the Session are created, a separate block follows the completion
+summary for the self-hosted Dispatcher / Worker:
+
+```text
+ANTHROPIC_BASE_URL=<data-plane BaseUrl>
+ANTHROPIC_ENVIRONMENT_ID=<Env ID>
+ANTHROPIC_ENVIRONMENT_KEY=<plaintext Env Key>
+```
+The selected Environment type is saved alongside the Key in YAML for subsequent scripts.
+JSON mode emits these in a `selfhost_connection` event. Connect your self-hosted backend
+before verifying tool execution. Normal events, stderr, and state files still redact or omit the key.
+
 ## 1. Create Resources
 
 ```bash
@@ -123,8 +144,8 @@ python 01_create_resources.py \
 The script:
 
 - Lists Endpoints and creates one only when none exists.
-- Creates a Cloud Environment using the YAML resource specification.
-- Waits for the Cloud Environment's Sandbox to become ready.
+- Creates the selected Environment type; only Cloud uses the YAML resource specification.
+- Confirms the Environment is Active; only Cloud waits for Sandbox readiness.
 - Creates a Harness with the configured model, AgentLoop, System, Tools, Skills,
   and MCP Servers.
 - Creates a managed Serverless PostgreSQL SessionStore and polls
@@ -244,7 +265,7 @@ Cleanup order:
 1. Delete any remaining Session, then delete the Environment API Key.
 2. Delete RuntimeTemplate and wait for Get to return 404.
 3. Delete SessionStore and wait for Get to return 404.
-4. Internally clean up the Cloud Sandbox, then delete Environment.
+4. Clean up any Cloud Sandbox recorded by this run, then delete Environment. User-managed self-hosted backends are not deleted.
 5. Archive Harness and retain Endpoint.
 6. Before exit, whether cleanup succeeds or fails, clear the API Key and Session runtime fields from YAML and `ENDPOINT`, `SESSION_ID`, and `ENV_API_KEY` from both `02_*.sh` scripts. Preserve all other script content. `--dry-run` leaves files unchanged.
 
@@ -264,9 +285,9 @@ Cleanup uses the YAML Key when an interrupted Session remains active.
 
 ## Output and Timeouts
 
-- Script 01 has seven steps: prepare Endpoint → create Environment and wait for Cloud Sandbox readiness → create Harness → create SessionStore and wait for readiness → create RuntimeTemplate (including IAM Role preparation) → create API Key → create Session. State initialization is silent. The final resource summary and invocation command are not numbered as a creation step. `--dry-run` follows the same order.
+- Script 01 has seven steps: prepare Endpoint → create Environment (wait for Sandbox readiness only in Cloud mode) → create Harness → create SessionStore and wait for readiness → create RuntimeTemplate (including IAM Role preparation) → create API Key → create Session. State initialization is silent. The final resource summary and invocation command are not numbered as a creation step. `--dry-run` follows the same order.
 - Default output numbers creation, chat, and cleanup steps (`1, 2, 3…`). Each step keeps the resource name (when available), ID, core parameters, and status under one heading. Questions and answers use Chinese labels (`问 / 答`). Final summaries list names, IDs, and statuses without repeating parameters.
-- Reused, deleted, and skipped resources also include their identifiers; Sessions include their title. Older state files reuse saved names without inventing missing metadata. API Keys show only names, IDs, and bindings. `--dry-run` lists numbered actions and explicitly marks names and IDs as not yet obtained.
+- Reused, deleted, and skipped resources also include their identifiers; Sessions include their title. Older state files reuse saved names without inventing missing metadata. Normal API Key summaries show names, IDs, and bindings; SelfHosted additionally prints plaintext connection settings. `--dry-run` lists numbered actions and explicitly marks names and IDs as not yet obtained.
 - Creation requests (Endpoint, Environment, Harness, RuntimeTemplate, API Key, and Session), model conversations, and deletion waits use a single-line spinner in a terminal, then print the result once the target status (such as Ready) is reached. Redirected output and `--json` only log status changes. JSON events remain redacted and include a `step` field for numbered steps.
 - Internal Cloud Sandbox resource IDs, revisions, and convergence generations are
   no longer printed or included in summaries.

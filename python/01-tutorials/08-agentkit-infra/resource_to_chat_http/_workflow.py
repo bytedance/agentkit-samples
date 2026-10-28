@@ -19,6 +19,7 @@ from _common import (
 )
 from _config import ExampleConfig, persist_environment_api_key, persist_session
 from _curl import configure_session_curl_scripts
+from _display import display_selfhost_connection
 from _iam import ensure_runtime_role
 
 NOT_FOUND_CODES = {
@@ -432,16 +433,18 @@ def create_resources(
     tokens = state["tokens"]
     environment_config = {
         "Type": config.environment.type,
-        "Resources": config.environment.resources,
     }
+    if config.environment.type == "Cloud":
+        environment_config["Resources"] = config.environment.resources
+    environment_label = f"创建 {config.environment.type} Environment"
 
     emit(
         "request",
-        "创建 Cloud Environment",
+        environment_label,
         json_output=json_output,
         step=2,
     )
-    with wait_progress("创建 Cloud Environment", json_output=json_output):
+    with wait_progress(environment_label, json_output=json_output):
         environment = client.call(
             "CreateEnvironment",
             {
@@ -481,17 +484,22 @@ def create_resources(
         "environment",
         {"id": environment_id, "status": "Active", "owned": True},
     )
-    _wait_environment_resource(
-        client,
-        state,
-        environment_id,
-        json_output=json_output,
-    )
+    if config.environment.type == "Cloud":
+        _wait_environment_resource(
+            client,
+            state,
+            environment_id,
+            json_output=json_output,
+        )
     report_resource(
         state,
         "environment",
         json_output=json_output,
-        result="Cloud Sandbox 已就绪",
+        result=(
+            "Cloud Sandbox 已就绪"
+            if config.environment.type == "Cloud"
+            else "SelfHosted Env 已登记；工具执行需接入自托管后端"
+        ),
     )
 
     emit(
@@ -660,9 +668,10 @@ def create_resources(
         raise RuntimeError(
             "CreateAPIKey did not return Key; run 03_cleanup_resources.py before retrying"
         )
-    persist_environment_api_key(api_key_id, environment_key)
+    persist_environment_api_key(
+        api_key_id, environment_key, environment_type=config.environment.type
+    )
     report_resource(state, "api_key", json_output=json_output)
-
     emit(
         "request",
         "创建 Session",
@@ -721,7 +730,11 @@ def create_resources(
     save_state(state)
     emit(
         "completed",
-        "资源和 Session 全部就绪",
+        (
+            "资源和 Session 全部就绪"
+            if config.environment.type == "Cloud"
+            else "资源和 Session 创建完成，工具执行需接入自托管后端"
+        ),
         json_output=json_output,
         resources=[
             resource_info(state, key, compact=True)
@@ -738,6 +751,20 @@ def create_resources(
         status=state["status"],
         next_step="python 02_invoke_session_http.py",
     )
+    if config.environment.type == "SelfHosted":
+        # Dedicated connection output follows the completed resource summary.
+        # Normal events and state files continue to omit plaintext credentials.
+        connection = {
+            "ANTHROPIC_BASE_URL": endpoint["base_url"],
+            "ANTHROPIC_ENVIRONMENT_ID": environment_id,
+            "ANTHROPIC_ENVIRONMENT_KEY": environment_key,
+        }
+        if json_output:
+            print(
+                json.dumps({"phase": "selfhost_connection", **connection}), flush=True
+            )
+        else:
+            display_selfhost_connection(connection)
     return state
 
 

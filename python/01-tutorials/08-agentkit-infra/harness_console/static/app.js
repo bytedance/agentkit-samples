@@ -550,7 +550,7 @@ const fieldSpecs = {
   ],
   environments: [
     ["Name", "名称"],
-    ["Config.Type", "环境类型"],
+    ["Config.Type", "环境类型", "environment-type"],
     ["Config.Resources.CpuMilli", "CPU（毫核）", "number"],
     ["Config.Resources.MemoryMb", "内存（MiB）", "number"],
   ],
@@ -635,7 +635,7 @@ async function openEditor(kind) {
       input = node(
         type === "textarea"
           ? "textarea"
-          : type === "loop" || state.boot.catalog[type]
+          : type === "loop" || type === "environment-type" || state.boot.catalog[type]
             ? "select"
             : "input",
       );
@@ -649,10 +649,10 @@ async function openEditor(kind) {
       input.rows = 3;
       wrapper.className = "wide";
     }
-    if (type === "loop")
-      for (const loop of ["adk", "codex", "piagent"]) {
-        const option = node("option", loop);
-        option.value = loop;
+    if (type === "loop" || type === "environment-type")
+      for (const value of type === "loop" ? ["adk", "codex", "piagent"] : ["Cloud", "SelfHosted"]) {
+        const option = node("option", value);
+        option.value = value;
         input.append(option);
       }
     else if (state.boot.catalog[type]) {

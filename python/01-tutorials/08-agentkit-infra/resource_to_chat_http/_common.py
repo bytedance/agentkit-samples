@@ -209,6 +209,7 @@ def new_state(
     model_base_url: str,
     role_name: str,
     agent_loop: str,
+    environment_type: str = "Cloud",
 ) -> dict[str, Any]:
     """生成一次运行的确定性名称与幂等 token，并在首个请求前保存。"""
 
@@ -232,6 +233,7 @@ def new_state(
             "model_base_url": model_base_url,
             "role_name": role_name,
             "agent_loop": agent_loop,
+            "environment_type": environment_type,
         },
         "names": {
             "environment": f"{base}-env",

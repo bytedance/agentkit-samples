@@ -14,6 +14,7 @@ import unittest
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
 
 import yaml
@@ -284,7 +285,9 @@ class FlowTests(unittest.TestCase):
         self.thread.join()
         self.temporary.cleanup()
 
-    def call(self, script, *args, code=0, env=None, json_output=True):
+    def call(
+        self, script, *args, code=0, env=None, json_output=True, show_env_key=False
+    ):
         completed = subprocess.run(
             [
                 sys.executable,
@@ -306,9 +309,11 @@ class FlowTests(unittest.TestCase):
         for secret in (
             self.control_access,
             self.control_secret,
-            self.environment_key,
         ):
             self.assertNotIn(secret, output)
+        if not show_env_key:
+            self.assertNotIn(self.environment_key, output)
+        self.assertNotIn(self.environment_key, completed.stderr)
         return completed
 
     def create_responses(self):
@@ -1068,6 +1073,109 @@ class FlowTests(unittest.TestCase):
         }
         self.assertEqual(sdk_headers["x-api-key"], self.environment_key)
         self.assertEqual(self.responses, [])
+
+    def test_environment_prompt_default_and_selfhost(self):
+        spec = importlib.util.spec_from_file_location(
+            "create_prompt", ROOT / SCRIPTS["create"]
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with patch.object(module.sys.stdin, "isatty", return_value=True):
+            for answer in ("", "y", "Y", "yes"):
+                with patch("builtins.input", return_value=answer):
+                    self.assertEqual(
+                        module.choose_environment_type(None, json_output=False), "Cloud"
+                    )
+            with patch("builtins.input", side_effect=["invalid", "n"]):
+                self.assertEqual(
+                    module.choose_environment_type(None, json_output=False),
+                    "SelfHosted",
+                )
+            with patch("builtins.input", side_effect=EOFError):
+                with self.assertRaisesRegex(RuntimeError, "尚未创建资源"):
+                    module.choose_environment_type(None, json_output=False)
+            with patch("builtins.input") as prompt:
+                self.assertEqual(
+                    module.choose_environment_type(None, json_output=True), ""
+                )
+                self.assertEqual(
+                    module.choose_environment_type("selfhost", json_output=False),
+                    "SelfHosted",
+                )
+                prompt.assert_not_called()
+
+    def test_selfhost_create_prints_connection_without_cloud_sandbox(self):
+        raw = yaml.safe_load(self.config.read_text())
+        raw["environment"].pop("resources")
+        self.config.write_text(yaml.safe_dump(raw))
+        responses = self.create_responses()
+        self.responses = responses[:3] + responses[5:]
+        output = self.call("create", "--env-mode", "selfhost", show_env_key=True)
+        self.assertEqual(self.responses, [])
+        connection = next(
+            json.loads(line)
+            for line in output.stdout.splitlines()
+            if line.startswith('{"phase": "selfhost_connection"')
+        )
+        self.assertEqual(connection["ANTHROPIC_BASE_URL"], self.base + "/gateway")
+        self.assertEqual(connection["ANTHROPIC_ENVIRONMENT_ID"], "env_demo")
+        self.assertEqual(connection["ANTHROPIC_ENVIRONMENT_KEY"], self.environment_key)
+        self.assertEqual(json.loads(output.stdout.splitlines()[-1]), connection)
+        actions = [request["query"].get("Action") for request in self.requests]
+        self.assertNotIn("ListEnvironmentResources", actions)
+        self.assertNotIn("GetEnvironmentResource", actions)
+        env_request = next(
+            r for r in self.requests if r["query"].get("Action") == "CreateEnvironment"
+        )
+        self.assertEqual(env_request["body"]["Config"], {"Type": "SelfHosted"})
+        state_text = self.state.read_text()
+        self.assertNotIn(self.environment_key, state_text)
+        state = json.loads(state_text)
+        self.assertEqual(state["config"]["environment_type"], "SelfHosted")
+        self.assertNotIn("environment_resource", state["resources"])
+        self.assertEqual(
+            yaml.safe_load(self.config.read_text())["environment"]["type"], "SelfHosted"
+        )
+        self.assertEqual(
+            state["resources"]["session"]["parameters"]["runtime_type"],
+            "agentkit_runtime",
+        )
+
+    def test_selfhost_yaml_create_and_cleanup(self):
+        raw = yaml.safe_load(self.config.read_text())
+        raw["environment"]["type"] = "SelfHosted"
+        raw["environment"].pop("resources")
+        self.config.write_text(yaml.safe_dump(raw))
+        responses = self.create_responses()
+        self.responses = responses[:3] + responses[5:]
+        output = self.call("create", json_output=False, show_env_key=True)
+        self.assertEqual(
+            output.stdout.splitlines()[-4:-1],
+            [
+                f"ANTHROPIC_BASE_URL={self.base}/gateway",
+                "ANTHROPIC_ENVIRONMENT_ID=env_demo",
+                f"ANTHROPIC_ENVIRONMENT_KEY={self.environment_key}",
+            ],
+        )
+        offset = len(self.requests)
+        responses = self.cleanup_responses()
+        self.responses = responses[:-5] + responses[-3:]
+        self.call("cleanup")
+        self.assertEqual(self.responses, [])
+        self.assertNotIn(
+            "DeleteEnvironmentResource",
+            [r["query"].get("Action") for r in self.requests[offset:]],
+        )
+
+    def test_cloud_override_requires_cloud_resources(self):
+        raw = yaml.safe_load(self.config.read_text())
+        raw["environment"]["type"] = "SelfHosted"
+        raw["environment"].pop("resources")
+        self.config.write_text(yaml.safe_dump(raw))
+        output = self.call("create", "--env-mode", "cloud", code=1)
+        self.assertIn("environment.resources", output.stderr)
+        self.assertEqual(self.requests, [])
+        self.assertFalse(self.state.exists())
 
     def test_all_dry_runs_need_no_credentials_or_state(self):
         env = {

@@ -463,13 +463,27 @@ def _session_store_config(raw: dict[str, Any]) -> SessionStoreConfig:
     )
 
 
-def _environment_config(raw: dict[str, Any]) -> EnvironmentConfig:
+def _environment_config(
+    raw: dict[str, Any], *, environment_type: str = ""
+) -> EnvironmentConfig:
     environment = _mapping(raw.get("environment"), "environment")
-    resources = _mapping(environment.get("resources"), "environment.resources")
     api_key = _mapping(environment.get("env_api_key"), "environment.env_api_key")
-    environment_type = _string(environment.get("type"), "environment.type")
-    if environment_type != "Cloud":
-        raise RuntimeError("environment.type must be Cloud")
+    environment_type = environment_type or _string(
+        environment.get("type", "Cloud"), "environment.type"
+    )
+    if environment_type not in {"Cloud", "SelfHosted"}:
+        raise RuntimeError("environment.type must be Cloud or SelfHosted")
+    resources = {}
+    if environment_type == "Cloud":
+        raw_resources = _mapping(environment.get("resources"), "environment.resources")
+        resources = {
+            "CpuMilli": _positive_integer(
+                raw_resources.get("cpu_milli"), "environment.resources.cpu_milli"
+            ),
+            "MemoryMb": _positive_integer(
+                raw_resources.get("memory_mb"), "environment.resources.memory_mb"
+            ),
+        }
     metadata = _mapping(environment.get("metadata", {}), "environment.metadata")
     if not all(
         isinstance(key, str) and isinstance(value, str)
@@ -478,14 +492,7 @@ def _environment_config(raw: dict[str, Any]) -> EnvironmentConfig:
         raise RuntimeError("environment.metadata keys and values must be strings")
     return EnvironmentConfig(
         type=environment_type,
-        resources={
-            "CpuMilli": _positive_integer(
-                resources.get("cpu_milli"), "environment.resources.cpu_milli"
-            ),
-            "MemoryMb": _positive_integer(
-                resources.get("memory_mb"), "environment.resources.memory_mb"
-            ),
-        },
+        resources=resources,
         metadata=dict(metadata),
         endpoint_id=_string(
             environment.get("endpoint_id"),
@@ -510,6 +517,7 @@ def validated_config(
     model_api_key_name: str = "",
     require_model_key_name: bool = True,
     require_credentials: bool = True,
+    environment_type: str = "",
 ) -> ExampleConfig:
     """读取 config.yaml，并让显式 CLI 参数覆盖对应 YAML 字段。"""
 
@@ -526,7 +534,7 @@ def validated_config(
         ),
         session_store=_session_store_config(raw),
         runtime_template=_runtime_template_config(raw),
-        environment=_environment_config(raw),
+        environment=_environment_config(raw, environment_type=environment_type),
     )
 
 
@@ -534,12 +542,17 @@ def _write_runtime_values(
     *,
     api_key_id: str | None = None,
     api_key_value: str | None = None,
+    environment_type: str | None = None,
     session_id: str | None = None,
     session_name: str | None = None,
     endpoint_base_url: str | None = None,
 ) -> None:
     path = config_path()
     raw = _read_yaml()
+    if environment_type is not None:
+        if environment_type not in {"Cloud", "SelfHosted"}:
+            raise RuntimeError("environment.type must be Cloud or SelfHosted")
+        _mapping(raw.get("environment"), "environment")["type"] = environment_type
     if api_key_id is not None or api_key_value is not None:
         environment = _mapping(raw.get("environment"), "environment")
         api_key = _mapping(environment.get("env_api_key"), "environment.env_api_key")
@@ -573,12 +586,16 @@ def _write_runtime_values(
     temporary.replace(path)
 
 
-def persist_environment_api_key(api_key_id: str, value: str) -> None:
+def persist_environment_api_key(
+    api_key_id: str, value: str, *, environment_type: str | None = None
+) -> None:
     """将 01 创建的 Environment API Key 标识和明文写入 YAML。"""
 
     if not api_key_id or not value:
         raise RuntimeError("refusing to persist an empty Environment API Key")
-    _write_runtime_values(api_key_id=api_key_id, api_key_value=value)
+    _write_runtime_values(
+        api_key_id=api_key_id, api_key_value=value, environment_type=environment_type
+    )
 
 
 def persist_session(session_id: str, name: str, endpoint_base_url: str) -> None:

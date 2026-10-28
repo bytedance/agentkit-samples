@@ -1,4 +1,4 @@
-"""面向终端的展示层；输入必须已经脱敏，JSON 输出不经过此模块。"""
+"""终端展示；常规事件已脱敏，专用 SelfHosted 连接输出按要求显示明文。"""
 
 from __future__ import annotations
 
@@ -16,6 +16,20 @@ from rich.text import Text
 console = Console(markup=False, highlight=False)
 error_console = Console(stderr=True, markup=False, highlight=False)
 _shown_parameters: dict[tuple[str, str], dict[str, Any]] = {}
+
+
+def display_selfhost_connection(connection: dict[str, str]) -> None:
+    """在最后单独高亮连接配置，保持每行变量完整，便于复制。"""
+    console.print()
+    console.rule(
+        Text("SelfHosted 连接配置", style="bold bright_cyan"), style="bright_cyan"
+    )
+    for name, value in connection.items():
+        line = Text(f"{name}=", style="bold bright_cyan")
+        line.append(value, style="bold bright_green")
+        console.print(line, soft_wrap=True)
+    console.rule(style="bright_cyan")
+
 
 LABELS = {
     "name": "名称",

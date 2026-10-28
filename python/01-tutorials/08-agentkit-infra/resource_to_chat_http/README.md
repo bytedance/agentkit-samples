@@ -85,7 +85,7 @@ MCP Servers，SessionStore、Environment 和 RuntimeTemplate 的资源规格，�
 `harness.model.project_name` 保留用于方舟项目配置，默认项目通常填写 `default`。
 
 `agent_loop` 属于 Harness。RuntimeTemplate 支持 `resources`、`image_url`、
-`envs` 和 `runtime`；Environment 使用 `type: Cloud` 以及
+`envs` 和 `runtime`；Environment 支持 `type: Cloud` / `SelfHosted`，Cloud 使用
 `cpu_milli`/`memory_mb`。SessionStore 固定创建托管 `SERVERLESS_PG`；公网模式无需
 额外网络参数，私网模式必须设置 `use_private_network: true`、`vpc_id` 和且仅一个
 `subnet_ids`。这些层级与控制面 API 请求体一致。
@@ -114,11 +114,34 @@ python 01_create_resources.py \
   --agent-loop adk
 ```
 
+终端运行时会提示：
+
+```text
+是否使用 Cloud Environment？[Y/n]（n 为 SelfHosted）：
+```
+
+回车或输入 `y` 使用 Cloud，输入 `n` 使用 SelfHosted。交互选择覆盖 YAML；
+非交互或 `--json` 模式读取 YAML（省略 type 时默认 Cloud），也可通过
+`--env-mode cloud|selfhost` 直接选择，跳过提示。`--dry-run` 同样支持模式选择。
+
+SelfHosted 不要求 `environment.resources`，不自动创建或等待 Cloud Sandbox。
+模型侧仍创建原有 SessionStore / RuntimeTemplate。创建 Environment API Key 后，
+选择的模式会随 Key 一起写入 YAML，供后续调用和清理脚本读取。
+全部资源与 Session 创建完成后，脚本在汇总之后单独打印以下连接配置，供自托管后端直接使用：
+
+```text
+ANTHROPIC_BASE_URL=<数据面 BaseUrl>
+ANTHROPIC_ENVIRONMENT_ID=<Env ID>
+ANTHROPIC_ENVIRONMENT_KEY=<明文 Env Key>
+```
+
+`--json` 中对应 `selfhost_connection` 事件。将自托管 Dispatcher / Worker 接入这三项配置后再验证工具调用。
+
 脚本依次执行：
 
 - `ListEndpoints`，账号没有 Endpoint 时调用 `CreateEndpoint`。
-- `CreateEnvironment` 使用 `config.yaml` 的 Environment 规格。
-- 等待 Cloud Environment 的 Sandbox 就绪。
+- `CreateEnvironment` 使用所选模式；Cloud 使用 YAML 规格，SelfHosted 只发送 Type。
+- 两种模式都确认 Env Active，只有 Cloud 等待 Sandbox 就绪。
 - `CreateHarness` 使用 YAML 中的模型、AgentLoop、System、Tools、Skills 和 MCP。
 - `CreateSessionStore` 创建托管 Serverless PostgreSQL，轮询 `GetSessionStore`
   直到 `Ready`。状态文件只保存其 ID 和公开元数据，不保存数据库凭据。
@@ -233,7 +256,7 @@ python 03_cleanup_resources.py
 1. 删除残留 Session，再删除 Environment API Key。
 2. 删除 RuntimeTemplate，并等待 Get 返回 404。
 3. 删除 SessionStore，并等待 Get 返回 404。
-4. 在内部清理 Cloud Sandbox，再删除 Environment。
+4. 清理本次记录的 Cloud Sandbox（如有），再删除 Environment；自托管后端由用户管理。
 5. 归档 Harness，保留账号级 Endpoint。
 6. 无论清理成功与否，退出前清空 YAML 中的 API Key 和 Session 运行时字段，以及两个 `02_*.sh` 中的 `ENDPOINT`、`SESSION_ID`、`ENV_API_KEY`；保留脚本其他内容。`--dry-run` 不修改文件。
 
@@ -253,9 +276,9 @@ python 03_cleanup_resources.py
 
 ## 输出与超时
 
-- 01 创建脚本固定为 7 步：准备 Endpoint → 创建 Environment 并等待 Cloud Sandbox 就绪 → 创建 Harness → 创建 SessionStore 并等待就绪 → 创建 RuntimeTemplate（包含 IAM Role 准备）→ 创建 API Key → 创建 Session。状态文件静默初始化；最后单独汇总资源并提示调用命令，不再编号为创建步骤。`--dry-run` 使用相同顺序。
+- 01 创建脚本固定为 7 步：准备 Endpoint → 创建 Environment（仅 Cloud 等待 Sandbox 就绪） → 创建 Harness → 创建 SessionStore 并等待就绪 → 创建 RuntimeTemplate（包含 IAM Role 准备）→ 创建 API Key → 创建 Session。状态文件静默初始化；最后单独汇总资源并提示调用命令，不再编号为创建步骤。`--dry-run` 使用相同顺序。
 - 默认按 `1、2、3…` 编号展示创建、调用和清理步骤。每步在同一标题下列出资源的 name（有则展示）、id、核心配置/参数及状态，不再拆分“创建 / 已创建”标题；对话内容以“问 / 答”打印。汇总保留各资源的名称、ID 和状态，避免重复配置。
-- 删除、复用和跳过也展示资源标识；Session 另列 title。旧状态文件优先复用已保存的名称，未记录的信息不补造。API Key 仅展示名称、ID 和绑定关系，不展示明文。`--dry-run` 只列编号计划，并说明尚未获取名称和 ID。
+- 删除、复用和跳过也展示资源标识；Session 另列 title。旧状态文件优先复用已保存的名称，未记录的信息不补造。API Key 常规摘要仅展示名称、ID 和绑定关系；SelfHosted 在完成汇总后单独打印明文连接配置。`--dry-run` 只列编号计划，并说明尚未获取名称和 ID。
 - 创建请求（含 Endpoint、Environment、Harness、RuntimeTemplate、API Key、Session）、模型对话和删除等待均在终端单行转圈，达到 Ready 等目标状态后打印结果并继续；重定向输出和 `--json` 模式只记录状态变化，不重复刷屏。`--json` 保留脱敏 JSON 事件，步骤编号放在 `step` 字段中。
 - Cloud Sandbox 的内部资源 ID、版本和收敛代数不再打印，也不进入汇总。
 - 三个 `02_` 脚本（HTTP、Anthropic SDK、Ark SDK）均在执行前展示问题，结尾用结果卡片展示 Session、本轮结束状态、成功工具、启用的校验和原始智能体回复，暂不展示本轮耗时。每个工具步骤下用“↳ 工具输出”突出显示可读摘要，再用浅色边框单独展示“原始事件 · JSON”；摘要中的换行显示为 `\n`，仅在终端宽度不足时自然折行。未启用的工具覆盖或回复文本校验会明确标注，`TOOL USE VERIFIED 391` 仍保留为智能体原始回复。
@@ -303,7 +326,7 @@ uv run --with 'ruff==0.11.12' ruff format --check .
 - Anthropic SDK 生成的真实 Session/Event 请求路径与认证头。
 - `agent.message + end_turn` 完成判定。
 - Session/Key 即时清理和控制面资源清理顺序。
-- Environment Key 不进入 stdout、stderr 或状态文件。
+- Cloud 的 Environment Key 不进入 stdout、stderr 或状态文件；SelfHosted 按接入需要仅在连接输出中显示明文，不进入 stderr 或状态文件。
 
 ## 契约依据
 

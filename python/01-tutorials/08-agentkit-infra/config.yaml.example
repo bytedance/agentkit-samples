@@ -80,13 +80,13 @@ runtime_template:
   runtime: {}
 
 environment:
-  type: "Cloud"
+  type: "Cloud" # Cloud / SelfHosted；01 终端交互选择优先于此配置
   network:
     use_private_network: false # 是否使用 VPC
     vpc_id: "your-vpc-id" # 可选
     subnet_id: "your-subnet-id" # 可选
     security_group_ids: ["your-security-group-id"] # 可选
-  resources:
+  resources: # 仅 Cloud 使用；SelfHosted 可以省略
     cpu_milli: 2000
     memory_mb: 4096
   package:

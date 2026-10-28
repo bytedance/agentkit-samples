@@ -275,9 +275,24 @@ class Console:
         )
         store = _session_store_config(raw)
         t = _runtime_template_config(raw)
-        e = _environment_config(raw)
-        env = {"Type": e.type, "Resources": e.resources}
         raw_env = raw["environment"]
+        resource_config = {
+            "cpu_milli": 2000,
+            "memory_mb": 4096,
+            **(raw_env.get("resources") or {}),
+        }
+        environment_raw = {
+            **raw,
+            "environment": {**raw_env, "resources": resource_config},
+        }
+        e = _environment_config(environment_raw)
+        # SelfHosted may omit resources in the tutorial, but the editor needs
+        # defaults when switching to Cloud. These remain declarations on SelfHosted.
+        resources = (
+            e.resources
+            or _environment_config(environment_raw, environment_type="Cloud").resources
+        )
+        env = {"Type": e.type, "Resources": resources}
         if raw_env.get("image_url") not in (None, "", "null"):
             env["ImageUrl"] = raw_env["image_url"]
         if raw_env.get("envs"):

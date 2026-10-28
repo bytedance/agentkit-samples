@@ -20,7 +20,7 @@ def main() -> None:
                 "检查 Session / 清理残留 API Key",
                 "DeleteRuntimeTemplate / 等待删除完成",
                 "DeleteSessionStore / 等待删除完成",
-                "清理 Environment 及其 Cloud Sandbox",
+                "清理 Environment 及本次记录的关联资源",
                 "ArchiveHarness",
                 "retain Endpoint",
                 "清空 YAML 运行时配置和两个 curl 脚本的连接配置",

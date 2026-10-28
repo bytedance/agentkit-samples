@@ -666,6 +666,21 @@ class ConsoleTests(unittest.TestCase):
             self.post("delete", {"kind": "endpoints", "id": "ep-one"}).status_code, 400
         )
 
+    def test_environment_preset_defaults_and_configured_resources(self):
+        for environment_type in ("Cloud", "SelfHosted"):
+            raw = copy.deepcopy(self.console.raw)
+            raw["environment"]["type"] = environment_type
+            raw["environment"].pop("resources")
+            config = self.console.make_presets(raw)["environments"]["Config"]
+            self.assertEqual(config["Type"], environment_type)
+            self.assertEqual(config["Resources"], {"CpuMilli": 2000, "MemoryMb": 4096})
+            raw["environment"]["resources"] = {
+                "cpu_milli": 4000,
+                "memory_mb": 8192,
+            }
+            config = self.console.make_presets(raw)["environments"]["Config"]
+            self.assertEqual(config["Resources"], {"CpuMilli": 4000, "MemoryMb": 8192})
+
     def test_empty_environment_packages_omitted_without_dropping_real_packages(self):
         self.assertNotIn("Packages", self.boot["presets"]["environments"]["Config"])
         raw = copy.deepcopy(self.console.raw)
