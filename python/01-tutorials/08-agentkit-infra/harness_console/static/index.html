@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Harness Console</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/cleanup.js" defer></script>
+    <script src="/app.js" defer></script>
+    <script src="/cleanup-ui.js" defer></script>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <a class="brand" href="/"
+        ><span class="brand-icon">h<span>↗</span></span
+        ><span>Harness<span class="brand-sub">INFRA CONSOLE</span></span></a
+      >
+      <div class="workspace">
+        <span class="live-dot"></span>本地工作空间<span class="pill"
+          >LOCAL</span
+        >
+      </div>
+
+      <nav id="nav"></nav>
+      <div class="sidebar-bottom">
+        <span class="live-dot"></span> 本地配置已连接
+        <div id="region"></div>
+        <button id="config-info" class="text-button">查看连接信息 ↗</button>
+      </div>
+    </aside>
+    <main>
+      <header>
+        <div class="breadcrumb">
+          Harness 平台 <span>›</span> <strong id="crumb">资源管理</strong>
+        </div>
+        <div class="header-right">
+          <span id="host"></span><span class="avatar">L</span>
+        </div>
+      </header>
+      <div class="page">
+        <div class="page-heading">
+          <div>
+            <div class="eyebrow">HARNESS INFRASTRUCTURE</div>
+            <h1 id="title">资源管理</h1>
+            <p id="subtitle">管理执行环境与模型运行资源。</p>
+          </div>
+          <div class="heading-actions">
+            <button id="refresh">↻ 刷新</button
+            ><button id="create" class="primary">＋ 创建资源</button>
+          </div>
+        </div>
+        <section id="quickstart-panel" hidden>
+          <ol class="steps" aria-label="快速开始步骤">
+            <li><button data-step="0"><span>1</span>选择起点</button></li>
+            <li><button data-step="1"><span>2</span>配置 Harness</button></li>
+            <li><button data-step="2"><span>3</span>配置 Environment</button></li>
+            <li><button data-step="3"><span>4</span>开始第一次调用</button></li>
+          </ol>
+          <div class="quick-content">
+            <div class="quick-hero">
+              <div><h1>将 Harness 接入你的应用</h1><p>配置模型与工具，连接执行环境，再通过 Session 发起对话。<br>从本地配置开始，也可以复用已有的云资源。</p></div>
+              <svg class="cloud-art" viewBox="0 0 240 150" fill="none" aria-hidden="true"><g stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M95 22 151 48v42L95 64Z M160 54l55 26v43l-55-26Z M104 77l46 23v37l-46-23Z"/><path d="M103 12l56 26v42M169 44l55 26v43"/><path d="M77 128H36c-27 0-28-35-7-40 0-29 41-35 51-8 29-2 33 45-3 48Z"/></g></svg>
+            </div>
+            <div class="quick-stage" data-stage="0">
+              <h2>选择起点</h2>
+              <button class="starter-card selected" data-start="config" aria-pressed="true"><span class="card-title"><span class="card-icon">⌘</span>从本地配置开始<span class="card-check">✓</span></span><span class="card-copy">复用 config.yaml 中的模型、系统提示词与工具配置，逐步创建 Harness 和执行环境。</span><span class="tag-row"><span>按配置预填</span><span>创建前可编辑</span></span></button>
+              <button class="starter-card" data-start="existing" aria-pressed="false"><span class="card-title"><span class="card-icon">◈</span>连接已有资源<span class="card-check">✓</span></span><span class="card-copy">选择已有的 Harness、Environment 和 RuntimeTemplate，连接环境密钥，开始一次会话。</span></button>
+              <h3 class="quick-links-title">管理你的资源</h3>
+              <div class="quick-links"><button data-go="harnesses"><strong>⌘ Harness</strong><span>模型、系统提示词与工具配置</span></button><button data-go="sessions"><strong>▣ Sessions</strong><span>查看会话状态与历史记录</span></button><button data-go="environments"><strong>⬡ Environments</strong><span>管理 Sandbox 与环境资源</span></button><button data-go="templates"><strong>▤ RuntimeTemplates</strong><span>配置模型运行所需的计算资源</span></button></div>
+            </div>
+            <div class="quick-stage" data-stage="1" hidden>
+              <h2>配置 Harness</h2><p class="stage-description">选择一个 Active Harness，或按本地配置创建。已归档的 Harness 不能用于新 Session。</p>
+              <div class="setup-card"><label>Harness<select id="quick-harnesses" aria-label="选择 Harness"></select></label><button data-quick-create="harnesses">＋ 创建 Harness</button></div>
+              <div id="quick-harness-summary" class="selection-summary"></div>
+            </div>
+            <div class="quick-stage" data-stage="2" hidden>
+              <h2>配置 Environment</h2><p class="stage-description">选择执行环境、Ready 的 SERVERLESS_PG SessionStore 和绑定该存储的运行模板，再选择匹配的 API Key。</p>
+              <div class="setup-card"><label>Endpoint<select id="quick-endpoints"></select></label><button data-quick-create="endpoints">＋ 创建</button></div>
+              <div class="setup-card"><label>Environment<select id="quick-environments"></select></label><button data-quick-create="environments">＋ 创建</button></div>
+              <div class="setup-card"><label>SessionStore<select id="quick-stores"></select></label><button data-quick-create="stores">＋ 创建</button></div>
+              <div class="setup-card"><label>RuntimeTemplate<select id="quick-templates"></select></label><button data-quick-create="templates">＋ 创建</button></div>
+              <div class="setup-card"><label>Environment API Key<select id="quick-keys"></select></label><button data-quick-create="keys">＋ 创建</button><button id="quick-import">导入密钥</button></div>
+              <p class="muted">密钥列表仅显示本机持有明文且绑定所选 Endpoint 与 Environment 的 Key。新资源准备好后可点击“刷新资源”。先创建 SessionStore，再创建 RuntimeTemplate。已有未绑定存储的旧模板仍可在 Session 管理页使用。</p>
+              <button data-go="resources" class="text-button">管理 EnvironmentResource ↗</button>
+            </div>
+            <div class="quick-stage" data-stage="3" hidden>
+              <h2>开始第一次调用</h2><p class="stage-description">确认资源后创建 Session，然后在聊天页输入消息，查看模型回复与工具事件。</p>
+              <dl id="quick-review" class="review-card"></dl>
+              <div class="call-note"><span class="card-icon">↗</span><div><strong>一段会话，持续交互</strong><p>创建 Session 不会自动发送消息。进入聊天页后，由你发起第一次调用。</p></div></div>
+              <button id="quick-existing-chat" class="text-button">使用已有 Session 聊天 ↗</button>
+            </div>
+            <p id="quick-error" class="inline-error" role="alert"></p>
+          </div>
+          <footer class="quick-footer"><span id="quick-footer-note">已选择：从本地配置开始</span><div><button id="quick-reload" hidden>↻ 刷新资源</button><button id="quick-back" hidden>上一步</button><button id="quick-next" class="primary">开始配置 →</button></div></footer>
+        </section>
+        <section id="cleanup-panel" hidden>
+          <div class="notice">清理会删除所选资源及 Session 数据，并可能影响工作负载。Harness 仅归档，历史版本保留。不会自动勾选资源或额外发起清单外的删除请求。</div>
+          <div class="cleanup-controls">
+            <button id="cleanup-scan">↻ 扫描资源</button>
+            <span id="cleanup-summary">尚未扫描</span>
+            <button id="cleanup-stop" hidden>停止后续操作</button>
+            <button id="cleanup-review" class="danger" disabled>清理所选资源</button>
+          </div>
+          <p class="muted">执行顺序：Session → RuntimeTemplate → SessionStore → EnvironmentResource → API Key → Environment → Harness 归档 → Endpoint。每项确认完成后继续，失败即暂停。请保持页面打开。</p>
+          <p id="cleanup-progress" role="status">点击扫描，读取完整分页列表；不会自动执行清理。</p>
+          <div id="cleanup-warnings" class="notice error" hidden></div>
+          <div class="table-card">
+            <div class="table-toolbar">
+              <input id="cleanup-search" placeholder="筛选名称、ID、状态或类型" aria-label="筛选清理资源" />
+              <button id="cleanup-select">全选可见且可清理的资源</button>
+              <button id="cleanup-clear">取消全部选择</button>
+            </div>
+            <div class="table-scroll"><table>
+              <thead><tr><th>选择</th><th>资源 / ID</th><th>扫描时状态 / 关联</th><th>清理操作</th><th>执行结果</th></tr></thead>
+              <tbody id="cleanup-rows"></tbody>
+            </table></div>
+          </div>
+        </section>
+        <section id="data-context" class="context-panel" hidden>
+          <div>
+            <span class="live-dot"></span><strong>数据面连接</strong
+            ><small>选择同一绑定下的 Endpoint 与环境密钥</small>
+          </div>
+          <div class="context-fields">
+            <label
+              >Endpoint<select id="endpoint-select">
+                <option value="">选择 Endpoint</option>
+              </select></label
+            ><label
+              >Environment API Key<select id="key-select">
+                <option value="">选择 API Key</option>
+              </select></label
+            ><button id="import-key">导入密钥</button
+            ><button id="connect">连接 / 刷新</button>
+          </div>
+          <p id="context-note" class="muted"></p>
+        </section>
+        <section id="resource-panel">
+          <div class="stat-strip">
+            <div>
+              <span class="muted">当前资源类型</span
+              ><strong id="type-label">Endpoint</strong>
+            </div>
+            <div>
+              <span class="muted">已加载资源</span><strong id="count">—</strong>
+            </div>
+            <div>
+              <span class="muted">查询范围</span
+              ><strong id="scope-label">当前账号 / 当前地域</strong>
+            </div>
+            <div>
+              <span class="muted">连接方式</span
+              ><strong id="plane-label">控制面 · TOP</strong>
+            </div>
+          </div>
+          <div class="table-card">
+            <div class="table-toolbar">
+              <div class="search-wrap">
+                ⌕
+                <input
+                  id="search"
+                  placeholder="搜索已加载资源的名称、ID 或状态"
+                />
+              </div>
+              <div>
+                <select
+                  id="status-filter"
+                  aria-label="状态筛选"
+                  hidden
+                ></select>
+                <button id="get-by-id">按 ID 查询</button
+                ><button id="filter-toggle">
+                  筛选 <span id="filter-count"></span>
+                </button>
+              </div>
+            </div>
+            <div id="filter-panel" hidden>
+              <label
+                >服务端筛选（JSON）<textarea id="filters" rows="3">
+{}</textarea
+                ></label
+              ><small id="filter-hint"></small
+              ><button id="apply-filters">应用筛选</button>
+            </div>
+            <div id="resource-notice" class="notice" hidden></div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>名称 / 资源 ID</th>
+                    <th>状态</th>
+                    <th>关联 / 配置</th>
+                    <th>创建时间</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="rows"></tbody>
+              </table>
+            </div>
+            <div id="empty" class="empty" hidden>
+              <div class="empty-icon">◇</div>
+              <h3>还没有资源</h3>
+              <p>创建第一个资源，开始搭建你的 Harness 运行环境。</p>
+            </div>
+            <div class="table-footer">
+              <span id="list-status">等待加载</span>
+              <div>
+                <button id="load-more" hidden>加载下一页</button
+                ><button id="load-all" hidden>加载全部</button>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section id="chat-panel" hidden>
+          <div class="chat-layout">
+            <div class="session-sidebar">
+              <div class="session-heading">
+                <strong>Sessions</strong
+                ><button id="chat-refresh" title="刷新 Sessions">↻</button>
+              </div>
+              <input id="session-search" placeholder="搜索会话标题或 ID" />
+              <div id="session-list"></div>
+              <button id="session-more" hidden>更多会话</button>
+            </div>
+            <div class="conversation">
+              <div class="conversation-header">
+                <div>
+                  <strong id="chat-title">选择一个 Session</strong
+                  ><small id="chat-id"
+                    >历史消息、模型回复与工具事件会显示在这里</small
+                  >
+                </div>
+                <button id="stop-watch" hidden>停止等待</button>
+              </div>
+              <div id="messages">
+                <div class="chat-welcome">
+                  <div class="welcome-mark">h↗</div>
+                  <h2>从一个问题开始</h2>
+                  <p>
+                    连接数据面，选择左侧 Session，<br />与运行在 Harness Infra
+                    上的 Harness 对话。
+                  </p>
+                </div>
+              </div>
+              <div class="composer-area">
+                <div id="chat-status" role="status">尚未选择 Session</div>
+                <form id="chat-form">
+                  <textarea
+                    id="prompt"
+                    rows="2"
+                    placeholder="输入问题… Enter 发送，Shift + Enter 换行"
+                    disabled
+                  ></textarea
+                  ><button id="send" class="primary" disabled>发送 ↑</button>
+                </form>
+                <small
+                  >回复以持久化 Event 更新；本轮结束由 end_turn 确认。</small
+                >
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+    <dialog id="cleanup-confirm">
+      <form id="cleanup-form">
+        <div class="dialog-heading"><h2>确认清理资源</h2><button type="button" class="close-dialog icon-button" aria-label="关闭">×</button></div>
+        <p>以下是本次完整清单。删除无法撤销；Harness 执行归档。所选 Session 的消息和数据也会删除。</p>
+        <pre id="cleanup-preview"></pre>
+        <label>清理原因（用于 RuntimeTemplate 删除）<textarea id="cleanup-reason" required rows="2" placeholder="例如：回收测试资源"></textarea></label>
+        <label><span id="cleanup-phrase"></span><input id="cleanup-confirm-input" required autocomplete="off" /></label>
+        <p id="cleanup-confirm-error" class="inline-error" role="alert"></p>
+        <div class="dialog-footer"><button type="button" class="close-dialog">取消</button><button class="danger">确认并开始清理</button></div>
+      </form>
+    </dialog>
+    <dialog id="editor">
+      <form id="editor-form">
+        <div class="dialog-heading">
+          <div>
+            <div class="eyebrow">CREATE RESOURCE</div>
+            <h2 id="editor-title">创建资源</h2>
+          </div>
+          <button
+            type="button"
+            class="close-dialog icon-button"
+            aria-label="关闭"
+          >
+            ×
+          </button>
+        </div>
+        <p id="editor-hint" class="muted"></p>
+        <div id="editor-fields" class="form-grid"></div>
+        <details id="advanced">
+          <summary>完整请求 JSON · 可编辑全部字段</summary>
+          <textarea
+            id="json-body"
+            class="code-editor"
+            spellcheck="false"
+            rows="15"
+          ></textarea>
+        </details>
+        <div id="editor-error" class="inline-error" role="alert"></div>
+        <div class="dialog-footer">
+          <span class="muted">按 config.yaml 预填</span
+          ><button type="button" class="close-dialog">取消</button
+          ><button id="submit-create" class="primary">创建</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="detail">
+      <div class="dialog-heading">
+        <div>
+          <div class="eyebrow">RESOURCE DETAILS</div>
+          <h2 id="detail-title">资源详情</h2>
+        </div>
+        <button class="close-dialog icon-button" aria-label="关闭">×</button>
+      </div>
+      <pre id="detail-body"></pre>
+      <div class="dialog-footer">
+        <button class="close-dialog">关闭</button>
+      </div>
+    </dialog>
+    <dialog id="confirm">
+      <form id="confirm-form">
+        <div class="dialog-heading">
+          <h2 id="confirm-title">删除资源</h2>
+          <button
+            type="button"
+            class="close-dialog icon-button"
+            aria-label="关闭"
+          >
+            ×
+          </button>
+        </div>
+        <p id="confirm-text"></p>
+        <label id="delete-reason-field" hidden>
+          删除原因
+          <textarea
+            id="delete-reason"
+            rows="3"
+            placeholder="说明为什么删除此 RuntimeTemplate（最多 1024 UTF-8 字节）"
+          ></textarea>
+        </label>
+        <label
+          >输入资源 ID 确认<input id="confirm-id" autocomplete="off" required
+        /></label>
+        <div id="delete-error" class="inline-error" role="alert"></div>
+        <div class="dialog-footer">
+          <button type="button" class="close-dialog">取消</button
+          ><button id="confirm-delete" class="danger">确认删除</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="import-dialog">
+      <form id="import-form">
+        <div class="dialog-heading">
+          <h2>导入 Environment API Key</h2>
+          <button
+            type="button"
+            class="close-dialog icon-button"
+            aria-label="关闭"
+          >
+            ×
+          </button>
+        </div>
+        <p class="muted">
+          GetAPIKey 不返回已有密钥明文。导入后仅保存在本机，用于数据面认证。
+        </p>
+        <label
+          >ApiKeyId<input id="import-id" required autocomplete="off" /></label
+        ><label
+          >API Key 明文<input
+            id="import-value"
+            type="password"
+            required
+            autocomplete="off"
+        /></label>
+        <div id="import-error" class="inline-error" role="alert"></div>
+        <div class="dialog-footer">
+          <button type="button" class="close-dialog">取消</button
+          ><button class="primary">保存到本机</button>
+        </div>
+      </form>
+    </dialog>
+    <div id="toast" role="status" hidden></div>
+  </body>
+</html>
