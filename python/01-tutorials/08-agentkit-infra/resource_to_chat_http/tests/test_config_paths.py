@@ -66,3 +66,38 @@ class ConfigPathTests(unittest.TestCase):
         )
         self.assertEqual(self.legacy.read_text(), "legacy contents must not change")
         self.assertEqual(self.shared.stat().st_mode & 0o777, 0o600)
+
+    def test_session_store_network_defaults_and_private_validation(self):
+        default = _config._session_store_config({})
+        self.assertEqual(default.project_name, "default")
+        self.assertEqual(default.vpc_id, "")
+        self.assertEqual(default.subnet_ids, [])
+
+        with self.assertRaisesRegex(RuntimeError, "exactly one subnet_id"):
+            _config._session_store_config(
+                {
+                    "session_store": {
+                        "network": {
+                            "use_private_network": True,
+                            "vpc_id": "vpc-test",
+                            "subnet_ids": [],
+                        }
+                    }
+                }
+            )
+
+        private = _config._session_store_config(
+            {
+                "session_store": {
+                    "project_name": "project-test",
+                    "network": {
+                        "use_private_network": True,
+                        "vpc_id": "vpc-test",
+                        "subnet_ids": ["subnet-test"],
+                    },
+                }
+            }
+        )
+        self.assertEqual(private.project_name, "project-test")
+        self.assertEqual(private.vpc_id, "vpc-test")
+        self.assertEqual(private.subnet_ids, ["subnet-test"])

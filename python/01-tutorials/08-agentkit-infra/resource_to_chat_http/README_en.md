@@ -6,13 +6,15 @@ This pure HTTP example covers the complete Harness Infra onboarding flow:
 2. Create or reuse an Endpoint.
 3. Create a Cloud Environment and wait for its Cloud Sandbox.
 4. Create a Harness.
-5. Create a RuntimeTemplate, preparing `AgentKitDefaultRuntimeAccess` within this stage.
-6. Create an Environment API Key and write its ID and plaintext to `config.yaml`.
-7. Create a Session through the Endpoint `BaseUrl` and persist its information
+5. Create a managed `SERVERLESS_PG` SessionStore and wait for `Ready`.
+6. Create a RuntimeTemplate associated with that SessionStore, preparing
+   `AgentKitDefaultRuntimeAccess` within this stage.
+7. Create an Environment API Key and write its ID and plaintext to `config.yaml`.
+8. Create a Session through the Endpoint `BaseUrl` and persist its information
    to `config.yaml`.
-8. Send a user message and verify a real model response.
-9. Repeat conversations as needed, then delete the Key, RuntimeTemplate, and
-   Environment and archive the Harness.
+9. Send a user message and verify a real model response.
+10. Repeat conversations as needed, then delete the Key, RuntimeTemplate,
+    SessionStore, and Environment and archive the Harness.
 
 The account-level Endpoint is retained.
 
@@ -48,8 +50,8 @@ cannot replace one another.
 ## Prerequisites
 
 - The account has access to the published Harness Infra Service.
-- The account can create Endpoint, Environment, Harness, RuntimeTemplate, and API
-  Key resources.
+- The account can create Endpoint, Environment, Harness, SessionStore,
+  RuntimeTemplate, and API Key resources, and has Serverless PostgreSQL enabled.
 - An Ark API Key already exists and its **Name** is known. Do not use its plaintext,
   SID, or internal ID as the Name.
 - The account can query and create IAM Roles and attach system policies. The
@@ -76,7 +78,7 @@ selected config, never the template. Git ignores config files; do not commit or 
 ## Configuration
 
 Use `config.yaml` for the Harness system prompt, model, AgentLoop, Tools, Skills,
-MCP Servers, Environment and RuntimeTemplate resource specifications, Session
+MCP Servers, SessionStore, Environment and RuntimeTemplate resource specifications, Session
 title, prompt and response checks, and the Volcengine account AK/SK and Region.
 Explicit model CLI options and `--agent-loop` override YAML.
 Fields marked as required in the template must be filled in. Review fields
@@ -87,7 +89,10 @@ default Ark project is usually named `default`.
 
 `agent_loop` belongs to the Harness. RuntimeTemplate accepts `resources`,
 `image_url`, `envs`, and `runtime`. Environment uses `type: Cloud` plus
-`cpu_milli` and `memory_mb`. These levels match the control API request bodies.
+`cpu_milli` and `memory_mb`. The sample always creates a managed `SERVERLESS_PG`
+SessionStore. Public networking needs no additional values; private networking
+requires `use_private_network: true`, `vpc_id`, and exactly one `subnet_ids`
+entry. These levels match the control API request bodies.
 
 Before any network request or state write, the scripts validate AK/SK, model Key
 Name, model ID, and URL. Missing values, example placeholders, credentials with
@@ -122,9 +127,14 @@ The script:
 - Waits for the Cloud Environment's Sandbox to become ready.
 - Creates a Harness with the configured model, AgentLoop, System, Tools, Skills,
   and MCP Servers.
+- Creates a managed Serverless PostgreSQL SessionStore and polls
+  `GetSessionStore` until `Ready`. State stores only its ID and public metadata,
+  never database credentials.
 - Prepares the Runtime Role (reuse, or create and attach the Runtime policy),
   then creates a RuntimeTemplate from the configured resources, image, environment
-  variables, and Runtime object, then waits for `Ready`.
+  variables, and Runtime object, passes `SessionStoreId`, then waits for `Ready`.
+  AppO injects `DATABASE_POSTGRESQL_*` while creating the Runtime so the
+  AgentLoop persists Sessions.
 - Creates the Environment API Key bound to the Environment and Endpoint and
   writes its ID and one-time plaintext to `config.yaml`.
 - Creates the Session and writes its ID, name, and Endpoint `BaseUrl` to
@@ -233,9 +243,10 @@ Cleanup order:
 
 1. Delete any remaining Session, then delete the Environment API Key.
 2. Delete RuntimeTemplate and wait for Get to return 404.
-3. Internally clean up the Cloud Sandbox, then delete Environment.
-4. Archive Harness and retain Endpoint.
-5. Before exit, whether cleanup succeeds or fails, clear the API Key and Session runtime fields from YAML and `ENDPOINT`, `SESSION_ID`, and `ENV_API_KEY` from both `02_*.sh` scripts. Preserve all other script content. `--dry-run` leaves files unchanged.
+3. Delete SessionStore and wait for Get to return 404.
+4. Internally clean up the Cloud Sandbox, then delete Environment.
+5. Archive Harness and retain Endpoint.
+6. Before exit, whether cleanup succeeds or fails, clear the API Key and Session runtime fields from YAML and `ENDPOINT`, `SESSION_ID`, and `ENV_API_KEY` from both `02_*.sh` scripts. Preserve all other script content. `--dry-run` leaves files unchanged.
 
 Cleanup uses the YAML Key when an interrupted Session remains active.
 
@@ -246,13 +257,14 @@ Cleanup uses the YAML Key when an interrupted Session remains active.
 | `CreateEndpoint` returns 409 | List and reuse the existing Endpoint; this example handles the single-Endpoint case automatically |
 | `CreateAPIKey` reports `The number of the APIKey has exceeded the quota` | Raise the APIG `api_key-per-consumer` quota, or have resource owners remove confirmed unused Keys; never delete unknown Keys from other Environments |
 | RuntimeTemplate remains `Building` | Continue Get with the original ID; do not create another template with a new token |
+| SessionStore remains `Creating` | Call `GetSessionStore` with the ID in state; check Serverless PG quota, account billing, and VPC/subnet settings |
 | `x-ark-key-name` resolves zero or multiple Ark Keys | Use the unique complete Name in the same account, region, and project, not plaintext, SID, or a prefix |
 | Session returns `requires_action` | This basic example does not process client tool confirmation; use a tool-free Harness or implement the required protocol |
 | Environment deletion conflicts | Delete the Session and let cleanup finish the Cloud Sandbox first |
 
 ## Output and Timeouts
 
-- Script 01 has six steps: prepare Endpoint → create Environment and wait for Cloud Sandbox readiness → create Harness → create RuntimeTemplate (including IAM Role preparation) → create API Key → create Session. State initialization is silent. The final resource summary and invocation command are not numbered as a creation step. `--dry-run` follows the same order.
+- Script 01 has seven steps: prepare Endpoint → create Environment and wait for Cloud Sandbox readiness → create Harness → create SessionStore and wait for readiness → create RuntimeTemplate (including IAM Role preparation) → create API Key → create Session. State initialization is silent. The final resource summary and invocation command are not numbered as a creation step. `--dry-run` follows the same order.
 - Default output numbers creation, chat, and cleanup steps (`1, 2, 3…`). Each step keeps the resource name (when available), ID, core parameters, and status under one heading. Questions and answers use Chinese labels (`问 / 答`). Final summaries list names, IDs, and statuses without repeating parameters.
 - Reused, deleted, and skipped resources also include their identifiers; Sessions include their title. Older state files reuse saved names without inventing missing metadata. API Keys show only names, IDs, and bindings. `--dry-run` lists numbered actions and explicitly marks names and IDs as not yet obtained.
 - Creation requests (Endpoint, Environment, Harness, RuntimeTemplate, API Key, and Session), model conversations, and deletion waits use a single-line spinner in a terminal, then print the result once the target status (such as Ready) is reached. Redirected output and `--json` only log status changes. JSON events remain redacted and include a `step` field for numbered steps.

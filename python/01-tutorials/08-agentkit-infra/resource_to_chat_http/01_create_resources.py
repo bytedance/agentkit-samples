@@ -64,6 +64,7 @@ def main() -> None:
                 "准备 Endpoint（选择已有或创建）",
                 "创建 Cloud Environment，等待 Environment 和 Cloud Sandbox 就绪",
                 "创建 Harness",
+                "创建 SERVERLESS_PG SessionStore 并等待就绪",
                 "准备 Runtime IAM Role（复用或创建并授权），创建 RuntimeTemplate 并等待就绪",
                 "创建 Environment API Key 并保存到 config.yaml",
                 "创建 Session，保存到 config.yaml 并回填两个固定 shell 脚本的连接配置",

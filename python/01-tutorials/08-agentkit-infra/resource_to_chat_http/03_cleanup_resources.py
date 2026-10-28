@@ -19,6 +19,7 @@ def main() -> None:
             actions=[
                 "检查 Session / 清理残留 API Key",
                 "DeleteRuntimeTemplate / 等待删除完成",
+                "DeleteSessionStore / 等待删除完成",
                 "清理 Environment 及其 Cloud Sandbox",
                 "ArchiveHarness",
                 "retain Endpoint",

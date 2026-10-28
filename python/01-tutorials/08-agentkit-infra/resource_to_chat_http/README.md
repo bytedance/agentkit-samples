@@ -6,13 +6,14 @@
 2. 创建或复用 Endpoint。
 3. 创建 Cloud Environment，并等待 Cloud Sandbox 就绪。
 4. 创建 Harness。
-5. 创建 RuntimeTemplate，在该阶段准备 `AgentKitDefaultRuntimeAccess` 角色。
-6. 创建 Environment API Key，并将 ID 和明文写入 `config.yaml`。
-7. 使用 Endpoint `BaseUrl` 和 Environment Key 创建 Session，并将其信息写入
+5. 创建托管 `SERVERLESS_PG` SessionStore，并等待 `Ready`。
+6. 创建 RuntimeTemplate，关联 SessionStore，并准备 `AgentKitDefaultRuntimeAccess` 角色。
+7. 创建 Environment API Key，并将 ID 和明文写入 `config.yaml`。
+8. 使用 Endpoint `BaseUrl` 和 Environment Key 创建 Session，并将其信息写入
    `config.yaml`。
-8. 发送用户消息，读取真实模型回复。
-9. 可重复执行对话；最后删除 Environment Key、RuntimeTemplate 和 Environment，
-   归档 Harness。
+9. 发送用户消息，读取真实模型回复。
+10. 可重复执行对话；最后删除 Environment Key、RuntimeTemplate、SessionStore 和
+    Environment，归档 Harness。
 
 Endpoint 是账号级共享入口，清理脚本默认保留。
 
@@ -47,7 +48,8 @@ Endpoint 是账号级共享入口，清理脚本默认保留。
 ## 前置条件
 
 - 控制面账号已开通目标 Service。
-- 账号拥有创建 Endpoint、Environment、Harness、RuntimeTemplate 和 API Key 的权限。
+- 账号拥有创建 Endpoint、Environment、Harness、SessionStore、RuntimeTemplate 和
+  API Key 的权限，并已开通 Serverless PostgreSQL。
 - 已存在一个方舟 API Key，并知道它的 **Name**。这里不是 Key 明文、SID 或内部 ID。
 - 账号拥有 IAM Role 查询、创建和附加系统策略的权限。示例会复用或创建
   `AgentKitDefaultRuntimeAccess`，并在新建时附加
@@ -74,8 +76,8 @@ cp -n ../config.yaml.example ../config.yaml
 ## 配置
 
 在 `config.yaml` 中声明 Harness 的系统提示词、模型、AgentLoop、Tools、Skills、
-MCP Servers，Environment 和 RuntimeTemplate 的资源规格，以及火山账号 AK/SK
-和 Region，以及 Session 的标题、Prompt 和回复校验规则。命令行模型参数和
+MCP Servers，SessionStore、Environment 和 RuntimeTemplate 的资源规格，以及火山
+账号 AK/SK 和 Region，以及 Session 的标题、Prompt 和回复校验规则。命令行模型参数和
 `--agent-loop` 优先于 YAML。
 模板中标为“必填”的字段必须由用户填写；标为“按环境确认”的字段应按目标账号和
 地域调整；`environment.env_api_key` 及 `session` 下的 `id`、`name`、
@@ -84,7 +86,9 @@ MCP Servers，Environment 和 RuntimeTemplate 的资源规格，以及火山账�
 
 `agent_loop` 属于 Harness。RuntimeTemplate 支持 `resources`、`image_url`、
 `envs` 和 `runtime`；Environment 使用 `type: Cloud` 以及
-`cpu_milli`/`memory_mb`。这些层级与控制面 API 请求体一致。
+`cpu_milli`/`memory_mb`。SessionStore 固定创建托管 `SERVERLESS_PG`；公网模式无需
+额外网络参数，私网模式必须设置 `use_private_network: true`、`vpc_id` 和且仅一个
+`subnet_ids`。这些层级与控制面 API 请求体一致。
 
 真实执行前会一次性校验 AK/SK、模型 Key Name、模型 Agent Name 和 URL。缺失值、示例
 占位符、含空白凭据或非法 Key Name 会在任何网络调用和状态写入前终止。
@@ -116,9 +120,12 @@ python 01_create_resources.py \
 - `CreateEnvironment` 使用 `config.yaml` 的 Environment 规格。
 - 等待 Cloud Environment 的 Sandbox 就绪。
 - `CreateHarness` 使用 YAML 中的模型、AgentLoop、System、Tools、Skills 和 MCP。
+- `CreateSessionStore` 创建托管 Serverless PostgreSQL，轮询 `GetSessionStore`
+  直到 `Ready`。状态文件只保存其 ID 和公开元数据，不保存数据库凭据。
 - 准备 RuntimeTemplate 时查询固定名称 Runtime Role，不存在时创建并附加 Runtime 系统策略。
   `CreateRuntimeTemplate` 使用 YAML 中的资源、镜像、环境变量和 Runtime 配置，
-  并等待状态从 `Building` 变为 `Ready`。
+  传入 `SessionStoreId`，并等待状态从 `Building` 变为 `Ready`。AppO 在创建
+  Runtime 时注入 `DATABASE_POSTGRESQL_*`，AgentLoop 据此持久化 Session。
 - `CreateAPIKey` 创建绑定当前 Environment 和 Endpoint 的数据面 Key，并将 ID
   和只返回一次的明文写入 `config.yaml`。
 - `POST /v1/sessions` 创建 Session，并将 ID、名称和 Endpoint `BaseUrl` 写入
@@ -225,9 +232,10 @@ python 03_cleanup_resources.py
 
 1. 删除残留 Session，再删除 Environment API Key。
 2. 删除 RuntimeTemplate，并等待 Get 返回 404。
-3. 在内部清理 Cloud Sandbox，再删除 Environment。
-4. 归档 Harness，保留账号级 Endpoint。
-5. 无论清理成功与否，退出前清空 YAML 中的 API Key 和 Session 运行时字段，以及两个 `02_*.sh` 中的 `ENDPOINT`、`SESSION_ID`、`ENV_API_KEY`；保留脚本其他内容。`--dry-run` 不修改文件。
+3. 删除 SessionStore，并等待 Get 返回 404。
+4. 在内部清理 Cloud Sandbox，再删除 Environment。
+5. 归档 Harness，保留账号级 Endpoint。
+6. 无论清理成功与否，退出前清空 YAML 中的 API Key 和 Session 运行时字段，以及两个 `02_*.sh` 中的 `ENDPOINT`、`SESSION_ID`、`ENV_API_KEY`；保留脚本其他内容。`--dry-run` 不修改文件。
 
 存在残留 Session 时，脚本使用 YAML 中保存的 Key 完成删除。
 
@@ -238,13 +246,14 @@ python 03_cleanup_resources.py
 | `CreateEndpoint` 返回 409 | 运行 `ListEndpoints` 并复用已有 Endpoint；本案例已自动处理单 Endpoint 场景 |
 | `CreateAPIKey` 报 `The number of the APIKey has exceeded the quota` | 提升 APIG 的 `api_key-per-consumer` 配额，或由资源所有者删除确认不再使用的 Key；不得删除其他环境的未知 Key |
 | RuntimeTemplate 长时间 `Building` | 用状态文件中的原 ID 继续调用 `GetRuntimeTemplate`，不要换 token 重建 |
+| SessionStore 长时间 `Creating` | 用状态文件中的原 ID 调用 `GetSessionStore`；确认 Serverless PG 配额、欠费状态及 VPC/子网配置 |
 | `x-ark-key-name` 对应零条或多条 Ark Key | 使用当前账号、地域和项目内唯一的完整 Name，不使用明文、SID 或前缀 |
 | Session 返回 `requires_action` | 当前基础案例不处理客户端工具确认；改用无工具 Harness，或实现对应确认/工具结果协议 |
 | Environment 删除冲突 | 先删除 Session，并等待脚本完成 Cloud Sandbox 清理 |
 
 ## 输出与超时
 
-- 01 创建脚本固定为 6 步：准备 Endpoint → 创建 Environment 并等待 Cloud Sandbox 就绪 → 创建 Harness → 创建 RuntimeTemplate（包含 IAM Role 准备）→ 创建 API Key → 创建 Session。状态文件静默初始化；最后单独汇总资源并提示调用命令，不再编号为创建步骤。`--dry-run` 使用相同顺序。
+- 01 创建脚本固定为 7 步：准备 Endpoint → 创建 Environment 并等待 Cloud Sandbox 就绪 → 创建 Harness → 创建 SessionStore 并等待就绪 → 创建 RuntimeTemplate（包含 IAM Role 准备）→ 创建 API Key → 创建 Session。状态文件静默初始化；最后单独汇总资源并提示调用命令，不再编号为创建步骤。`--dry-run` 使用相同顺序。
 - 默认按 `1、2、3…` 编号展示创建、调用和清理步骤。每步在同一标题下列出资源的 name（有则展示）、id、核心配置/参数及状态，不再拆分“创建 / 已创建”标题；对话内容以“问 / 答”打印。汇总保留各资源的名称、ID 和状态，避免重复配置。
 - 删除、复用和跳过也展示资源标识；Session 另列 title。旧状态文件优先复用已保存的名称，未记录的信息不补造。API Key 仅展示名称、ID 和绑定关系，不展示明文。`--dry-run` 只列编号计划，并说明尚未获取名称和 ID。
 - 创建请求（含 Endpoint、Environment、Harness、RuntimeTemplate、API Key、Session）、模型对话和删除等待均在终端单行转圈，达到 Ready 等目标状态后打印结果并继续；重定向输出和 `--json` 模式只记录状态变化，不重复刷屏。`--json` 保留脱敏 JSON 事件，步骤编号放在 `step` 字段中。

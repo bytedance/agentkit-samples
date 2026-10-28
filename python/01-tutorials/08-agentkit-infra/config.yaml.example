@@ -56,6 +56,13 @@ harness:
   skills: []
   mcp_servers: []
 
+session_store:
+  project_name: "default" # Serverless PG 所属项目
+  network:
+    use_private_network: false # false 使用公网连接
+    vpc_id: "" # 私网模式必填
+    subnet_ids: [] # 私网模式必须且只能填写一个子网
+
 runtime_template:
   role_name: "AgentKitDefaultRuntimeAccess"
   network:

@@ -236,6 +236,7 @@ def new_state(
         "names": {
             "environment": f"{base}-env",
             "harness": f"{base}-harness",
+            "session_store": f"{prefix[:17]}-{run_id}-store",
             "runtime_template": f"{base}-runtime",
             "api_key": f"{base}-key",
         },
@@ -281,6 +282,7 @@ RESOURCE_LABELS = {
     "environment": "Environment",
     "environment_resource": "EnvironmentResource",
     "harness": "Harness",
+    "session_store": "SessionStore",
     "runtime_template": "RuntimeTemplate",
     "api_key": "API Key",
     "session": "Session",

@@ -340,6 +340,77 @@ def _wait_environment_resource(
     return ready
 
 
+def _create_session_store(
+    client: TopClient,
+    state: dict[str, Any],
+    config: ExampleConfig,
+    *,
+    json_output: bool,
+) -> dict[str, Any]:
+    """创建托管 Serverless PG SessionStore，并等待服务完成异步准备。"""
+
+    request: dict[str, Any] = {
+        "ProjectName": config.session_store.project_name,
+        "Name": state["names"]["session_store"],
+        "Description": "Harness Infra resource-to-chat HTTP tutorial",
+        "ProviderType": "SERVERLESS_PG",
+    }
+    if config.session_store.vpc_id:
+        request["VpcConfig"] = {
+            "VpcId": config.session_store.vpc_id,
+            "SubnetIds": config.session_store.subnet_ids,
+        }
+    with wait_progress("创建 SessionStore", json_output=json_output):
+        created = client.call("CreateSessionStore", request)
+    session_store_id = created.get("SessionStoreId")
+    if not isinstance(session_store_id, str) or not session_store_id:
+        raise RuntimeError("CreateSessionStore response is missing SessionStoreId")
+    if created.get("ProviderType") != "SERVERLESS_PG":
+        raise RuntimeError("CreateSessionStore did not return SERVERLESS_PG")
+    update_resource(
+        state,
+        "session_store",
+        {
+            "id": session_store_id,
+            "name": created.get("Name") or state["names"]["session_store"],
+            "parameters": {
+                "ProjectName": config.session_store.project_name,
+                "ProviderType": "SERVERLESS_PG",
+                "VpcId": config.session_store.vpc_id,
+            },
+            "status": created.get("Status"),
+            "owned": True,
+        },
+    )
+    ready = wait_until(
+        lambda: client.call(
+            "GetSessionStore",
+            {"SessionStoreId": session_store_id},
+        ),
+        lambda value: (
+            value.get("Status") == "Ready"
+            and value.get("ProviderType") == "SERVERLESS_PG"
+        ),
+        lambda value: (
+            str(value.get("Status"))
+            if value.get("Status") in {"Failed", "Deleting", "Deleted"}
+            else None
+        ),
+        description="SessionStore Ready",
+        json_output=json_output,
+        report_result=False,
+    )
+    if ready.get("SessionStoreId") != session_store_id:
+        raise RuntimeError("GetSessionStore returned a mismatched SessionStoreId")
+    update_resource(
+        state,
+        "session_store",
+        {"id": session_store_id, "status": "Ready", "owned": True},
+    )
+    report_resource(state, "session_store", json_output=json_output)
+    return ready
+
+
 def create_resources(
     client: TopClient,
     state: dict[str, Any],
@@ -467,9 +538,22 @@ def create_resources(
 
     emit(
         "request",
-        "创建 RuntimeTemplate",
+        "创建 SessionStore",
         json_output=json_output,
         step=4,
+    )
+    session_store = _create_session_store(
+        client,
+        state,
+        config,
+        json_output=json_output,
+    )
+
+    emit(
+        "request",
+        "创建 RuntimeTemplate",
+        json_output=json_output,
+        step=5,
     )
     with wait_progress("准备 Runtime IAM Role", json_output=json_output):
         role_name, reused = ensure_runtime_role(
@@ -491,6 +575,7 @@ def create_resources(
         "Resources": config.runtime_template.resources,
         "Meta": {"purpose": "resource-to-chat-tutorial"},
         "ClientToken": tokens["runtime_create"],
+        "SessionStoreId": session_store["SessionStoreId"],
     }
     if config.runtime_template.image_url is not None:
         runtime_request["ImageUrl"] = config.runtime_template.image_url
@@ -516,6 +601,7 @@ def create_resources(
                 "ImageUrl": config.runtime_template.image_url,
                 "Envs": config.runtime_template.envs,
                 "Runtime": config.runtime_template.runtime,
+                "SessionStoreId": session_store["SessionStoreId"],
             },
             "status": runtime.get("Status"),
             "owned": True,
@@ -542,7 +628,7 @@ def create_resources(
         "request",
         "创建 Environment API Key",
         json_output=json_output,
-        step=5,
+        step=6,
     )
     endpoint = state["resources"]["endpoint"]
     with wait_progress("创建 Environment API Key", json_output=json_output):
@@ -581,7 +667,7 @@ def create_resources(
         "request",
         "创建 Session",
         json_output=json_output,
-        step=6,
+        step=7,
     )
     data = DataPlaneClient(endpoint["base_url"], environment_key)
     with wait_progress("创建 Session", json_output=json_output):
@@ -643,6 +729,7 @@ def create_resources(
                 "endpoint",
                 "environment",
                 "harness",
+                "session_store",
                 "runtime_template",
                 "api_key",
                 "session",
@@ -996,6 +1083,34 @@ def cleanup_resources(
             result="不存在或已删除，跳过",
         )
 
+    emit("step", "删除 SessionStore", json_output=json_output, step=3)
+    session_store = resources.get("session_store") or {}
+    if session_store.get("id") and session_store.get("status") != "deleted":
+        _delete_top_and_wait_not_found(
+            client,
+            delete_action="DeleteSessionStore",
+            delete_body={"SessionStoreId": session_store["id"]},
+            get_action="GetSessionStore",
+            get_body={"SessionStoreId": session_store["id"]},
+            description="SessionStore",
+            json_output=json_output,
+        )
+        update_resource(
+            state,
+            "session_store",
+            {**session_store, "status": "deleted"},
+        )
+        report_resource(
+            state, "session_store", json_output=json_output, result="已删除"
+        )
+    else:
+        report_resource(
+            state,
+            "session_store",
+            json_output=json_output,
+            result="不存在或已删除，跳过",
+        )
+
     resource = resources.get("environment_resource") or {}
     if resource.get("id") and resource.get("status") != "Deleted":
         try:
@@ -1035,7 +1150,7 @@ def cleanup_resources(
             },
         )
 
-    emit("step", "删除 Environment", json_output=json_output, step=3)
+    emit("step", "删除 Environment", json_output=json_output, step=4)
     environment = resources.get("environment") or {}
     if environment.get("id") and environment.get("status") != "deleted":
         _delete_top_and_wait_not_found(
@@ -1061,7 +1176,7 @@ def cleanup_resources(
             state, "environment", json_output=json_output, result="不存在或已删除，跳过"
         )
 
-    emit("step", "归档 Harness", json_output=json_output, step=4)
+    emit("step", "归档 Harness", json_output=json_output, step=5)
     harness = resources.get("harness") or {}
     if harness.get("id") and harness.get("status") not in {"Archived", "not_found"}:
         try:
@@ -1102,7 +1217,7 @@ def cleanup_resources(
         "completed",
         "本轮资源清理完成（保留 Endpoint）",
         json_output=json_output,
-        step=5,
+        step=6,
         resources=[
             {
                 **resource_info(state, key, compact=True),
@@ -1112,6 +1227,7 @@ def cleanup_resources(
                 "endpoint",
                 "environment",
                 "harness",
+                "session_store",
                 "runtime_template",
                 "api_key",
                 "session",

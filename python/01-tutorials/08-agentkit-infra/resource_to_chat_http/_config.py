@@ -61,6 +61,13 @@ class RuntimeTemplateConfig:
 
 
 @dataclass(frozen=True)
+class SessionStoreConfig:
+    project_name: str
+    vpc_id: str
+    subnet_ids: list[str]
+
+
+@dataclass(frozen=True)
 class EnvironmentConfig:
     type: str
     resources: dict[str, int]
@@ -77,6 +84,7 @@ class ExampleConfig:
     control: ControlConfig
     session: SessionConfig
     harness: HarnessConfig
+    session_store: SessionStoreConfig
     runtime_template: RuntimeTemplateConfig
     environment: EnvironmentConfig
 
@@ -416,6 +424,45 @@ def _runtime_template_config(raw: dict[str, Any]) -> RuntimeTemplateConfig:
     )
 
 
+def _session_store_config(raw: dict[str, Any]) -> SessionStoreConfig:
+    session_store = _mapping(raw.get("session_store", {}), "session_store")
+    network = _mapping(session_store.get("network", {}), "session_store.network")
+    use_private_network = network.get("use_private_network", False)
+    if not isinstance(use_private_network, bool):
+        raise TypeError("session_store.network.use_private_network must be a boolean")
+    vpc_id = _string(
+        network.get("vpc_id"),
+        "session_store.network.vpc_id",
+        allow_empty=True,
+    )
+    raw_subnet_ids = _list(
+        network.get("subnet_ids", []),
+        "session_store.network.subnet_ids",
+    )
+    if not all(isinstance(item, str) and item.strip() for item in raw_subnet_ids):
+        raise RuntimeError(
+            "session_store.network.subnet_ids must contain non-empty strings"
+        )
+    subnet_ids = [item.strip() for item in raw_subnet_ids]
+    if use_private_network:
+        if not vpc_id or len(subnet_ids) != 1:
+            raise RuntimeError(
+                "private SessionStore requires vpc_id and exactly one subnet_id"
+            )
+    elif vpc_id or subnet_ids:
+        raise RuntimeError(
+            "set session_store.network.use_private_network to use VPC settings"
+        )
+    return SessionStoreConfig(
+        project_name=_string(
+            session_store.get("project_name", "default"),
+            "session_store.project_name",
+        ),
+        vpc_id=vpc_id,
+        subnet_ids=subnet_ids,
+    )
+
+
 def _environment_config(raw: dict[str, Any]) -> EnvironmentConfig:
     environment = _mapping(raw.get("environment"), "environment")
     resources = _mapping(environment.get("resources"), "environment.resources")
@@ -477,6 +524,7 @@ def validated_config(
             model_api_key_name=model_api_key_name,
             require_model_key_name=require_model_key_name,
         ),
+        session_store=_session_store_config(raw),
         runtime_template=_runtime_template_config(raw),
         environment=_environment_config(raw),
     )

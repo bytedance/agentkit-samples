@@ -203,6 +203,14 @@ class FlowTests(unittest.TestCase):
                         "skills": [],
                         "mcp_servers": [],
                     },
+                    "session_store": {
+                        "project_name": "default",
+                        "network": {
+                            "use_private_network": False,
+                            "vpc_id": "",
+                            "subnet_ids": [],
+                        },
+                    },
                     "runtime_template": {
                         "role_name": "AgentKitDefaultRuntimeAccess",
                         "resources": {
@@ -371,6 +379,28 @@ class FlowTests(unittest.TestCase):
                         "HarnessId": "agent_demo",
                         "HarnessVersion": 1,
                         "Status": "Active",
+                    }
+                ),
+            ),
+            (
+                200,
+                top(
+                    {
+                        "SessionStoreId": "ss_demo",
+                        "Name": "offline-store",
+                        "ProviderType": "SERVERLESS_PG",
+                        "Status": "Creating",
+                    }
+                ),
+            ),
+            (
+                200,
+                top(
+                    {
+                        "SessionStoreId": "ss_demo",
+                        "Name": "offline-store",
+                        "ProviderType": "SERVERLESS_PG",
+                        "Status": "Ready",
                     }
                 ),
             ),
@@ -553,6 +583,17 @@ class FlowTests(unittest.TestCase):
             [
                 (200, top({"RuntimeTemplateId": "rt_demo"})),
                 (404, top_error("ResourceNotFound")),
+                (
+                    200,
+                    top(
+                        {
+                            "SessionStoreId": "ss_demo",
+                            "ProviderType": "SERVERLESS_PG",
+                            "Status": "Deleting",
+                        }
+                    ),
+                ),
+                (404, top_error("ResourceNotFound")),
                 (200, top({"ResourceId": "er_demo"})),
                 (
                     200,
@@ -600,6 +641,8 @@ class FlowTests(unittest.TestCase):
                 "ListEnvironmentResources",
                 "GetEnvironmentResource",
                 "CreateHarness",
+                "CreateSessionStore",
+                "GetSessionStore",
                 "GetRole",
                 "CreateRuntimeTemplate",
                 "GetRuntimeTemplate",
@@ -620,11 +663,16 @@ class FlowTests(unittest.TestCase):
                 "BaseUrl": "https://ark.example.com/api/v3",
             },
         )
-        create_runtime = top_requests[7]["body"]
+        create_session_store = top_requests[6]["body"]
+        self.assertEqual(create_session_store["ProviderType"], "SERVERLESS_PG")
+        self.assertEqual(create_session_store["ProjectName"], "default")
+        self.assertNotIn("VpcConfig", create_session_store)
+        create_runtime = top_requests[9]["body"]
         self.assertEqual(
             create_runtime["RoleName"],
             "AgentKitDefaultRuntimeAccess",
         )
+        self.assertEqual(create_runtime["SessionStoreId"], "ss_demo")
         self.assertEqual(create_runtime["Resources"]["MemoryMiB"], 2048)
         self.assertNotIn("Envs", create_runtime)
         self.assertNotIn("Runtime", create_runtime)
@@ -669,12 +717,33 @@ class FlowTests(unittest.TestCase):
         state = json.loads(self.state.read_text())
         self.assertTrue(state["cleaned"])
         self.assertEqual(state["resources"]["runtime_template"]["status"], "deleted")
+        self.assertEqual(state["resources"]["session_store"]["status"], "deleted")
         self.assertEqual(
             state["resources"]["environment_resource"]["status"], "Deleted"
         )
         self.assertEqual(state["resources"]["environment"]["status"], "deleted")
         self.assertEqual(state["resources"]["harness"]["status"], "Archived")
         self.assertEqual(state["resources"]["endpoint"]["status"], "ready")
+        cleanup_actions = [
+            request["query"]["Action"]
+            for request in self.requests
+            if "Action" in request["query"]
+        ][-10:]
+        self.assertEqual(
+            cleanup_actions,
+            [
+                "DeleteAPIKey",
+                "DeleteRuntimeTemplate",
+                "GetRuntimeTemplate",
+                "DeleteSessionStore",
+                "GetSessionStore",
+                "DeleteEnvironmentResource",
+                "GetEnvironmentResource",
+                "DeleteEnvironment",
+                "GetEnvironment",
+                "ArchiveHarness",
+            ],
+        )
         cleared_config = yaml.safe_load(self.config.read_text())
         self.assertEqual(
             cleared_config["environment"]["env_api_key"],
@@ -1107,10 +1176,24 @@ class FlowTests(unittest.TestCase):
         self.assertEqual(self.requests, [])
         self.assertFalse(self.state.exists())
 
+    def test_long_prefix_keeps_session_store_name_within_provider_limit(self):
+        self.responses = self.create_responses()
+        self.call("create", "--prefix", "p" * 40)
+        request = next(
+            item
+            for item in self.requests
+            if item["query"].get("Action") == "CreateSessionStore"
+        )
+        self.assertLessEqual(len(request["body"]["Name"]), 48)
+        self.assertRegex(
+            request["body"]["Name"],
+            r"^p{17}-\d{14}-[a-f0-9]{8}-store$",
+        )
+
     def test_missing_runtime_role_is_created_before_runtime_template(self):
         responses = self.create_responses()
         self.responses = [
-            *responses[:6],
+            *responses[:8],
             (404, top_error("RoleNotExist")),
             (
                 200,
@@ -1123,27 +1206,33 @@ class FlowTests(unittest.TestCase):
                 ),
             ),
             (200, top({})),
-            *responses[7:],
+            *responses[9:],
         ]
         self.call("create")
         self.assertEqual(
-            [request["query"]["Action"] for request in self.requests[6:10]],
+            [request["query"]["Action"] for request in self.requests[8:12]],
             ["GetRole", "CreateRole", "AttachRolePolicy", "CreateRuntimeTemplate"],
         )
         self.assertEqual(
-            self.requests[8]["query"]["PolicyName"],
+            self.requests[10]["query"]["PolicyName"],
             "AgentKitDefaultRuntimeAccess",
         )
 
     def test_runtime_role_failure_keeps_created_resources_in_state(self):
         self.responses = [
-            *self.create_responses()[:6],
+            *self.create_responses()[:8],
             (403, top_error("AccessDenied", "role lookup denied")),
         ]
         output = self.call("create", code=1)
         self.assertIn("role lookup denied", output.stderr)
         resources = json.loads(self.state.read_text())["resources"]
-        for name in ("endpoint", "environment", "environment_resource", "harness"):
+        for name in (
+            "endpoint",
+            "environment",
+            "environment_resource",
+            "harness",
+            "session_store",
+        ):
             self.assertTrue(resources[name]["id"])
         self.assertNotIn("runtime_template", resources)
         self.assertEqual(self.requests[-1]["query"]["Action"], "GetRole")
@@ -1152,7 +1241,7 @@ class FlowTests(unittest.TestCase):
     def test_policy_attach_conflict_is_treated_as_idempotent_success(self):
         responses = self.create_responses()
         self.responses = [
-            *responses[:6],
+            *responses[:8],
             (404, top_error("RoleNotExist")),
             (
                 200,
@@ -1165,11 +1254,11 @@ class FlowTests(unittest.TestCase):
                 ),
             ),
             (409, top_error("PolicyAttachConflict")),
-            *responses[7:],
+            *responses[9:],
         ]
         self.call("create")
         self.assertEqual(
-            [request["query"]["Action"] for request in self.requests[6:10]],
+            [request["query"]["Action"] for request in self.requests[8:12]],
             ["GetRole", "CreateRole", "AttachRolePolicy", "CreateRuntimeTemplate"],
         )
 
