@@ -1,0 +1,37 @@
+version: 1.0.0
+agentPool: public/prod-v2-public
+stages:
+  - stage: java-compile-stage
+    displayName: Java 编译测试阶段
+    tasks:
+      - task: java-compile-task
+        displayName: Java 编译
+        timeout: 15m
+        resourcesPolicy: none
+        resources:
+          limits:
+            cpu: 1C
+            memory: 2Gi
+          storage:
+            sizeLimit: ""
+        workspace: {}
+        steps:
+          - step: java-compile
+            displayName: javac smoke compile
+            component: build@2.0.0/java
+            inputs:
+              version: "11"
+              cmd: |-
+                set -euo pipefail
+                echo "START java compile smoke"
+                cat > Hello.java <<'EOF'
+                public class Hello {
+                    public static void main(String[] args) {
+                        System.out.println("hello from cp java compile smoke");
+                    }
+                }
+                EOF
+                javac Hello.java
+                java Hello
+                test -f Hello.class
+                echo "END java compile smoke"

@@ -1,0 +1,42 @@
+{
+  "MetaInfo": {
+    "Name": "managed-app-demo",
+    "DisplayName": "Managed App Demo",
+    "Description": "Synthetic example; replace every placeholder before use",
+    "UserRoles": [
+      {
+        "User": {
+          "AccountId": 0,
+          "UserId": 0
+        },
+        "RoleNames": ["Administrator"],
+        "UserType": "User"
+      }
+    ],
+    "AppStack": "Other",
+    "DeployType": "K8sYaml"
+  },
+  "BasicConfig": {
+    "DeployType": "Image",
+    "ImageConfig": {
+      "Image": "registry.example.invalid/example-team/example-app:v1",
+      "ImageType": "Custom"
+    },
+    "VersionNumber": "v1",
+    "UseCustomSpecification": false,
+    "Specification": {
+      "InstanceNumber": 1,
+      "CPU": 0.5,
+      "Memory": 1
+    }
+  },
+  "AdvancedConfig": {},
+  "EnvConfig": {
+    "DeployResourceId": "00000000000000000000000000000000",
+    "Namespace": "replace-me",
+    "Name": "replace-me",
+    "DeployResourceType": "K8sYaml"
+  },
+  "EnvType": "DeployCluster",
+  "ReleaseStrategy": {"Type": "Rolling"}
+}

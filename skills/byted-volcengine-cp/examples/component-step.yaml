@@ -1,0 +1,7 @@
+step: synthetic-step
+displayName: Synthetic Step
+version: 1.0.0
+category: Other
+description: Replace this placeholder definition before use.
+image: alpine:3.20
+script: echo synthetic-step

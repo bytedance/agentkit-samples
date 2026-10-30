@@ -1,0 +1,35 @@
+# 原子模板：命令执行（shell）
+# 北京与柔佛生产环境的公共池均为 public/prod-v2-public。
+# 也可用 create_pipeline.py --auto-agent-pool 规范化公共池。
+# 其余 cmd 中的内容按需微调。
+version: 1.0.0
+agentPool: public/prod-v2-public
+stages:
+    - stage: stage-c8
+      displayName: 阶段stage-c8
+      tasks:
+        - task: task-c9
+          displayName: 命令执行
+          timeout: 2h
+          steps:
+            - step: step-c10
+              displayName: 命令执行
+              component: execCmd@1.0.0/shell
+              inputs:
+                cmd: |-
+                    echo hello
+
+                    for i in {1..3}; do
+                      sleep 1
+                      echo "第 ${i} 次输出日志"
+                      echo "---"
+                    done
+                shell: BASH
+          workspace: {}
+          resourcesPolicy: all
+          resources:
+            limits:
+                cpu: 1C
+                memory: 2Gi
+            storage:
+                sizeLimit: ""

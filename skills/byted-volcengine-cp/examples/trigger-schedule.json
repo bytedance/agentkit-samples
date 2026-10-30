@@ -1,0 +1,11 @@
+{
+  "Name": "nightly-demo",
+  "Description": "Synthetic schedule trigger",
+  "Type": "Schedule",
+  "Configuration": {
+    "Schedule": {
+      "ScheduleConfig": "0 2 * * *",
+      "SettingType": "crontab"
+    }
+  }
+}

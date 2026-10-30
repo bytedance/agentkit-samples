@@ -1,0 +1,21 @@
+# 原子模板：人工卡点（manual-approval）
+# 北京与柔佛生产环境的公共池均为 public/prod-v2-public。
+# 也可用 create_pipeline.py --auto-agent-pool 规范化公共池。
+# approvers 改成实际审批人 ID，格式为 <ACCOUNT_ID>,<USER_ID>；approvalType: Or/And；timeout 按需调整。
+version: 1.0.0
+agentPool: public/prod-v2-public
+stages:
+    - stage: stage-c2
+      displayName: 阶段stage-c2
+      tasks:
+        - task: task-c3
+          displayName: 人工卡点
+          component: manualApproval@1.0.0/manual-approval
+          inputs:
+            approvalType: Or
+            approvers:
+                - <ACCOUNT_ID>,<USER_ID>
+            notification:
+                enable: false
+            timeout: 2h
+          workspace: {}

@@ -22,6 +22,7 @@ repos:
       name: markdownlint-cli2
       entry: markdownlint-cli2
       language: node
+      language_version: "22.14.0"
       additional_dependencies:
         - markdownlint-cli2@0.18.1
       pass_filenames: false

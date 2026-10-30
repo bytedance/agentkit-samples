@@ -1,0 +1,43 @@
+# 原子模板：镜像构建并推送至镜像仓库（buildkit-cr）
+# 北京与柔佛生产环境的公共池均为 public/prod-v2-public。
+# 也可用 create_pipeline.py --auto-agent-pool 规范化公共池。
+# dockerfiles.default.content / namespace / region / registryInstance / repo / tag 按需微调。
+version: 1.0.0
+agentPool: public/prod-v2-public
+stages:
+    - stage: stage-c2
+      displayName: 阶段stage-c2
+      tasks:
+        - task: task-c3
+          displayName: 镜像构建推送至镜像仓库
+          timeout: 2h
+          steps:
+            - step: step-c1
+              displayName: 镜像构建推送至镜像仓库服务
+              component: build@2.0.0/buildkit-cr@4.0.0
+              inputs:
+                compression: gzip
+                contextPath: .
+                disableSSLVerify: false
+                dockerfiles:
+                    default:
+                        content: |-
+                            FROM alpine:3.20
+                            ENV APP_ENV=production
+                loginCredential: []
+                namespace: replace-me
+                region: cn-beijing
+                registryInstance: replace-me
+                repo: demo
+                tag: demo-tag
+                useCache: true
+          outputs:
+            - imageOutput_step-c1
+          workspace: {}
+          resourcesPolicy: all
+          resources:
+            limits:
+                cpu: 1C
+                memory: 2Gi
+            storage:
+                sizeLimit: ""

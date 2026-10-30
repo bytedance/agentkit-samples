@@ -1,0 +1,9 @@
+{
+  "Name": "synthetic-deploy-resource",
+  "Source": "VKE",
+  "VkeClusterId": "00000000000000000000000000000000",
+  "Region": "cn-beijing",
+  "Description": "Replace every placeholder before use",
+  "OnlyForSpecifiedWorkspaces": false,
+  "SpecifiedWorkspaceIds": []
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "CP CI/CD Manager"
+  short_description: "Manage production CP CI/CD with guarded writes"
+  default_prompt: "Use $byted-volcengine-cp to inspect or manage production CP CI/CD and dry-run any requested change."

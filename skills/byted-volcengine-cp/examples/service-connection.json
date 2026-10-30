@@ -1,0 +1,12 @@
+{
+  "Name": "synthetic-connection",
+  "Description": "Replace credential placeholders before local use",
+  "Type": "Git",
+  "URL": "https://example.invalid/repository.git",
+  "Credential": {
+    "Username": "replace-me",
+    "Password": ""
+  },
+  "IsAllWsShared": false,
+  "SharedWorkspaceIds": []
+}
