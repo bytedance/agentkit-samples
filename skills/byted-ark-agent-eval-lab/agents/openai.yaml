@@ -1,0 +1,4 @@
+interface:
+  display_name: "AML Agent Eval"
+  short_description: "设计 Agent 评测方案、执行单目标或对比评测，并分析结果"
+  default_prompt: "使用 $byted-ark-agent-eval-lab 帮助我完成 Agent 评测需求，按需设计方案、执行评测或分析结果。"
