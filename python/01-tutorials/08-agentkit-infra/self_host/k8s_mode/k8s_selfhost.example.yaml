@@ -1,0 +1,137 @@
+# Copy to k8s_selfhost.yaml and fill ONLY the three fields in stringData.
+# kubectl apply -f k8s_selfhost.yaml
+# Prerequisites: Linux/arm64 nodes, default StorageClass with POSIX flock,
+# outbound access to MA and CR, and an image that allows anonymous pulls.
+# This manifest does not create MA resources. Namespace is fixed below.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: harness-selfhost
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: selfhost-connection
+  namespace: harness-selfhost
+type: Opaque
+stringData:
+  # Fill here, once. Do not include shell exports or backslash escapes.
+  ANTHROPIC_BASE_URL: "https://replace-with-ma-endpoint.example"
+  ANTHROPIC_ENVIRONMENT_ID: "replace-with-environment-id"
+  ANTHROPIC_ENVIRONMENT_KEY: "replace-with-environment-key"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: selfhost-data
+  namespace: harness-selfhost
+spec:
+  accessModes:
+    - ReadWriteOnce
+  # Omitted means the cluster's default StorageClass. If none exists,
+  # set storageClassName to your persistent POSIX-compatible storage class.
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: selfhost-backend
+  namespace: harness-selfhost
+spec:
+  # A shared data directory has an exclusive dispatcher lock.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: selfhost-backend
+  template:
+    metadata:
+      labels:
+        app: selfhost-backend
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 45
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      nodeSelector:
+        kubernetes.io/os: linux
+        # amd64: kubernetes.io/arch: amd64
+        kubernetes.io/arch: arm64
+      containers:
+        - name: backend
+          # amd64 image: agentkit-platform-2116711330-cn-beijing.cr.volces.com/agentkit/harness-selfhosted-process@sha256:6c7f13e39ce0e638a38da808704a4da451be7accda721571a9ae1c6c736a8528
+          image: agentkit-platform-2116711330-cn-beijing.cr.volces.com/agentkit/harness-selfhosted-process@sha256:4a1b575aa0842c98e26c9647c3483bb0e8ddc053ecc4c29548feb4cc26d0234e
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          envFrom:
+            - secretRef:
+                name: selfhost-connection
+          env:
+            # Explicit legacy names also support the published runtime.
+            - name: MA_ENVIRONMENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: selfhost-connection
+                  key: ANTHROPIC_ENVIRONMENT_ID
+            - name: MA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: selfhost-connection
+                  key: ANTHROPIC_ENVIRONMENT_KEY
+            - name: MANAGED_AGENT_API_MODE
+              value: oma
+            - name: MANAGED_AGENT_AUTH_HEADER
+              value: x-api-key
+            - name: PROCESS_DATA_DIR
+              value: /data/process-backend
+            - name: PROCESS_MAX_WORKERS
+              value: "10"
+            - name: WORKER_MAX_IDLE
+              value: 1200s
+            - name: PROCESS_STOP_GRACE
+              value: 10s
+            - name: PORT
+              value: "8000"
+          resources:
+            requests:
+              cpu: "1"
+              memory: 2Gi
+            limits:
+              cpu: "4"
+              memory: 8Gi
+          ports:
+            - name: health
+              containerPort: 8000
+          startupProbe:
+            httpGet:
+              path: /health
+              port: health
+            failureThreshold: 30
+            periodSeconds: 2
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: health
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: health
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: selfhost-data
