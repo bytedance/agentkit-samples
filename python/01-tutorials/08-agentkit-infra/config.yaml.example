@@ -1,4 +1,5 @@
 version: 1
+workspace_id: "" # 可选：省略/为空时使用服务端唯一 ACTIVE DEFAULT Workspace
 
 volcengine:
   access_key: "your-volcengine-access-key" # 必填：火山账号 Access Key

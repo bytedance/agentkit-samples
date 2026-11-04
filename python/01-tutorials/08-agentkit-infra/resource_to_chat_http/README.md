@@ -1,5 +1,16 @@
 # Harness Infra：从资源创建到真实对话
 
+共享 YAML 新增可选的顶层 `workspace_id`；`HARNESS_INFRA_WORKSPACE_ID`
+（兼容 `AGENTKIT_WORKSPACE_ID`）优先。省略或为空时使用服务端唯一 ACTIVE DEFAULT。
+Harness、Environment、EnvironmentResource、RuntimeTemplate 和 Skills 的
+Create/Get/List（含版本）使用此范围，响应保留 `WorkspaceId`。
+首次 Environment 创建后会固定实际 Workspace；Session 请求使用 `workspace_id`，
+分页、轮询和清理保持同一范围。跨 Workspace 的 Get 返回资源不存在，
+`NextToken` 不能跨 Workspace 复用，请为每个 Workspace 使用独立配置和状态文件。
+Endpoint、APIKey、SessionStore 仍是账号级资源；Update/Delete/Archive 按 ID 定位。
+云 Tool/Runtime/Skill 的 ProjectName 由服务端根据 Workspace 解析，
+SessionStore 的 `project_name` 则独立配置。
+
 本案例使用纯 HTTP 完成 Harness Infra 的完整接入流程：
 
 1. 使用账号 AK/SK 调用控制面 TOP。

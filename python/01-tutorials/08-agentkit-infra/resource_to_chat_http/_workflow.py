@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import time
 import uuid
+from dataclasses import replace
 from typing import Any
 
 from _clients import DataPlaneClient, HarnessInfraError, TopClient
@@ -17,7 +18,12 @@ from _common import (
     wait_progress,
     wait_until,
 )
-from _config import ExampleConfig, persist_environment_api_key, persist_session
+from _config import (
+    ExampleConfig,
+    persist_environment_api_key,
+    persist_session,
+    persist_workspace,
+)
 from _curl import configure_session_curl_scripts
 from _display import display_selfhost_connection
 from _iam import ensure_runtime_role
@@ -458,6 +464,14 @@ def create_resources(
     environment_id = environment.get("EnvironmentId")
     if not isinstance(environment_id, str) or not environment_id:
         raise RuntimeError("CreateEnvironment response is missing EnvironmentId")
+    workspace_id = environment.get("WorkspaceId") or config.control.workspace_id
+    if workspace_id:
+        if config.control.workspace_id and config.control.workspace_id != workspace_id:
+            raise RuntimeError("Environment belongs to another Workspace")
+        client.config = replace(client.config, workspace_id=workspace_id)
+        config = replace(config, control=client.config)
+        state["control_scope"] = client.scope
+        state["workspace_id"] = workspace_id
     update_resource(
         state,
         "environment",
@@ -469,6 +483,8 @@ def create_resources(
             "owned": True,
         },
     )
+    if workspace_id:
+        persist_workspace(workspace_id)
     environment = wait_until(
         lambda: client.call("GetEnvironment", {"EnvironmentId": environment_id}),
         lambda value: value.get("Status") == "Active",
@@ -686,6 +702,8 @@ def create_resources(
             body={
                 "agent": {"type": "agent", "id": harness_id},
                 "environment_id": environment_id,
+                "workspace_id": environment.get("WorkspaceId")
+                or config.control.workspace_id,
                 "runtime_template_id": runtime_id,
                 "runtime_type": "agentkit_runtime",
                 "title": config.session.title,

@@ -15,6 +15,50 @@ from urllib.parse import quote, urlencode, urlsplit
 import requests
 
 API_VERSION = "2025-10-30"
+WORKSPACE_ACTIONS = {
+    "CreateHarness",
+    "GetHarness",
+    "ListHarnesses",
+    "ListHarnessVersions",
+    "CreateEnvironment",
+    "GetEnvironment",
+    "ListEnvironments",
+    "CreateEnvironmentResource",
+    "GetEnvironmentResource",
+    "ListEnvironmentResources",
+    "CreateRuntimeTemplate",
+    "GetRuntimeTemplate",
+    "ListRuntimeTemplates",
+    "CreateHarnessSkill",
+    "CreateHarnessSkillVersion",
+    "GetHarnessSkill",
+    "ListHarnessSkills",
+    "ListHarnessSkillVersions",
+}
+
+
+def workspace_body(
+    action: str, body: dict[str, Any], workspace_id: str = ""
+) -> dict[str, Any]:
+    """在签名前解析选择器；不修改调用者对象，拒绝空值类型和拼写冲突。"""
+    if action not in WORKSPACE_ACTIONS:
+        return body
+    values = ([workspace_id] if workspace_id else []) + [
+        body[key] for key in ("WorkspaceId", "workspace_id") if key in body
+    ]
+    if any(not isinstance(value, str) for value in values):
+        raise TypeError("WorkspaceId must be a string")
+    values = [value.strip() for value in values]
+    if len(set(values)) > 1:
+        raise ValueError("WorkspaceId selectors must match the configured workspace")
+    if not values:
+        return body
+    return {
+        **{key: value for key, value in body.items() if key != "workspace_id"},
+        "WorkspaceId": values[0],
+    }
+
+
 RETRYABLE_STATUS_CODES = {429, 503}
 
 
@@ -54,6 +98,7 @@ class ControlConfig:
     scheme: str = "https"
     session_token: str = ""
     api_version: str = API_VERSION
+    workspace_id: str = ""
 
 
 def _env(*names: str, default: str = "") -> str:
@@ -96,6 +141,7 @@ def control_config_from_env() -> ControlConfig:
             "or VOLCENGINE_ACCESS_KEY/VOLCENGINE_SECRET_KEY"
         )
     return ControlConfig(
+        workspace_id=_env("HARNESS_INFRA_WORKSPACE_ID", "AGENTKIT_WORKSPACE_ID"),
         access_key=access_key,
         secret_key=secret_key,
         session_token=_env(
@@ -304,12 +350,18 @@ class TopClient:
         return (
             f"{self.config.scheme}://{self.config.host}/"
             f"{self.config.region}/{self.config.service}/{self.config.api_version}"
+            + (
+                f"/workspace/{self.config.workspace_id}"
+                if self.config.workspace_id
+                else ""
+            )
         )
 
     def call(self, action: str, body: dict[str, Any]) -> dict[str, Any]:
         """发送一个 PascalCase 控制面请求并返回 Result。"""
 
         query = {"Action": action, "Version": self.config.api_version}
+        body = workspace_body(action, body, self.config.workspace_id)
         url = f"{self.config.scheme}://{self.config.host}/?" + urlencode(query)
         payload = json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode(
             "utf-8"

@@ -253,6 +253,13 @@ def _control_config(raw: dict[str, Any], *, require_credentials: bool) -> Contro
         access_key = _reject_placeholder("volcengine.access_key", access_key)
         secret_key = _reject_placeholder("volcengine.secret_key", secret_key)
     return ControlConfig(
+        workspace_id=_first_env(
+            "HARNESS_INFRA_WORKSPACE_ID",
+            "AGENTKIT_WORKSPACE_ID",
+            default=_string(
+                raw.get("workspace_id", ""), "workspace_id", allow_empty=True
+            ),
+        ),
         access_key=access_key,
         secret_key=secret_key,
         session_token=_first_env(
@@ -546,9 +553,12 @@ def _write_runtime_values(
     session_id: str | None = None,
     session_name: str | None = None,
     endpoint_base_url: str | None = None,
+    workspace_id: str | None = None,
 ) -> None:
     path = config_path()
     raw = _read_yaml()
+    if workspace_id is not None:
+        raw["workspace_id"] = workspace_id
     if environment_type is not None:
         if environment_type not in {"Cloud", "SelfHosted"}:
             raise RuntimeError("environment.type must be Cloud or SelfHosted")
@@ -598,7 +608,19 @@ def persist_environment_api_key(
     )
 
 
-def persist_session(session_id: str, name: str, endpoint_base_url: str) -> None:
+def persist_workspace(workspace_id: str) -> None:
+    """固定已创建资源的服务端归属，后续对话与清理使用同一 Workspace。"""
+    if workspace_id:
+        _write_runtime_values(workspace_id=workspace_id)
+
+
+def persist_session(
+    session_id: str,
+    name: str,
+    endpoint_base_url: str,
+    *,
+    workspace_id: str | None = None,
+) -> None:
     """将 01 创建的 Session 标识及其数据面地址写入 YAML。"""
 
     if not session_id or not endpoint_base_url:
@@ -607,6 +629,7 @@ def persist_session(session_id: str, name: str, endpoint_base_url: str) -> None:
         session_id=session_id,
         session_name=name,
         endpoint_base_url=endpoint_base_url,
+        workspace_id=workspace_id,
     )
 
 

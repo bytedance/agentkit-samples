@@ -1,5 +1,18 @@
 # Harness Infra: From Resource Creation to a Real Conversation
 
+Set optional top-level `workspace_id` in the shared YAML or override it with
+`HARNESS_INFRA_WORKSPACE_ID` (`AGENTKIT_WORKSPACE_ID` is also supported).
+Omission/empty selection uses the unique ACTIVE DEFAULT Workspace.
+Create/Get/List, including versions, for Harness, Environment,
+EnvironmentResource, RuntimeTemplate and Skills use this scope. Responses retain
+`WorkspaceId`; the workflow pins the Environment's returned ownership and sends
+`workspace_id` when creating Sessions. Keep pagination, polling and cleanup in
+the same Workspace and use separate config/state files. Cross-Workspace Get
+returns not found; NextToken is bound to its original Workspace.
+Endpoint, APIKey and SessionStore remain account resources. Update/Delete/Archive
+locate resources by ID. The server resolves cloud ProjectName from Workspace;
+SessionStore's project_name remains independently configured.
+
 This pure HTTP example covers the complete Harness Infra onboarding flow:
 
 1. Call the control-plane TOP endpoint with account AK/SK.

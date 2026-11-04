@@ -369,6 +369,7 @@ class Console:
                 "Target": {"Type": "AgentKit", "EnvironmentId": ""},
             },
             "sessions": {
+                "workspace_id": self.control.config.workspace_id,
                 "title": raw.get("session", {}).get("title", "Console chat"),
                 "agent": {"type": "agent", "id": ""},
                 "environment_id": "",

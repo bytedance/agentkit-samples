@@ -1,5 +1,10 @@
 # Harness Console
 
+控制台复用共享 YAML 顶层 `workspace_id` 或 `HARNESS_INFRA_WORKSPACE_ID`
+（兼容 `AGENTKIT_WORKSPACE_ID`）。Create/Get/List 使用配置范围，Session
+预设也包含 `workspace_id`；本地跟踪文件按 Workspace 分隔。
+默认选择由服务端解析，账号级资源与按 ID 更新/删除的接口保持原语义。
+
 读取本地 `config.yaml` 的资源管理网页和 Python server。复用同级 `resource_to_chat_http/_clients.py` 的 TOP 签名、HTTP 错误处理与数据面客户端，以及 `_config.py` 的配置字段转换；不改写原示例的配置或状态文件。
 
 ## 启动
