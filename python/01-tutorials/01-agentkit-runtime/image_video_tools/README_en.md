@@ -165,9 +165,9 @@ Current dependency versions:
 
 | Dependency | Version |
 | - | - |
-| `agentkit-sdk-python` | `0.5.10` |
-| `google-adk` | `1.32.0` |
-| `veadk-python` | `0.5.37` |
+| `agentkit-sdk-python` | `0.8.1` |
+| `google-adk` | `2.2.0` |
+| `veadk-python` | `1.0.10` |
 | `litellm` | pinned to `1.88.1` in `requirements.txt`, declared as a direct dependency in `pyproject.toml` |
 
 ### Environment Preparation

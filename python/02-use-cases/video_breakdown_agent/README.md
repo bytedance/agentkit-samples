@@ -523,13 +523,13 @@ Web 界面提供图形化对话测试环境，支持实时查看消息流和调�
 使用 `pip` 安装 AgentKit 命令行工具：
 
 ```bash
-pip install agentkit-sdk-python==0.5.1
+pip install agentkit-sdk-python==0.8.1
 ```
 
 或者使用 `uv` 安装 AgentKit 命令行工具：
 
 ```bash
-uv pip install agentkit-sdk-python==0.5.1
+uv pip install agentkit-sdk-python==0.8.1
 ```
 
 ### 设置环境变量
