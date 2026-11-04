@@ -1,4 +1,5 @@
 version: 1
+workspace_id: "" # 可选：为空时由服务端选择 DEFAULT Workspace
 
 volcengine:
   access_key: "your-volcengine-access-key" # 必填：火山账号 Access Key
@@ -6,6 +7,7 @@ volcengine:
   region: "cn-beijing" # 按环境确认
 
 runtime_template:
+  session_store_id: "" # 新模板必需：引用已 Ready 的账号级 SessionStore
   id: "" # 禁止手填：Create 写入，Delete 清空
   status: "" # 禁止手填：Create/Get/Update 写入，Delete 清空
   endpoint: "" # 禁止手填：用于防止跨 Endpoint 误操作

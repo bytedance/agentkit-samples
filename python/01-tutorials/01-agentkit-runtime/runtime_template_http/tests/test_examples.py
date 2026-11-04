@@ -96,6 +96,8 @@ class ContractHandler(BaseHTTPRequestHandler):
                 "Runtime": body.get("Runtime", {}),
                 "Meta": body.get("Meta", {}),
             }
+            if "WorkspaceId" in body:
+                type(self).template["WorkspaceId"] = body["WorkspaceId"]
             self._send(action, type(self).template)
             return
         if action == "GetRuntimeTemplate":
@@ -219,6 +221,7 @@ volcengine:
   secret_key: test-secret-key
   region: cn-beijing
 runtime_template:
+  session_store_id: ss-test
   id: ""
   status: ""
   endpoint: ""
@@ -267,8 +270,43 @@ runtime_template:
             )
         return result
 
+    def test_workspace_is_sent_for_create_and_reads_but_not_updates(self):
+        self.run_script(
+            "01_create_runtime_template.py", "--workspace-id", "ws-selected"
+        )
+        self.assertEqual(ContractHandler.requests[-1][1]["WorkspaceId"], "ws-selected")
+        self.run_script("02_get_runtime_template.py", "--workspace-id", "ws-selected")
+        self.assertEqual(ContractHandler.requests[-1][1]["WorkspaceId"], "ws-selected")
+        self.run_script(
+            "04_update_runtime_template.py",
+            "--workspace-id",
+            "ws-selected",
+            "--description",
+            "new",
+        )
+        self.assertNotIn("WorkspaceId", ContractHandler.requests[-1][1])
+
+    def test_saved_workspace_rejects_another_scope_before_update(self):
+        self.run_script("01_create_runtime_template.py", "--workspace-id", "ws-1")
+        root = yaml.safe_load(self.config.read_text())
+        self.assertEqual(root["workspace_id"], "ws-1")
+        self.assertEqual(root["runtime_template"]["workspace_id"], "ws-1")
+        before = len(ContractHandler.requests)
+        result = self.run_script(
+            "04_update_runtime_template.py",
+            "--workspace-id",
+            "ws-2",
+            "--description",
+            "new",
+            ok=False,
+        )
+        self.assertIn("another Workspace", result.stderr)
+        self.assertEqual(len(ContractHandler.requests), before)
+
     def test_create_loads_defaults_from_yaml_config(self) -> None:
         self.run_script("01_create_runtime_template.py")
+        self.assertEqual(ContractHandler.requests[-1][1]["SessionStoreId"], "ss-test")
+
         action, create, _headers = ContractHandler.requests[-1]
         self.assertEqual(action, "CreateRuntimeTemplate")
         self.assertRegex(

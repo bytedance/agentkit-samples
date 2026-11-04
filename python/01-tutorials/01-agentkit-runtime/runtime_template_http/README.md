@@ -1,5 +1,16 @@
 # 火山引擎 RuntimeTemplate HTTP API 示例
 
+使用 `--workspace-id <id>`、`HARNESS_INFRA_WORKSPACE_ID`（兼容
+`AGENTKIT_WORKSPACE_ID`）或 YAML 顶层 `workspace_id`，按此顺序优先。
+Create/Get/List 的请求发送 `WorkspaceId`，返回归属写回配置；
+未指定时使用服务端唯一 ACTIVE DEFAULT。分页和轮询必须使用同一 Workspace，
+跨 Workspace Get 返回不存在，NextToken 不能跨范围复用。
+Update/Delete 按模板 ID 定位。云 ProjectName 由服务端根据 Workspace 解析。
+
+新模板还必须通过 `--session-store-id`、`AGENTKIT_SESSION_STORE_ID` 或
+`runtime_template.session_store_id` 引用已 Ready 的账号级 SessionStore。
+该引用与 `DATABASE_POSTGRESQL_*` / `DATABASE_MYSQL_*` 环境变量互斥。
+
 [BytePlus English](README_en.md)
 
 本示例通过火山引擎 TOP HTTP 接口调用 RuntimeTemplate 完整生命周期，不依赖

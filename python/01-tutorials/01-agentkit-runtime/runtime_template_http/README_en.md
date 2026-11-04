@@ -1,5 +1,18 @@
 # BytePlus RuntimeTemplate HTTP API Example
 
+Select a Workspace with `--workspace-id <id>`, `HARNESS_INFRA_WORKSPACE_ID`
+(also `AGENTKIT_WORKSPACE_ID`), then top-level YAML `workspace_id`, in that order.
+Create/Get/List send `WorkspaceId`; returned ownership is saved to the config.
+Omission/empty selection uses the unique ACTIVE DEFAULT Workspace.
+Keep polling and pagination in the same scope. Cross-Workspace Get returns not
+found and NextToken cannot be reused in another Workspace. Update/Delete locate
+templates by ID. The server resolves cloud ProjectName from Workspace.
+
+New templates require a Ready account-level SessionStore reference via
+`--session-store-id`, `AGENTKIT_SESSION_STORE_ID`, or
+`runtime_template.session_store_id`. It cannot be combined with
+`DATABASE_POSTGRESQL_*` / `DATABASE_MYSQL_*` environment variables.
+
 [火山引擎中文](README.md)
 
 This example calls the complete RuntimeTemplate lifecycle through the BytePlus

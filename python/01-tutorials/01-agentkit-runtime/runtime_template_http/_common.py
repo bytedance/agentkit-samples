@@ -74,6 +74,9 @@ def parser(
 ) -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description=description)
     result.add_argument(
+        "--workspace-id", help="Workspace ID；省略时由服务端选择 DEFAULT"
+    )
+    result.add_argument(
         "--config",
         default=os.getenv(
             "AGENTKIT_RUNTIME_TEMPLATE_CONFIG",
@@ -179,6 +182,7 @@ def save_state(template: dict[str, Any]) -> Path:
         template["RuntimeTemplateId"],
         str(template.get("Status") or ""),
         endpoint_scope(),
+        workspace_id=template.get("WorkspaceId"),
     )
 
 
@@ -226,6 +230,16 @@ def event(
     response: dict[str, Any] | None = None,
     json_output: bool,
 ) -> None:
+    if action in {
+        "CreateRuntimeTemplate",
+        "GetRuntimeTemplate",
+        "ListRuntimeTemplates",
+    }:
+        workspace = os.getenv(
+            "HARNESS_INFRA_WORKSPACE_ID", os.getenv("AGENTKIT_WORKSPACE_ID", "")
+        ).strip()
+        if workspace:
+            body = {**body, "WorkspaceId": workspace}
     value: dict[str, Any] = {
         "Action": action,
         "Phase": phase,

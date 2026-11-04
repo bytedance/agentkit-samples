@@ -281,11 +281,46 @@ def _response_json(action: str, response: requests.Response) -> dict[str, Any]:
 class RuntimeTemplateHttpClient:
     """调用 RuntimeTemplate 五个公开 Action 的轻量 HTTP 客户端。"""
 
-    def __init__(self) -> None:
+    def __init__(self, workspace_id: str | None = None) -> None:
+        self.workspace_id = (
+            workspace_id
+            if workspace_id is not None
+            else os.getenv(
+                "HARNESS_INFRA_WORKSPACE_ID", os.getenv("AGENTKIT_WORKSPACE_ID", "")
+            )
+        ).strip()
         self.timeout = _positive_int_env("AGENTKIT_HTTP_TIMEOUT_SECONDS", 30)
         self.retries = _positive_int_env("AGENTKIT_HTTP_ATTEMPTS", 3)
 
     def call(self, action: str, body: dict[str, Any]) -> dict[str, Any]:
+        if action in {
+            "CreateRuntimeTemplate",
+            "GetRuntimeTemplate",
+            "ListRuntimeTemplates",
+        }:
+            selected = body.get(
+                "WorkspaceId", body.get("workspace_id", self.workspace_id)
+            )
+            if not isinstance(selected, str):
+                raise TypeError("WorkspaceId must be a string")
+            selectors = [
+                body[key].strip()
+                for key in ("WorkspaceId", "workspace_id")
+                if key in body and isinstance(body[key], str)
+            ]
+            if any(
+                not isinstance(body[key], str)
+                for key in ("WorkspaceId", "workspace_id")
+                if key in body
+            ):
+                raise TypeError("WorkspaceId must be a string")
+            if self.workspace_id:
+                selectors.append(self.workspace_id)
+            if len(set(selectors)) > 1:
+                raise ValueError("WorkspaceId selectors must match")
+            body = {key: value for key, value in body.items() if key != "workspace_id"}
+            if selected:
+                body["WorkspaceId"] = selected.strip()
         encoded = json.dumps(body, separators=(",", ":"), ensure_ascii=False).encode()
         endpoint = resolve_endpoint()
         query = {"Action": action, "Version": endpoint.version}

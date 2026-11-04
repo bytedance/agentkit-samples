@@ -32,6 +32,7 @@ class ControlConfig:
     access_key: str
     secret_key: str
     region: str
+    workspace_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -51,6 +52,8 @@ class RuntimeTemplateConfig:
     meta: dict[str, str]
     port: int | None
     start_command: str | None
+    session_store_id: str = ""
+    workspace_id: str = ""
 
     def generated_name(self) -> str:
         """生成账号内唯一且便于定位来源的模板名称。"""
@@ -155,6 +158,16 @@ def _runtime_config(raw: dict[str, Any]) -> RuntimeTemplateConfig:
             "runtime_template.runtime.start_command is not in the supported allowlist"
         )
     return RuntimeTemplateConfig(
+        workspace_id=_string(
+            runtime.get("workspace_id", ""),
+            "runtime_template.workspace_id",
+            allow_empty=True,
+        ),
+        session_store_id=_string(
+            runtime.get("session_store_id", ""),
+            "runtime_template.session_store_id",
+            allow_empty=True,
+        ),
         id=_string(
             runtime.get("id"),
             "runtime_template.id",
@@ -228,6 +241,9 @@ def load_config(argv: list[str] | None = None) -> ExampleConfig:
     return ExampleConfig(
         path=path,
         control=ControlConfig(
+            workspace_id=_string(
+                root.get("workspace_id", ""), "workspace_id", allow_empty=True
+            ),
             access_key=_string(
                 volcengine.get("access_key"),
                 "volcengine.access_key",
@@ -268,10 +284,16 @@ def persist_runtime_state(
     runtime_template_id: str,
     status: str,
     endpoint: str,
+    workspace_id: str | None = None,
 ) -> Path:
     """将服务端返回的最小运行时状态写回 config.yaml。"""
     path = config_path()
     root = _read_yaml(path)
+    if workspace_id:
+        root["workspace_id"] = workspace_id
+        _mapping(root.get("runtime_template"), "runtime_template")["workspace_id"] = (
+            workspace_id
+        )
     runtime = _mapping(root.get("runtime_template"), "runtime_template")
     runtime["id"] = runtime_template_id
     runtime["status"] = status
@@ -296,6 +318,24 @@ def clear_runtime_state(runtime_template_id: str) -> Path:
 def activate_control(config: ExampleConfig, *, require_credentials: bool) -> None:
     """将 YAML 控制面配置注入现有 HTTP/IAM 客户端的环境接口。"""
     control = config.control
+    pre_parser = argparse.ArgumentParser(add_help=False)
+    pre_parser.add_argument("--workspace-id")
+    selected, _ = pre_parser.parse_known_args()
+    workspace = selected.workspace_id
+    if workspace is None:
+        workspace = os.getenv(
+            "HARNESS_INFRA_WORKSPACE_ID",
+            os.getenv("AGENTKIT_WORKSPACE_ID", control.workspace_id),
+        )
+    os.environ["HARNESS_INFRA_WORKSPACE_ID"] = workspace.strip()
+    if (
+        config.runtime_template.id
+        and config.runtime_template.workspace_id
+        and workspace.strip() != config.runtime_template.workspace_id
+    ):
+        raise RuntimeError(
+            "runtime state belongs to another Workspace; use a separate configuration"
+        )
     provider = os.getenv("AGENTKIT_CLOUD_PROVIDER", "volcengine").strip().lower()
     if require_credentials and provider == "volcengine":
         for name, value in (

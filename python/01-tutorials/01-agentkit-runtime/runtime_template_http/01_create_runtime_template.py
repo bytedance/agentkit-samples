@@ -78,6 +78,11 @@ def main() -> None:
     )
     args_parser.add_argument("--port", type=positive_int, default=template.port)
     args_parser.add_argument(
+        "--session-store-id",
+        default=os.getenv("AGENTKIT_SESSION_STORE_ID", "") or template.session_store_id,
+        help="引用已 Ready 的账号级 SessionStore（新模板必需）",
+    )
+    args_parser.add_argument(
         "--start-command",
         default=template.start_command,
         choices=(
@@ -88,6 +93,15 @@ def main() -> None:
     )
     args = args_parser.parse_args()
     activate_control(config, require_credentials=not args.dry_run)
+    if not args.session_store_id and not args.dry_run:
+        raise RuntimeError(
+            "Set --session-store-id or runtime_template.session_store_id before creating a template"
+        )
+    if args.session_store_id and any(
+        name.upper().startswith(("DATABASE_POSTGRESQL_", "DATABASE_MYSQL_"))
+        for name in args.envs
+    ):
+        raise RuntimeError("SessionStoreId cannot be combined with database Envs")
 
     if args.min_replicas > args.max_replicas:
         raise RuntimeError("--max-replicas must be >= --min-replicas")
@@ -111,6 +125,8 @@ def main() -> None:
         "Meta": string_map(args.meta, "Meta"),
         "ClientToken": args.client_token,
     }
+    if args.session_store_id:
+        body["SessionStoreId"] = args.session_store_id
     if args.description is not None:
         body["Description"] = args.description
     if args.image_url is not None:
