@@ -1,5 +1,13 @@
 # EnvironmentResource HTTP examples
 
+All scripts accept `--workspace-id <id>`, ahead of `HARNESS_INFRA_WORKSPACE_ID`
+(also `AGENTKIT_WORKSPACE_ID`). Create/Get/List send PascalCase `WorkspaceId`
+before signing; polling and pagination reuse the same selection. Responses
+retain `workspace_id`. Omission/empty selection uses the unique ACTIVE DEFAULT
+Workspace. Cross-Workspace Get returns not found; NextToken is Workspace-bound.
+Use separate `AGENTKIT_RESOURCE_STATE` files for separate Workspaces.
+Update/Delete still locate resources by ID; the server resolves cloud ProjectName.
+
 These scripts call EnvironmentResource through a signed Volcengine/BytePlus TOP
 endpoint or a direct endpoint authenticated with an account-scoped API key.
 

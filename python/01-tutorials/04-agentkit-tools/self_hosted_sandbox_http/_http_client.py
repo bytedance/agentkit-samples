@@ -455,7 +455,12 @@ def normalize_resource_response(value: Any, path: tuple[str, ...] = ()) -> Any:
 class EnvironmentResourceHttpClient:
     """TOP uses AK/SK; direct HTTP uses an account-scoped API key."""
 
-    def __init__(self) -> None:
+    def __init__(self, workspace_id: str | None = None) -> None:
+        self.workspace_id = (
+            workspace_id
+            if workspace_id is not None
+            else _env("HARNESS_INFRA_WORKSPACE_ID") or _env("AGENTKIT_WORKSPACE_ID")
+        ).strip()
         self.direct = direct_base_url()
         self.endpoint = None if self.direct else resolve_endpoint()
         self.credentials = (
@@ -473,6 +478,18 @@ class EnvironmentResourceHttpClient:
 
     def call(self, action: str, body: dict[str, Any]) -> dict[str, Any]:
         wire_body = wire_request(body)
+        if action in {
+            "CreateEnvironmentResource",
+            "GetEnvironmentResource",
+            "ListEnvironmentResources",
+        }:
+            selected = wire_body.get("WorkspaceId", self.workspace_id)
+            if not isinstance(selected, str):
+                raise TypeError("workspace_id must be a string")
+            if self.workspace_id and selected.strip() != self.workspace_id:
+                raise ValueError("workspace_id conflicts with configured workspace")
+            if selected:
+                wire_body["WorkspaceId"] = selected.strip()
         payload = json.dumps(
             wire_body, ensure_ascii=False, separators=(",", ":")
         ).encode("utf-8")

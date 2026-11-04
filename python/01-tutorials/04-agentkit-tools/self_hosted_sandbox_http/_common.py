@@ -90,6 +90,20 @@ def operation_completed(value: dict[str, Any], wanted: str) -> bool:
 
 def emit(event: dict[str, Any], *, json_output: bool = False) -> None:
     """Show concise user-facing progress, or the full redacted JSON event."""
+    if (
+        event.get("action")
+        in {
+            "CreateEnvironmentResource",
+            "GetEnvironmentResource",
+            "ListEnvironmentResources",
+        }
+        and "body" in event
+    ):
+        workspace = os.getenv(
+            "HARNESS_INFRA_WORKSPACE_ID", os.getenv("AGENTKIT_WORKSPACE_ID", "")
+        ).strip()
+        if workspace:
+            event = {**event, "body": {**event["body"], "workspace_id": workspace}}
     if json_output:
         print_json(event)
         return
@@ -211,7 +225,10 @@ def parser(
     resource: bool = False,
     mutation: bool = False,
 ) -> argparse.ArgumentParser:
-    result = argparse.ArgumentParser(description=description)
+    result = WorkspaceArgumentParser(description=description)
+    result.add_argument(
+        "--workspace-id", help="Workspace ID；省略时由服务端选择 DEFAULT"
+    )
     result.add_argument(
         "--json",
         dest="json_output",
@@ -241,6 +258,16 @@ def parser(
             help="Poll Get after submitting the operation",
         )
     return result
+
+
+class WorkspaceArgumentParser(argparse.ArgumentParser):
+    """将本次脚本参数传递给公共 HTTP 客户端，轮询始终复用同一范围。"""
+
+    def parse_args(self, args=None, namespace=None):
+        parsed = super().parse_args(args, namespace)
+        if parsed.workspace_id is not None:
+            os.environ["HARNESS_INFRA_WORKSPACE_ID"] = parsed.workspace_id.strip()
+        return parsed
 
 
 def client_token(value: str) -> str:
@@ -322,6 +349,16 @@ def load_state() -> dict[str, Any]:
             "state belongs to another endpoint; select another AGENTKIT_RESOURCE_STATE "
             "or supply the resource ID explicitly"
         )
+    selected = os.getenv(
+        "HARNESS_INFRA_WORKSPACE_ID", os.getenv("AGENTKIT_WORKSPACE_ID", "")
+    ).strip()
+    saved = state.get("workspace_id", "")
+    if saved and selected and saved != selected:
+        raise RuntimeError(
+            "state belongs to another Workspace; use a separate state file"
+        )
+    if saved and not selected:
+        os.environ["HARNESS_INFRA_WORKSPACE_ID"] = saved
     return state
 
 
@@ -370,6 +407,7 @@ def save_resource(response: dict[str, Any]) -> None:
         key: response.get(key)
         for key in (
             "resource_id",
+            "workspace_id",
             "revision",
             "status",
             "desired_generation",

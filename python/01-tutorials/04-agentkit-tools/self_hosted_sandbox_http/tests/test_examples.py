@@ -198,6 +198,29 @@ class ProtocolTests(unittest.TestCase):
             )
         )
 
+    def test_workspace_parameter_reaches_get_and_list_but_not_update(self):
+        self.responses = [
+            (200, {"Result": {**resource(), "WorkspaceId": "ws-selected"}}),
+            (200, {"Result": {"Items": [], "NextToken": None}}),
+            (200, {"Result": {**resource(), "WorkspaceId": "ws-selected"}}),
+        ]
+        self.call("get", "--resource-id", "er_demo", "--workspace-id", "ws-selected")
+        self.assertEqual(self.requests[-1]["body"]["WorkspaceId"], "ws-selected")
+        self.call("list", "--workspace-id", "ws-selected")
+        self.assertEqual(self.requests[-1]["body"]["WorkspaceId"], "ws-selected")
+        self.call(
+            "update",
+            "--resource-id",
+            "er_demo",
+            "--expected-revision",
+            "1",
+            "--name",
+            "workspace-update",
+            "--workspace-id",
+            "ws-selected",
+        )
+        self.assertNotIn("WorkspaceId", self.requests[-1]["body"])
+
     def test_complete_lifecycle_uses_latest_wire_contract(self):
         self.responses = [
             (200, {"Result": resource("Creating", observed_generation=0)}),

@@ -1,5 +1,12 @@
 # EnvironmentResource HTTP 示例
 
+每个脚本新增 `--workspace-id <id>`，优先于 `HARNESS_INFRA_WORKSPACE_ID`
+（兼容 `AGENTKIT_WORKSPACE_ID`）。Create/Get/List 在签名前发送 `WorkspaceId`，
+轮询和所有分页使用同一选择器；响应内部保留 `workspace_id`。
+省略/空值使用服务端唯一 ACTIVE DEFAULT。跨 Workspace Get 返回不存在，
+NextToken 不能跨 Workspace 使用。缓存记录归属，跨 Workspace 请使用独立
+`AGENTKIT_RESOURCE_STATE`。Update/Delete 仍按 ID 定位；云项目归属由服务端解析。
+
 本目录通过 Volcengine/BytePlus TOP 签名入口或账号级 API Key 直连入口，演示
 EnvironmentResource 的创建、查询、分页、更新和删除。
 
