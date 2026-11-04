@@ -101,3 +101,24 @@ environment:
   env_api_key:
     id: "" # 禁止手填：01 自动写入，03 自动清空
     value: "" # 禁止手填：01 写入明文，02 复用，03 清空
+
+self_host:
+  agentkit_sandbox:
+    # 三项同时填写，或同时留空以复用资源教程 config.yaml 与状态文件。
+    base_url: "${ANTHROPIC_BASE_URL}"
+    environment_id: "${ANTHROPIC_ENVIRONMENT_ID}"
+    environment_key: "${ANTHROPIC_ENVIRONMENT_KEY}"
+    dispatcher_image: "enterprise-public-cn-beijing.cr.volces.com/vefaas-public/agentkit-selfhostsandbox:runtime-anthropic-sdk-20261103-a28aa9d7-59ee0972"
+    sandbox_image: "enterprise-public-cn-beijing.cr.volces.com/vefaas-public/agentkit-selfhostsandbox:tool-1.0.0"
+    sandbox_command: "/opt/gem/run.sh"
+    sandbox_port: 8080
+    role_name: "AgentKitDefaultRuntimeAccess"
+    project_name: "default"
+    name_prefix: "selfhost"
+    existing_tool_id: "" # 可选：显式复用同镜像/命令/端口/项目的 Ready 工具模板
+    dispatcher_cpu_milli: 1000
+    dispatcher_memory_mb: 2048
+    sandbox_cpu_milli: 2000
+    sandbox_memory_mb: 4096
+    ttl_seconds: 3600
+    idle_timeout_seconds: 180

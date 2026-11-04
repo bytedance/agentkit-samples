@@ -28,6 +28,11 @@ SessionStore 的 `project_name` 则独立配置。
 
 Endpoint 是账号级共享入口，清理脚本默认保留。
 
+选择 SelfHosted（`n`）后，可按
+[AgentKit Sandbox 接入说明](../self_host/agentkit_sandbox_mode/README.md)
+创建工具模板与 Dispatcher，再运行本目录的 `02_invoke_session_http.py`
+验证对话及工具调用。
+
 ## 文件
 
 | 文件 | 用途 |
