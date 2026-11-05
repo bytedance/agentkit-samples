@@ -12,6 +12,7 @@
 - 调用 AgentKit 创建工具模板与常驻 Dispatcher，等待资源 Ready。
 - 使用私有状态保存资源 ID 和幂等 token，支持等待失败后的恢复。
 - 将工具任务分配到独立实例，支持同一业务 Session 的实例复用。
+- 默认为 Tool 和 Dispatcher Runtime 开启 APMPlus 观测与 TLS 日志采集。
 
 ## Agent 能力
 
@@ -25,6 +26,7 @@
 | `01_create_self_host_sandbox.py` | 创建工具模板，保存 ToolId |
 | `02_create_dispatcher.py` | 复用 ToolId，创建常驻 Dispatcher |
 | `_backend.py` | 共享配置映射、校验与部署恢复 |
+| `_tls.py` | 复用账号签名调用 TLS 日志资源接口 |
 | `test_backend.py` | 无网络的部署边界测试 |
 
 ## 本地运行
@@ -68,6 +70,21 @@ resource_to_chat_http/.venv/bin/python \
 `01_create_self_host_sandbox.py` 创建并等待 Tool Ready，随后
 `02_create_dispatcher.py` 复用同一 ToolId，创建并等待 Runtime Ready。
 直接运行 `02` 时也会自动准备工具模板，因此可以一条命令完成后端部署。
+
+为了方便观测，创建 Tool 和 Dispatcher Runtime 时默认显式设置
+`ApmplusEnable: true` 和 `TlsConfiguration.EnableLog: true`，采集应用监控及
+stdout/stderr 日志。共享配置 `self_host.agentkit_sandbox.apmplus_enable`、
+`enable_log` 均默认为 `true`；可分别设置为 `false` 关闭对应功能。
+创建输出与 `--dry-run` 会提示默认开启观测，资源 Ready 或复用模板时显示
+查询到的实际开关状态；接口未返回的字段显示为“未返回”。
+
+TLS 开启日志必须同时提供项目和主题 ID。`tls_project_id`、`tls_topic_id`
+默认留空，脚本在当前地域自动创建一个共享日志项目和主题，绑定到 Tool 和
+Dispatcher Runtime。自动主题使用 1 个分区、保留 7 天；日志服务按实际使用计费。
+也可同时填写已有项目和主题 ID；脚本验证主题属于该日志项目，日志项目属于
+`project_name` 指定的 IAM 项目，不修改复用资源。关闭 `enable_log` 时不访问 TLS。
+账号 AK/SK 需拥有对应 TLS 项目的查询权限；自动创建还需项目和主题的创建权限。
+如需全文检索，可在 TLS 控制台为主题配置索引。
 
 默认镜像及配置：
 
@@ -122,6 +139,8 @@ idle 回收后的续聊可能创建新实例，需要长期保留的文件请写
 部署状态保存在本目录 `.sandbox_agentkit_backend.json`，只保存公开资源 ID、
 配置摘要及创建 token，权限为 `0600`，被仓库忽略。每次创建返回 ID 后立即保存，
 异步等待失败可重跑恢复，已就绪资源只查询。请求发生变化时拒绝复用旧资源。
+新增观测默认值也会改变创建请求；旧状态不会自动更新已有资源，使用新状态
+创建时才应用新默认值。显式复用的 Tool 保持原有观测配置，输出其实际状态。
 
 `HARNESS_INFRA_CONFIG`、`HARNESS_INFRA_STATE` 分别指定共享配置和资源状态；
 `HARNESS_INFRA_BACKEND_STATE` 指定独立后端状态。路径的父目录应预先创建。
@@ -134,6 +153,9 @@ idle 回收后的续聊可能创建新实例，需要长期保留的文件请写
 已有同镜像、命令、端口和项目的 Ready Private 模板时，可显式设置
 `self_host.agentkit_sandbox.existing_tool_id` 复用。脚本校验模板后只创建新的
 Dispatcher 与工具实例，状态标记模板 `owned: false`；清理时保留复用模板。
+日志资源 ID 和 `owned` 保存在后端状态的 `tls` 字段；自动创建中断后可按唯一
+名称恢复，不重复创建。停止所有日志写入后，按需清理本部署自有的 TLS 主题和
+项目；保留 `owned: false` 的复用日志资源。
 
 ## 常见问题
 
@@ -145,6 +167,7 @@ Dispatcher 与工具实例，状态标记模板 `owned: false`；清理时保留
 | Runtime `/health` 返回 401 | 使用 Runtime 访问 Key；本次环境的网关通过 `Authorization` 头鉴权，该 Key 与 Environment Key 不同 |
 | 续聊文件消失 | idle 回收后可能创建新实例，需要持久化的数据应写入外部存储 |
 | `configuration changed` | 配置改变后使用新状态，或恢复首次请求参数 |
+| TLS 权限不足或创建失败 | 检查当前地域和 IAM 项目权限，或同时填写可用的 `tls_project_id`、`tls_topic_id` |
 
 ## 代码许可
 

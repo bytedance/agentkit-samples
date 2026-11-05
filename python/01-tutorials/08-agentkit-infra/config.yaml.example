@@ -116,6 +116,12 @@ self_host:
     project_name: "default"
     name_prefix: "selfhost"
     existing_tool_id: "" # 可选：显式复用同镜像/命令/端口/项目的 Ready 工具模板
+    # 为了方便观测，默认同时为 Dispatcher Runtime 和 Tool 开启应用监控与日志采集。
+    apmplus_enable: true
+    enable_log: true
+    # 日志开启时，两项留空自动创建共享 TLS 项目和主题；或同时填写已有资源 ID。
+    tls_project_id: ""
+    tls_topic_id: ""
     dispatcher_cpu_milli: 1000
     dispatcher_memory_mb: 2048
     sandbox_cpu_milli: 2000
