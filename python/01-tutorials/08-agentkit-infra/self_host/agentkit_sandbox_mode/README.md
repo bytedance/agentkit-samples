@@ -12,7 +12,7 @@
 - 调用 AgentKit 创建工具模板与常驻 Dispatcher，等待资源 Ready。
 - 使用私有状态保存资源 ID 和幂等 token，支持等待失败后的恢复。
 - 将工具任务分配到独立实例，支持同一业务 Session 的实例复用。
-- 默认为 Tool 和 Dispatcher Runtime 开启 APMPlus 观测与 TLS 日志采集。
+- 默认在 Tool 和 Dispatcher Runtime 创建请求中开启 APMPlus 与日志观测开关。
 
 ## Agent 能力
 
@@ -26,7 +26,6 @@
 | `01_create_self_host_sandbox.py` | 创建工具模板，保存 ToolId |
 | `02_create_dispatcher.py` | 复用 ToolId，创建常驻 Dispatcher |
 | `_backend.py` | 共享配置映射、校验与部署恢复 |
-| `_tls.py` | 复用账号签名调用 TLS 日志资源接口 |
 | `test_backend.py` | 无网络的部署边界测试 |
 
 ## 本地运行
@@ -72,19 +71,15 @@ resource_to_chat_http/.venv/bin/python \
 直接运行 `02` 时也会自动准备工具模板，因此可以一条命令完成后端部署。
 
 为了方便观测，创建 Tool 和 Dispatcher Runtime 时默认显式设置
-`ApmplusEnable: true` 和 `TlsConfiguration.EnableLog: true`，采集应用监控及
-stdout/stderr 日志。共享配置 `self_host.agentkit_sandbox.apmplus_enable`、
+`ApmplusEnable: true` 和 `TlsConfiguration.EnableLog: true`，申请平台开启应用监控及
+stdout/stderr 日志采集。共享配置 `self_host.agentkit_sandbox.apmplus_enable`、
 `enable_log` 均默认为 `true`；可分别设置为 `false` 关闭对应功能。
 创建输出与 `--dry-run` 会提示默认开启观测，资源 Ready 或复用模板时显示
 查询到的实际开关状态；接口未返回的字段显示为“未返回”。
 
-TLS 开启日志必须同时提供项目和主题 ID。`tls_project_id`、`tls_topic_id`
-默认留空，脚本在当前地域自动创建一个共享日志项目和主题，绑定到 Tool 和
-Dispatcher Runtime。自动主题使用 1 个分区、保留 7 天；日志服务按实际使用计费。
-也可同时填写已有项目和主题 ID；脚本验证主题属于该日志项目，日志项目属于
-`project_name` 指定的 IAM 项目，不修改复用资源。关闭 `enable_log` 时不访问 TLS。
-账号 AK/SK 需拥有对应 TLS 项目的查询权限；自动创建还需项目和主题的创建权限。
-如需全文检索，可在 TLS 控制台为主题配置索引。
+本示例仅配置 AgentKit 的观测开关，日志资源配置与实际采集由平台负责。
+仅开关模式需要平台支持自动配置日志资源；
+当前示例不调用 TLS API 创建、查询日志资源或读取日志。
 
 默认镜像及配置：
 
@@ -153,9 +148,6 @@ idle 回收后的续聊可能创建新实例，需要长期保留的文件请写
 已有同镜像、命令、端口和项目的 Ready Private 模板时，可显式设置
 `self_host.agentkit_sandbox.existing_tool_id` 复用。脚本校验模板后只创建新的
 Dispatcher 与工具实例，状态标记模板 `owned: false`；清理时保留复用模板。
-日志资源 ID 和 `owned` 保存在后端状态的 `tls` 字段；自动创建中断后可按唯一
-名称恢复，不重复创建。停止所有日志写入后，按需清理本部署自有的 TLS 主题和
-项目；保留 `owned: false` 的复用日志资源。
 
 ## 常见问题
 
@@ -167,7 +159,7 @@ Dispatcher 与工具实例，状态标记模板 `owned: false`；清理时保留
 | Runtime `/health` 返回 401 | 使用 Runtime 访问 Key；本次环境的网关通过 `Authorization` 头鉴权，该 Key 与 Environment Key 不同 |
 | 续聊文件消失 | idle 回收后可能创建新实例，需要持久化的数据应写入外部存储 |
 | `configuration changed` | 配置改变后使用新状态，或恢复首次请求参数 |
-| TLS 权限不足或创建失败 | 检查当前地域和 IAM 项目权限，或同时填写可用的 `tls_project_id`、`tls_topic_id` |
+| `InvalidParameter.TlsConfiguration` | 确认平台支持仅设置 `EnableLog` 自动准备日志资源；本示例只发送观测开关 |
 
 ## 代码许可
 

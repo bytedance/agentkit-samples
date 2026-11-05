@@ -13,7 +13,7 @@ from typing import Any
 SHARED = Path(__file__).resolve().parents[2] / "resource_to_chat_http"
 sys.path.insert(0, str(SHARED))
 
-from _clients import DataPlaneClient, HarnessInfraError, TopClient  # noqa: E402
+from _clients import DataPlaneClient, TopClient  # noqa: E402
 from _common import emit, load_state, parser, run as run, wait_until  # noqa: E402
 from _config import (  # noqa: E402
     _mapping,
@@ -24,7 +24,6 @@ from _config import (  # noqa: E402
     validated_config,
 )
 from _iam import ensure_runtime_role  # noqa: E402
-from _tls import TlsClient  # noqa: E402
 
 REGISTRY = "enterprise-public-cn-beijing.cr.volces.com/vefaas-public"
 DISPATCHER_IMAGE = (
@@ -75,8 +74,6 @@ def settings() -> dict[str, Any]:
         "environment_id": "",
         "environment_key": "",
         "existing_tool_id": "",
-        "tls_project_id": "",
-        "tls_topic_id": "",
     }
     for name, default in defaults.items():
         result[name] = _string(
@@ -103,12 +100,6 @@ def settings() -> dict[str, Any]:
         result[name] = value
     if result["sandbox_port"] > 65535:
         raise RuntimeError("sandbox_port must be <= 65535")
-    if result["enable_log"] and bool(result["tls_project_id"]) != bool(
-        result["tls_topic_id"]
-    ):
-        raise RuntimeError(
-            "set both tls_project_id and tls_topic_id, or leave both empty"
-        )
     if not result["name_prefix"].replace("-", "").isalnum():
         raise RuntimeError("name_prefix must contain only letters, numbers and '-'")
     return result
@@ -182,125 +173,6 @@ def validate_connection(client: TopClient, conn: dict[str, str]) -> None:
         raise RuntimeError("Environment key/endpoint does not match EnvironmentId")
 
 
-def tls_configuration(options: dict[str, Any]) -> dict[str, Any]:
-    """日志开启时必须携带已准备的项目和主题 ID，避免发送无效创建请求。"""
-    result = {"EnableLog": options["enable_log"]}
-    if options["enable_log"]:
-        if not options["tls_project_id"] or not options["tls_topic_id"]:
-            raise RuntimeError("prepare TLS project/topic before creating resources")
-        result.update(
-            TlsProjectId=options["tls_project_id"], TlsTopicId=options["tls_topic_id"]
-        )
-    return result
-
-
-def ensure_tls(
-    config: Any, options: dict[str, Any], state: dict[str, Any], *, json_output: bool
-) -> dict[str, Any]:
-    """准备共享日志资源；保存每步 ID，按状态中的唯一名称恢复不确定创建。"""
-    if not options["enable_log"]:
-        return options
-    selection = {
-        "project_id": options["tls_project_id"],
-        "topic_id": options["tls_topic_id"],
-    }
-    saved = state.setdefault("tls", {"selection": selection})
-    if saved["selection"] != selection:
-        raise RuntimeError("TLS configuration changed; use a new backend state")
-    write_backend(state)
-    tls = TlsClient(config)
-    if selection["project_id"]:
-        project = tls.call(
-            "DescribeProject", {"ProjectId": selection["project_id"]}, method="GET"
-        )
-        topic = tls.call(
-            "DescribeTopic", {"TopicId": selection["topic_id"]}, method="GET"
-        )
-        if (
-            project.get("ProjectId") != selection["project_id"]
-            or project.get("IamProjectName") != options["project_name"]
-            or topic.get("ProjectId") != selection["project_id"]
-            or topic.get("TopicId") != selection["topic_id"]
-        ):
-            raise RuntimeError(
-                "TLS project/topic must belong to the configured project"
-            )
-        for kind in ("project", "topic"):
-            saved[kind] = {"id": selection[f"{kind}_id"], "owned": False}
-    else:
-        marker = f"AgentKit SelfHosted backend {state['names']['runtime']}"
-        for kind in ("project", "topic"):
-            if saved.get(kind, {}).get("id"):
-                continue
-            resource = kind.title()
-            name = f"{state['names']['runtime']}-logs"
-            query = {
-                f"{resource}Name": name,
-                "IsFullName": "true",
-                "PageNumber": 1,
-                "PageSize": 100,
-            }
-            if kind == "project":
-                query["IamProjectName"] = options["project_name"]
-            else:
-                query["ProjectId"] = saved["project"]["id"]
-            try:
-                found = tls.call(f"Describe{resource}s", query, method="GET")
-            except HarnessInfraError as exc:
-                if exc.status_code != 404 or exc.code not in {
-                    f"{resource}NotExists",
-                    f"{resource}NotExist",
-                }:
-                    raise
-                found = {}
-            matches = [
-                item
-                for item in found.get(f"{resource}s", [])
-                if item.get(f"{resource}Name") == name
-            ]
-            if len(matches) > 1 or any(
-                item.get("Description") != marker for item in matches
-            ):
-                raise RuntimeError(f"TLS {resource} name collision; use a new state")
-            if matches:
-                result = matches[0]
-            else:
-                body = {f"{resource}Name": name, "Description": marker}
-                if kind == "project":
-                    body.update(
-                        Region=config.region, IamProjectName=options["project_name"]
-                    )
-                else:
-                    body.update(
-                        ProjectId=saved["project"]["id"],
-                        Ttl=7,
-                        ShardCount=1,
-                        AutoSplit=False,
-                    )
-                result = tls.call(f"Create{resource}", body)
-            resource_id = result.get(f"{resource}Id") or result.get(f"{resource}ID")
-            if not isinstance(resource_id, str) or not resource_id:
-                raise RuntimeError(f"TLS {resource} response is missing {resource}Id")
-            saved[kind] = {"id": resource_id, "owned": True}
-            write_backend(state)
-    write_backend(state)
-    result = {
-        **options,
-        "tls_project_id": saved["project"]["id"],
-        "tls_topic_id": saved["topic"]["id"],
-    }
-    emit(
-        "tls",
-        "TLS 日志项目和主题已准备，将用于创建资源的日志采集",
-        json_output=json_output,
-        project_id=result["tls_project_id"],
-        topic_id=result["tls_topic_id"],
-        project_owned=saved["project"]["owned"],
-        topic_owned=saved["topic"]["owned"],
-    )
-    return result
-
-
 def tool_request(options: dict[str, Any], token: str, name: str) -> dict[str, Any]:
     """构造 AppO CreateTool 请求；执行参数由 Dispatcher 注入实例。"""
     return {
@@ -313,7 +185,7 @@ def tool_request(options: dict[str, Any], token: str, name: str) -> dict[str, An
         "MemoryMb": options["sandbox_memory_mb"],
         "ProjectName": options["project_name"],
         "ApmplusEnable": options["apmplus_enable"],
-        "TlsConfiguration": tls_configuration(options),
+        "TlsConfiguration": {"EnableLog": options["enable_log"]},
         "NetworkConfiguration": {"EnablePublicNetwork": True},
         "AuthorizerConfiguration": {
             "KeyAuth": {"ApiKeyName": "x-api-key", "ApiKeyLocation": "header"}
@@ -350,7 +222,7 @@ def runtime_request(
         "RoleName": options["role_name"],
         "ProjectName": options["project_name"],
         "ApmplusEnable": options["apmplus_enable"],
-        "TlsConfiguration": tls_configuration(options),
+        "TlsConfiguration": {"EnableLog": options["enable_log"]},
         "Envs": [{"Key": key, "Value": value} for key, value in envs.items()],
         "NetworkConfiguration": {"EnablePublicNetwork": True},
         "AuthorizerConfiguration": {
@@ -559,16 +431,6 @@ def main(*, dispatcher: bool) -> None:
     options = settings()
     conn = connection(config, options, dry_run=args.dry_run) if dispatcher else None
     if args.dry_run:
-        prepare_logs = options["enable_log"] and (
-            dispatcher or not options["existing_tool_id"]
-        )
-        automatic_logs = prepare_logs and not options["tls_project_id"]
-        if automatic_logs:
-            options = {
-                **options,
-                "tls_project_id": "<TlsProjectId>",
-                "tls_topic_id": "<TlsTopicId>",
-            }
         if options["existing_tool_id"]:
             actions = [
                 {"action": "GetTool", "body": {"ToolId": options["existing_tool_id"]}}
@@ -596,19 +458,6 @@ def main(*, dispatcher: bool) -> None:
                     ),
                 }
             )
-        if prepare_logs:
-            actions.insert(
-                0,
-                {
-                    "action": "PrepareTls" if automatic_logs else "ValidateTls",
-                    "body": {
-                        "TlsProjectId": options["tls_project_id"],
-                        "TlsTopicId": options["tls_topic_id"],
-                        "Region": config.control.region,
-                        "IamProjectName": options["project_name"],
-                    },
-                },
-            )
         emit(
             "dry_run",
             "SelfHosted 后端部署计划",
@@ -628,10 +477,6 @@ def main(*, dispatcher: bool) -> None:
     if dispatcher:
         validate_connection(client, conn)
     state = deployment_state(client, options)
-    if dispatcher or not options["existing_tool_id"]:
-        options = ensure_tls(
-            config.control, options, state, json_output=args.json_output
-        )
     if options["existing_tool_id"]:
         tool_id = reuse_tool(client, state, options, json_output=args.json_output)
     else:
