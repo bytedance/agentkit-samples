@@ -198,7 +198,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         if use_cases_dir not in path.parents:
             continue
 
-        if str(rel) not in changed_files:
+        if rel.as_posix() not in changed_files:
             continue
 
         with open(path, "r", encoding="utf-8") as f:
