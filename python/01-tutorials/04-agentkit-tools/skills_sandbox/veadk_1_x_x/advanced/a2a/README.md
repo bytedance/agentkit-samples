@@ -7,7 +7,7 @@ Session 的 `/a2a` 接口发送消息并轮询任务结果。
 
 ## 支持矩阵
 
-当前 `veadk-python==1.1.9` 已支持以下链路：
+`veadk-python>=1.1.9` 已支持以下链路：
 
 | 场景 | 链路 | runtime Agent 工具 | 示例 |
 | --- | --- | --- | --- |
@@ -111,7 +111,7 @@ runtime Agent 的 `skills=[ss-xxx]` 配置。
 
 ## Skills Sandbox 非阻塞任务
 
-`runtime_to_skills_sandbox_invoke_poll.py` 演示 `veadk-python==1.1.9` 新增的
+`runtime_to_skills_sandbox_invoke_poll.py` 演示 `veadk-python>=1.1.9` 支持的
 非阻塞 Skills Sandbox 工具链路：
 
 ```text

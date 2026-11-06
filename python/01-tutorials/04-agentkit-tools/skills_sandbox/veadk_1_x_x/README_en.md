@@ -51,7 +51,7 @@ Key differences:
 
 ## A2A and Sandbox Support
 
-With `veadk-python==1.1.9`, the following runtime Agent to sandbox flows are
+With `veadk-python>=1.1.9`, the following runtime Agent to sandbox flows are
 supported:
 
 | Scenario | Supported | Flow | Entry point |
@@ -75,7 +75,7 @@ agent = Agent(
 ```
 
 The Skills Sandbox non-blocking task sample uses the non-blocking tools provided
-by `veadk-python==1.1.9`. The tool names are singular: `invoke_skill` and
+by `veadk-python>=1.1.9`. The tool names are singular: `invoke_skill` and
 `poll_skill`.
 
 ```python
@@ -200,6 +200,8 @@ uv pip install -r requirements.txt
 source .venv/bin/activate
 ```
 
+This sample depends on `veadk-python>=1.1.25`, which includes `SkillSandboxAgent`.
+
 ### Prepare the Environment
 
 ```bash
@@ -216,18 +218,18 @@ export CLOUD_PROVIDER=byteplus
 export BYTEPLUS_REGION=ap-southeast-1
 ```
 
-The main `agent.py` entry point requires `AGENTKIT_TOOL_ID_SKILLS` (or the existing `AGENTKIT_TOOL_ID` fallback). It delegates to the remote Skills Sandbox using A2A `message/stream` and yields ADK partial events. Skills are configured in the remote Sandbox; this entry point does not read local `SKILL_SPACE_ID` or `SKILL_DIR`. The advanced examples retain their own skill-loading configuration.
+The main `agent.py` entry point requires `AGENTKIT_TOOL_ID_SKILLS` (or the existing `AGENTKIT_TOOL_ID` fallback). It uses `veadk.SkillSandboxAgent` to delegate to the remote Skills Sandbox with A2A `message/stream` and yields ADK partial events. Skills are configured in the remote Sandbox; this entry point does not read local `SKILL_SPACE_ID` or `SKILL_DIR`. The advanced examples retain their own skill-loading configuration.
 
-Set `SKILL_SANDBOX_STREAMING=false` to restore the original LLM + `execute_skills` tool path. Requests with `streaming=false`, and explicit rejections of the streaming protocol, use the existing synchronous task polling. An interrupted stream reports an error without resubmitting the task.
+Set `SKILL_SANDBOX_STREAMING=false` to restore the original LLM + `execute_skills` tool path. `SkillSandboxAgent` prefers remote A2A streaming and falls back to synchronous submission plus task polling when the remote endpoint does not support streaming. An interrupted stream reports an error without resubmitting the task.
 
 For local macOS debugging, set `VEADK_SKILLS_WORK_DIR=/tmp/veadk_skills/sessions` to avoid the default Linux work directory.
 
 ### Debugging
 
 
-Enable Streaming in the Web UI, or pass `streaming=true` to `/run_sse`. The remote Sandbox must support both A2A streaming and model text deltas. An SSE connection alone does not guarantee incremental text. On cancellation or timeout the bridge attempts `tasks/cancel`; remote execution may continue if cancellation is unsupported.
+Enable Streaming in the Web UI, or pass `streaming=true` to `/run_sse`. The remote Sandbox must support both A2A streaming and model text deltas. An SSE connection alone does not guarantee incremental text. On cancellation or timeout the SDK attempts `tasks/cancel`; remote execution may continue if cancellation is unsupported.
 
-Run offline regression tests with `python -m unittest -v test_sandbox_stream`.
+The protocol bridge now lives in `veadk-python`; offline regression coverage is maintained in the SDK repository under `tests/agents/test_skill_sandbox_agent.py` and `tests/agents/test_remote_sandbox_agent.py`.
 
 ```bash
 # Enter the project directory

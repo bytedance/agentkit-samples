@@ -5,12 +5,12 @@ description = "agentkit skills sandbox samples with veadk-1.x.x"
 readme = "README.md"
 requires-python = ">=3.12,<3.14"
 dependencies = [
-    "a2a-sdk==0.3.7",
-    "agentkit-sdk-python==0.8.1",
-    "google-adk==2.2.0",
+    "a2a-sdk>=0.3.15,<1.0.0",
+    "agentkit-sdk-python>=0.8.5",
+    "google-adk>=2.7.0,<2.8.0",
     "httpx>=0.28,<0.29",
     "urllib3<2.0.0",
-    "veadk-python==1.1.9",
+    "veadk-python>=1.1.25",
     "volcengine-python-sdk>=4.0.33",
     "litellm",
 ]

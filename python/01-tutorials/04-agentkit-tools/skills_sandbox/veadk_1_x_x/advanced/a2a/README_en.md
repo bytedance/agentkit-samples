@@ -8,7 +8,7 @@ completion.
 
 ## Support Matrix
 
-With `veadk-python==1.1.9`, these flows are supported:
+With `veadk-python>=1.1.9`, these flows are supported:
 
 | Scenario | Flow | Runtime Agent tools | Sample |
 | --- | --- | --- | --- |
@@ -122,7 +122,7 @@ is configured as `skills=[ss-xxx]` on the runtime Agent.
 ## Skills Sandbox Non-blocking Tasks
 
 `runtime_to_skills_sandbox_invoke_poll.py` demonstrates the non-blocking Skills
-Sandbox tool flow added in `veadk-python==1.1.9`:
+Sandbox tool flow supported by `veadk-python>=1.1.9`:
 
 ```text
 runtime Agent (SkillToolset remote registry + invoke_skill + poll_skill)

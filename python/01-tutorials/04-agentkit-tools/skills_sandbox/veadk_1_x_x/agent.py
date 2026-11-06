@@ -8,10 +8,9 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent))
 from agentkit.apps import AgentkitAgentServerApp
 from google.adk.tools import ToolContext
-from veadk import Agent
+from veadk import Agent, SkillSandboxAgent
 from veadk.memory.short_term_memory import ShortTermMemory
 from veadk.tools.builtin_tools.execute_skills import execute_skills as _execute_skills
-from sandbox_stream import SkillSandboxA2aAgent
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +94,7 @@ short_term_memory = ShortTermMemory(backend="local")
 # Keep the original LLM/function-tool path available for compatibility.
 # The bridge streams remote events directly, without a second LLM rewriting them.
 root_agent = (
-    SkillSandboxA2aAgent(name=app_name, guardrails=SANDBOX_GUARDRAILS)
+    SkillSandboxAgent(name=app_name, guardrails=SANDBOX_GUARDRAILS, timeout=1800)
     if os.getenv("SKILL_SANDBOX_STREAMING", "true").lower() in {"true", "1", "yes"}
     else agent
 )

@@ -50,7 +50,7 @@ agent = Agent(
 
 ## A2A 与 Sandbox 支持状态
 
-当前 `veadk-python==1.1.9` 已支持以下几类 runtime Agent 到 sandbox 的调用链路：
+`veadk-python>=1.1.9` 已支持以下几类 runtime Agent 到 sandbox 的调用链路：
 
 | 场景 | 是否支持 | 链路 | 入口 |
 | --- | --- | --- | --- |
@@ -72,7 +72,7 @@ agent = Agent(
 )
 ```
 
-Skills Sandbox 非阻塞任务样例使用 `veadk-python==1.1.9` 提供的非阻塞工具。
+Skills Sandbox 非阻塞任务样例使用 `veadk-python>=1.1.9` 提供的非阻塞工具。
 注意工具名是单数：`invoke_skill`、`poll_skill`。
 
 ```python
@@ -196,6 +196,8 @@ uv pip install -r requirements.txt
 source .venv/bin/activate
 ```
 
+当前样例依赖 `veadk-python>=1.1.25`，该版本已包含 `SkillSandboxAgent`。
+
 ### 环境准备
 
 ```bash
@@ -210,9 +212,9 @@ export VOLCENGINE_ACCESS_KEY=<Your Access Key>
 export VOLCENGINE_SECRET_KEY=<Your Secret Key>
 ```
 
-`agent.py` 默认通过 A2A `message/stream` 委托远端 Skills Sandbox，将文本增量作为 ADK partial Event 返回。技能来源由远端 Sandbox 配置；主入口不读取本地 `SKILL_SPACE_ID` 或 `SKILL_DIR`。`advanced/a2a/` 中各示例仍沿用各自的技能加载方式。
+`agent.py` 默认使用 `veadk.SkillSandboxAgent` 委托远端 Skills Sandbox，并通过 A2A `message/stream` 将文本增量作为 ADK partial Event 返回。技能来源由远端 Sandbox 配置；主入口不读取本地 `SKILL_SPACE_ID` 或 `SKILL_DIR`。`advanced/a2a/` 中各示例仍沿用各自的技能加载方式。
 
-设置 `SKILL_SANDBOX_STREAMING=false` 可切回原有 LLM + `execute_skills` 工具路径。流式入口收到 `streaming=false` 请求时仍走原有同步任务轮询；远端明确拒绝流式协议时也回退到该路径。已开始的流发生断连会返回错误，不会重新提交任务。
+设置 `SKILL_SANDBOX_STREAMING=false` 可切回原有 LLM + `execute_skills` 工具路径。`SkillSandboxAgent` 会优先使用远端 A2A streaming 能力；远端不支持 streaming 时由 SDK 走同步提交和任务轮询兜底。已开始的流发生断连会返回错误，不会重新提交任务。
 
 macOS 本地调试时设置 `VEADK_SKILLS_WORK_DIR=/tmp/veadk_skills/sessions`，避免默认 Linux 路径不可写。
 
@@ -230,10 +232,9 @@ veadk web --port 8080
 
 Web 界面提供图形化对话测试环境，支持实时查看消息流和调试信息。
 
-在 Web 中开启 Streaming；直接调用 `/run_sse` 时设置 `streaming=true`。远端 Sandbox 必须同时支持 A2A streaming 和模型文本增量；仅有 SSE 连接不能保证正文逐段到达。取消或超时会尝试 `tasks/cancel`，若远端不支持取消，任务仍可能继续执行。
+在 Web 中开启 Streaming；直接调用 `/run_sse` 时设置 `streaming=true`。远端 Sandbox 必须同时支持 A2A streaming 和模型文本增量；仅有 SSE 连接不能保证正文逐段到达。取消或超时会由 SDK 尝试 `tasks/cancel`，若远端不支持取消，任务仍可能继续执行。
 
-
-离线回归测试：`python -m unittest -v test_sandbox_stream`。
+协议桥接能力已沉淀到 `veadk-python`，离线回归测试在 SDK 仓库的 `tests/agents/test_skill_sandbox_agent.py` 和 `tests/agents/test_remote_sandbox_agent.py` 中维护。
 
 此外，还可以使用命令行测试，调试 agent.py。
 
