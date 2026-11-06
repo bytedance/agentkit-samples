@@ -73,6 +73,7 @@ def get_client() -> VePhoneClient:
     access_key = os.getenv("VOLC_ACCESS_KEY")
     secret_key = os.getenv("VOLC_SECRET_KEY")
     region = os.getenv("VOLC_REGION") or default_region
+    session_token = os.getenv("VOLC_SESSION_TOKEN")
     tos_bucket = os.getenv("VOLC_TOS_BUCKET")
     tos_region = os.getenv("VOLC_TOS_REGION")
     tos_endpoint = os.getenv("VOLC_TOS_ENDPOINT")
@@ -82,12 +83,22 @@ def get_client() -> VePhoneClient:
         config = load_config()
         access_key = config_value(config, "access_key", "VOLC_ACCESS_KEY")
         secret_key = config_value(config, "secret_key", "VOLC_SECRET_KEY")
-        region = os.getenv("VOLC_REGION") or config_value(config, "region", "VOLC_REGION", default_region)
+        region = os.getenv("VOLC_REGION") or config_value(
+            config, "region", "VOLC_REGION", default_region
+        )
+        session_token = config_value(config, "session_token", "VOLC_SESSION_TOKEN")
         tos_bucket = config_value(config, "tos_bucket", "VOLC_TOS_BUCKET")
         tos_region = config_value(config, "tos_region", "VOLC_TOS_REGION")
         tos_endpoint = config_value(config, "tos_endpoint", "VOLC_TOS_ENDPOINT")
         tos_prefix = config_value(config, "tos_prefix", "VOLC_TOS_PREFIX")
-
+    elif not os.getenv("VOLC_REGION") or not session_token:
+        config = load_config()
+        if not os.getenv("VOLC_REGION"):
+            region = config_value(config, "region", "VOLC_REGION", default_region)
+        if not session_token:
+            session_token = config_value(
+                config, "session_token", "VOLC_SESSION_TOKEN"
+            )
     if not access_key or not secret_key:
         print(
             "错误: 请设置环境变量 VOLC_ACCESS_KEY 和 VOLC_SECRET_KEY，或配置 config.json 文件"
@@ -98,6 +109,7 @@ def get_client() -> VePhoneClient:
         access_key,
         secret_key,
         region,
+        session_token=session_token,
         tos_bucket=tos_bucket,
         tos_region=tos_region,
         tos_endpoint=tos_endpoint,

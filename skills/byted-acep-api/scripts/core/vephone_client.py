@@ -151,6 +151,7 @@ class VePhoneClient:
         access_key: str,
         secret_key: str,
         region: str = "cn-north-1",
+        session_token: Optional[str] = None,
         service: str = "ACEP",
         version: Optional[str] = None,
         product_id: Optional[str] = None,
@@ -168,6 +169,7 @@ class VePhoneClient:
             access_key: 访问密钥
             secret_key: 秘密密钥
             region: 区域，默认 cn-north-1
+            session_token: 临时凭证 Token（可选）
             service: 服务名，默认 ACEP
             version: API 版本覆盖值（可选，默认按 Action 选择）
             product_id: 产品 ID（可选，可在调用时指定）
@@ -181,6 +183,7 @@ class VePhoneClient:
         self.access_key = access_key
         self.secret_key = secret_key
         self.region = region
+        self.session_token = session_token
         self.service = service
         self.version = version
         self.product_id = product_id
@@ -245,10 +248,14 @@ class VePhoneClient:
         payload = self._serialize_payload(body)
         payload_hash = hashlib.sha256(payload.encode("utf-8")).hexdigest()
         invocation_headers = self._build_invocation_header()
+        optional_headers = {}
+        if self.session_token:
+            optional_headers["X-Security-Token"] = self.session_token
         headers = {
             "Host": self.host,
             "Content-Type": "application/json",
             "X-Content-Sha256": payload_hash,
+            **optional_headers,
             **invocation_headers,
         }
         now = datetime.now(timezone.utc)
@@ -263,6 +270,9 @@ class VePhoneClient:
             "host": self.host,
             "x-content-sha256": payload_hash,
             "x-date": amz_date,
+            **{
+                key.lower(): value for key, value in optional_headers.items()
+            },
             **invocation_headers,
         }
         signed_header_names = sorted(canonical_header_map)
@@ -362,25 +372,20 @@ class VePhoneClient:
         if version is None:
             raise ValueError(f"Missing API version for action: {action}")
 
-        body = dict(body or {})
-        body["Action"] = action
-        body["Version"] = version
-
-        # 将参数转换为查询字符串
-        query_params = {}
-        for key, value in body.items():
-            if value is not None:
-                query_params[key] = self._serialize_query_value(value)
+        query_params = {"Action": action, "Version": version}
+        payload = self._serialize_payload(
+            {key: value for key, value in (body or {}).items() if value is not None}
+        )
 
         # 签名请求
-        headers = self._sign_request(method, path, query_params, None)
+        headers = self._sign_request(method, path, query_params, payload)
 
         result = self._send_http_request(
             method=method,
             path=path,
             headers=headers,
             query_params=query_params,
-            body=None,
+            body=payload.encode("utf-8"),
         )
 
         # 检查错误

@@ -2,7 +2,7 @@
 name: byted-acep-api
 description: 通过本地 Python CLI 和 OpenAPI 客户端管理、排查火山云手机资源。适用于查询实例和资源、截图、执行命令、查看任务、检查应用、主机和机房容量、标签、DNS、路由，以及操作已授权的测试云手机实例。
 license: Apache-2.0
-version: 1.2.0
+version: 1.2.2
 ---
 
 # 火山云手机 Skill
@@ -43,7 +43,7 @@ python3 scripts/vephone_cli.py action-call GetProductResource --product-id <prod
 python3 scripts/vephone_cli.py action-call SetProxy --json-body --params-json '{"ProductId":"<product_id>","PodIdList":["pod-1"],"ProxyStatus":1,"ProxyConfig":{"version":"v2","type":"socks5","address":"203.0.113.52","port":"12345"}}'
 ```
 
-`action-call` 的 `--param` 使用 `Key=Value` 形式，`Value` 会优先按 JSON 解析，失败时按字符串处理，所以可以直接传 `true`、`123`、`[1,2]`、`{"k":"v"}`。注意在常见 shell 中如果不对 `Key=Value` 做引用/转义，形如 `--param Foo={"k":"v"}` 的双引号可能会被 shell 吞掉，导致程序实际收到 `Foo={k:v}` 并触发 JSON 解析失败；当 `Value` 含双引号、空格或复杂 JSON 时，请用单引号包裹整个 `Key=Value`（如 `--param 'Foo={"k":"v"}'` / `--param 'PodIdList=["pod-1"]'`），或优先使用 `--params-json`（如 `--params-json '{"Foo":{"k":"v"}}'`）。若希望强制按字符串传入 `true`/`123` 等，请使用 JSON 字符串形式：`--param Name='"123"'`。需要批量传参时用 `--params-json`；如果同时传了同名键，`--param` 会覆盖 `--params-json`。默认按 query string 调用，带 `--json-body` 时改为 JSON body。
+`action-call` 的 `--param` 使用 `Key=Value` 形式，`Value` 会优先按 JSON 解析，失败时按字符串处理，所以可以直接传 `true`、`123`、`[1,2]`、`{"k":"v"}`。注意在常见 shell 中如果不对 `Key=Value` 做引用/转义，形如 `--param Foo={"k":"v"}` 的双引号可能会被 shell 吞掉，导致程序实际收到 `Foo={k:v}` 并触发 JSON 解析失败；当 `Value` 含双引号、空格或复杂 JSON 时，请用单引号包裹整个 `Key=Value`（如 `--param 'Foo={"k":"v"}'` / `--param 'PodIdList=["pod-1"]'`），或优先使用 `--params-json`（如 `--params-json '{"Foo":{"k":"v"}}'`）。若希望强制按字符串传入 `true`/`123` 等，请使用 JSON 字符串形式：`--param Name='"123"'`。需要批量传参时用 `--params-json`；如果同时传了同名键，`--param` 会覆盖 `--params-json`。默认通过 POST JSON body 发送业务参数，URL 查询参数仅包含 Action 和 Version；`--json-body` 保留为兼容选项。
 
 ## 实例管理
 

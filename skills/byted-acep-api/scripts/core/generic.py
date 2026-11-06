@@ -57,7 +57,7 @@ def register(subparsers):
     action_call_parser.add_argument(
         "--json-body",
         action="store_true",
-        help="以 JSON body 方式调用；默认按 query string 方式调用",
+        help="以 JSON body 方式调用（兼容选项；默认已使用 JSON body）",
     )
     action_call_parser.add_argument(
         "--version",
