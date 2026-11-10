@@ -1,4 +1,4 @@
-# Copyright (c) 2025 Beijing Volcano Engine Technology Co., Ltd. and/or its affiliates.
+# Copyright (c) 2026 Beijing Volcano Engine Technology Co., Ltd. and/or its affiliates.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@ import subprocess
 import tempfile
 import unittest
 from contextlib import redirect_stderr
-from pathlib import Path
+from itertools import product
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from unittest.mock import patch
 
 from workflow_utils import check_project_yaml
@@ -33,12 +34,14 @@ class CheckProjectYamlTest(unittest.TestCase):
             script = root / "workflow_utils" / "check_project_yaml.py"
 
             # Git reports forward slashes for both staged and unstaged changes.
-            for staged in (False, True, None):
-                with self.subTest(staged=staged):
+            for path_type, change in product(
+                (PurePosixPath, PureWindowsPath), ("unstaged", "staged", "unchanged")
+            ):
+                with self.subTest(path_type=path_type.__name__, change=change):
                     diffs = ["", "python/sample/project.yaml\n"]
-                    if staged is None:
+                    if change == "unchanged":
                         diffs = ["", ""]
-                    elif not staged:
+                    elif change == "unstaged":
                         diffs.reverse()
                     results = [
                         subprocess.CompletedProcess([], 0, stdout=diff)
@@ -48,13 +51,18 @@ class CheckProjectYamlTest(unittest.TestCase):
                     with (
                         patch.object(check_project_yaml, "__file__", str(script)),
                         patch.object(
+                            Path,
+                            "relative_to",
+                            return_value=path_type("python/sample/project.yaml"),
+                        ),
+                        patch.object(
                             check_project_yaml.subprocess, "run", side_effect=results
                         ),
                         redirect_stderr(error),
                     ):
                         result = check_project_yaml.main([str(project)])
 
-                    if staged is None:
+                    if change == "unchanged":
                         self.assertEqual(result, 0)
                         self.assertEqual(error.getvalue(), "")
                     else:
