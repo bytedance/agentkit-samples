@@ -4,19 +4,22 @@ import json
 import sys
 from types import ModuleType, SimpleNamespace
 
+import pytest
+import requests
+
 import platform_knowledge
 import platform_memory
 from platform_request_context import _request_authorization
 
 
 class FakeResponse:
-    def __init__(self, payload: dict) -> None:
+    def __init__(self, payload: object) -> None:
         self.payload = payload
 
     def raise_for_status(self) -> None:
         return None
 
-    def json(self) -> dict:
+    def json(self) -> object:
         return self.payload
 
 
@@ -74,7 +77,9 @@ def install_fake_veadk(monkeypatch) -> None:
         monkeypatch.setitem(sys.modules, name, module)
 
 
-def test_platform_knowledge_search(monkeypatch) -> None:
+@pytest.mark.parametrize("wrapped", [False, True], ids=["array", "documents-envelope"])
+@pytest.mark.parametrize("nested_content", [False, True], ids=["text", "nested-text"])
+def test_platform_knowledge_search(monkeypatch, wrapped, nested_content) -> None:
     install_fake_veadk(monkeypatch)
     monkeypatch.setenv("KNOWLEDGE_BASE_URL", "https://knowledge.example")
     monkeypatch.setenv("KNOWLEDGE_BEARER_TOKEN", "knowledge-service-token")
@@ -83,9 +88,9 @@ def test_platform_knowledge_search(monkeypatch) -> None:
 
     def fake_post(url, **kwargs):
         calls.append((url, kwargs))
-        return FakeResponse(
-            {"documents": [{"content": {"content": "退款期为七天"}, "metadata": {"id": 1}}]}
-        )
+        content = {"content": "退款期为七天"} if nested_content else "退款期为七天"
+        documents = [{"content": content, "metadata": {"id": 1}}]
+        return FakeResponse({"documents": documents} if wrapped else documents)
 
     monkeypatch.setattr(platform_knowledge.requests, "post", fake_post)
     try:
@@ -95,9 +100,101 @@ def test_platform_knowledge_search(monkeypatch) -> None:
         _request_authorization.reset(token)
 
     assert results[0].content == "退款期为七天"
+    assert results[0].metadata == {"id": 1}
+    assert len(results) == 1
     assert calls[0][0] == "https://knowledge.example/v1/search"
     assert calls[0][1]["headers"]["Authorization"] == "Bearer knowledge-service-token"
     assert calls[0][1]["json"]["top_k"] == 2
+
+
+def test_platform_knowledge_search_cloud_search_result_array(monkeypatch) -> None:
+    """Preserve the field layout observed on E97, using synthetic document data."""
+    install_fake_veadk(monkeypatch)
+    monkeypatch.setenv("KNOWLEDGE_BASE_URL", "https://knowledge.example")
+    monkeypatch.setenv("KNOWLEDGE_BEARER_TOKEN", "knowledge-service-token")
+    documents = [
+        {
+            "id": f"document-{index}",
+            "metadata": {
+                "retrieval_score": 0.8,
+                "retrieval_index": index,
+                "rerank_index": index,
+                "rerank_score": 0.9,
+            },
+            "score": 0.9,
+            "content": {"title": "退款政策", "content": content},
+        }
+        for index, content in enumerate(["退款期为七天", "退款需要本人确认"])
+    ]
+    monkeypatch.setattr(
+        platform_knowledge.requests, "post", lambda *args, **kwargs: FakeResponse(documents)
+    )
+
+    results = platform_knowledge.build_platform_knowledge("demo").search("退款规则")
+
+    assert [entry.content for entry in results] == ["退款期为七天", "退款需要本人确认"]
+    assert [entry.metadata for entry in results] == [document["metadata"] for document in documents]
+
+
+@pytest.mark.parametrize("payload", [[], {"documents": []}], ids=["array", "envelope"])
+def test_platform_knowledge_empty_search(monkeypatch, payload) -> None:
+    install_fake_veadk(monkeypatch)
+    monkeypatch.setenv("KNOWLEDGE_BASE_URL", "https://knowledge.example")
+    monkeypatch.setenv("KNOWLEDGE_BEARER_TOKEN", "knowledge-service-token")
+    monkeypatch.setattr(
+        platform_knowledge.requests, "post", lambda *args, **kwargs: FakeResponse(payload)
+    )
+
+    assert platform_knowledge.build_platform_knowledge("demo").search("退款规则") == []
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        None,
+        "invalid",
+        1,
+        {},
+        {"error": "invalid query"},
+        {"documents": None},
+        {"documents": {}},
+        {"documents": "invalid"},
+        [None],
+        ["invalid"],
+        {"documents": [None]},
+    ],
+)
+def test_platform_knowledge_rejects_malformed_response(monkeypatch, payload) -> None:
+    install_fake_veadk(monkeypatch)
+    monkeypatch.setenv("KNOWLEDGE_BASE_URL", "https://knowledge.example")
+    monkeypatch.setenv("KNOWLEDGE_BEARER_TOKEN", "knowledge-service-token")
+    monkeypatch.setattr(
+        platform_knowledge.requests, "post", lambda *args, **kwargs: FakeResponse(payload)
+    )
+
+    with pytest.raises(ValueError, match="Knowledge search"):
+        platform_knowledge.build_platform_knowledge("demo").search("退款规则")
+
+
+def test_platform_knowledge_preserves_http_error(monkeypatch) -> None:
+    install_fake_veadk(monkeypatch)
+    monkeypatch.setenv("KNOWLEDGE_BASE_URL", "https://knowledge.example")
+    monkeypatch.setenv("KNOWLEDGE_BEARER_TOKEN", "knowledge-service-token")
+
+    def fail_http():
+        raise requests.HTTPError("403 Forbidden")
+
+    def unexpected_json():
+        raise AssertionError("HTTP errors must be raised before parsing the response")
+
+    monkeypatch.setattr(
+        platform_knowledge.requests,
+        "post",
+        lambda *args, **kwargs: SimpleNamespace(raise_for_status=fail_http, json=unexpected_json),
+    )
+
+    with pytest.raises(requests.HTTPError, match="403 Forbidden"):
+        platform_knowledge.build_platform_knowledge("demo").search("退款规则")
 
 
 def test_platform_knowledge_does_not_forward_inbound_runtime_token(monkeypatch) -> None:

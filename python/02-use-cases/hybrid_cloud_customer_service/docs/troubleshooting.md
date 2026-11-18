@@ -93,6 +93,12 @@
 
 ## Knowledge 与 Memory
 
+- **`platform_knowledge.py` 报 `'list' object has no attribute 'get'`**：Knowledge
+  `/v1/search` 返回了顶层数组，而旧样例只接受 `{"documents": [...]}`。更新样例并
+  重新构建、发布 Runtime；适配器现在支持这两种结构，空数组表示零命中。未知结构或
+  非对象文档会明确报错，不会伪装为零命中。此异常不能证明知识库未发布或文档未入库，
+  修复后仍需用 Canary 检索验证实际命中。排障只记录响应类型、字段名和条数，不打印
+  Token 或完整文档内容。
 - **`unhashable type: 'AgentKitKnowledgeBackend'`**：使用最新版样例重新构建，
   其中已把 Tool metadata 规范化为 JSON-safe 类名。
 - **`unhashable type: 'AgentKitMem0Backend'`**：使用包含 Memory metadata 和

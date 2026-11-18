@@ -53,6 +53,17 @@ def _knowledge_endpoint() -> str:
     return ""
 
 
+def _search_documents(payload: object) -> list[dict]:
+    """Accept direct Cloud Search results and the documents response envelope."""
+    if isinstance(payload, dict):
+        payload = payload.get("documents")
+    if not isinstance(payload, list):
+        raise ValueError("Knowledge search response must be a list or contain a documents list")
+    if any(not isinstance(document, dict) for document in payload):
+        raise ValueError("Knowledge search documents must be objects")
+    return payload
+
+
 def build_platform_knowledge(app_name: str):
     """Return a VeADK KnowledgeBase or None when no platform binding exists."""
     # Publishing the associated Knowledge resource injects its concrete HTTP
@@ -103,7 +114,7 @@ def build_platform_knowledge(app_name: str):
                 timeout=20,
             )
             response.raise_for_status()
-            documents = response.json().get("documents", [])
+            documents = _search_documents(response.json())
             logger.info("Knowledge search completed: query=%r hits=%d", query, len(documents))
             entries = []
             for document in documents:
