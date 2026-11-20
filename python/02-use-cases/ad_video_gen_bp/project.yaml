@@ -1,0 +1,33 @@
+name: 营销视频生成 Agent（BytePlus 版）
+name_en: Ad Video Generation Agent (BytePlus)
+description: 基于 AgentKit 与 VeADK 的单智能体电商营销视频生成样例，适配 BytePlus 平台
+details: 输入商品名称、卖点、目标人群与风格偏好后，单个 Root Agent 依次完成四段式营销故事规划、2x2 分镜参考图生成（Seedream 5.0 Pro）与图生视频（Dreamina Seedance 2.5），输出默认 9:16、1080P、15 秒的营销短视频，并以可预览的图片与视频形式返回。样例针对 BytePlus 平台（ap-southeast 区域）配置了模型与 Endpoint，是 ad_video_gen 的 BytePlus 版本。
+tags:
+  industry: 广告营销
+  from: community
+  framework: veADK
+  language: Python
+  tech:
+    - Seedream
+    - Seedance
+    - DeepSeek
+    - TOS
+type: tutorial
+scenarios:
+  - name: 电商营销视频
+    desc: 根据商品卖点生成营销短视频
+  - name: 商品种草视频
+    desc: 面向目标人群生成种草短片
+  - name: 分镜参考图生成
+    desc: 生成四格分镜营销参考图片
+prompts:
+  - text: 请为一款杨梅饮品生成商品展示视频，竖屏 9:16，清新夏日风格。卖点：天然杨梅、酸甜可口、冰镇更爽。
+  - text: 为一款侘寂风香薰蜡烛生成 30 秒种草视频，目标人群为喜欢极简家居的都市上班族，视觉风格克制、安静、高级。
+envs:
+  - name: BytePlus ModelArk API Key
+    key: MODEL_AGENT_API_KEY
+    url: https://console.byteplus.com/ark
+models:
+  - deepseek-v4-pro-260425
+  - dola-seedream-5-0-pro-260628
+  - dreamina-seedance-2-5-260628

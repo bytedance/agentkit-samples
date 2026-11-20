@@ -1,0 +1,39 @@
+name: 绘本故事视频生成 Agent（BytePlus 版）
+name_en: Fable Storybook Video Generation Agent (BytePlus)
+description: 基于 AgentKit 与 VeADK 的绘本故事视频生成样例，适配 BytePlus 平台
+details: 输入一个童话故事或故事情节后，Agent 会将故事拆分为三个场景，生成四张 3D 卡通风格的分镜插画（Seedream 5.0 Pro，首图作为风格参考保证一致性），再以相邻分镜为首尾帧生成三段过渡视频（Seedance 2.5），随后通过本地 MCP 视频剪辑工具将三段视频拼接为完整成片，最终上传至 TOS 对象存储并返回可访问的签名 URL。样例针对 BytePlus 平台（ap-southeast 区域）配置了模型与 Endpoint。
+tags:
+  industry: 文娱内容
+  from: community
+  framework: veADK
+  language: Python
+  tech:
+    - Seedance
+    - Seedream
+    - MCP
+    - TOS
+type: application
+scenarios:
+  - name: 绘本插画生成
+    desc: 故事拆分生成分镜插画
+  - name: 故事视频生成
+    desc: 图生视频并合成完整成片
+  - name: 成片上传交付
+    desc: 上传对象存储生成链接
+prompts:
+  - text: 愚公移山与精卫填海绘本故事
+  - text: 凡人修仙传虚天殿大战,3D 动漫风格
+envs:
+  - name: BytePlus ModelArk API Key
+    key: MODEL_AGENT_API_KEY
+    url: https://console.byteplus.com/ark
+  - name: TOS 存储桶名称
+    key: DATABASE_TOS_BUCKET
+    url: https://console.byteplus.com/tos
+  - name: BytePlus Web Search API Key
+    key: BYTEPLUS_WEB_SEARCH_API_KEY
+    url: https://console.byteplus.com
+models:
+  - deepseek-v4-pro-260425
+  - dola-seedream-5-0-pro-260628
+  - dreamina-seedance-2-5-260628
