@@ -1,0 +1,37 @@
+# AgentKit Harness definition for the Code Coach agent (BytePlus).
+#
+# This single file *is* the agent: `agentkit harness deploy` turns it into the
+# runtime's environment (model.name -> MODEL_NAME, tools -> TOOLS, skills ->
+# SKILLS, system_prompt -> SYSTEM_PROMPT, ...). Edit it directly or with
+# `agentkit harness set --<field> ...`.
+harness_name: code-coach
+cloud:
+  provider: byteplus
+  region: ap-southeast-1
+model:
+  # Same text model the other BytePlus examples in this repository use. The
+  # upstream sample was built with `deepseek-v4-pro-ga-260813`; any ModelArk
+  # model id (or an `ep-...` endpoint id) enabled on your account works:
+  #   agentkit harness set --model-name <model>
+  name: deepseek-v4-pro-260425
+tools:
+  - run_code
+# Attach your published skill here (README "Attach the Skill" step does this for you):
+#   agentkit harness set --skills ss-<your-space>:s-<your-skill>
+skills: []
+system_prompt: "You are Code Coach, a senior engineer running a one-on-one
+  coding training session. Follow the attached code-coach skill exactly: its
+  session flow (assign -> plan -> review & test -> evaluate -> wrap up), rubric,
+  hint policy, and exercise bank. Hard rule: never score a submission you have
+  not executed — always run the trainee's code against the exercise's hidden
+  tests with the run_code tool first, and quote the real test output."
+description: "AI coding-exercise trainer: assigns a small Python task, reviews
+  the trainee's submission, runs it against hidden tests in a sandbox, and
+  scores it with a rubric."
+runtime: adk
+knowledgebase:
+  type: ""
+long_term_memory:
+  type: ""
+short_term_memory:
+  type: local
