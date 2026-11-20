@@ -109,9 +109,19 @@ def _load_legacy_env_file(env_path: str = LEGACY_ENV_PATH) -> None:
         return
 
 
+def _candidate_env_paths() -> list:
+    """按优先级返回候选 .env 路径；先加载者优先（见 os.environ.setdefault）。"""
+    xdg_config_home = os.getenv("XDG_CONFIG_HOME") or os.path.join(str(Path.home()), ".config")
+    return [
+        USER_ENV_PATH,
+        LEGACY_ENV_PATH,
+        os.path.join(xdg_config_home, "byted-web-search", ".env"),
+    ]
+
+
 def _load_legacy_env_files() -> None:
     seen_paths = set()
-    for env_path in (LEGACY_ENV_PATH, USER_ENV_PATH):
+    for env_path in _candidate_env_paths():
         normalized = os.path.abspath(os.path.expanduser(env_path))
         if normalized in seen_paths:
             continue
