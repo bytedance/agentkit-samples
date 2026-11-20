@@ -118,16 +118,13 @@ else:
     raise ValueError("DATABASE_VIKING_COLLECTION environment variable is not set")
 
 
-should_init_knowledge = False
+should_init_knowledge = True
 try:
     test_knowledge = knowledge.search(knowledge_probe, top_k=1)
-    should_init_knowledge = not (
-        len(test_knowledge) >= 0
-        and test_knowledge[0].content != ""
-        and str(test_knowledge[0].content).__contains__(knowledge_probe)
-    )
+    if test_knowledge and test_knowledge[0].content and knowledge_probe in test_knowledge[0].content:
+        should_init_knowledge = False
 except Exception:
-    should_init_knowledge = True
+    pass
 
 if should_init_knowledge:
     tos_bucket_name = os.getenv("DATABASE_TOS_BUCKET")
