@@ -223,6 +223,7 @@ def chat(request: LocalChatRequest) -> dict[str, object]:
         )
     # The public Runtime gateway exposes /invoke, not the internal /apps routes.
     # AgentKit's compatibility endpoint creates the session on first request.
+    response = None
     try:
         response = requests.post(
             f"{endpoint}/invoke",
@@ -283,6 +284,9 @@ def chat(request: LocalChatRequest) -> dict[str, object]:
         raise HTTPException(502, detail=f"Runtime call failed: {exc}") from exc
     except (RuntimeError, ValueError) as exc:
         raise HTTPException(502, detail=f"Runtime stream failed: {exc}") from exc
+    finally:
+        if response is not None and hasattr(response, "close"):
+            response.close()
 
 
 @app.post("/ui/chat/stream")
