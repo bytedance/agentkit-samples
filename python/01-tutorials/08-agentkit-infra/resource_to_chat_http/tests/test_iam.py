@@ -15,7 +15,9 @@ def conflict(operation: str) -> HarnessInfraError:
 
 class SandboxPolicyTests(unittest.TestCase):
     def test_creates_and_attaches_custom_policy(self) -> None:
-        control = ControlConfig("", "", "cn-beijing", "agentkit", "open.volcengineapi.com")
+        control = ControlConfig(
+            "", "", "cn-beijing", "agentkit", "open.volcengineapi.com"
+        )
         with patch.object(_iam, "IamClient") as factory:
             client = factory.return_value
             client.call.side_effect = [{}, {}]
@@ -31,7 +33,9 @@ class SandboxPolicyTests(unittest.TestCase):
         self.assertIn("agentkit:DeleteSession", _iam.SANDBOX_POLICY_DOCUMENT)
 
     def test_existing_policy_and_attachment_are_idempotent(self) -> None:
-        control = ControlConfig("", "", "cn-beijing", "agentkit", "open.volcengineapi.com")
+        control = ControlConfig(
+            "", "", "cn-beijing", "agentkit", "open.volcengineapi.com"
+        )
         with patch.object(_iam, "IamClient") as factory:
             client = factory.return_value
             client.call.side_effect = [
@@ -42,8 +46,12 @@ class SandboxPolicyTests(unittest.TestCase):
         self.assertEqual(client.call.call_count, 2)
 
     def test_non_conflict_errors_are_raised(self) -> None:
-        control = ControlConfig("", "", "cn-beijing", "agentkit", "open.volcengineapi.com")
-        error = HarnessInfraError("IAM CreatePolicy", "AccessDenied", "denied", status_code=403)
+        control = ControlConfig(
+            "", "", "cn-beijing", "agentkit", "open.volcengineapi.com"
+        )
+        error = HarnessInfraError(
+            "IAM CreatePolicy", "AccessDenied", "denied", status_code=403
+        )
         with patch.object(_iam, "IamClient") as factory:
             client = factory.return_value
             client.call.side_effect = [error]

@@ -1,0 +1,39 @@
+{
+  "Name": "Agent_script_zip_demo",
+  "Description": "CreateHarness sample with an external zip skill package.",
+  "Model": {
+    "Id": "doubao-seed-2-1-turbo-260628",
+    "Provider": "openai",
+    "BaseUrl": "https://ark.cn-beijing.volces.com/api/v3",
+    "ApiKey": "xxxxxxx"
+  },
+  "System": "你是一个通用任务执行智能体。请分析用户目标，按步骤完成任务并清晰说明结果。",
+  "Tools": [],
+  "Skills": [
+    {
+      "Type": "external_skill_package",
+      "Source": "public_url",
+      "Url": "https://api.skillhub.cn/api/v1/download?slug=%40ake%2Fdev-god"
+    }
+  ],
+  "McpServers": [
+    {
+      "Name": "orders",
+      "Type": "url",
+      "Url": "https://mcp.example.com/orders",
+      "headers": {
+        "X-API-KEY": "xxxxxxx"
+      }
+    }
+  ],
+  "KnowledgeContexts": [],
+  "Payload": {},
+  "Metadata": {
+    "source": "call_api/CreateHarness.py",
+    "agentkit.console.ark_key_name": ""
+  },
+  "AgentLoop": "adk",
+  "RuntimeId": "r-xxxxxxxxxxxxxxxxxxxx",
+  "EnvironmentId": "env_xxxxxxxxxxxxxxxxxxxx",
+  "WorkspaceId": "ws-xxxxxxxxxxxxxxxxxxxx"
+}

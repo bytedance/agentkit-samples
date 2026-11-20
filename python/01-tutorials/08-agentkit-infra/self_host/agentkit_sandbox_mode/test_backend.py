@@ -127,8 +127,12 @@ class BackendTests(unittest.TestCase):
                         "self_host": {
                             "agentkit_sandbox": {
                                 "enable_log": True,
-                                "tls_topic_id": "" if missing == "tls_topic_id" else "topic",
-                                "tls_project_id": "" if missing == "tls_project_id" else "project",
+                                "tls_topic_id": ""
+                                if missing == "tls_topic_id"
+                                else "topic",
+                                "tls_project_id": ""
+                                if missing == "tls_project_id"
+                                else "project",
                             }
                         }
                     },
