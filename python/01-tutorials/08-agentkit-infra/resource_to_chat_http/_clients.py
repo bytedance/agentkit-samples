@@ -27,8 +27,6 @@ WORKSPACE_ACTIONS = {
     "GetEnvironmentResource",
     "ListEnvironmentResources",
     "CreateRuntimeTemplate",
-    "GetRuntimeTemplate",
-    "ListRuntimeTemplates",
     "CreateHarnessSkill",
     "CreateHarnessSkillVersion",
     "GetHarnessSkill",
@@ -267,7 +265,11 @@ def sign_headers(
 
 
 def _decode_json(
-    operation: str, response: requests.Response, *, top_envelope: bool
+    operation: str,
+    response: requests.Response,
+    *,
+    top_envelope: bool,
+    allow_empty_result: bool = False,
 ) -> dict[str, Any]:
     """解码公开错误，拒绝把任意 HTTP 2xx 正文当成成功。"""
 
@@ -323,6 +325,8 @@ def _decode_json(
         )
     if top_envelope:
         result = payload.get("Result")
+        if not isinstance(result, dict) and allow_empty_result:
+            return {}
         if not isinstance(result, dict):
             raise HarnessInfraError(
                 operation,

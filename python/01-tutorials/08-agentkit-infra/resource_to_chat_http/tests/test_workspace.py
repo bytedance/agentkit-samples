@@ -28,17 +28,17 @@ class WorkspaceTests(unittest.TestCase):
             post.assert_not_called()
 
     def test_only_supported_actions_are_scoped_and_body_is_not_mutated(self):
-        self.assertEqual(len(WORKSPACE_ACTIONS), 18)
+        self.assertEqual(len(WORKSPACE_ACTIONS), 16)
         for action in WORKSPACE_ACTIONS:
             self.assertEqual(
                 workspace_body(action, {}, "ws-1"), {"WorkspaceId": "ws-1"}
             )
         for action in [
-            "CreateEndpoint",
+            "CreateRoute",
             "CreateAPIKey",
             "CreateSessionStore",
             "UpdateHarness",
-            "DeleteRuntimeTemplate",
+            "DeleteRuntime",
         ]:
             self.assertEqual(workspace_body(action, {}, "ws-1"), {})
         body = {"workspace_id": " ws-1 "}

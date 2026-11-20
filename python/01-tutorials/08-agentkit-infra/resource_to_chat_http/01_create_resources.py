@@ -48,6 +48,11 @@ def main() -> None:
         help="账号存在多个 Endpoint 时显式选择",
     )
     cli.add_argument(
+        "--apig-gateway-id",
+        default="",
+        help="账号没有 Endpoint 时调用 CreateRoute 必填（默认读取 environment.apig_gateway_id）",
+    )
+    cli.add_argument(
         "--model-id",
         help="模型 ID；默认读取 config.yaml",
     )
@@ -91,7 +96,7 @@ def main() -> None:
             "资源创建计划",
             json_output=args.json_output,
             actions=[
-                "准备 Endpoint（选择已有或创建）",
+                "准备 Endpoint（复用已有；无则 CreateRoute 创建）",
                 (
                     "创建 Cloud Environment，等待 Environment 和 Cloud Sandbox 就绪"
                     if config.environment.type == "Cloud"
@@ -99,7 +104,7 @@ def main() -> None:
                 ),
                 "创建 Harness",
                 "创建 SERVERLESS_PG SessionStore 并等待就绪",
-                "准备 Runtime IAM Role（复用或创建并授权），创建 RuntimeTemplate 并等待就绪",
+                "准备 Runtime IAM Role（复用或创建并授权），创建 Runtime 并用 GetRuntime 等待 Ready",
                 "创建 Environment API Key 并保存到 config.yaml",
                 "创建 Session，保存到 config.yaml 并回填两个固定 shell 脚本的连接配置",
             ],
@@ -128,6 +133,9 @@ def main() -> None:
         state,
         config,
         endpoint_id=args.endpoint_id.strip() or config.environment.endpoint_id,
+        apig_gateway_id=(
+            args.apig_gateway_id.strip() or config.environment.apig_gateway_id
+        ),
         json_output=args.json_output,
     )
 

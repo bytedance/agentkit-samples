@@ -55,7 +55,7 @@ LABELS = {
     "environment": "Environment",
     "endpoint": "Endpoint",
     "harness": "Harness",
-    "runtime_template": "RuntimeTemplate",
+    "runtime": "Runtime",
     "runtime_type": "运行时类型",
     "ark_api_key_name": "模型 Key 名称",
     "event_id": "事件 ID",

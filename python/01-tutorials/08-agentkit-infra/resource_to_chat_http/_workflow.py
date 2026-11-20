@@ -243,9 +243,10 @@ def _prepare_endpoint(
     state: dict[str, Any],
     *,
     endpoint_id: str,
+    apig_gateway_id: str,
     json_output: bool,
 ) -> dict[str, Any]:
-    """复用唯一 Ready Endpoint；无 Endpoint 时同步创建。"""
+    """复用唯一 Ready Endpoint；无 Endpoint 时通过 CreateRoute 同步创建。"""
 
     with wait_progress("查询 Endpoint", json_output=json_output):
         endpoints = _list_all(client, "ListEndpoints")
@@ -260,8 +261,15 @@ def _prepare_endpoint(
         endpoint = selected[0]
         reused = True
     elif not endpoints:
+        gateway = apig_gateway_id.strip()
+        if not gateway:
+            raise RuntimeError(
+                "No Endpoint is visible: CreateRoute requires a non-empty "
+                "environment.apig_gateway_id (contract field; the actual gateway "
+                "comes from server configuration)"
+            )
         with wait_progress("创建 Endpoint", json_output=json_output):
-            endpoint = client.call("CreateEndpoint", {})
+            endpoint = client.call("CreateRoute", {"ApigGatewayId": gateway})
         reused = False
     elif len(endpoints) == 1:
         endpoint = endpoints[0]
@@ -424,6 +432,7 @@ def create_resources(
     config: ExampleConfig,
     *,
     endpoint_id: str = "",
+    apig_gateway_id: str = "",
     json_output: bool = False,
 ) -> dict[str, Any]:
     """创建控制面资源、数据面凭据和 Session，并等待异步资源就绪。"""
@@ -433,6 +442,7 @@ def create_resources(
         client,
         state,
         endpoint_id=endpoint_id,
+        apig_gateway_id=apig_gateway_id or config.environment.apig_gateway_id,
         json_output=json_output,
     )
     names = state["names"]
@@ -575,7 +585,7 @@ def create_resources(
 
     emit(
         "request",
-        "创建 RuntimeTemplate",
+        "创建 Runtime",
         json_output=json_output,
         step=5,
     )
@@ -593,7 +603,7 @@ def create_resources(
         status="reused" if reused else "created",
     )
     runtime_request = {
-        "Name": names["runtime_template"],
+        "Name": names["runtime"],
         "Description": "Harness Infra resource-to-chat HTTP tutorial",
         "RoleName": role_name,
         "Resources": config.runtime_template.resources,
@@ -607,19 +617,17 @@ def create_resources(
         runtime_request["Envs"] = config.runtime_template.envs
     if config.runtime_template.runtime:
         runtime_request["Runtime"] = config.runtime_template.runtime
-    with wait_progress("创建 RuntimeTemplate", json_output=json_output):
+    with wait_progress("创建 Runtime", json_output=json_output):
         runtime = client.call("CreateRuntimeTemplate", runtime_request)
-    runtime_id = runtime.get("RuntimeTemplateId")
+    runtime_id = runtime.get("RuntimeId")
     if not isinstance(runtime_id, str) or not runtime_id:
-        raise RuntimeError(
-            "CreateRuntimeTemplate response is missing RuntimeTemplateId"
-        )
+        raise RuntimeError("CreateRuntimeTemplate response is missing RuntimeId")
     update_resource(
         state,
-        "runtime_template",
+        "runtime",
         {
             "id": runtime_id,
-            "name": runtime.get("Name") or names["runtime_template"],
+            "name": runtime.get("Name") or names["runtime"],
             "parameters": {
                 **config.runtime_template.resources,
                 "ImageUrl": config.runtime_template.image_url,
@@ -632,21 +640,23 @@ def create_resources(
         },
     )
     runtime = wait_until(
-        lambda: client.call("GetRuntimeTemplate", {"RuntimeTemplateId": runtime_id}),
+        lambda: client.call("GetRuntime", {"RuntimeId": runtime_id}),
         lambda value: value.get("Status") == "Ready",
         lambda value: (
-            str(value.get("Status")) if value.get("Status") == "Failed" else None
+            str(value.get("Status"))
+            if value.get("Status") in {"Error", "Aborted", "Deleting", "Deleted"}
+            else None
         ),
-        description="RuntimeTemplate Ready",
+        description="Runtime Ready",
         json_output=json_output,
         report_result=False,
     )
     update_resource(
         state,
-        "runtime_template",
+        "runtime",
         {"id": runtime_id, "status": "Ready", "owned": True},
     )
-    report_resource(state, "runtime_template", json_output=json_output)
+    report_resource(state, "runtime", json_output=json_output)
 
     emit(
         "request",
@@ -704,7 +714,7 @@ def create_resources(
                 "environment_id": environment_id,
                 "workspace_id": environment.get("WorkspaceId")
                 or config.control.workspace_id,
-                "runtime_template_id": runtime_id,
+                "runtime_id": runtime_id,
                 "runtime_type": "agentkit_runtime",
                 "title": config.session.title,
                 "initial_events": [],
@@ -761,7 +771,7 @@ def create_resources(
                 "environment",
                 "harness",
                 "session_store",
-                "runtime_template",
+                "runtime",
                 "api_key",
                 "session",
             )
@@ -1096,34 +1106,31 @@ def cleanup_resources(
             state, "api_key", json_output=json_output, result="无需清理，跳过"
         )
 
-    emit("step", "删除 RuntimeTemplate", json_output=json_output, step=2)
-    runtime = resources.get("runtime_template") or {}
+    emit("step", "删除 Runtime", json_output=json_output, step=2)
+    runtime = resources.get("runtime") or {}
     if runtime.get("id") and runtime.get("status") != "deleted":
         _delete_top_and_wait_not_found(
             client,
-            delete_action="DeleteRuntimeTemplate",
+            delete_action="DeleteRuntime",
             delete_body={
-                "RuntimeTemplateId": runtime["id"],
-                "Reason": "Resource-to-chat tutorial cleanup",
+                "RuntimeId": runtime["id"],
                 "ClientToken": tokens["runtime_delete"],
             },
-            get_action="GetRuntimeTemplate",
-            get_body={"RuntimeTemplateId": runtime["id"]},
-            description="RuntimeTemplate",
+            get_action="GetRuntime",
+            get_body={"RuntimeId": runtime["id"]},
+            description="Runtime",
             json_output=json_output,
         )
         update_resource(
             state,
-            "runtime_template",
+            "runtime",
             {**runtime, "status": "deleted"},
         )
-        report_resource(
-            state, "runtime_template", json_output=json_output, result="已删除"
-        )
+        report_resource(state, "runtime", json_output=json_output, result="已删除")
     else:
         report_resource(
             state,
-            "runtime_template",
+            "runtime",
             json_output=json_output,
             result="不存在或已删除，跳过",
         )
@@ -1273,7 +1280,7 @@ def cleanup_resources(
                 "environment",
                 "harness",
                 "session_store",
-                "runtime_template",
+                "runtime",
                 "api_key",
                 "session",
             )

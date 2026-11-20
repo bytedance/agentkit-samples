@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""清理 RuntimeTemplate、Environment 及关联资源，并归档 Harness。"""
+"""清理 Runtime、Environment 及关联资源，并归档 Harness。"""
 
 from _clients import TopClient
 from _common import emit, load_state, parser, run
@@ -18,7 +18,7 @@ def main() -> None:
             json_output=args.json_output,
             actions=[
                 "检查 Session / 清理残留 API Key",
-                "DeleteRuntimeTemplate / 等待删除完成",
+                "DeleteRuntime / 等待 GetRuntime 返回 404",
                 "DeleteSessionStore / 等待删除完成",
                 "清理 Environment 及本次记录的关联资源",
                 "ArchiveHarness",

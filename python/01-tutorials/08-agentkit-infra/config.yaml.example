@@ -98,6 +98,7 @@ environment:
   metadata:
     purpose: "resource-to-chat-tutorial"
   endpoint_id: "" # 可选：账号存在多个 Endpoint 时填写
+  apig_gateway_id: "" # 账号没有可复用 Endpoint 时必填：CreateRoute 契约字段，仅做非空校验
   env_api_key:
     id: "" # 禁止手填：01 自动写入，03 自动清空
     value: "" # 禁止手填：01 写入明文，02 复用，03 清空
@@ -118,7 +119,9 @@ self_host:
     existing_tool_id: "" # 可选：显式复用同镜像/命令/端口/项目的 Ready 工具模板
     # 为了方便观测，默认同时为 Dispatcher Runtime 和 Tool 开启应用监控与日志采集。
     apmplus_enable: true
-    enable_log: true
+    enable_log: false # true 时还需填写 tls_topic_id 与 tls_project_id
+    tls_topic_id: "" # 可选：TLS 日志主题 ID，enable_log 为 true 时必填
+    tls_project_id: "" # 可选：TLS 日志项目 ID，enable_log 为 true 时必填
     dispatcher_cpu_milli: 1000
     dispatcher_memory_mb: 2048
     sandbox_cpu_milli: 2000

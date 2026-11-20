@@ -73,6 +73,7 @@ class EnvironmentConfig:
     resources: dict[str, int]
     metadata: dict[str, str]
     endpoint_id: str
+    apig_gateway_id: str
     env_api_key_id: str
     env_api_key_value: str
 
@@ -504,6 +505,11 @@ def _environment_config(
         endpoint_id=_string(
             environment.get("endpoint_id"),
             "environment.endpoint_id",
+            allow_empty=True,
+        ),
+        apig_gateway_id=_string(
+            environment.get("apig_gateway_id"),
+            "environment.apig_gateway_id",
             allow_empty=True,
         ),
         env_api_key_id=_string(

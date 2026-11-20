@@ -23,7 +23,7 @@ from _config import (  # noqa: E402
     _validate_data_url,
     validated_config,
 )
-from _iam import ensure_runtime_role  # noqa: E402
+from _iam import ensure_runtime_role, ensure_sandbox_role_policy  # noqa: E402
 
 REGISTRY = "enterprise-public-cn-beijing.cr.volces.com/vefaas-public"
 DISPATCHER_IMAGE = (
@@ -74,12 +74,18 @@ def settings() -> dict[str, Any]:
         "environment_id": "",
         "environment_key": "",
         "existing_tool_id": "",
+        "tls_topic_id": "",
+        "tls_project_id": "",
     }
     for name, default in defaults.items():
         result[name] = _string(
             raw.get(name, default),
             f"self_host.agentkit_sandbox.{name}",
             allow_empty=not default,
+        )
+    for name in ("tls_topic_id", "tls_project_id"):
+        result[name] = _string(
+            raw.get(name, ""), f"self_host.agentkit_sandbox.{name}", allow_empty=True
         )
     for name, default in {
         "dispatcher_cpu_milli": 1000,
@@ -94,7 +100,7 @@ def settings() -> dict[str, Any]:
             raw.get(name, default), f"self_host.agentkit_sandbox.{name}"
         )
     for name in ("apmplus_enable", "enable_log"):
-        value = raw.get(name, True)
+        value = raw.get(name, name == "apmplus_enable")
         if not isinstance(value, bool):
             raise RuntimeError(f"self_host.agentkit_sandbox.{name} must be a boolean")
         result[name] = value
@@ -173,6 +179,22 @@ def validate_connection(client: TopClient, conn: dict[str, str]) -> None:
         raise RuntimeError("Environment key/endpoint does not match EnvironmentId")
 
 
+def tls_configuration(options: dict[str, Any]) -> dict[str, Any]:
+    """日志采集需要 TLS 项目与主题同时存在，否则显式关闭。"""
+    if options["enable_log"]:
+        if not options["tls_topic_id"] or not options["tls_project_id"]:
+            raise RuntimeError(
+                "enable_log requires self_host.agentkit_sandbox.tls_topic_id and "
+                "tls_project_id; set enable_log: false to disable log collection"
+            )
+        return {
+            "EnableLog": True,
+            "TlsTopicId": options["tls_topic_id"],
+            "TlsProjectId": options["tls_project_id"],
+        }
+    return {"EnableLog": False}
+
+
 def tool_request(options: dict[str, Any], token: str, name: str) -> dict[str, Any]:
     """构造 AppO CreateTool 请求；执行参数由 Dispatcher 注入实例。"""
     return {
@@ -185,7 +207,7 @@ def tool_request(options: dict[str, Any], token: str, name: str) -> dict[str, An
         "MemoryMb": options["sandbox_memory_mb"],
         "ProjectName": options["project_name"],
         "ApmplusEnable": options["apmplus_enable"],
-        "TlsConfiguration": {"EnableLog": options["enable_log"]},
+        "TlsConfiguration": tls_configuration(options),
         "NetworkConfiguration": {"EnablePublicNetwork": True},
         "AuthorizerConfiguration": {
             "KeyAuth": {"ApiKeyName": "x-api-key", "ApiKeyLocation": "header"}
@@ -222,7 +244,7 @@ def runtime_request(
         "RoleName": options["role_name"],
         "ProjectName": options["project_name"],
         "ApmplusEnable": options["apmplus_enable"],
-        "TlsConfiguration": {"EnableLog": options["enable_log"]},
+        "TlsConfiguration": tls_configuration(options),
         "Envs": [{"Key": key, "Value": value} for key, value in envs.items()],
         "NetworkConfiguration": {"EnablePublicNetwork": True},
         "AuthorizerConfiguration": {
@@ -267,6 +289,11 @@ def emit_observability(
     if planned and apmplus is True and enable_log is True:
         message = (
             f"为了方便观测，默认在创建 {resource} 时开启 APMPlus 观测和 TLS 日志采集"
+        )
+    elif planned and apmplus is True and enable_log is False:
+        message = (
+            f"为了方便观测，默认在创建 {resource} 时开启 APMPlus 观测；"
+            "未配置 TLS 主题，日志采集关闭"
         )
     else:
         source = "创建观测配置" if planned else "当前观测状态"
@@ -493,6 +520,7 @@ def main(*, dispatcher: bool) -> None:
         )
     if dispatcher:
         ensure_runtime_role(config.control, options["role_name"])
+        ensure_sandbox_role_policy(config.control, options["role_name"])
         runtime_id = ensure_resource(
             client,
             state,

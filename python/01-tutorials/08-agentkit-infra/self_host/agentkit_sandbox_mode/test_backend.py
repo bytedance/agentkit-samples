@@ -55,7 +55,7 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(body["MaxInstance"], 1)
 
     def test_default_observability_on_both_resources(self) -> None:
-        """未配置观测选项时，两个创建接口都明确开启应用监控和日志采集。"""
+        """默认开启应用监控；日志采集需要 TLS 主题，未配置时显式关闭。"""
         requests = [
             backend.tool_request(self.options, "token", "tool"),
             backend.runtime_request(
@@ -65,7 +65,7 @@ class BackendTests(unittest.TestCase):
         for body in requests:
             with self.subTest(name=body["Name"]):
                 self.assertIs(body["ApmplusEnable"], True)
-                self.assertEqual(body["TlsConfiguration"], {"EnableLog": True})
+                self.assertEqual(body["TlsConfiguration"], {"EnableLog": False})
 
     def test_observability_can_be_disabled_independently(self) -> None:
         """用户可分别关闭应用监控或日志采集，两个请求都保留显式 false。"""
@@ -80,6 +80,14 @@ class BackendTests(unittest.TestCase):
                             "agentkit_sandbox": {
                                 "apmplus_enable": apmplus,
                                 "enable_log": enable_log,
+                                **(
+                                    {
+                                        "tls_topic_id": "topic-1",
+                                        "tls_project_id": "project-1",
+                                    }
+                                    if enable_log
+                                    else {}
+                                ),
                             }
                         }
                     },
@@ -95,8 +103,40 @@ class BackendTests(unittest.TestCase):
                 for body in requests:
                     self.assertIs(body["ApmplusEnable"], apmplus)
                     self.assertIs(body["TlsConfiguration"]["EnableLog"], enable_log)
-                    if not enable_log:
+                    if enable_log:
+                        self.assertEqual(
+                            body["TlsConfiguration"],
+                            {
+                                "EnableLog": True,
+                                "TlsTopicId": "topic-1",
+                                "TlsProjectId": "project-1",
+                            },
+                        )
+                    else:
                         self.assertEqual(body["TlsConfiguration"], {"EnableLog": False})
+
+    def test_enable_log_requires_tls_topic_and_project(self) -> None:
+        """开启日志采集但缺少 TLS 主题或项目时在创建前失败。"""
+        for missing in ("tls_topic_id", "tls_project_id"):
+            with (
+                self.subTest(missing=missing),
+                patch.object(
+                    backend,
+                    "_read_yaml",
+                    return_value={
+                        "self_host": {
+                            "agentkit_sandbox": {
+                                "enable_log": True,
+                                "tls_topic_id": "" if missing == "tls_topic_id" else "topic",
+                                "tls_project_id": "" if missing == "tls_project_id" else "project",
+                            }
+                        }
+                    },
+                ),
+            ):
+                options = backend.settings()
+                with self.assertRaisesRegex(RuntimeError, "enable_log requires"):
+                    backend.tool_request(options, "token", "tool")
 
     def test_observability_rejects_non_boolean_configuration(self) -> None:
         """拒绝字符串或数字开关，避免将字符串 false 当作真值开启采集。"""
@@ -156,7 +196,7 @@ class BackendTests(unittest.TestCase):
                 self.assertIn("为了方便观测", events[0].args[1])
                 self.assertIs(events[0].kwargs["planned"], True)
                 self.assertIs(events[0].kwargs["apmplus_enable"], True)
-                self.assertIs(events[0].kwargs["enable_log"], True)
+                self.assertIs(events[0].kwargs["enable_log"], False)
                 self.assertIs(events[1].kwargs["planned"], False)
                 self.assertIs(events[1].kwargs["apmplus_enable"], False)
                 self.assertIs(events[1].kwargs["enable_log"], False)
@@ -341,7 +381,7 @@ class BackendTests(unittest.TestCase):
             for item in plan:
                 if item["action"].startswith("Create"):
                     self.assertEqual(
-                        item["body"]["TlsConfiguration"], {"EnableLog": True}
+                        item["body"]["TlsConfiguration"], {"EnableLog": False}
                     )
 
     def test_reused_template_is_not_owned(self) -> None:
@@ -356,7 +396,11 @@ class BackendTests(unittest.TestCase):
             "Port": options["sandbox_port"],
             "ProjectName": options["project_name"],
             "ApmplusEnable": False,
-            "TlsConfiguration": {"EnableLog": True},
+            "TlsConfiguration": {
+                "EnableLog": True,
+                "TlsTopicId": "topic-1",
+                "TlsProjectId": "project-1",
+            },
         }
         with patch.object(backend, "emit") as emit:
             tool_id = backend.reuse_tool(self.client, state, options, json_output=True)

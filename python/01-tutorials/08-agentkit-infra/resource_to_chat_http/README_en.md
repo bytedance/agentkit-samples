@@ -4,12 +4,15 @@ Set optional top-level `workspace_id` in the shared YAML or override it with
 `HARNESS_INFRA_WORKSPACE_ID` (`AGENTKIT_WORKSPACE_ID` is also supported).
 Omission/empty selection uses the unique ACTIVE DEFAULT Workspace.
 Create/Get/List, including versions, for Harness, Environment,
-EnvironmentResource, RuntimeTemplate and Skills use this scope. Responses retain
+EnvironmentResource and Skills use this scope; `CreateRuntimeTemplate` still
+accepts the Workspace selector but returns only a `RuntimeId` (template
+Get/List/Update/Delete are retired). Responses retain
 `WorkspaceId`; the workflow pins the Environment's returned ownership and sends
 `workspace_id` when creating Sessions. Keep pagination, polling and cleanup in
 the same Workspace and use separate config/state files. Cross-Workspace Get
 returns not found; NextToken is bound to its original Workspace.
-Endpoint, APIKey and SessionStore remain account resources. Update/Delete/Archive
+Endpoint, APIKey, SessionStore and Runtime remain account resources; track and
+delete a Runtime by its `r-` ID with `GetRuntime`/`DeleteRuntime`. Update/Delete/Archive
 locate resources by ID. The server resolves cloud ProjectName from Workspace;
 SessionStore's project_name remains independently configured.
 
@@ -20,13 +23,13 @@ This pure HTTP example covers the complete Harness Infra onboarding flow:
 3. Create the selected Environment; only Cloud waits for its Cloud Sandbox.
 4. Create a Harness.
 5. Create a managed `SERVERLESS_PG` SessionStore and wait for `Ready`.
-6. Create a RuntimeTemplate associated with that SessionStore, preparing
+6. Create a Runtime (`CreateRuntimeTemplate` returns a `RuntimeId`) associated with that SessionStore, preparing
    `AgentKitDefaultRuntimeAccess` within this stage.
 7. Create an Environment API Key and write its ID and plaintext to `config.yaml`.
 8. Create a Session through the Endpoint `BaseUrl` and persist its information
    to `config.yaml`.
 9. Send a user message and verify a real model response.
-10. Repeat conversations as needed, then delete the Key, RuntimeTemplate,
+10. Repeat conversations as needed, then delete the Key, Runtime,
     SessionStore, and Environment and archive the Harness.
 
 The account-level Endpoint is retained.
@@ -43,7 +46,7 @@ The account-level Endpoint is retained.
 | `02_sse_session.sh` | Fixed curl SSE script with empty connection settings |
 | `03_cleanup_resources.py` | Clean up the Session and control-plane resources |
 | [`../config.yaml.example`](../config.yaml.example) | Shared redacted configuration template |
-| `../config.yaml` | Default shared Environment, Harness, RuntimeTemplate, and account configuration |
+| `../config.yaml` | Default shared Environment, Harness, Runtime, and account configuration |
 | `_clients.py` | TOP HMAC-SHA256 and data-plane REST clients |
 | `_common.py` | Redacted output, state, and polling |
 | `_workflow.py` | Deterministic lifecycle orchestration |
@@ -64,7 +67,7 @@ cannot replace one another.
 
 - The account has access to the published Harness Infra Service.
 - The account can create Endpoint, Environment, Harness, SessionStore,
-  RuntimeTemplate, and API Key resources, and has Serverless PostgreSQL enabled.
+  Runtime (`CreateRuntimeTemplate`), and API Key resources, and has Serverless PostgreSQL enabled.
 - An Ark API Key already exists and its **Name** is known. Do not use its plaintext,
   SID, or internal ID as the Name.
 - The account can query and create IAM Roles and attach system policies. The
@@ -91,7 +94,7 @@ selected config, never the template. Git ignores config files; do not commit or 
 ## Configuration
 
 Use `config.yaml` for the Harness system prompt, model, AgentLoop, Tools, Skills,
-MCP Servers, SessionStore, Environment and RuntimeTemplate resource specifications, Session
+MCP Servers, SessionStore, Environment and Runtime resource specifications, Session
 title, prompt and response checks, and the Volcengine account AK/SK and Region.
 Explicit model CLI options and `--agent-loop` override YAML.
 Fields marked as required in the template must be filled in. Review fields
@@ -100,12 +103,15 @@ the Session `id`, `name`, and `endpoint_base_url`; steps 01 and 03 manage them.
 `harness.model.project_name` is retained for Ark project configuration; the
 default Ark project is usually named `default`.
 
-`agent_loop` belongs to the Harness. RuntimeTemplate accepts `resources`,
+`agent_loop` belongs to the Harness. The `runtime_template` section creates a
+Runtime and accepts `resources`,
 `image_url`, `envs`, and `runtime`. Environment supports `type: Cloud` / `SelfHosted`; Cloud uses
 `cpu_milli` and `memory_mb`. The sample always creates a managed `SERVERLESS_PG`
 SessionStore. Public networking needs no additional values; private networking
 requires `use_private_network: true`, `vpc_id`, and exactly one `subnet_ids`
-entry. These levels match the control API request bodies.
+entry. `environment.apig_gateway_id` is required only when the account has no
+Endpoint and `CreateRoute` must run. These levels match the control API request
+bodies.
 
 Before any network request or state write, the scripts validate AK/SK, model Key
 Name, model ID, and URL. Missing values, example placeholders, credentials with
@@ -133,7 +139,7 @@ read `environment.type` from YAML (Cloud if omitted). Use `--env-mode cloud|self
 to select a mode directly without prompting; this also works with `--dry-run`.
 
 SelfHosted allows omitted Environment resources and skips Cloud Sandbox creation and
-readiness polling. The existing model RuntimeTemplate and SessionStore are still created.
+readiness polling. The existing model Runtime and SessionStore are still created.
 After all resources and the Session are created, a separate block follows the completion
 summary for the self-hosted Dispatcher / Worker:
 
@@ -156,7 +162,9 @@ python 01_create_resources.py \
 
 The script:
 
-- Lists Endpoints and creates one only when none exists.
+- Lists Endpoints; when none exists it calls `CreateRoute`, which requires a
+  non-empty `environment.apig_gateway_id` (contract field; the actual gateway is
+  server-side configuration).
 - Creates the selected Environment type; only Cloud uses the YAML resource specification.
 - Confirms the Environment is Active; only Cloud waits for Sandbox readiness.
 - Creates a Harness with the configured model, AgentLoop, System, Tools, Skills,
@@ -165,8 +173,10 @@ The script:
   `GetSessionStore` until `Ready`. State stores only its ID and public metadata,
   never database credentials.
 - Prepares the Runtime Role (reuse, or create and attach the Runtime policy),
-  then creates a RuntimeTemplate from the configured resources, image, environment
-  variables, and Runtime object, passes `SessionStoreId`, then waits for `Ready`.
+  then calls `CreateRuntimeTemplate` with the configured resources, image,
+  environment variables, and Runtime object, plus `SessionStoreId`. The response
+  carries only a `RuntimeId`; `GetRuntime` is polled until `Ready` (`Error`/
+  `Aborted` fails immediately).
   AppO injects `DATABASE_POSTGRESQL_*` while creating the Runtime so the
   AgentLoop persists Sessions.
 - Creates the Environment API Key bound to the Environment and Endpoint and
@@ -276,7 +286,7 @@ python 03_cleanup_resources.py
 Cleanup order:
 
 1. Delete any remaining Session, then delete the Environment API Key.
-2. Delete RuntimeTemplate and wait for Get to return 404.
+2. Delete the Runtime and wait for `GetRuntime` to return 404.
 3. Delete SessionStore and wait for Get to return 404.
 4. Clean up any Cloud Sandbox recorded by this run, then delete Environment. User-managed self-hosted backends are not deleted.
 5. Archive Harness and retain Endpoint.
@@ -288,9 +298,9 @@ Cleanup uses the YAML Key when an interrupted Session remains active.
 
 | Symptom | Action |
 | --- | --- |
-| `CreateEndpoint` returns 409 | List and reuse the existing Endpoint; this example handles the single-Endpoint case automatically |
+| `CreateRoute` returns 409 | List and reuse the existing Endpoint; this example handles the single-Endpoint case automatically |
 | `CreateAPIKey` reports `The number of the APIKey has exceeded the quota` | Raise the APIG `api_key-per-consumer` quota, or have resource owners remove confirmed unused Keys; never delete unknown Keys from other Environments |
-| RuntimeTemplate remains `Building` | Continue Get with the original ID; do not create another template with a new token |
+| Runtime remains `Creating` | Continue `GetRuntime` with the original ID; do not create another Runtime with a new token |
 | SessionStore remains `Creating` | Call `GetSessionStore` with the ID in state; check Serverless PG quota, account billing, and VPC/subnet settings |
 | `x-ark-key-name` resolves zero or multiple Ark Keys | Use the unique complete Name in the same account, region, and project, not plaintext, SID, or a prefix |
 | Session returns `requires_action` | This basic example does not process client tool confirmation; use a tool-free Harness or implement the required protocol |
@@ -298,14 +308,14 @@ Cleanup uses the YAML Key when an interrupted Session remains active.
 
 ## Output and Timeouts
 
-- Script 01 has seven steps: prepare Endpoint → create Environment (wait for Sandbox readiness only in Cloud mode) → create Harness → create SessionStore and wait for readiness → create RuntimeTemplate (including IAM Role preparation) → create API Key → create Session. State initialization is silent. The final resource summary and invocation command are not numbered as a creation step. `--dry-run` follows the same order.
+- Script 01 has seven steps: prepare Endpoint → create Environment (wait for Sandbox readiness only in Cloud mode) → create Harness → create SessionStore and wait for readiness → create Runtime (including IAM Role preparation; `CreateRuntimeTemplate` then poll `GetRuntime`) → create API Key → create Session. State initialization is silent. The final resource summary and invocation command are not numbered as a creation step. `--dry-run` follows the same order.
 - Default output numbers creation, chat, and cleanup steps (`1, 2, 3…`). Each step keeps the resource name (when available), ID, core parameters, and status under one heading. Questions and answers use Chinese labels (`问 / 答`). Final summaries list names, IDs, and statuses without repeating parameters.
 - Reused, deleted, and skipped resources also include their identifiers; Sessions include their title. Older state files reuse saved names without inventing missing metadata. Normal API Key summaries show names, IDs, and bindings; SelfHosted additionally prints plaintext connection settings. `--dry-run` lists numbered actions and explicitly marks names and IDs as not yet obtained.
-- Creation requests (Endpoint, Environment, Harness, RuntimeTemplate, API Key, and Session), model conversations, and deletion waits use a single-line spinner in a terminal, then print the result once the target status (such as Ready) is reached. Redirected output and `--json` only log status changes. JSON events remain redacted and include a `step` field for numbered steps.
+- Creation requests (Endpoint, Environment, Harness, Runtime, API Key, and Session), model conversations, and deletion waits use a single-line spinner in a terminal, then print the result once the target status (such as Ready) is reached. Redirected output and `--json` only log status changes. JSON events remain redacted and include a `step` field for numbered steps.
 - Internal Cloud Sandbox resource IDs, revisions, and convergence generations are
   no longer printed or included in summaries.
 - All three `02_` scripts (HTTP, Anthropic SDK, and Ark SDK) show the prompt before execution and finish with a result card containing the Session, turn completion status, successful tools, enabled checks, and the original agent reply. Elapsed time is currently hidden. Each tool step highlights a readable summary under `↳ 工具输出`, followed by a dim bordered `原始事件 · JSON` panel. Line breaks in summaries display as `\n`; long lines wrap only when needed to fit the terminal. Disabled tool-coverage and reply-text checks are explicitly labeled; `TOOL USE VERIFIED 391` remains the original agent reply.
-- Script 03 shows Session / API Key checks, RuntimeTemplate deletion, Environment
+- Script 03 shows Session / API Key checks, Runtime deletion, Environment
   deletion, Harness archival, and completion. Missing or already cleaned
   resources are explicitly skipped; the Endpoint is retained.
 - `HARNESS_INFRA_HTTP_TIMEOUT_SECONDS`: control request timeout, default 60.

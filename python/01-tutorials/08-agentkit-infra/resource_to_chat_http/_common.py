@@ -239,7 +239,7 @@ def new_state(
             "environment": f"{base}-env",
             "harness": f"{base}-harness",
             "session_store": f"{prefix[:17]}-{run_id}-store",
-            "runtime_template": f"{base}-runtime",
+            "runtime": f"{base}-runtime",
             "api_key": f"{base}-key",
         },
         "tokens": {
@@ -285,7 +285,7 @@ RESOURCE_LABELS = {
     "environment_resource": "EnvironmentResource",
     "harness": "Harness",
     "session_store": "SessionStore",
-    "runtime_template": "RuntimeTemplate",
+    "runtime": "Runtime",
     "api_key": "API Key",
     "session": "Session",
 }
@@ -319,7 +319,7 @@ def resource_info(
             model_base_url=config.get("model_base_url"),
             version=value.get("version"),
         )
-    elif key == "runtime_template":
+    elif key == "runtime":
         parameters.update(role_name=config.get("role_name"))
     elif key == "environment_resource":
         parameters.update(environment=resource_ref(state, "environment"))
@@ -338,7 +338,7 @@ def resource_info(
         parameters.update(
             {
                 k: resource_ref(state, k)
-                for k in ("harness", "environment", "runtime_template", "endpoint")
+                for k in ("harness", "environment", "runtime", "endpoint")
             }
         )
     return {

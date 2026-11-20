@@ -15,7 +15,7 @@
 
 ## Agent 能力
 
-后端负责执行 Harness 配置中的可用工具；模型、系统提示词、工具定义、Skills、Workspace 和 RuntimeTemplate 由 MA 资源配置管理。模型可直接回答，也可产生工具请求，由 Worker 执行并提交结果。
+后端负责执行 Harness 配置中的可用工具；模型、系统提示词、工具定义、Skills、Workspace 和 Runtime 由 MA 资源配置管理。模型可直接回答，也可产生工具请求，由 Worker 执行并提交结果。
 
 Worker 是同一容器里的进程，不为每个 Session 创建独立 Pod。该方案使用普通进程隔离，适用于可信会话；各 Worker 共享容器 CPU / 内存上限，不提供强多租户沙箱。
 
@@ -51,7 +51,7 @@ kubectl get storageclass
 
 ### 2. 创建或复用 MA 资源
 
-若你已有可用的 MA Endpoint、SelfHosted Environment、Environment Key，以及正确绑定的 Harness、模型 RuntimeTemplate 和 Session，直接跳到第 3 步。也可使用自己的脚本准备这些资源。
+若你已有可用的 MA Endpoint、SelfHosted Environment、Environment Key，以及正确绑定的 Harness、模型 Runtime 和 Session，直接跳到第 3 步。也可使用自己的脚本准备这些资源。
 
 本仓库的配套资源创建步骤如下，完整配置要求见[资源到对话说明](../../resource_to_chat_http/README.md)：
 
@@ -69,7 +69,7 @@ cp -n ../config.yaml.example ../config.yaml
 python 01_create_resources.py --prefix selfhost-demo --env-mode selfhost
 ```
 
-脚本创建或复用 Endpoint，创建 SelfHosted Environment、Harness、模型侧 SessionStore / RuntimeTemplate、Environment Key 和 Session。SelfHosted 模式不创建 Cloud 工具沙箱；模型执行器仍在 MA 服务端运行。
+脚本创建或复用 Endpoint，创建 SelfHosted Environment、Harness、模型侧 SessionStore / Runtime、Environment Key 和 Session。SelfHosted 模式不创建 Cloud 工具沙箱；模型执行器仍在 MA 服务端运行。
 
 成功后脚本回写共享配置，并输出以下三项连接信息：
 
@@ -79,7 +79,7 @@ ANTHROPIC_ENVIRONMENT_ID=<SelfHosted Environment ID>
 ANTHROPIC_ENVIRONMENT_KEY=<Environment Key 明文>
 ```
 
-Environment Key 与账号 AK/SK、模型 API Key 是不同凭据，不能互换。Harness、Environment、RuntimeTemplate 和 Session 需满足同一 Workspace 的绑定要求。
+Environment Key 与账号 AK/SK、模型 API Key 是不同凭据，不能互换。Harness、Environment、Runtime 和 Session 需满足同一 Workspace 的绑定要求。
 
 回到部署目录：
 

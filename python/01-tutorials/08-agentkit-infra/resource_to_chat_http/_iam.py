@@ -20,6 +20,19 @@ from _config import DEFAULT_RUNTIME_ROLE_NAME
 
 IAM_VERSION = "2018-01-01"
 RUNTIME_POLICY = "AgentKitDefaultRuntimeAccess"
+SANDBOX_POLICY_NAME = "AgentKitSelfHostSandboxAccess"
+SANDBOX_POLICY_DOCUMENT = json.dumps(
+    {
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": ["agentkit:SetSessionTtl", "agentkit:DeleteSession"],
+                "Resource": ["*"],
+            }
+        ]
+    },
+    separators=(",", ":"),
+)
 
 
 class IamClient:
@@ -61,7 +74,9 @@ class IamClient:
             )
         except requests.RequestException:
             raise RuntimeError(f"IAM {action}: network error") from None
-        return _decode_json(f"IAM {action}", response, top_envelope=True)
+        return _decode_json(
+            f"IAM {action}", response, top_envelope=True, allow_empty_result=True
+        )
 
 
 def _get_role(client: IamClient, role_name: str) -> dict[str, Any] | None:
@@ -137,3 +152,40 @@ def ensure_runtime_role(
             "inspect the role before retrying"
         ) from exc
     return role_name, False
+
+
+def ensure_sandbox_role_policy(
+    control: ControlConfig,
+    role_name: str = DEFAULT_RUNTIME_ROLE_NAME,
+) -> None:
+    """补充 Dispatcher 续租和回收 Sandbox Session 所需的内联权限。
+
+    系统策略 AgentKitDefaultRuntimeAccess 不包含 SetSessionTtl/DeleteSession，
+    缺少时会话复用失败（403 AccessDenied）。
+    """
+
+    client = IamClient(control)
+    try:
+        client.call(
+            "CreatePolicy",
+            {
+                "PolicyName": SANDBOX_POLICY_NAME,
+                "PolicyDocument": SANDBOX_POLICY_DOCUMENT,
+                "Description": "AgentKit self-host dispatcher session TTL/reclaim access",
+            },
+        )
+    except HarnessInfraError as exc:
+        if exc.status_code != 409:
+            raise
+    try:
+        client.call(
+            "AttachRolePolicy",
+            {
+                "RoleName": role_name,
+                "PolicyName": SANDBOX_POLICY_NAME,
+                "PolicyType": "Custom",
+            },
+        )
+    except HarnessInfraError as exc:
+        if exc.status_code != 409:
+            raise

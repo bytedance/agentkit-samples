@@ -423,8 +423,8 @@ class FlowTests(unittest.TestCase):
                 200,
                 top(
                     {
-                        "RuntimeTemplateId": "rt_demo",
-                        "Status": "Building",
+                        "RuntimeId": "r_demo",
+                        "Status": "Creating",
                     }
                 ),
             ),
@@ -432,7 +432,7 @@ class FlowTests(unittest.TestCase):
                 200,
                 top(
                     {
-                        "RuntimeTemplateId": "rt_demo",
+                        "RuntimeId": "r_demo",
                         "Status": "Ready",
                     }
                 ),
@@ -586,7 +586,7 @@ class FlowTests(unittest.TestCase):
             responses.append((200, top({"ApiKeyId": "key_demo"})))
         responses.extend(
             [
-                (200, top({"RuntimeTemplateId": "rt_demo"})),
+                (200, top({"RuntimeId": "r_demo"})),
                 (404, top_error("ResourceNotFound")),
                 (
                     200,
@@ -650,7 +650,7 @@ class FlowTests(unittest.TestCase):
                 "GetSessionStore",
                 "GetRole",
                 "CreateRuntimeTemplate",
-                "GetRuntimeTemplate",
+                "GetRuntime",
                 "CreateAPIKey",
             ],
         )
@@ -695,7 +695,7 @@ class FlowTests(unittest.TestCase):
             ["POST", "POST", "GET"],
         )
         session_create = data_requests[0]
-        self.assertEqual(session_create["body"]["runtime_template_id"], "rt_demo")
+        self.assertEqual(session_create["body"]["runtime_id"], "r_demo")
         self.assertEqual(session_create["headers"]["x-ark-key-name"], "model-key-name")
         self.assertEqual(
             session_create["headers"]["x-api-key"],
@@ -721,7 +721,7 @@ class FlowTests(unittest.TestCase):
         self.call("cleanup")
         state = json.loads(self.state.read_text())
         self.assertTrue(state["cleaned"])
-        self.assertEqual(state["resources"]["runtime_template"]["status"], "deleted")
+        self.assertEqual(state["resources"]["runtime"]["status"], "deleted")
         self.assertEqual(state["resources"]["session_store"]["status"], "deleted")
         self.assertEqual(
             state["resources"]["environment_resource"]["status"], "Deleted"
@@ -738,8 +738,8 @@ class FlowTests(unittest.TestCase):
             cleanup_actions,
             [
                 "DeleteAPIKey",
-                "DeleteRuntimeTemplate",
-                "GetRuntimeTemplate",
+                "DeleteRuntime",
+                "GetRuntime",
                 "DeleteSessionStore",
                 "GetSessionStore",
                 "DeleteEnvironmentResource",
@@ -1298,7 +1298,7 @@ class FlowTests(unittest.TestCase):
             r"^p{17}-\d{14}-[a-f0-9]{8}-store$",
         )
 
-    def test_missing_runtime_role_is_created_before_runtime_template(self):
+    def test_missing_runtime_role_is_created_before_runtime(self):
         responses = self.create_responses()
         self.responses = [
             *responses[:8],
@@ -1342,7 +1342,7 @@ class FlowTests(unittest.TestCase):
             "session_store",
         ):
             self.assertTrue(resources[name]["id"])
-        self.assertNotIn("runtime_template", resources)
+        self.assertNotIn("runtime", resources)
         self.assertEqual(self.requests[-1]["query"]["Action"], "GetRole")
         self.assertEqual(self.responses, [])
 

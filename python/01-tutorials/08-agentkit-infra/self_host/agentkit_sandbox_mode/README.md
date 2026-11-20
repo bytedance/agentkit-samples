@@ -5,18 +5,18 @@
 通过 AgentKit 的 `CreateTool` 创建工具 Sandbox 模板，使用 `CreateRuntime`
 部署单实例常驻 Dispatcher。Dispatcher 消费指定 SelfHosted Environment
 的工具任务，为业务 Session 创建、复用和回收工具实例。
-模型执行的 RuntimeTemplate 由资源教程创建，Dispatcher 是独立的 Runtime。
+模型执行的 Runtime 由资源教程创建，Dispatcher 是独立的 Runtime。
 
 ## 核心功能
 
 - 调用 AgentKit 创建工具模板与常驻 Dispatcher，等待资源 Ready。
 - 使用私有状态保存资源 ID 和幂等 token，支持等待失败后的恢复。
 - 将工具任务分配到独立实例，支持同一业务 Session 的实例复用。
-- 默认在 Tool 和 Dispatcher Runtime 创建请求中开启 APMPlus 与日志观测开关。
+- 默认在 Tool 和 Dispatcher Runtime 创建请求中开启 APMPlus；日志开关需配置 TLS 主题后启用。
 
 ## Agent 能力
 
-模型 RuntimeTemplate 推进对话；Harness 配置模型、工具和权限。
+模型 Runtime 推进对话；Harness 配置模型、工具和权限。
 本后端提供工具执行实例及 `/workspace` 工作目录。
 
 ## 目录结构说明
@@ -41,7 +41,7 @@ resource_to_chat_http/.venv/bin/python resource_to_chat_http/01_create_resources
 
 根据共享 `config.yaml.example` 填好 `config.yaml` 的账号 AK/SK 与模型 Key Name，
 创建资源时选择 `n`。脚本会创建 SelfHosted Environment、Environment API Key、
-Harness、模型 RuntimeTemplate 和 Session，并输出三项连接信息。
+Harness、模型 Runtime 和 Session，并输出三项连接信息。
 
 ## AgentKit 部署
 
@@ -71,14 +71,13 @@ resource_to_chat_http/.venv/bin/python \
 直接运行 `02` 时也会自动准备工具模板，因此可以一条命令完成后端部署。
 
 为了方便观测，创建 Tool 和 Dispatcher Runtime 时默认显式设置
-`ApmplusEnable: true` 和 `TlsConfiguration.EnableLog: true`，申请平台开启应用监控及
-stdout/stderr 日志采集。共享配置 `self_host.agentkit_sandbox.apmplus_enable`、
-`enable_log` 均默认为 `true`；可分别设置为 `false` 关闭对应功能。
-创建输出与 `--dry-run` 会提示默认开启观测，资源 Ready 或复用模板时显示
-查询到的实际开关状态；接口未返回的字段显示为“未返回”。
+`ApmplusEnable: true`，申请平台开启应用监控。日志采集默认关闭；如需开启，
+同时设置 `self_host.agentkit_sandbox.enable_log: true`、`tls_topic_id` 和
+`tls_project_id`，服务端会校验 TLS 主题归属。仅传 `EnableLog: true` 而缺少
+主题/项目会返回 `InvalidParameter.TlsConfiguration`，脚本会在创建前报错。
+资源 Ready 或复用模板时显示查询到的实际开关状态；接口未返回的字段显示为“未返回”。
 
-本示例仅配置 AgentKit 的观测开关，日志资源配置与实际采集由平台负责。
-仅开关模式需要平台支持自动配置日志资源；
+本示例仅配置 AgentKit 的观测开关，日志资源配置与实际采集由平台负责；
 当前示例不调用 TLS API 创建、查询日志资源或读取日志。
 
 默认镜像及配置：
@@ -100,7 +99,10 @@ Dispatcher 注入 `MANAGED_AGENT_API_MODE=oma`、`MANAGED_AGENT_AUTH_HEADER=x-ap
 
 执行角色默认为 `AgentKitDefaultRuntimeAccess`；需信任 `vefaas`，并允许对应工具
 Session 的创建、查询、续期、删除和调用。脚本复用已有角色，缺失时使用资源教程
-的 IAM 辅助函数创建并附加系统策略。公网配置要求能访问数据面及 AgentKit API。
+的 IAM 辅助函数创建并附加系统策略。系统策略不含 `agentkit:SetSessionTtl` 和
+`agentkit:DeleteSession`，脚本会额外创建并附加自定义策略
+`AgentKitSelfHostSandboxAccess`；缺少该权限时，复用已有工具 Session 会在续租阶段
+返回 403 `AccessDenied`。公网配置要求能访问数据面及 AgentKit API。
 
 ## 示例提示词
 
@@ -114,15 +116,24 @@ resource_to_chat_http/.venv/bin/python resource_to_chat_http/02_invoke_session_h
 
 第二条命令发送配置中的工具验证问题。设置
 `session.verify_sandbox_tools: true` 和
-`session.expected_substring: "TOOL USE VERIFIED 391"`，可校验六个工具
-`write/edit/read/grep/glob/bash` 的真实成功结果及最终回复。
+`session.expected_substring: "TOOL USE VERIFIED 391"` 时，脚本会尝试校验六个工具
+`write/edit/read/grep/glob/bash` 的真实成功结果及最终回复；注意下方连续调用限制。
 可以继续用 `--prompt` 在同一 Session 中读文件，验证续聊与实例复用。
 
 ## 效果展示
 
-成功时输出 `Tool Ready`、`Runtime Ready`、六种成功工具结果及
-`HTTP 对话校验通过`，最终回复包含 `TOOL USE VERIFIED 391`。
-真实 `read/grep` 结果应包含本次文件标记，续聊读取同一文件。
+成功时输出 `Tool Ready`、`Runtime Ready`，单工具轮次及
+`HTTP 对话校验通过`。当前标准 Dispatcher 镜像在**同一轮连续发起多个工具调用**时
+可能停在第二个调用（日志显示 `ignoring duplicate claim for active session`），
+`write → edit → read/grep/glob/bash` 的完整六工具校验因此可能超时；这是后端
+Dispatcher/Worker 的连续 Work 交付问题，不是示例脚本的参数错误。先用单工具
+提示词验证链路：
+
+```bash
+02_invoke_session_http.py --prompt "用 bash 执行 echo SELFHOST_OK，然后只回复 SELFHOST_OK"   --expected-substring SELFHOST_OK
+```
+
+单工具成功后再评估连续工具场景；不要把 Ready 或首个调用成功当作整体通过。
 
 通过资源 ID 检查 Dispatcher `/health`、Tool Session 状态及日志；
 工具结果包含本次文件内容后才视为工具验收成功。
@@ -154,12 +165,12 @@ Dispatcher 与工具实例，状态标记模板 `owned: false`；清理时保留
 | 现象 | 检查方法 |
 | --- | --- |
 | `QuotaExceeded.Tool` | 确认配额已释放，或显式配置兼容的 `existing_tool_id` |
-| 对话成功，工具没有结果 | 检查 Dispatcher Ready、EnvironmentId、ToolId 及执行角色权限 |
+| 对话成功，工具没有结果 | 检查 Dispatcher Ready、EnvironmentId、ToolId 及执行角色权限；复用会话报 403 时确认已附加 `AgentKitSelfHostSandboxAccess` |
 | 数据面验证失败 | 核对三项连接信息属于同一环境；验证使用 `/v1/sessions` |
 | Runtime `/health` 返回 401 | 使用 Runtime 访问 Key；本次环境的网关通过 `Authorization` 头鉴权，该 Key 与 Environment Key 不同 |
 | 续聊文件消失 | idle 回收后可能创建新实例，需要持久化的数据应写入外部存储 |
 | `configuration changed` | 配置改变后使用新状态，或恢复首次请求参数 |
-| `InvalidParameter.TlsConfiguration` | 确认平台支持仅设置 `EnableLog` 自动准备日志资源；本示例只发送观测开关 |
+| `InvalidParameter.TlsConfiguration` | `EnableLog: true` 需要同时提供 `tls_topic_id` 与 `tls_project_id`；默认 `enable_log: false` |
 
 ## 代码许可
 
