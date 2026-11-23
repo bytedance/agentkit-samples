@@ -248,6 +248,7 @@ class DeploymentSessionVerificationTests(unittest.TestCase):
         self.assertEqual(result["answer"], "DEPLOYMENT_OK")
         self.assertEqual(result["tool_names"], ["bash"])
         self.assertEqual(result["end_turn_sequence"], 5)
+        self.assertEqual(result["stop_reason"], "end_turn")
 
     def test_rejects_tool_failure_or_missing_end_turn(self) -> None:
         failed = self._successful_events()

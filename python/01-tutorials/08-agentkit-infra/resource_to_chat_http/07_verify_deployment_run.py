@@ -130,6 +130,7 @@ def main() -> None:
             "event_count": verification["event_count"],
             "answer_sequence": verification["answer_sequence"],
             "end_turn_sequence": verification["end_turn_sequence"],
+            "stop_reason": verification["stop_reason"],
             "expected_substring": args.expected_substring,
             "required_tools": list(required_tools),
             "read_only": True,

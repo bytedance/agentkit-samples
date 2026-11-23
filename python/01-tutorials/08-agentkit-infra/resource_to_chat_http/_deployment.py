@@ -278,6 +278,7 @@ def verify_run_session_events(
         "answer": answer,
         "answer_sequence": answer_sequence,
         "end_turn_sequence": end_turn_sequence,
+        "stop_reason": "end_turn",
         "tool_names": sorted(successful_tools),
         "event_count": len(ordered),
     }
