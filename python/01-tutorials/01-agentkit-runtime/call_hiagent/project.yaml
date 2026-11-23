@@ -1,0 +1,26 @@
+name: Hi Agent 与 AgentKit 双向调用
+name_en: Bidirectional calls between Hi Agent and AgentKit
+description: 通过 A2A、MCP 和 HTTP 插件在 Hi Agent 与 AgentKit 之间调用远程智能体。
+details: 将 Hi Agent 发布为 A2A 服务供 VeADK 智能体或直接运行在 Runtime 中的 A2A Client 调用。A2A Client 提供普通 HTTP 和标准 JSON-RPC 两个入口。反向调用时，在 Hi Agent 中添加 MCP 工具，或通过 HTTP 插件适配层读取 AgentKit Runtime 的完整回复与流式回复。
+tags:
+  industry: 信息技术服务
+  from: volcengine
+  framework: veadk
+  language: python
+  tech:
+    - A2A
+    - MCP
+    - SSE
+type: tutorial
+scenarios:
+  - name: 调用 Hi Agent
+    desc: 在智能体中通过 A2A 调用远程助手
+  - name: A2A Client 直连
+    desc: 通过两种接口直接调用远端智能体
+  - name: 调用 AgentKit
+    desc: 在插件对话中调用远程智能体
+prompts:
+  - text: 请让远程 Agent 介绍自己，并原样返回它的回复。
+  - text: 请调用远程工具，让 AgentKit 智能体介绍自己。
+models:
+  - OpenAI-compatible model configured via MODEL_AGENT_NAME

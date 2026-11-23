@@ -1,0 +1,14 @@
+.git
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
+.DS_Store
+node_modules
+.env
+.env.*
+!.env.example
+.agentkit
+.adk
+agentkit.yaml

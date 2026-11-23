@@ -1,0 +1,5 @@
+veadk-python==1.1.28
+agentkit-sdk-python==0.9.2
+google-adk==2.11.0
+a2a-sdk==0.3.26
+python-dotenv==1.2.2

@@ -1,0 +1,5 @@
+google-adk==2.11.0
+a2a-sdk==0.3.26
+python-dotenv==1.2.2
+mcp==1.26.0
+httpx==0.28.1
