@@ -44,13 +44,19 @@ The account-level Endpoint is retained.
 | `02_invoke_session_ark_sdk.py` | Invoke the existing Session with the Ark SDK |
 | `02_invoke_session.sh` | Fixed curl send script with empty connection settings |
 | `02_sse_session.sh` | Fixed curl SSE script with empty connection settings |
-| `03_cleanup_resources.py` | Clean up the Session and control-plane resources |
+| `03_cleanup_resources.py` | Clean up the Session, archive a Deployment, and control-plane resources |
+| `04_create_deployment.py` | Create a scheduled Deployment from the existing Harness/Environment/Runtime |
+| `05_run_deployment.py` | Trigger a Deployment and wait for SessionId or dispatch Error |
+| `06_list_deployment_runs.py` | List DeploymentRun history |
+| `07_verify_deployment_run.py` | Read-only verification of a dispatched Deployment Session |
 | [`../config.yaml.example`](../config.yaml.example) | Shared redacted configuration template |
 | `../config.yaml` | Default shared Environment, Harness, Runtime, and account configuration |
 | `_clients.py` | TOP HMAC-SHA256 and data-plane REST clients |
 | `_common.py` | Redacted output, state, and polling |
+| `_deployment.py` | Deployment / DeploymentRun requests and polling |
 | `_workflow.py` | Deterministic lifecycle orchestration |
 | `tests/test_flow.py` | Offline protocol tests |
+| `tests/test_deployment.py` | Offline Deployment request and Run-state tests |
 
 ## Control Plane and Data Plane
 
@@ -85,7 +91,7 @@ cp -n ../config.yaml.example ../config.yaml
 ```
 
 Every script first honors `HARNESS_INFRA_CONFIG`, then looks for the shared
-`08-harness-infra/config.yaml` one directory above. If absent, it falls back to
+`08-agentkit-infra/config.yaml` one directory above. If absent, it falls back to
 the existing `resource_to_chat_http/config.yaml`. Default paths are relative to
 the scripts, independent of the working directory. Fill in the copied
 `../config.yaml` before the first run. Runtime values are written back to the
@@ -112,6 +118,15 @@ requires `use_private_network: true`, `vpc_id`, and exactly one `subnet_ids`
 entry. `environment.apig_gateway_id` is required only when the account has no
 Endpoint and `CreateRoute` must run. These levels match the control API request
 bodies.
+
+`environment.env_vars` maps string values to `CreateEnvironment.Config.EnvVars`;
+legacy `environment.envs` is accepted as an alias, but the two must not differ.
+Use ordinary settings such as `env_vars: {APP_MODE: "demo"}`. Values are redacted
+from output and resource state. In SelfHosted mode, this only stores control-plane
+configuration; the standard Dispatcher does not inject it into tool processes.
+`runtime_template.envs` affects only the model Runtime. See
+[SelfHosted environment variables](../self_host/README.md#环境变量) for initial
+tool-side injection and later updates.
 
 Before any network request or state write, the scripts validate AK/SK, model Key
 Name, model ID, and URL. Missing values, example placeholders, credentials with
@@ -277,7 +292,67 @@ If step 01 is terminated after `CreateAPIKey` returns but before YAML is
 written, the plaintext cannot be recovered. Run step 03 to delete the old Key
 by its state ID before starting a new run.
 
-## 3. Clean Up
+## 3. Scheduled Deployment (Run)
+
+This section requires a self-hosted Environment. If reusing resources from
+step 01, create them with `--env-mode selfhost` (or answer `n` interactively);
+otherwise step 04 rejects the Cloud Environment.
+
+Before cleanup, turn the existing Harness, Environment, and Runtime into a
+reusable Deployment. Creation pins the Harness version; every manual
+`RunDeployment` or cron tick creates a **new Session** and DeploymentRun instead
+of modifying an existing Session:
+
+```bash
+# Create a per-minute Deployment; use --no-schedule for manual runs only
+python 04_create_deployment.py --cron "* * * * *" --timezone Asia/Shanghai
+
+# Trigger once and wait for SessionId or Error
+python 05_run_deployment.py
+
+# Inspect manual/schedule history, scheduled_at, and SessionId
+python 06_list_deployment_runs.py --limit 20
+
+# Verify the Session dispatched by step 05 without starting another execution
+python 07_verify_deployment_run.py --require-tool bash
+```
+
+**Deployments support self-hosted Environments only.** `04` calls
+`GetEnvironment` first and rejects a Cloud Environment; the target Environment
+must also be unarchived.
+
+`04` asks the model to call the `bash` tool by default. The Harness must enable
+an executable bash tool (for example `agent_toolset_20260401` with `bash` and
+`permission_policy=always_allow`). `InitialEvents` currently accepts only
+`user.message` and `user.define_outcome`.
+
+A self-hosted Deployment follows the Session/Work path and never calls the
+Runtime `/run_sse`. The target Environment needs a registered, running
+Dispatcher/Worker; otherwise the Session only receives `user.message` and
+produces no model or tool events. The Runtime must still be Ready for model
+execution.
+
+The `SessionId` from step 05 proves dispatch only; it does not prove that the
+model finished. Step 07 uses the Endpoint `BaseUrl` and Environment API Key to
+read `GET /v1/sessions/{SessionId}/events` and requires:
+
+1. No `agent.error` or `session.error`.
+2. At least one non-failed result for every tool call. Use `--require-tool bash`
+   to verify the default task performed a real tool call.
+3. A final `agent.message` followed by `session.status_idle` with
+   `stop_reason.type=end_turn`.
+
+Do not use Runtime `/run_sse` to verify an existing DeploymentRun: it is an
+execution entry point and can start another turn. Do not use
+`02_invoke_session_http.py` either, because it sends a new `user.message`. To
+verify a cron Run, pass its `SessionId` from step 06 as
+`07_verify_deployment_run.py --session-id <id>`.
+
+`04` writes the Deployment ID to the state file; `03` archives it before
+deleting the Runtime or Environment. Archiving is irreversible and prevents
+further triggers.
+
+## 4. Clean Up
 
 ```bash
 python 03_cleanup_resources.py

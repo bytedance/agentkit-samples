@@ -288,6 +288,7 @@ RESOURCE_LABELS = {
     "runtime": "Runtime",
     "api_key": "API Key",
     "session": "Session",
+    "deployment": "Deployment",
 }
 
 

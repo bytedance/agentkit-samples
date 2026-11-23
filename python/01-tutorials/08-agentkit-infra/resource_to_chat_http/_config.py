@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
@@ -76,6 +76,7 @@ class EnvironmentConfig:
     apig_gateway_id: str
     env_api_key_id: str
     env_api_key_value: str
+    env_vars: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -498,10 +499,27 @@ def _environment_config(
         for key, value in metadata.items()
     ):
         raise RuntimeError("environment.metadata keys and values must be strings")
+    env_vars = _mapping(
+        environment.get("env_vars", environment.get("envs", {})),
+        "environment.env_vars",
+    )
+    if not all(
+        isinstance(key, str)
+        and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key)
+        and isinstance(value, str)
+        for key, value in env_vars.items()
+    ):
+        raise RuntimeError(
+            "environment.env_vars requires valid variable names and string values"
+        )
+    if "env_vars" in environment and "envs" in environment:
+        if environment["envs"] != env_vars:
+            raise RuntimeError("use only environment.env_vars; envs is a legacy alias")
     return EnvironmentConfig(
         type=environment_type,
         resources=resources,
         metadata=dict(metadata),
+        env_vars=dict(env_vars),
         endpoint_id=_string(
             environment.get("endpoint_id"),
             "environment.endpoint_id",

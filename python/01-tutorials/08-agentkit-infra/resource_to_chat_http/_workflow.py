@@ -452,6 +452,8 @@ def create_resources(
     }
     if config.environment.type == "Cloud":
         environment_config["Resources"] = config.environment.resources
+    if config.environment.env_vars:
+        environment_config["EnvVars"] = config.environment.env_vars
     environment_label = f"创建 {config.environment.type} Environment"
 
     emit(
@@ -488,7 +490,18 @@ def create_resources(
         {
             "id": environment_id,
             "name": environment.get("Name") or names["environment"],
-            "parameters": environment_config,
+            "parameters": {
+                **environment_config,
+                **(
+                    {
+                        "EnvVars": {
+                            name: "<redacted>" for name in config.environment.env_vars
+                        }
+                    }
+                    if config.environment.env_vars
+                    else {}
+                ),
+            },
             "status": environment.get("Status"),
             "owned": True,
         },
@@ -1106,7 +1119,31 @@ def cleanup_resources(
             state, "api_key", json_output=json_output, result="无需清理，跳过"
         )
 
-    emit("step", "删除 Runtime", json_output=json_output, step=2)
+    emit("step", "归档 Deployment", json_output=json_output, step=2)
+    deployment = resources.get("deployment") or {}
+    if deployment.get("id") and deployment.get("status") != "archived":
+        try:
+            with wait_progress("归档 Deployment", json_output=json_output):
+                client.call(
+                    "ArchiveDeployment",
+                    {"DeploymentId": deployment["id"]},
+                )
+        except HarnessInfraError as exc:
+            if not _not_found(exc):
+                raise
+        update_resource(
+            state,
+            "deployment",
+            {**deployment, "status": "archived"},
+        )
+        report_resource(state, "deployment", json_output=json_output, result="已归档")
+    else:
+        report_resource(
+            state, "deployment", json_output=json_output, result="不存在或已归档，跳过"
+        )
+
+    emit("step", "删除 Runtime", json_output=json_output, step=3)
+
     runtime = resources.get("runtime") or {}
     if runtime.get("id") and runtime.get("status") != "deleted":
         _delete_top_and_wait_not_found(
@@ -1135,7 +1172,7 @@ def cleanup_resources(
             result="不存在或已删除，跳过",
         )
 
-    emit("step", "删除 SessionStore", json_output=json_output, step=3)
+    emit("step", "删除 SessionStore", json_output=json_output, step=4)
     session_store = resources.get("session_store") or {}
     if session_store.get("id") and session_store.get("status") != "deleted":
         _delete_top_and_wait_not_found(
@@ -1202,7 +1239,7 @@ def cleanup_resources(
             },
         )
 
-    emit("step", "删除 Environment", json_output=json_output, step=4)
+    emit("step", "删除 Environment", json_output=json_output, step=5)
     environment = resources.get("environment") or {}
     if environment.get("id") and environment.get("status") != "deleted":
         _delete_top_and_wait_not_found(
@@ -1228,7 +1265,7 @@ def cleanup_resources(
             state, "environment", json_output=json_output, result="不存在或已删除，跳过"
         )
 
-    emit("step", "归档 Harness", json_output=json_output, step=5)
+    emit("step", "归档 Harness", json_output=json_output, step=6)
     harness = resources.get("harness") or {}
     if harness.get("id") and harness.get("status") not in {"Archived", "not_found"}:
         try:

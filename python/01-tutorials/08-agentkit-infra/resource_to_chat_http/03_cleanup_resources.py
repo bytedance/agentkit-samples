@@ -18,6 +18,7 @@ def main() -> None:
             json_output=args.json_output,
             actions=[
                 "检查 Session / 清理残留 API Key",
+                "ArchiveDeployment（如有）",
                 "DeleteRuntime / 等待 GetRuntime 返回 404",
                 "DeleteSessionStore / 等待删除完成",
                 "清理 Environment 及本次记录的关联资源",

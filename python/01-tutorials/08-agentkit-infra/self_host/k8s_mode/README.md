@@ -159,6 +159,23 @@ kubectl -n harness-selfhost rollout status deployment/selfhost-backend --timeout
 
 保留单副本和 Recreate 策略，避免共享数据目录的 dispatcher 独占锁冲突。PVC 保留 Session 文件，不保留进程内存或后台服务。
 
+### 业务工具环境变量
+
+在 `k8s_selfhost.yaml` 的 `containers[name=backend].env` 中追加普通配置：
+
+```yaml
+- name: APP_MODE
+  value: "demo"
+```
+
+批量配置可将 ConfigMap 的 `configMapRef` 追加到现有 `envFrom`，保留连接
+Secret 的 `secretRef`。敏感变量使用 `secretKeyRef` 或 Secret 的 `envFrom`。
+当前后端的 Worker 是该容器内的子进程，启动时继承容器环境。
+
+编辑清单并 apply 后等待 rollout。仅更新引用的 ConfigMap / Secret 时，需要
+执行上面的 `rollout restart`；更新不会改变运行中进程的环境变量。
+这与 MA `UpdateEnvironment.Config.EnvVars` 分开管理，标准镜像不会自动同步控制面配置。
+
 ## 效果展示
 
 正常情况下，容器日志会出现 dispatcher 启动记录；领取任务后出现 `worker process started`，包含 Work ID、Session ID 和 supervisor PID。它说明 Worker 启动了，不能单独证明某个工具已成功执行。

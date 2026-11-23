@@ -97,6 +97,9 @@ Dispatcher 注入 `MANAGED_AGENT_API_MODE=oma`、`MANAGED_AGENT_AUTH_HEADER=x-ap
 工具模板无需配置固定 WorkId、SessionId 或 Environment Key，Dispatcher 在创建
 实际工具实例时注入执行参数。
 
+业务工具环境变量的注入边界见 [SelfHosted 环境变量](../README.md#环境变量)。
+当前脚本不将 `environment.env_vars` 或模型侧 `runtime_template.envs` 透传到工具实例。
+
 执行角色默认为 `AgentKitDefaultRuntimeAccess`；需信任 `vefaas`，并允许对应工具
 Session 的创建、查询、续期、删除和调用。脚本复用已有角色，缺失时使用资源教程
 的 IAM 辅助函数创建并附加系统策略。系统策略不含 `agentkit:SetSessionTtl` 和
@@ -123,14 +126,17 @@ resource_to_chat_http/.venv/bin/python resource_to_chat_http/02_invoke_session_h
 ## 效果展示
 
 成功时输出 `Tool Ready`、`Runtime Ready`，单工具轮次及
-`HTTP 对话校验通过`。当前标准 Dispatcher 镜像在**同一轮连续发起多个工具调用**时
-可能停在第二个调用（日志显示 `ignoring duplicate claim for active session`），
-`write → edit → read/grep/glob/bash` 的完整六工具校验因此可能超时；这是后端
-Dispatcher/Worker 的连续 Work 交付问题，不是示例脚本的参数错误。先用单工具
+`HTTP 对话校验通过`。此前使用当前标准 Dispatcher 镜像的
+**同一轮连续工具调用**测试中，第二个调用出现超时，日志曾显示
+`ignoring duplicate claim for active session`；
+根因尚未确认，`write → edit → read/grep/glob/bash` 的完整六工具校验需单独验收。
+先用单工具
 提示词验证链路：
 
 ```bash
-02_invoke_session_http.py --prompt "用 bash 执行 echo SELFHOST_OK，然后只回复 SELFHOST_OK"   --expected-substring SELFHOST_OK
+resource_to_chat_http/.venv/bin/python resource_to_chat_http/02_invoke_session_http.py \
+  --prompt "用 bash 执行 echo SELFHOST_OK，然后只回复 SELFHOST_OK" \
+  --expected-substring SELFHOST_OK
 ```
 
 单工具成功后再评估连续工具场景；不要把 Ready 或首个调用成功当作整体通过。

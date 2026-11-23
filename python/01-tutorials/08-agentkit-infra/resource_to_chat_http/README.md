@@ -47,13 +47,19 @@ Endpoint 是账号级共享入口，清理脚本默认保留。
 | `02_invoke_session_ark_sdk.py` | 使用 Ark SDK 调用既有 Session |
 | `02_invoke_session.sh` | 固定 curl 消息发送脚本，连接配置默认留空 |
 | `02_sse_session.sh` | 固定 curl SSE 订阅脚本，连接配置默认留空 |
-| `03_cleanup_resources.py` | 清理 Session 和控制面资源，保留 Endpoint |
+| `03_cleanup_resources.py` | 清理 Session 和控制面资源，归档 Deployment，保留 Endpoint |
+| `04_create_deployment.py` | 复用 Harness/Environment/Runtime 创建定时 Deployment |
+| `05_run_deployment.py` | 手动触发 Deployment，并等待 SessionId 或派发 Error |
+| `06_list_deployment_runs.py` | 列出 DeploymentRun 历史 |
+| `07_verify_deployment_run.py` | 只读验证已派发 Deployment Session 的工具、回复与 `end_turn` |
 | [`../config.yaml.example`](../config.yaml.example) | 两个示例共享的脱敏配置模板 |
 | `../config.yaml` | 默认共享的 Environment、Harness、Runtime 和账号配置 |
 | `_clients.py` | TOP HMAC-SHA256 和数据面 REST Client |
 | `_common.py` | 脱敏输出、状态文件和轮询 |
+| `_deployment.py` | Deployment / DeploymentRun 请求与轮询 |
 | `_workflow.py` | 确定性生命周期编排 |
 | `tests/test_flow.py` | 无云资源的离线协议测试 |
+| `tests/test_deployment.py` | Deployment 请求构造与 Run 状态离线测试 |
 
 ## 控制面与数据面
 
@@ -88,7 +94,7 @@ cp -n ../config.yaml.example ../config.yaml
 ```
 
 所有脚本优先读取 `HARNESS_INFRA_CONFIG` 显式指定的文件，否则读取上一级
-`08-harness-infra/config.yaml`；共享配置不存在时，兼容读取脚本目录原有的
+`08-agentkit-infra/config.yaml`；共享配置不存在时，兼容读取脚本目录原有的
 `resource_to_chat_http/config.yaml`。默认路径按脚本位置解析，不受启动目录影响。
 首次运行前请填写复制出的 `../config.yaml`；运行时字段会写回实际选中的配置文件，
 不会写入模板。配置文件已被仓库忽略，不得提交或共享。
@@ -110,6 +116,13 @@ MCP Servers，SessionStore、Environment 和 Runtime 的资源规格，以及火
 额外网络参数，私网模式必须设置 `use_private_network: true`、`vpc_id` 和且仅一个
 `subnet_ids`。`environment.apig_gateway_id` 仅在账号没有任何 Endpoint、
 需要调用 `CreateRoute` 时必填。这些层级与控制面 API 请求体一致。
+
+`environment.env_vars` 是字符串映射，01 将它传入 `CreateEnvironment.Config.EnvVars`；
+旧 `environment.envs` 作为兼容别名，二者不能填写不同内容。只填写普通配置，
+例如 `env_vars: {APP_MODE: "demo"}`。变量值不会写入资源状态或展示输出。
+SelfHosted 下这些值仅保存在控制面，标准 Dispatcher 不会自动将其注入工具进程；
+`runtime_template.envs` 则只作用于模型 Runtime。工具侧的初始注入和后续更新见
+[SelfHosted 环境变量](../self_host/README.md#环境变量)。
 
 真实执行前会一次性校验 AK/SK、模型 Key Name、模型 Agent Name 和 URL。缺失值、示例
 占位符、含空白凭据或非法 Key Name 会在任何网络调用和状态写入前终止。
@@ -268,7 +281,55 @@ python 02_invoke_session_ark_sdk.py
 如果 01 在 `CreateAPIKey` 返回后、写入 YAML 前被强制终止，明文无法恢复。
 运行 03 按状态中的 `ApiKeyId` 删除旧 Key，再开始新一轮。
 
-## 3. 清理控制面资源
+## 3. Deployment 定时任务（Run）
+
+本节的 Deployment 目标必须是 self-hosted Environment；如果复用本教程 01 创建的资源，
+请在 01 选择 `--env-mode selfhost`（交互模式输入 `n`），否则 04 会拒绝创建。
+
+03 之前可把已有 Harness、Environment、Runtime 组合成一个可复用的 Deployment。
+创建时固定 Harness 版本；之后每次手动 `RunDeployment` 或 cron 到点都会创建**新的
+Session** 和一条 DeploymentRun，不会复用或修改既有 Session：
+
+```bash
+# 创建每分钟触发的 Deployment；--no-schedule 只保留手动触发
+python 04_create_deployment.py --cron "* * * * *" --timezone Asia/Shanghai
+
+# 立即手动触发一次，并等待 SessionId 或 Error
+python 05_run_deployment.py
+
+# 核对历史 Run：manual / schedule、scheduled_at、SessionId
+python 06_list_deployment_runs.py --limit 20
+
+# 验证 05 刚派发的 Session；只读事件，不会发起第二次执行
+python 07_verify_deployment_run.py --require-tool bash
+```
+
+**Deployment 只支持 self-hosted Environment。** `04` 会先调用 `GetEnvironment` 校验
+目标环境；Cloud Environment 会直接报错，不会创建 Deployment。目标环境还必须未归档。
+
+`04` 默认初始消息要求模型调用 `bash` 工具；Harness 必须启用可执行的 bash 工具
+（例如 `agent_toolset_20260401` 的 `bash`，`permission_policy=always_allow`）。
+Deployment 的 `InitialEvents` 首期只接受 `user.message` 和 `user.define_outcome`。
+
+Self-hosted Deployment 走 Session/Work 派发，不会调用 Runtime `/run_sse`。目标
+Environment 必须配置已注册并运行的 Dispatcher/Worker，否则 Session 只会收到
+`user.message`，不会产生模型或工具事件。Runtime 仍需 Ready，用于模型执行。
+
+`05` 的 `SessionId` 只证明派发成功，不证明模型已完成。`07` 使用 Endpoint
+`BaseUrl` 和 Environment API Key 只读 `GET /v1/sessions/{SessionId}/events`，要求：
+
+1. 没有 `agent.error` 或 `session.error`。
+2. 每个工具调用有至少一个非失败结果；`--require-tool bash` 可校验默认任务的真实工具调用。
+3. 最终 `agent.message` 后收到 `session.status_idle`，且 `stop_reason.type=end_turn`。
+
+不要用 Runtime `/run_sse` 验证已有 DeploymentRun：它是执行入口，可能会创建新的轮次。
+也不要使用 `02_invoke_session_http.py`，它会发送新的 `user.message`。如需验证 cron
+Run，把 `06` 输出中的 `SessionId` 传给 `07 --session-id <id>`。
+
+`04` 会把 Deployment ID 写入状态文件；`03` 会在删除 Runtime / Environment 前
+先归档 Deployment。归档不可恢复，归档后该 Deployment 不再允许触发。
+
+## 4. 清理控制面资源
 
 ```bash
 python 03_cleanup_resources.py
@@ -277,7 +338,7 @@ python 03_cleanup_resources.py
 清理顺序：
 
 1. 删除残留 Session，再删除 Environment API Key。
-2. 删除 Runtime，并等待 `GetRuntime` 返回 404。
+2. 归档 Deployment（如有），再删除 Runtime，并等待 `GetRuntime` 返回 404。
 3. 删除 SessionStore，并等待 Get 返回 404。
 4. 清理本次记录的 Cloud Sandbox（如有），再删除 Environment；自托管后端由用户管理。
 5. 归档 Harness，保留账号级 Endpoint。
