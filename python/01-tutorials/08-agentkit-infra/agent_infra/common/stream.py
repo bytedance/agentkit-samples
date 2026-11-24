@@ -6,8 +6,8 @@ import uuid
 from urllib.parse import quote, urlsplit
 
 import requests
-from _clients import DataPlaneClient
-from _common import redact
+from .clients import DataPlaneClient
+from .state import redact
 
 
 def request(method, base, path, headers, *, allowed=(), **kwargs):

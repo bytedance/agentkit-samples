@@ -17,10 +17,10 @@ from common.sample import (  # noqa: E402
     restore_run_config,
 )
 from common.stream import run_queue_sse  # noqa: E402
-from _clients import DataPlaneClient, HarnessInfraError, TopClient  # noqa: E402
-from _common import load_state, save_state, state_path, update_resource  # noqa: E402
-from _config import validated_config  # noqa: E402
-from _workflow import _not_found  # noqa: E402
+from common.clients import DataPlaneClient, HarnessInfraError, TopClient  # noqa: E402
+from common.state import load_state, save_state, state_path, update_resource  # noqa: E402
+from common.config import validated_config  # noqa: E402
+from common.workflow import _not_found  # noqa: E402
 
 
 def write_report(path, report):

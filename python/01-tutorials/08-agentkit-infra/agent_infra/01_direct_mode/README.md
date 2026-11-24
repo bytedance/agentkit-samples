@@ -18,6 +18,10 @@ test -f ../config.yaml ||
 
 编辑 `agent_infra/` 下的 `../config.yaml`，填写账号 AK/SK、地域、模型 ID 和模型地址。使用环境变量提供 AK/SK 时，将 `volcengine.access_key` 和 `volcengine.secret_key` 留空。Runtime 执行角色需要方舟模型访问和工具实例管理权限。
 
+模型、MCP、Skill 都在 `harness` 下配置，见[共享配置说明](../README.md#agent-能力)。Direct 将它们转换为 Harness App 的 Runtime 环境变量；模型 Key 可用 `harness.model.api_key: "${MODEL_API_KEY}"`，也可留空通过 Runtime IAM 获取。`api_key_name` 非空时使用命名 Key（当前 IAM 取 Key 实现使用 `default` 方舟项目）。
+
+`harness.mcp_servers` 支持远程 `streamable-http` / `sse`，可选 `api_key` 作为 Bearer。`harness.skills` 只在本模式生效，接受 Hub/Space 字符串引用；ZIP 来源对象不受支持。需要选用包含 MCP、Skill 加载能力的 Harness App 镜像，并在实际调用中确认能力可用。
+
 ## 逐步创建资源
 
 每步对应一条命令。加 `--dry-run` 可查看该步的调用计划，无需配置凭据，也不会创建资源。实际执行会创建计费资源。
@@ -28,7 +32,7 @@ test -f ../config.yaml ||
 python run.py create-route
 ```
 
-已有 Endpoint 时复用；有多个时设置 `environment.endpoint_id`，没有时设置 `environment.apig_gateway_id` 后调用 `CreateRoute`。Direct 会话走 Runtime Endpoint，因此可以跳过这一步。
+已有 Endpoint 时复用；有多个时设置 `route.endpoint_id`，没有时设置 `route.apig_gateway_id` 后调用 `CreateRoute`。Direct 会话走 Runtime Endpoint，因此可以跳过这一步。
 
 ### 2. CreateEnvironment（Cloud）
 
@@ -65,6 +69,17 @@ python run.py run-sse --prompt "上一轮我要求你回复什么？只输出标
 `create-session` 使用 `GetRuntime` 返回的 Runtime Key，先查询 `/list-apps`，再调用 `POST /apps/harness_agent/users/{user}/sessions/{id}`。两次 `run-sse` 复用同一会话，向 Runtime `POST /run_sse`。
 
 要验证云沙箱，发送「用 Execute 在沙箱里运行 `echo DIRECT_SANDBOX_OK`，只回复真实命令输出」，并在 SSE 中核对 `functionCall` 和 `functionResponse`。
+
+## MCP 与 Skill 使用
+
+在创建 Runtime 前填写 `harness.mcp_servers` 和 `harness.skills`，具体格式及环境变量设置见[共享使用说明](../README.md#mcp-与-skill-验证命令)。资源和会话就绪后，在本目录执行：
+
+```bash
+python run.py run-sse --prompt "请实际调用已配置的 docs MCP 的一个只读工具，给出工具名称和真实返回结果。"
+python run.py run-sse --prompt "请加载并遵循 your-skill-hub-slug 技能，完成该技能支持的一项任务，说明你读取的技能说明和实际执行结果。"
+```
+
+替换 `docs`、`your-skill-hub-slug` 及任务描述为实际配置。核对 SSE 中的工具调用与结果，通过 Runtime 日志或实际读取的技能文件确认 Skill 加载成功。修改配置后先执行下面的清理命令，再重新创建 Environment、SessionStore、Runtime 和 Session。
 
 ## 清理资源
 

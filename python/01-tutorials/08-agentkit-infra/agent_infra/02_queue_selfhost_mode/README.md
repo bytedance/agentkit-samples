@@ -1,6 +1,6 @@
 # 02 Queue SelfHosted：自托管 Dispatcher
 
-会话和对话通过 APIG 访问 AgentKit 会话服务；工具 Work 由自托管 Dispatcher 消费。此例使用 [AgentKit Sandbox 后端](../../self_host/agentkit_sandbox_mode/README.md)，也可按原教程改接 [K8s 后端](../../self_host/k8s_mode/README.md)。
+会话和对话通过 APIG 访问 AgentKit 会话服务；工具 Work 由自托管 Dispatcher 消费。此例内置 AgentKit Sandbox 后端，部署实现在 `../common/dispatcher.py`，无需其他教程目录。
 
 ## 进入项目并配置 uv
 
@@ -28,7 +28,7 @@ test -f ../config.yaml ||
 python run.py create-route
 ```
 
-为后续 APIG 会话准备 Endpoint。已有 Ready Endpoint 时复用；有多个时设置 `environment.endpoint_id`，没有时设置 `environment.apig_gateway_id` 后创建。
+为后续 APIG 会话准备 Endpoint。已有 Ready Endpoint 时复用；有多个时设置 `route.endpoint_id`，没有时设置 `route.apig_gateway_id` 后创建。
 
 ### 2. CreateEnvironment（SelfHosted）
 

@@ -3,21 +3,15 @@
 import argparse
 import json
 import os
-import subprocess
-import sys
 import uuid
 from dataclasses import replace
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-ROOT = Path(__file__).resolve().parents[1]
-INFRA = ROOT.parent
-sys.path.insert(0, str(INFRA / "resource_to_chat_http"))
-
-from _clients import HarnessInfraError, TopClient  # noqa: E402
-from _common import load_state, new_state, run, save_state, state_path  # noqa: E402
-from _config import validated_config  # noqa: E402
-from _workflow import (  # noqa: E402
+from .clients import HarnessInfraError, TopClient
+from .state import load_state, new_state, run, save_state, state_path
+from .config import validated_config
+from .workflow import (
     _create_session_store,
     _not_found,
     _prepare_endpoint,
@@ -29,7 +23,11 @@ from _workflow import (  # noqa: E402
     create_runtime_template,
 )
 
-from .stream import HarnessApp, run_queue_sse  # noqa: E402
+from .stream import HarnessApp, run_queue_sse
+from .configuration import configure_integrations
+from .dispatcher import deploy
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def configure_paths(mode):
@@ -141,8 +139,8 @@ def create_resource_step(client, config, state, command, *, direct):
         _prepare_endpoint(
             client,
             state,
-            endpoint_id=config.environment.endpoint_id,
-            apig_gateway_id=config.environment.apig_gateway_id,
+            endpoint_id=config.route.endpoint_id,
+            apig_gateway_id=config.route.apig_gateway_id,
             json_output=False,
         )
     elif command == "create-environment":
@@ -233,18 +231,15 @@ def direct_session(client, state, command, prompt):
 
 
 def dispatcher(config, state):
-    """用当前环境的连接参数启动自托管样例，避免读到其他环境的参数。"""
-    env = {
-        **os.environ,
-        "ANTHROPIC_BASE_URL": state["resources"]["endpoint"]["base_url"],
-        "ANTHROPIC_ENVIRONMENT_ID": state["resources"]["environment"]["id"],
-        "ANTHROPIC_ENVIRONMENT_KEY": config.environment.env_api_key_value,
-    }
-    if config.control.workspace_id:
-        env["HARNESS_INFRA_WORKSPACE_ID"] = config.control.workspace_id
-    script = INFRA / "self_host/agentkit_sandbox_mode/02_create_dispatcher.py"
-    if subprocess.run([sys.executable, str(script)], env=env, check=False).returncode:
-        raise RuntimeError("Dispatcher 部署失败，请检查上方输出")
+    """在进程内调用包内 Dispatcher，使用本轮环境连接参数。"""
+    deploy(
+        config,
+        {
+            "base_url": state["resources"]["endpoint"]["base_url"],
+            "environment_id": state["resources"]["environment"]["id"],
+            "environment_key": config.environment.env_api_key_value,
+        },
+    )
 
 
 def execute(mode):
@@ -275,7 +270,7 @@ def execute(mode):
         ),
     }
     if selfhost:
-        plans["dispatcher"] = "复用自托管样例：CreateTool → CreateRuntime → 等待 Ready"
+        plans["dispatcher"] = "内置 Dispatcher：CreateTool → CreateRuntime → 等待 Ready"
     cli = argparse.ArgumentParser(description=f"AgentKit Infra / {mode}")
     cli.add_argument("command", choices=plans)
     cli.add_argument(
@@ -291,8 +286,15 @@ def execute(mode):
         raise RuntimeError(f"缺少 {path}，请从 {ROOT / 'config.yaml.example'} 复制")
     config = validated_config(
         environment_type=environment_type,
-        require_model_key_name=not direct and args.command == "create-session",
+        require_model_key_name=not direct
+        and args.command in {"create-harness", "create-session"},
     )
+    if args.command != "cleanup":
+        config = configure_integrations(
+            config,
+            mode,
+            require_model_key=args.command in {"create-harness", "create-session"},
+        )
     if args.command == "run-sse" and not args.prompt.strip():
         raise RuntimeError("--prompt 不能为空")
     client = TopClient(config.control)

@@ -28,7 +28,7 @@ test -f ../../config.yaml ||
 python run.py create-route
 ```
 
-为后续 APIG 会话准备 Endpoint。已有 Ready Endpoint 时复用；有多个时设置 `environment.endpoint_id`，没有时设置 `environment.apig_gateway_id` 后创建。
+为后续 APIG 会话准备 Endpoint。已有 Ready Endpoint 时复用；有多个时设置 `route.endpoint_id`，没有时设置 `route.apig_gateway_id` 后创建。
 
 ### 2. CreateEnvironment（Cloud）
 

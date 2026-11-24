@@ -1,5 +1,8 @@
 version: 1
-workspace_id: "" # 可选：省略/为空时使用服务端唯一 ACTIVE DEFAULT Workspace
+workspace_id: "" # 可选：为空时使用服务端唯一 ACTIVE DEFAULT Workspace
+route:
+  endpoint_id: "" # 可选：账号存在多个 Endpoint 时指定复用目标
+  apig_gateway_id: "platform-managed" # 无可复用 Endpoint 时用于 CreateRoute
 
 volcengine:
   access_key: "" # 留空时读取 HARNESS_INFRA_ACCESS_KEY
@@ -17,9 +20,11 @@ session:
 harness:
   system_prompt: "按用户要求调用已配置工具，并基于真实工具结果简洁回答。"
   model:
+    provider: "openai" # 方舟的 OpenAI 兼容协议；三个模式共用
     agent_name: "doubao-seed-evolving" # 按环境确认：方舟模型 ID
     api_base: "https://ark.cn-beijing.volces.com/api/v3" # 按环境确认
     api_key_name: "" # 队列模式必填：方舟 API Key 的 Name
+    api_key: "" # 仅 Direct：可填 "${MODEL_API_KEY}"；留空时用 Runtime IAM（可按 api_key_name 取 Key）
     project_name: "default" # 按环境确认：Ark SDK 使用的方舟项目
   agent_loop: "adk" # adk / codex / piagent
   tools:
@@ -47,8 +52,16 @@ harness:
         - Type: "bash"
           Enabled: true
           PermissionPolicy: {Type: "always_allow"}
-  skills: []
-  mcp_servers: []
+  skills: [] # 仅 Direct：Skill Hub slug、"ss-空间ID" 或 "ss-空间ID:s-技能ID"
+  # skills:
+  #   - "your-skill-hub-slug"
+  # 不接受 external_skill_package / public_url ZIP 对象。
+  mcp_servers: [] # 仅 01 Direct 使用；02/03 Queue 跳过 MCP 和 Skill 配置
+  # mcp_servers:
+  #   - name: "docs"
+  #     endpoint: "https://your-mcp-host/mcp"
+  #     protocol: "streamable-http" # streamable-http / sse
+  #     api_key: "${DOCS_MCP_API_KEY}" # 可选 Bearer API Key
 
 session_store:
   project_name: "default" # Serverless PG 所属项目
@@ -70,7 +83,7 @@ runtime_template:
     min_replicas: 1
     max_replicas: 1
   image_url: null # null 使用平台默认镜像
-  envs: {} # 模型 Runtime 的环境变量，不会注入工具 Worker
+  envs: {} # 其他 Runtime 环境变量；模型、Skill、MCP 使用上面的 harness 配置
   runtime: {}
 
 environment:
@@ -90,8 +103,6 @@ environment:
   env_vars: {} # 映射到 Config.EnvVars；SelfHosted 仅保存，需后端自行注入工具进程
   metadata:
     purpose: "resource-to-chat-tutorial"
-  endpoint_id: "" # 可选：账号存在多个 Endpoint 时填写
-  apig_gateway_id: "" # 账号没有可复用 Endpoint 时必填：CreateRoute 契约字段，仅做非空校验
   env_api_key:
     id: "" # 保持为空，由各模式的运行状态管理
     value: "" # 保持为空，明文由各队列模式的私有文件保存

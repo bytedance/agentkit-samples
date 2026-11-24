@@ -80,6 +80,14 @@ class EnvironmentConfig:
 
 
 @dataclass(frozen=True)
+class RouteConfig:
+    """控制面 Route 的资源选择参数，不包含网关访问凭据。"""
+
+    endpoint_id: str = ""
+    apig_gateway_id: str = ""
+
+
+@dataclass(frozen=True)
 class ExampleConfig:
     """已通过前置校验的 YAML 配置；可能包含待清理的 Environment Key。"""
 
@@ -89,6 +97,7 @@ class ExampleConfig:
     session_store: SessionStoreConfig
     runtime_template: RuntimeTemplateConfig
     environment: EnvironmentConfig
+    route: RouteConfig = field(default_factory=RouteConfig)
 
     @property
     def model_id(self) -> str:
@@ -472,6 +481,32 @@ def _session_store_config(raw: dict[str, Any]) -> SessionStoreConfig:
     )
 
 
+def _route_config(raw: dict[str, Any]) -> RouteConfig:
+    """解析顶层 Route 配置，兼容旧 Environment 字段并拒绝冲突。"""
+    route = _mapping(raw.get("route", {}), "route")
+    if set(route) - {"endpoint_id", "apig_gateway_id"}:
+        raise RuntimeError("route 仅支持 endpoint_id 和 apig_gateway_id")
+    environment = _mapping(raw.get("environment"), "environment")
+
+    def selector(new, old, key, label):
+        """优先新结构；旧值仅作为兼容来源，避免静默选错资源。"""
+        value = _string(new.get(key, ""), label, allow_empty=True)
+        legacy = _string(old.get(key, ""), key, allow_empty=True)
+        if value and legacy and value != legacy:
+            raise RuntimeError(f"{label} 与旧字段 {key} 冲突，请仅保留新字段")
+        return value or legacy
+
+    return RouteConfig(
+        endpoint_id=selector(route, environment, "endpoint_id", "route.endpoint_id"),
+        apig_gateway_id=selector(
+            route,
+            environment,
+            "apig_gateway_id",
+            "route.apig_gateway_id",
+        ),
+    )
+
+
 def _environment_config(
     raw: dict[str, Any], *, environment_type: str = ""
 ) -> EnvironmentConfig:
@@ -521,13 +556,13 @@ def _environment_config(
         metadata=dict(metadata),
         env_vars=dict(env_vars),
         endpoint_id=_string(
-            environment.get("endpoint_id"),
-            "environment.endpoint_id",
+            _route_config(raw).endpoint_id,
+            "route.endpoint_id",
             allow_empty=True,
         ),
         apig_gateway_id=_string(
-            environment.get("apig_gateway_id"),
-            "environment.apig_gateway_id",
+            _route_config(raw).apig_gateway_id,
+            "route.apig_gateway_id",
             allow_empty=True,
         ),
         env_api_key_id=_string(
@@ -554,6 +589,7 @@ def validated_config(
 
     raw = _read_yaml()
     return ExampleConfig(
+        route=_route_config(raw),
         control=_control_config(raw, require_credentials=require_credentials),
         session=_session_config(raw),
         harness=_harness_config(
