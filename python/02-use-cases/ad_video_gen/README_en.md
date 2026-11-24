@@ -46,8 +46,8 @@ The system exposes one Root Agent. Internally, the Prompt constraints and tool c
 Before starting, make sure your environment meets these requirements:
 
 - Python 3.12 or later
-- veadk-python 0.5.37 (see `pyproject.toml`)
-- agentkit-sdk-python 0.5.10 (see `pyproject.toml`)
+- veadk-python 1.0.10 (see `pyproject.toml`)
+- agentkit-sdk-python 0.8.1 (see `pyproject.toml`)
 - `uv` is recommended for dependency management
 - <a target="_blank" href="https://console.byteplus.com/ark/region:ark+ap-southeast-1/apiKey">Get a BytePlus ModelArk API key</a>
 

@@ -46,8 +46,8 @@
 开始前，请确保您的开发环境满足以下要求：
 
 - Python 3.12 或更高版本
-- veadk-python 0.5.37（见 `pyproject.toml`）
-- agentkit-sdk-python 0.5.10（见 `pyproject.toml`）
+- veadk-python 1.0.10（见 `pyproject.toml`）
+- agentkit-sdk-python 0.8.1（见 `pyproject.toml`）
 - 推荐使用 `uv` 进行依赖管理
 - <a target="_blank" href="https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey">获取火山方舟 API KEY</a>
 
