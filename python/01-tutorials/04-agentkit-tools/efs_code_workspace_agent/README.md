@@ -194,12 +194,47 @@ python client.py
 
 `client.py` 会打印 SSE 原始事件，因此终端里会出现很多以 `data:` 开头的 JSON 行。等待最后的中文总结即可，不需要逐行阅读中间事件。
 
+本示例主要验证两个 Case：同一个 `FilespaceName` 下跨沙箱可见，以及不同 `FilespaceName` 下同路径隔离。
+
+#### Case 1：共享可见性验证
+
+这个 Case 证明 writer 沙箱写入 EFS 的文件，可以被另一个独立的 reader 沙箱看到并执行。
+
+1. 创建 writer 沙箱 A，CreateSession 请求中传入 `EfsMountConfigs[0].FilespaceName` 和 `LocalMountPath=/mnt/efs/`。
+2. 在 writer 沙箱 A 中执行异步命令，在 `/mnt/efs/agentkit-code-agent/<run_id>` 下写入 `task.txt`、`report.md`、`metadata.json` 和 `read_workspace.py`。
+3. 创建 reader 沙箱 B，挂载同一个 `FilespaceName` 和同一个 `LocalMountPath`。
+4. 在 reader 沙箱 B 中执行 writer 写入的 `read_workspace.py`，脚本会读取 `task.txt`、`report.md`、`metadata.json`，并校验 `task_sha256` 与元数据一致。
+
+判断成功的依据：
+
+1. reader 沙箱中的校验脚本执行成功，并输出以 `EFS_SHARED_RUN_RESULT=` 开头的结构化 JSON。
+2. JSON 中应包含 `workspace`、`task_file`、`report_file`、`metadata_file`、`executed_file` 和 `task_sha256` 等字段。
+3. 如果运行环境的 `ViewAsyncCommand` 没有回填完整 stdout，工具会退化使用异步命令 `ExitCode=0` 判断 reader 脚本执行成功，并在结果中标记 `verified_by_exit_code=true`、`marker_missing=true`。
+
+凭什么可以这样判断：`read_workspace.py` 是 writer 沙箱写入 EFS 的脚本；reader 沙箱只有在同一个共享 filespace 中看到了该脚本和配套文件，才能成功执行脚本、读取报告和元数据，并打印 `EFS_SHARED_RUN_RESULT=`。
+
+#### Case 2：Filespace 隔离性验证
+
+这个 Case 是可选项，只有配置了 `AGENTKIT_EFS_ISOLATION_FILESPACE_NAME` 才会执行。它证明另一个 `FilespaceName` 即使挂载到同一个本地路径，也看不到 writer 沙箱写入的文件。
+
+1. 创建 isolation 沙箱 C，CreateSession 请求中传入另一个 `FilespaceName`，但仍使用同一个 `LocalMountPath=/mnt/efs/`。
+2. 在 isolation 沙箱 C 中检查 writer 使用过的同一个 workspace 路径。
+3. C 会检查这些路径是否存在：workspace 目录、`task.txt`、`report.md`、`metadata.json`、`read_workspace.py`。
+4. 如果任何一个路径存在，C 会直接退出并报 `filespace isolation failed; unexpected paths are visible`。
+
+判断成功的依据：
+
+1. isolation 沙箱 C 没有看到 writer 沙箱写入的目录和文件。
+2. C 输出以 `EFS_ISOLATION_RESULT=` 开头的结构化 JSON。
+3. JSON 中 `visible_paths` 应为空数组，`isolated` 应为 `true`。
+
+凭什么可以这样判断：C 沙箱挂载的是另一个 `FilespaceName`。代码明确检查 writer 的 workspace 目录以及四个关键文件，只要其中任何一个可见就判失败；只有全部不可见时，才会打印 `EFS_ISOLATION_RESULT=` 并标记 `isolated=true`。
+
 一次成功演示应同时满足以下条件：
 
-1. 最终回复说明 writer、reader、可选 isolation 沙箱均已创建，且清理成功。
-2. writer 沙箱在 EFS 下写入了工作区目录，路径形如 `/mnt/efs/agentkit-code-agent/efs-code-agent-xxxx`。
-3. reader 沙箱挂载同一个 `FilespaceName`，读取并执行 writer 写入的 `read_workspace.py`。
-4. 如果配置了 `AGENTKIT_EFS_ISOLATION_FILESPACE_NAME`，最终回复应说明另一个 filespace 下同路径不可见。
+1. 最终回复说明 writer 和 reader 沙箱均已创建，且清理成功。
+2. 共享可见性验证通过，即 reader 沙箱执行到了 writer 写入的 `read_workspace.py`。
+3. 如果配置了 `AGENTKIT_EFS_ISOLATION_FILESPACE_NAME`，最终回复应说明 isolation 沙箱校验通过，另一个 filespace 下同路径不可见。
 
 可进入任一挂载了同一 `FilespaceName` 的沙箱检查目录：
 
