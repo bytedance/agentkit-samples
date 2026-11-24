@@ -1,0 +1,123 @@
+version: 1
+workspace_id: "" # 可选：省略/为空时使用服务端唯一 ACTIVE DEFAULT Workspace
+
+volcengine:
+  access_key: "" # 留空时读取 HARNESS_INFRA_ACCESS_KEY
+  secret_key: "" # 留空时读取 HARNESS_INFRA_SECRET_KEY
+  region: "cn-beijing" # 按环境确认
+
+session:
+  # 会话 ID 和入口由各模式的运行状态管理，以下三项留空。
+  id: ""
+  name: ""
+  endpoint_base_url: ""
+  title: "AgentKit Infra sample"
+  prompt: "请只回复 AGENT_INFRA_OK"
+
+harness:
+  system_prompt: "按用户要求调用已配置工具，并基于真实工具结果简洁回答。"
+  model:
+    agent_name: "doubao-seed-evolving" # 按环境确认：方舟模型 ID
+    api_base: "https://ark.cn-beijing.volces.com/api/v3" # 按环境确认
+    api_key_name: "" # 队列模式必填：方舟 API Key 的 Name
+    project_name: "default" # 按环境确认：Ark SDK 使用的方舟项目
+  agent_loop: "adk" # adk / codex / piagent
+  tools:
+    - Type: "agent_toolset_20260401"
+      DefaultConfig:
+        Enabled: false
+        PermissionPolicy:
+          Type: "always_allow"
+      Configs:
+        - Type: "write"
+          Enabled: true
+          PermissionPolicy: {Type: "always_allow"}
+        - Type: "edit"
+          Enabled: true
+          PermissionPolicy: {Type: "always_allow"}
+        - Type: "read"
+          Enabled: true
+          PermissionPolicy: {Type: "always_allow"}
+        - Type: "grep"
+          Enabled: true
+          PermissionPolicy: {Type: "always_allow"}
+        - Type: "glob"
+          Enabled: true
+          PermissionPolicy: {Type: "always_allow"}
+        - Type: "bash"
+          Enabled: true
+          PermissionPolicy: {Type: "always_allow"}
+  skills: []
+  mcp_servers: []
+
+session_store:
+  project_name: "default" # Serverless PG 所属项目
+  network:
+    use_private_network: false # false 使用公网连接
+    vpc_id: "" # 私网模式必填
+    subnet_ids: [] # 私网模式必须且只能填写一个子网
+
+runtime_template:
+  role_name: "AgentKitDefaultRuntimeAccess"
+  network:
+    use_private_network: false # 是否使用 VPC
+    vpc_id: "your-vpc-id" # 可选
+    subnet_id: "your-subnet-id" # 可选
+    security_group_ids: ["your-security-group-id"] # 可选
+  resources:
+    cpu_milli: 1000
+    memory_mib: 2048
+    min_replicas: 1
+    max_replicas: 1
+  image_url: null # null 使用平台默认镜像
+  envs: {} # 模型 Runtime 的环境变量，不会注入工具 Worker
+  runtime: {}
+
+environment:
+  type: "Cloud" # 各样例入口会按模式指定 Cloud 或 SelfHosted
+  network:
+    use_private_network: false # 是否使用 VPC
+    vpc_id: "your-vpc-id" # 可选
+    subnet_id: "your-subnet-id" # 可选
+    security_group_ids: ["your-security-group-id"] # 可选
+  resources: # 仅 Cloud 使用；SelfHosted 可以省略
+    cpu_milli: 2000
+    memory_mb: 4096
+  package:
+    npm: []
+    apt: []
+  image_url: "null" # null 使用平台默认镜像
+  env_vars: {} # 映射到 Config.EnvVars；SelfHosted 仅保存，需后端自行注入工具进程
+  metadata:
+    purpose: "resource-to-chat-tutorial"
+  endpoint_id: "" # 可选：账号存在多个 Endpoint 时填写
+  apig_gateway_id: "" # 账号没有可复用 Endpoint 时必填：CreateRoute 契约字段，仅做非空校验
+  env_api_key:
+    id: "" # 保持为空，由各模式的运行状态管理
+    value: "" # 保持为空，明文由各队列模式的私有文件保存
+
+self_host:
+  agentkit_sandbox:
+    # 队列自托管样例会从本轮状态传入三项连接参数。
+    base_url: ""
+    environment_id: ""
+    environment_key: ""
+    dispatcher_image: "enterprise-public-cn-beijing.cr.volces.com/vefaas-public/agentkit-selfhostsandbox:runtime-anthropic-sdk-20261103-a28aa9d7-59ee0972"
+    sandbox_image: "enterprise-public-cn-beijing.cr.volces.com/vefaas-public/agentkit-selfhostsandbox:tool-1.0.0"
+    sandbox_command: "/opt/gem/run.sh"
+    sandbox_port: 8080
+    role_name: "AgentKitDefaultRuntimeAccess"
+    project_name: "default"
+    name_prefix: "selfhost"
+    existing_tool_id: "" # 可选：显式复用同镜像/命令/端口/项目的 Ready 工具模板
+    # 默认为 Dispatcher Runtime 和 Tool 开启应用监控；日志采集需另行配置 TLS。
+    apmplus_enable: true
+    enable_log: false # true 时还需填写 tls_topic_id 与 tls_project_id
+    tls_topic_id: "" # 可选：TLS 日志主题 ID，enable_log 为 true 时必填
+    tls_project_id: "" # 可选：TLS 日志项目 ID，enable_log 为 true 时必填
+    dispatcher_cpu_milli: 1000
+    dispatcher_memory_mb: 2048
+    sandbox_cpu_milli: 2000
+    sandbox_memory_mb: 4096
+    ttl_seconds: 3600
+    idle_timeout_seconds: 180

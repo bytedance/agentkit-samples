@@ -6,7 +6,7 @@ import json
 import time
 import uuid
 from dataclasses import replace
-from typing import Any
+from typing import Any, Callable
 
 from _clients import DataPlaneClient, HarnessInfraError, TopClient
 from _common import (
@@ -248,6 +248,10 @@ def _prepare_endpoint(
 ) -> dict[str, Any]:
     """复用唯一 Ready Endpoint；无 Endpoint 时通过 CreateRoute 同步创建。"""
 
+    recorded = state["resources"].get("endpoint", {})
+    if recorded.get("id"):
+        report_resource(state, "endpoint", json_output=json_output)
+        return {"EndpointId": recorded["id"], "BaseUrl": recorded["base_url"]}
     with wait_progress("查询 Endpoint", json_output=json_output):
         endpoints = _list_all(client, "ListEndpoints")
     if endpoint_id:
@@ -323,6 +327,11 @@ def _wait_environment_resource(
     if resource is None or not isinstance(resource.get("ResourceId"), str):
         raise TimeoutError("Cloud Environment resource did not appear")
     resource_id = resource["ResourceId"]
+    update_resource(
+        state,
+        "environment_resource",
+        {"id": resource_id, "status": resource.get("Status"), "owned": True},
+    )
     ready = wait_until(
         lambda: client.call("GetEnvironmentResource", {"ResourceId": resource_id}),
         lambda value: (
@@ -349,6 +358,7 @@ def _wait_environment_resource(
             "revision": ready.get("Revision"),
             "desired_generation": ready.get("DesiredGeneration"),
             "observed_generation": ready.get("ObservedGeneration"),
+            "tool_id": ready.get("ToolId"),
             "owned": True,
         },
     )
@@ -375,28 +385,12 @@ def _create_session_store(
             "VpcId": config.session_store.vpc_id,
             "SubnetIds": config.session_store.subnet_ids,
         }
-    with wait_progress("创建 SessionStore", json_output=json_output):
-        created = client.call("CreateSessionStore", request)
-    session_store_id = created.get("SessionStoreId")
-    if not isinstance(session_store_id, str) or not session_store_id:
-        raise RuntimeError("CreateSessionStore response is missing SessionStoreId")
-    if created.get("ProviderType") != "SERVERLESS_PG":
-        raise RuntimeError("CreateSessionStore did not return SERVERLESS_PG")
-    update_resource(
-        state,
-        "session_store",
-        {
-            "id": session_store_id,
-            "name": created.get("Name") or state["names"]["session_store"],
-            "parameters": {
-                "ProjectName": config.session_store.project_name,
-                "ProviderType": "SERVERLESS_PG",
-                "VpcId": config.session_store.vpc_id,
-            },
-            "status": created.get("Status"),
-            "owned": True,
-        },
-    )
+    session_store_id = state["resources"].get("session_store", {}).get("id")
+    if not session_store_id:
+        with wait_progress("创建 SessionStore", json_output=json_output):
+            created = client.call("CreateSessionStore", request)
+        _record_session_store(state, config, created)
+        session_store_id = created["SessionStoreId"]
     ready = wait_until(
         lambda: client.call(
             "GetSessionStore",
@@ -426,25 +420,41 @@ def _create_session_store(
     return ready
 
 
-def create_resources(
+def _record_session_store(
+    state: dict[str, Any], config: ExampleConfig, created: dict[str, Any]
+) -> None:
+    """先保存 ID，供异步等待中断后的重跑及清理使用。"""
+    session_store_id = created.get("SessionStoreId")
+    if not isinstance(session_store_id, str) or not session_store_id:
+        raise RuntimeError("CreateSessionStore response is missing SessionStoreId")
+    if created.get("ProviderType") != "SERVERLESS_PG":
+        raise RuntimeError("CreateSessionStore did not return SERVERLESS_PG")
+    update_resource(
+        state,
+        "session_store",
+        {
+            "id": session_store_id,
+            "name": created.get("Name") or state["names"]["session_store"],
+            "parameters": {
+                "ProjectName": config.session_store.project_name,
+                "ProviderType": "SERVERLESS_PG",
+                "VpcId": config.session_store.vpc_id,
+            },
+            "status": created.get("Status"),
+            "owned": True,
+        },
+    )
+
+
+def create_environment(
     client: TopClient,
     state: dict[str, Any],
     config: ExampleConfig,
     *,
-    endpoint_id: str = "",
-    apig_gateway_id: str = "",
     json_output: bool = False,
-) -> dict[str, Any]:
-    """创建控制面资源、数据面凭据和 Session，并等待异步资源就绪。"""
-
-    emit("step", "准备 Endpoint", json_output=json_output, step=1)
-    _prepare_endpoint(
-        client,
-        state,
-        endpoint_id=endpoint_id,
-        apig_gateway_id=apig_gateway_id or config.environment.apig_gateway_id,
-        json_output=json_output,
-    )
+    write_workspace: bool = True,
+) -> ExampleConfig:
+    """创建或继续等待 Environment；记录 Workspace 和云 Sandbox 信息。"""
     names = state["names"]
     tokens = state["tokens"]
     environment_config = {
@@ -463,16 +473,20 @@ def create_resources(
         step=2,
     )
     with wait_progress(environment_label, json_output=json_output):
-        environment = client.call(
-            "CreateEnvironment",
-            {
-                "Name": names["environment"],
-                "Description": "Harness Infra resource-to-chat HTTP tutorial",
-                "Config": environment_config,
-                "Metadata": config.environment.metadata,
-                "ClientToken": tokens["environment_create"],
-            },
-        )
+        recorded_id = state["resources"].get("environment", {}).get("id")
+        if recorded_id:
+            environment = client.call("GetEnvironment", {"EnvironmentId": recorded_id})
+        else:
+            environment = client.call(
+                "CreateEnvironment",
+                {
+                    "Name": names["environment"],
+                    "Description": "Harness Infra resource-to-chat HTTP tutorial",
+                    "Config": environment_config,
+                    "Metadata": config.environment.metadata,
+                    "ClientToken": tokens["environment_create"],
+                },
+            )
     environment_id = environment.get("EnvironmentId")
     if not isinstance(environment_id, str) or not environment_id:
         raise RuntimeError("CreateEnvironment response is missing EnvironmentId")
@@ -506,7 +520,7 @@ def create_resources(
             "owned": True,
         },
     )
-    if workspace_id:
+    if workspace_id and write_workspace:
         persist_workspace(workspace_id)
     environment = wait_until(
         lambda: client.call("GetEnvironment", {"EnvironmentId": environment_id}),
@@ -540,119 +554,118 @@ def create_resources(
             else "SelfHosted Env 已登记；工具执行需接入自托管后端"
         ),
     )
+    return config
 
-    emit(
-        "request",
-        "创建 Harness",
-        json_output=json_output,
-        step=3,
-    )
-    with wait_progress("创建 Harness", json_output=json_output):
-        harness = client.call(
-            "CreateHarness",
-            {
-                "Name": names["harness"],
-                "Description": "Harness Infra resource-to-chat HTTP tutorial",
-                "Model": {
-                    "Id": config.harness.model_id,
-                    "BaseUrl": config.harness.model_base_url,
-                },
-                "AgentLoop": config.harness.agent_loop,
-                "System": config.harness.system_prompt,
-                "Tools": config.harness.tools,
-                "McpServers": config.harness.mcp_servers,
-                "Skills": config.harness.skills,
-                "Metadata": {"purpose": "resource-to-chat-tutorial"},
-                "ClientToken": tokens["harness_create"],
-            },
-        )
-    harness_id = harness.get("HarnessId")
-    if not isinstance(harness_id, str) or harness.get("Status") != "Active":
-        raise RuntimeError("CreateHarness did not return an active Harness")
-    update_resource(
+
+def create_resources(
+    client: TopClient,
+    state: dict[str, Any],
+    config: ExampleConfig,
+    *,
+    endpoint_id: str = "",
+    apig_gateway_id: str = "",
+    json_output: bool = False,
+    defer_session: bool = False,
+) -> dict[str, Any]:
+    """一次准备队列模式的控制面，并按需创建 APIG 会话。"""
+    emit("step", "准备 Endpoint", json_output=json_output, step=1)
+    _prepare_endpoint(
+        client,
         state,
-        "harness",
-        {
-            "id": harness_id,
-            "name": harness.get("Name") or names["harness"],
-            "version": harness.get("HarnessVersion"),
-            "status": harness.get("Status"),
-            "owned": True,
-        },
-    )
-
-    report_resource(state, "harness", json_output=json_output)
-
-    emit(
-        "request",
-        "创建 SessionStore",
+        endpoint_id=endpoint_id,
+        apig_gateway_id=apig_gateway_id or config.environment.apig_gateway_id,
         json_output=json_output,
-        step=4,
     )
+    config = create_environment(client, state, config, json_output=json_output)
+    environment_id = state["resources"]["environment"]["id"]
+    create_harness(client, state, config, json_output=json_output)
+    emit("request", "创建 SessionStore", json_output=json_output, step=4)
     session_store = _create_session_store(
+        client, state, config, json_output=json_output
+    )
+    emit("request", "创建 Runtime", json_output=json_output, step=5)
+    create_runtime_template(
+        client, state, config, session_store["SessionStoreId"], json_output=json_output
+    )
+    return _finish_queue_resources(
         client,
         state,
         config,
+        environment_id,
+        defer_session=defer_session,
         json_output=json_output,
     )
 
-    emit(
-        "request",
-        "创建 Runtime",
-        json_output=json_output,
-        step=5,
-    )
-    with wait_progress("准备 Runtime IAM Role", json_output=json_output):
-        role_name, reused = ensure_runtime_role(
-            config.control, config.runtime_role_name
-        )
-    emit(
-        "resource",
-        "Runtime IAM Role",
-        json_output=json_output,
-        heading=False,
-        resource="Runtime IAM Role",
-        name=role_name,
-        status="reused" if reused else "created",
-    )
-    runtime_request = {
-        "Name": names["runtime"],
-        "Description": "Harness Infra resource-to-chat HTTP tutorial",
-        "RoleName": role_name,
-        "Resources": config.runtime_template.resources,
-        "Meta": {"purpose": "resource-to-chat-tutorial"},
-        "ClientToken": tokens["runtime_create"],
-        "SessionStoreId": session_store["SessionStoreId"],
-    }
-    if config.runtime_template.image_url is not None:
-        runtime_request["ImageUrl"] = config.runtime_template.image_url
-    if config.runtime_template.envs:
-        runtime_request["Envs"] = config.runtime_template.envs
-    if config.runtime_template.runtime:
-        runtime_request["Runtime"] = config.runtime_template.runtime
-    with wait_progress("创建 Runtime", json_output=json_output):
-        runtime = client.call("CreateRuntimeTemplate", runtime_request)
-    runtime_id = runtime.get("RuntimeId")
-    if not isinstance(runtime_id, str) or not runtime_id:
-        raise RuntimeError("CreateRuntimeTemplate response is missing RuntimeId")
-    update_resource(
-        state,
-        "runtime",
-        {
-            "id": runtime_id,
-            "name": runtime.get("Name") or names["runtime"],
-            "parameters": {
-                **config.runtime_template.resources,
-                "ImageUrl": config.runtime_template.image_url,
-                "Envs": config.runtime_template.envs,
-                "Runtime": config.runtime_template.runtime,
-                "SessionStoreId": session_store["SessionStoreId"],
+
+def create_harness(
+    client: TopClient,
+    state: dict[str, Any],
+    config: ExampleConfig,
+    *,
+    json_output: bool = False,
+) -> None:
+    """创建队列模式使用的 Harness；重跑时复用已记录的 ID。"""
+    names = state["names"]
+    tokens = state["tokens"]
+    if not state["resources"].get("harness", {}).get("id"):
+        emit("request", "创建 Harness", json_output=json_output, step=3)
+        with wait_progress("创建 Harness", json_output=json_output):
+            harness = client.call(
+                "CreateHarness",
+                {
+                    "Name": names["harness"],
+                    "Description": "Harness Infra resource-to-chat HTTP tutorial",
+                    "Model": {
+                        "Id": config.harness.model_id,
+                        "BaseUrl": config.harness.model_base_url,
+                    },
+                    "AgentLoop": config.harness.agent_loop,
+                    "System": config.harness.system_prompt,
+                    "Tools": config.harness.tools,
+                    "McpServers": config.harness.mcp_servers,
+                    "Skills": config.harness.skills,
+                    "Metadata": {"purpose": "resource-to-chat-tutorial"},
+                    "ClientToken": tokens["harness_create"],
+                },
+            )
+        harness_id = harness.get("HarnessId")
+        if not isinstance(harness_id, str) or harness.get("Status") != "Active":
+            raise RuntimeError("CreateHarness did not return an active Harness")
+        update_resource(
+            state,
+            "harness",
+            {
+                "id": harness_id,
+                "name": harness.get("Name") or names["harness"],
+                "version": harness.get("HarnessVersion"),
+                "status": harness.get("Status"),
+                "owned": True,
             },
-            "status": runtime.get("Status"),
-            "owned": True,
-        },
-    )
-    runtime = wait_until(
+        )
+    report_resource(state, "harness", json_output=json_output)
+
+
+def create_runtime_template(
+    client: TopClient,
+    state: dict[str, Any],
+    config: ExampleConfig,
+    session_store_id: str,
+    *,
+    tool_id: str = "",
+    json_output: bool = False,
+) -> None:
+    """准备执行角色，提交 Runtime 模板或继续等待已记录的 Runtime。"""
+    runtime_id = state["resources"].get("runtime", {}).get("id")
+    if not runtime_id:
+        runtime_id = _submit_runtime_template(
+            client,
+            state,
+            config,
+            session_store_id,
+            tool_id=tool_id,
+            json_output=json_output,
+        )
+    wait_until(
         lambda: client.call("GetRuntime", {"RuntimeId": runtime_id}),
         lambda value: value.get("Status") == "Ready",
         lambda value: (
@@ -671,6 +684,101 @@ def create_resources(
     )
     report_resource(state, "runtime", json_output=json_output)
 
+
+def _submit_runtime_template(
+    client: TopClient,
+    state: dict[str, Any],
+    config: ExampleConfig,
+    session_store_id: str,
+    *,
+    tool_id: str,
+    json_output: bool,
+) -> str:
+    """发起 CreateRuntimeTemplate 并在首次取得 ID 时持久化。"""
+    with wait_progress("准备 Runtime IAM Role", json_output=json_output):
+        role_name, reused = ensure_runtime_role(
+            config.control, config.runtime_role_name
+        )
+    emit(
+        "resource",
+        "Runtime IAM Role",
+        json_output=json_output,
+        heading=False,
+        resource="Runtime IAM Role",
+        name=role_name,
+        status="reused" if reused else "created",
+    )
+    runtime_request = {
+        "Name": state["names"]["runtime"],
+        "Description": "Harness Infra resource-to-chat HTTP tutorial",
+        "RoleName": role_name,
+        "Resources": config.runtime_template.resources,
+        "Meta": {"purpose": "resource-to-chat-tutorial"},
+        "ClientToken": state["tokens"]["runtime_create"],
+        "SessionStoreId": session_store_id,
+    }
+    if config.runtime_template.image_url is not None:
+        runtime_request["ImageUrl"] = config.runtime_template.image_url
+    if config.runtime_template.envs:
+        runtime_request["Envs"] = config.runtime_template.envs
+    if tool_id:
+        runtime_request["Envs"] = {
+            **config.runtime_template.envs,
+            "MODEL_NAME": config.harness.model_id,
+            "MODEL_API_BASE": config.harness.model_base_url,
+            "SYSTEM_PROMPT": config.harness.system_prompt,
+            "RUNTIME": "adk",
+            "HARNESS_SANDBOX_TOOL_ID": tool_id,
+        }
+    if config.runtime_template.runtime:
+        runtime_request["Runtime"] = config.runtime_template.runtime
+    with wait_progress("创建 Runtime", json_output=json_output):
+        runtime = client.call("CreateRuntimeTemplate", runtime_request)
+    runtime_id = runtime.get("RuntimeId")
+    if not isinstance(runtime_id, str) or not runtime_id:
+        raise RuntimeError("CreateRuntimeTemplate response is missing RuntimeId")
+    update_resource(
+        state,
+        "runtime",
+        {
+            "id": runtime_id,
+            "name": runtime.get("Name") or state["names"]["runtime"],
+            "parameters": {
+                **config.runtime_template.resources,
+                "ImageUrl": config.runtime_template.image_url,
+                "Envs": dict.fromkeys(runtime_request.get("Envs", {}), "<redacted>"),
+                "Runtime": config.runtime_template.runtime,
+                "SessionStoreId": session_store_id,
+            },
+            "status": runtime.get("Status"),
+            "owned": True,
+        },
+    )
+    return runtime_id
+
+
+def create_environment_api_key(
+    client: TopClient,
+    state: dict[str, Any],
+    config: ExampleConfig,
+    environment_id: str,
+    *,
+    json_output: bool = False,
+    save_key: Callable[[str, str], None] | None = None,
+) -> str:
+    """为当前 Endpoint 和 Environment 签发 Key，仅在本地配置保存明文。"""
+    recorded = state["resources"].get("api_key", {})
+    if recorded.get("id"):
+        if (
+            config.environment.env_api_key_id == recorded["id"]
+            and config.environment.env_api_key_value
+            and recorded.get("status") == "active"
+        ):
+            report_resource(state, "api_key", json_output=json_output)
+            return config.environment.env_api_key_value
+        raise RuntimeError("Environment API Key 明文不可用，请先清理本轮资源")
+    names = state["names"]
+    tokens = state["tokens"]
     emit(
         "request",
         "创建 Environment API Key",
@@ -707,58 +815,37 @@ def create_resources(
         raise RuntimeError(
             "CreateAPIKey did not return Key; run 03_cleanup_resources.py before retrying"
         )
-    persist_environment_api_key(
-        api_key_id, environment_key, environment_type=config.environment.type
-    )
-    report_resource(state, "api_key", json_output=json_output)
-    emit(
-        "request",
-        "创建 Session",
-        json_output=json_output,
-        step=7,
-    )
-    data = DataPlaneClient(endpoint["base_url"], environment_key)
-    with wait_progress("创建 Session", json_output=json_output):
-        session = data.call(
-            "POST",
-            "/v1/sessions",
-            body={
-                "agent": {"type": "agent", "id": harness_id},
-                "environment_id": environment_id,
-                "workspace_id": environment.get("WorkspaceId")
-                or config.control.workspace_id,
-                "runtime_id": runtime_id,
-                "runtime_type": "agentkit_runtime",
-                "title": config.session.title,
-                "initial_events": [],
-            },
-            headers={
-                "x-ark-key-name": config.model_api_key_name,
-                "Idempotency-Key": tokens["session_create"],
-            },
+    if save_key is None:
+        persist_environment_api_key(
+            api_key_id, environment_key, environment_type=config.environment.type
         )
-    session_id = str(session.get("id") or "")
-    if not session_id:
-        raise RuntimeError("Create Session response is missing id")
-    if session.get("ark_api_key_name") != config.model_api_key_name:
-        raise RuntimeError("Session did not preserve ark_api_key_name")
-    session_name = str(session.get("name") or "")
-    update_resource(
-        state,
-        "session",
-        {
-            "id": session_id,
-            "name": session_name,
-            "title": session.get("title") or config.session.title,
-            "parameters": {
-                "runtime_type": "agentkit_runtime",
-                "ark_api_key_name": config.model_api_key_name,
-            },
-            "status": session.get("status"),
-            "owned": True,
-        },
+    else:
+        save_key(api_key_id, environment_key)
+    report_resource(state, "api_key", json_output=json_output)
+    return environment_key
+
+
+def _finish_queue_resources(
+    client: TopClient,
+    state: dict[str, Any],
+    config: ExampleConfig,
+    environment_id: str,
+    *,
+    defer_session: bool,
+    json_output: bool,
+) -> dict[str, Any]:
+    """兼容旧教程的一键资源和会话流程。"""
+    environment_key = create_environment_api_key(
+        client, state, config, environment_id, json_output=json_output
     )
-    persist_session(session_id, session_name, endpoint["base_url"])
+    endpoint = state["resources"]["endpoint"]
+    if defer_session:
+        persist_session("", "", endpoint["base_url"])
+        state["status"] = "control_plane_ready"
+        save_state(state)
+        return state
+
+    create_queue_session(state, config, environment_key, json_output=json_output)
     invoke_path, sse_path = configure_session_curl_scripts()
     report_resource(
         state,
@@ -766,9 +853,6 @@ def create_resources(
         json_output=json_output,
         result=f"已回填 curl 脚本配置：{invoke_path}、{sse_path}",
     )
-
-    state["status"] = "resources_ready"
-    save_state(state)
     emit(
         "completed",
         (
@@ -793,8 +877,6 @@ def create_resources(
         next_step="python 02_invoke_session_http.py",
     )
     if config.environment.type == "SelfHosted":
-        # Dedicated connection output follows the completed resource summary.
-        # Normal events and state files continue to omit plaintext credentials.
         connection = {
             "ANTHROPIC_BASE_URL": endpoint["base_url"],
             "ANTHROPIC_ENVIRONMENT_ID": environment_id,
@@ -807,6 +889,71 @@ def create_resources(
         else:
             display_selfhost_connection(connection)
     return state
+
+
+def create_queue_session(
+    state: dict[str, Any],
+    config: ExampleConfig,
+    environment_key: str,
+    *,
+    json_output: bool = False,
+    write_session: bool = True,
+) -> str:
+    """在 APIG 创建空会话；调用者可以先启动 Dispatcher 再提交首轮消息。"""
+    resources = state["resources"]
+    endpoint = resources["endpoint"]
+    emit(
+        "request",
+        "创建 Session",
+        json_output=json_output,
+        step=7,
+    )
+    data = DataPlaneClient(endpoint["base_url"], environment_key)
+    with wait_progress("创建 Session", json_output=json_output):
+        session = data.call(
+            "POST",
+            "/v1/sessions",
+            body={
+                "agent": {"type": "agent", "id": resources["harness"]["id"]},
+                "environment_id": resources["environment"]["id"],
+                "workspace_id": state.get("workspace_id")
+                or config.control.workspace_id,
+                "runtime_id": resources["runtime"]["id"],
+                "runtime_type": "agentkit_runtime",
+                "title": config.session.title,
+                "initial_events": [],
+            },
+            headers={
+                "x-ark-key-name": config.model_api_key_name,
+                "Idempotency-Key": state["tokens"]["session_create"],
+            },
+        )
+    session_id = str(session.get("id") or "")
+    if not session_id:
+        raise RuntimeError("Create Session response is missing id")
+    if session.get("ark_api_key_name") != config.model_api_key_name:
+        raise RuntimeError("Session did not preserve ark_api_key_name")
+    session_name = str(session.get("name") or "")
+    update_resource(
+        state,
+        "session",
+        {
+            "id": session_id,
+            "name": session_name,
+            "title": session.get("title") or config.session.title,
+            "parameters": {
+                "runtime_type": "agentkit_runtime",
+                "ark_api_key_name": config.model_api_key_name,
+            },
+            "status": session.get("status") or "active",
+            "owned": True,
+        },
+    )
+    if write_session:
+        persist_session(session_id, session_name, endpoint["base_url"])
+    state["status"] = "resources_ready"
+    save_state(state)
+    return session_id
 
 
 def _extract_text(event: dict[str, Any]) -> str:
@@ -842,16 +989,21 @@ def _delete_session(
             if not _not_found(exc):
                 raise
         deadline = time.monotonic() + 10 * 60
+        last_status = "unknown"
         while time.monotonic() < deadline:
             try:
-                data.call("GET", f"/v1/sessions/{session_id}")
+                observed = data.call("GET", f"/v1/sessions/{session_id}")
             except HarnessInfraError as exc:
                 if _not_found(exc):
                     break
                 raise
+            last_status = observed.get("status") or "unknown"
             time.sleep(3)
         else:
-            raise TimeoutError("timed out waiting for Session deletion")
+            raise TimeoutError(
+                f"等待 Session {session_id} 删除超时，最后状态：{last_status}。"
+                "请保留本轮状态和 Environment API Key，以便重试清理。"
+            )
 
 
 def invoke_session(
@@ -1079,7 +1231,7 @@ def cleanup_resources(
         endpoint = resources.get("endpoint") or {}
         if not environment_api_key:
             raise RuntimeError(
-                "Session is not deleted and config.yaml has no Environment API Key"
+                "Session is not deleted and its Environment API Key is unavailable"
             )
         if not session.get("id") or not endpoint.get("base_url"):
             raise RuntimeError(
@@ -1096,7 +1248,7 @@ def cleanup_resources(
             state,
             "session",
             json_output=json_output,
-            result="使用 config.yaml 中的 Environment API Key 删除",
+            result="已通过 APIG 删除并确认会话不可再查询",
         )
     if api_key.get("status") not in {None, "deleted"}:
         try:
@@ -1202,6 +1354,18 @@ def cleanup_resources(
 
     resource = resources.get("environment_resource") or {}
     if resource.get("id") and resource.get("status") != "Deleted":
+
+        def read_cloud_resource() -> dict[str, Any]:
+            """资源已不存在也视为回收完成，以便恢复中断的清理。"""
+            try:
+                return client.call(
+                    "GetEnvironmentResource", {"ResourceId": resource["id"]}
+                )
+            except HarnessInfraError as exc:
+                if not _not_found(exc):
+                    raise
+                return {"Status": "Deleted"}
+
         try:
             with wait_progress("清理 Cloud Sandbox", json_output=json_output):
                 client.call(
@@ -1215,9 +1379,7 @@ def cleanup_resources(
             if not _not_found(exc):
                 raise
         deleted = wait_until(
-            lambda: client.call(
-                "GetEnvironmentResource", {"ResourceId": resource["id"]}
-            ),
+            read_cloud_resource,
             lambda value: value.get("Status") == "Deleted",
             lambda value: (
                 str(value.get("ErrorCode") or value.get("Status"))
