@@ -1,0 +1,15 @@
+[project]
+name = "efs-code-workspace-agent"
+version = "0.1.0"
+description = "VeADK agent that demonstrates AgentKit Sandbox sessions with EFS"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "veadk-python==1.0.10",
+    "google-adk==2.2.0",
+    "agentkit-sdk-python==0.8.1",
+    "urllib3<2.0.0",
+    "litellm==1.83.14",
+    "requests>=2.32.0",
+    "httpx>=0.28.0",
+]

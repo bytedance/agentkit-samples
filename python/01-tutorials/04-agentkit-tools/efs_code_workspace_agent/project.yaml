@@ -1,0 +1,38 @@
+name:                     EFS 代码工作区智能体
+name_en:                  EFSCodeWorkspaceAgent
+description:              基于 EFS 沙箱的跨实例代码工作区智能体示例
+details:                  这是一个基于 VeADK 和 AgentKit Sandbox 构建的代码智能体示例，演示智能体如何创建多个带 EFS 挂载的沙箱会话，在同一个 FilespaceName 下生成并跨实例读取代码任务产物，并可选验证不同 filespace 的同路径隔离。
+tags:
+  industry:               信息技术服务
+  from:                   volcengine
+  framework:              veadk
+  language:               python
+  tech:
+    - veadk
+    - sandbox
+    - efs
+    - openapi
+type:                     application
+scenarios:
+  - name:                 代码审查工作区
+    desc:                 跨轮次保存代码分析产物
+  - name:                 数据处理任务
+    desc:                 新沙箱实例继续读取处理结果
+  - name:                 EFS 隔离验证
+    desc:                 验证同名空间共享隔离
+prompts:
+  - text:                 请完整演示一次 EFS 代码工作区链路
+  - text:                 创建 A/B 两个带 EFS 的沙箱并验证同 filespace 下文件可跨实例访问
+envs:
+  - name:                 沙箱工具 ID
+    key:                  AGENTKIT_TOOL_ID
+    url:                  https://console.volcengine.com/agentkit/region:agentkit+cn-beijing/tools
+  - name:                 EFS Filespace 名称
+    key:                  AGENTKIT_EFS_FILESPACE_NAME
+    url:                  https://console.volcengine.com/efs
+components:
+  - type:                 sandbox
+    product:              AIO_Sandbox
+models:
+  - doubao-seed-evolving
+image: agentkit-template-public-cn-beijing.cr.volces.com/template/efs_code_workspace_agent:latest
