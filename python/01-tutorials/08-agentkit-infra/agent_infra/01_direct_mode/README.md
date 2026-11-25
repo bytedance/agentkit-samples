@@ -1,6 +1,22 @@
-# 01 Direct：Harness App 直连
+# 01 Direct模式：Harness App 直连
 
-本例使用 AgentKit 控制面创建 Cloud Environment 和 Runtime，随后直连 AgentKit CLI 的 Harness App 创建 Session、流式对话。会话保存在 Harness App，无需创建 Deployment 或 Environment API Key。
+Direct 模式采用手脑分离架构：Agent 在 AgentKit Runtime 中完成模型推理和任务编排，通过远程调用让 Sandbox 执行文件读写、命令等操作，再根据工具结果继续对话。Sandbox 接通业务 VPC 后，可访问内网服务和数据。
+
+本例采用 Direct 调用方式，客户端直接访问 Runtime 的 Harness App。操作顺序为：**准备配置 → 创建资源 → 运行 Direct 模式 → 清理资源**。
+
+```text
+调用者
+    │ 创建会话、调用 /run_sse
+    ▼
+AgentKit Runtime(VPC)
+    └── Agent / Harness：模型推理、任务编排
+      │ 远程工具调用      ▲ 执行结果返回
+      ▼                 │
+        Cloud Sandbox(VPC)
+                  │
+                  ▼
+      业务 VPC：业务服务、数据
+```
 
 ## 进入项目并配置 uv
 
@@ -16,17 +32,38 @@ test -f ../config.yaml ||
   install -m 600 ../config.yaml.example ../config.yaml
 ```
 
-编辑 `agent_infra/` 下的 `../config.yaml`，填写账号 AK/SK、地域、模型 ID 和模型地址。使用环境变量提供 AK/SK 时，将 `volcengine.access_key` 和 `volcengine.secret_key` 留空。Runtime 执行角色需要方舟模型访问和工具实例管理权限。
+编辑 `agent_infra/` 下的 `../config.yaml`：
 
+- `volcengine`：填写账号 AK/SK 和地域。AK/SK 留空时读取 `HARNESS_INFRA_ACCESS_KEY`、`HARNESS_INFRA_SECRET_KEY`。
+- `workspace_id`：填写目标 Workspace；留空时使用服务端默认 Workspace。
+- `harness.model`：填写方舟模型 ID 和模型地址。本例通过 Runtime 执行角色访问模型，`api_key_name` 可留空。
+- `harness.agent_loop`：使用 `adk`；`harness.system_prompt` 填写 Agent 的系统提示词。
+- `runtime_template`：填写 Runtime 镜像、执行角色和规格；`environment.resources` 配置 Cloud Sandbox 的 CPU 和内存规格。
+- `environment.apig_gateway_id`：账号没有 Endpoint 时填写，用于 `CreateRoute`；已有多个 Endpoint 时，用 `environment.endpoint_id` 指定要复用的就绪 Endpoint。
 模型、MCP、Skill 都在 `harness` 下配置，见[共享配置说明](../README.md#agent-能力)。Direct 将它们转换为 Harness App 的 Runtime 环境变量；模型 Key 可用 `harness.model.api_key: "${MODEL_API_KEY}"`，也可留空通过 Runtime IAM 获取。`api_key_name` 非空时使用命名 Key（当前 IAM 取 Key 实现使用 `default` 方舟项目）。
 
 `harness.mcp_servers` 支持远程 `streamable-http` / `sse`，可选 `api_key` 作为 Bearer。`harness.skills` 只在本模式生效，接受 Hub/Space 字符串引用；ZIP 来源对象不受支持。需要选用包含 MCP、Skill 加载能力的 Harness App 镜像，并在实际调用中确认能力可用。
 
 ## 逐步创建资源
 
-每步对应一条命令。加 `--dry-run` 可查看该步的调用计划，无需配置凭据，也不会创建资源。实际执行会创建计费资源。
+将 `harness.tools` 中 `agent_toolset_20260401` 的 `DefaultConfig.Enabled` 改为 `true`，开启文件和命令工具，保留模板中的其他工具配置：
 
-### 1. CreateRoute（可选）
+```yaml
+DefaultConfig:
+  Enabled: true
+  PermissionPolicy:
+    Type: "always_allow"
+```
+
+Runtime 镜像需提供 `veadk.cloud.harness_app.server` 的 Harness App，支持会话绑定，并通过 Runtime KeyAuth 调用。选择未启用 Harness Identity 的镜像，Identity 模式暂不支持本例的三 ID 会话绑定。Cloud Sandbox 需支持 AIO Sandbox 接口；Runtime 执行角色需具备模型调用、读取 Harness / Environment 配置和管理工具实例的权限。
+
+本例暂不透传 `environment.network` 和 `runtime_template.network`。如需访问业务 VPC，须在平台完成对应 Sandbox 的网络接入和访问权限配置。
+
+## 创建资源
+
+按顺序执行以下五步。每步都可加 `--dry-run` 查看计划，不读取配置、不访问网络。实际执行会创建计费资源。
+
+### 1. CreateRoute
 
 ```bash
 python run.py create-route
@@ -40,9 +77,19 @@ python run.py create-route
 python run.py create-environment
 ```
 
-创建 `Config.Type=Cloud` 的 Environment，等待 Environment 为 `Active`、Sandbox 为 `Ready`，保存 Sandbox `ToolId`。Cloud Sandbox 镜像需支持 Harness App 使用的 AIO Sandbox 接口。
+创建 Cloud Environment，等待 Environment 为 `Active`、Sandbox 为 `Ready`，保存 Sandbox 的 `ToolId`。
 
-### 3. CreateSessionStore
+`run.py` 发送 `Config.Type=Cloud` 的环境创建命令。
+
+### 3. CreateHarness
+
+```bash
+python run.py create-harness
+```
+
+保存模型、系统提示词和工具配置，取得 `HarnessId`，供运行 Direct 模式时绑定会话。
+
+### 4. CreateSessionStore
 
 ```bash
 python run.py create-session-store
@@ -50,25 +97,48 @@ python run.py create-session-store
 
 创建 `SERVERLESS_PG` 类型的 SessionStore，等待 `Ready`，保存 `SessionStoreId`。
 
-### 4. CreateRuntimeTemplate
+### 5. CreateRuntimeTemplate
 
 ```bash
 python run.py create-runtime-template
 ```
 
-准备 IAM 执行角色，用 `SessionStoreId` 和 `HARNESS_SANDBOX_TOOL_ID` 创建 Runtime，再用 `GetRuntime` 等待 `Ready`。如果目标环境的默认镜像没有提供 Harness App，可设置 `runtime_template.image_url`。自建镜像的启动命令须能启动 `harness_app.server`，使用默认配置时监听 `8000` 并响应 `/ping`。
+准备 IAM 执行角色，使用 `SessionStoreId` 和 Sandbox `ToolId` 创建 Runtime，再通过 `GetRuntime` 等待 `Ready`。
 
-## 创建会话与流式对话
+五步完成后，继续下一节。资源 ID 保存在 `../.local/direct/resources.json`；Runtime 的 Endpoint 和调用凭证由脚本读取，无需手动复制。
+
+## 运行 Direct 模式
+
+### 1. 创建会话
 
 ```bash
 python run.py create-session
-python run.py run-sse --prompt "请只回复 DIRECT_OK"
-python run.py run-sse --prompt "上一轮我要求你回复什么？只输出标记。"
 ```
 
-`create-session` 使用 `GetRuntime` 返回的 Runtime Key，先查询 `/list-apps`，再调用 `POST /apps/harness_agent/users/{user}/sessions/{id}`。两次 `run-sse` 复用同一会话，向 Runtime `POST /run_sse`。
+向 Runtime 创建会话，将 `workspaceId`、`harnessId` 和 `environmentId` 作为顶层字段传入，遵循 ADK 的驼峰命名规范。服务端加载 Harness 和 Environment 配置，并绑定到当前 Session。
 
-要验证云沙箱，发送「用 Execute 在沙箱里运行 `echo DIRECT_SANDBOX_OK`，只回复真实命令输出」，并在 SSE 中核对 `functionCall` 和 `functionResponse`。
+### 2. 调用 run_sse
+
+```bash
+python run.py run-sse --prompt "请只回复 CLOUD_OK"
+python run.py run-sse --prompt "上一轮我要求你回复什么？只输出那个标记。"
+```
+
+两次调用向 Runtime 的 `/run_sse` 发送消息，复用同一 Session，流式返回 Agent 回复。两轮均应返回 `CLOUD_OK`，用于检查基础对话和上下文记忆。
+
+### 3. 验证远程工具执行
+
+```bash
+# 在远端沙箱执行命令
+python run.py run-sse --prompt '请在沙箱中执行 echo CLOUD_SANDBOX_OK，只回复真实命令输出。'
+
+# 在远端沙箱写入并读取文件
+python run.py run-sse --prompt '请在沙箱的 /tmp/cloud-demo.txt 写入 CLOUD_FILE_OK，然后读取该文件，只回复读取到的内容。'
+```
+
+检查 SSE 中的 `functionCall` 和 `functionResponse`，确认工具执行成功，且工具结果包含对应的 `CLOUD_SANDBOX_OK` 或 `CLOUD_FILE_OK`。这些操作发生在远端 Sandbox，验证时以工具返回结果为准。
+
+完成业务 VPC 网络接入后，可继续发送“请在沙箱中访问 `<业务服务健康检查地址>`，返回实际状态码和响应内容”，检查内网访问。
 
 ## MCP 与 Skill 使用
 
@@ -88,10 +158,6 @@ python run.py cleanup --dry-run
 python run.py cleanup
 ```
 
-清理按依赖倒序执行：
+脚本按依赖顺序删除 Session、Runtime、SessionStore、Cloud Sandbox 和 Environment，并归档 Harness。共享 Route 和 IAM 角色保留。
 
-1. 通过 Runtime 删除 Harness App Session。
-2. 调用 `DeleteRuntime`，确认 Runtime 已删除后再调用 `DeleteSessionStore`。
-3. 调用 `DeleteEnvironmentResource` 回收已记录的 Cloud Sandbox 资源，再调用 `DeleteEnvironment`。若创建中断时还未记录 Sandbox，Cloud Environment 的删除流程负责回收它所属的资源。
-
-清理可在任意创建步骤后运行，只处理 `../.local/direct/resources.json` 记录的本轮资源。保留账号级 Route 和 IAM 角色，因为其他应用可能在使用。清理中途失败时，保留状态文件，修复错误后重跑 `python run.py cleanup`；不要先删除状态文件。如创建请求超时且未记录 ID，先在控制台按状态文件中的资源名称检查是否已经创建，再决定是否重试，尤其是 `CreateSessionStore`。
+创建或清理中断后，保留 `../.local/direct/resources.json`，修复问题后重新执行清理命令。

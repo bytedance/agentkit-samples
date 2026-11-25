@@ -8,13 +8,13 @@
 
 | 模式 | Environment | 会话和对话入口 | 沙箱调度 |
 | --- | --- | --- | --- |
-| [01 Direct](01_direct_mode/README.md) | `Cloud` | Runtime Endpoint + Runtime Key；Harness App 创建 Session、执行 `/run_sse` | Harness App 按 ToolId 直接创建或复用云沙箱 |
+| [01 Direct](01_direct_mode/README.md) | `Cloud` | Runtime Endpoint + Runtime Key；Session 绑定 Harness / Environment，执行 `/run_sse` | Harness App 按 ToolId 直接创建或复用云沙箱 |
 | [02 Queue SelfHosted](02_queue_selfhost_mode/README.md) | `SelfHosted` | APIG BaseUrl + Environment API Key；创建 Session、提交消息并订阅事件 | 自托管 Dispatcher 消费 Work，启动或复用工具实例 |
 | [03 Queue Cloud（进阶）](advanced/03_queue_cloud_mode/README.md) | `Cloud` | APIG BaseUrl + Environment API Key；创建 Session、提交消息并订阅事件 | 平台托管 Dispatcher 消费 Work，调度云沙箱 |
 
 ### 01 Direct
 
-Session 与 Agent Loop 位于 Harness App，工具由 Agent Loop 直接调用。对应 Deployment Cloud 的执行路径。
+本例介绍手脑分离的 Direct 模式：Agent 在 Runtime 的 Harness App 中思考和编排，通过远程调用让 Sandbox 执行文件读写和命令；需要访问业务内网时，由 Sandbox 接入业务 VPC。操作主线为 `CreateHarness → 创建 Session → /run_sse`，完整步骤见 [Direct 教程](01_direct_mode/README.md)。
 
 ```mermaid
 flowchart LR
@@ -26,8 +26,9 @@ flowchart LR
         B["Sandbox<br/>工具执行"]
     end
     L <-->|"ToolId · 调用 / 结果"| B
+    B -->|"配置网络接入后"| V["业务 VPC"]
     classDef node fill:#eee9ff,stroke:#9b7bff,color:#292535
-    class U,S,L,B node
+    class U,S,L,B,V node
     style APP fill:#fffde7,stroke:#b49aff
     style CLOUD fill:#fffde7,stroke:#b49aff
 ```
@@ -59,15 +60,16 @@ flowchart LR
 
 ## 核心功能
 
-1. `CreateRoute`：已有 Ready Endpoint 时复用，无可复用 Endpoint 时创建。Direct 演示这个控制面步骤，但后续对话不使用这个 Route。
+1. `CreateRoute`：复用账号已有的就绪 Endpoint；没有 Endpoint 时创建。Cloud Environment 创建专属沙箱依赖账号 Endpoint，Direct 也须先完成这一步；Direct 后续对话使用 Runtime 自己的 Endpoint。
 2. `CreateEnvironment`：根据模式创建 Cloud 或 SelfHosted。Cloud 等待自动创建的 Sandbox Ready；SelfHosted 只登记环境。
-3. `CreateRuntimeTemplate`：先准备 SessionStore、执行角色；队列模式还创建 Harness。模板接口返回 `RuntimeId` 后，用 `GetRuntime` 等待 Ready。
-4. `CreateSession`：Direct 在 Harness App 创建；队列模式先创建 Environment API Key，再通过 APIG 创建。
-5. `run-sse`：Direct 请求 `/run_sse`；队列模式把用户消息提交到 `/events`，再按回执的序号订阅 `/events/stream`，避免把历史回复误认成本轮输出。
+3. `CreateHarness`：保存模型、提示词和工具配置，供创建 Session 时绑定。
+4. `CreateRuntimeTemplate`：先准备 SessionStore 和执行角色。模板接口返回 `RuntimeId` 后，用 `GetRuntime` 等待 Ready。
+5. `CreateSession`：Direct 在 Harness App 创建，通过顶层字段 `workspaceId`、`harnessId` 和 `environmentId` 绑定 Workspace、Harness 和 Environment；队列模式先创建 Environment API Key，再通过 APIG 创建。
+6. `run-sse`：Direct 请求 `/run_sse`；队列模式把用户消息提交到 `/events`，再按回执的序号订阅 `/events/stream`，避免把历史回复误认成本轮输出。
 
 ## Agent 能力
 
-三个案例均展示连续对话，可用内置沙箱工具完成一个简单检查。Direct 的工具配置由 Harness App 接管；两个队列案例使用 AgentKit Harness 的工具配置。
+三个案例均展示连续对话，可用内置沙箱工具完成一个简单检查。工具配置保存在 Harness 中；Direct 的文件和命令工具需按该模式教程开启 `DefaultConfig.Enabled`。
 
 模型、MCP 与 Skill 统一配置在 `agent_infra/config.yaml` 的 `harness` 下：
 
@@ -143,7 +145,7 @@ agent_infra/
 uv venv --python 3.12
 source .venv/bin/activate
 uv pip install -r requirements.txt --default-index https://mirrors.aliyun.com/pypi/simple/
-python 01_direct_mode/run.py create-environment --dry-run
+python 01_direct_mode/run.py create-route --dry-run
 ```
 
 已有教程虚拟环境时跳过 `uv venv`。`--dry-run` 不读取配置、不访问网络，也不创建资源。

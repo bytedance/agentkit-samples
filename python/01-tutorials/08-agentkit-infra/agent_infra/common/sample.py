@@ -113,7 +113,13 @@ def resource_steps(environment_type, direct):
         "create-runtime-template": "准备 IAM 执行角色 → CreateRuntimeTemplate → GetRuntime Ready",
     }
     if environment_type == "Cloud":
+        if direct:
+            steps["create-environment"] = (
+                "检查 Endpoint ready → " + steps["create-environment"]
+            )
         steps["create-environment"] += " → 等待 Sandbox Ready"
+    if direct:
+        steps["create-harness"] = "CreateHarness → 保存 HarnessId"
     if not direct:
         steps.update(
             {
@@ -144,6 +150,8 @@ def create_resource_step(client, config, state, command, *, direct):
             json_output=False,
         )
     elif command == "create-environment":
+        if direct:
+            require_resource(resources, "endpoint", "ready", "create-route")
         create_environment(client, state, config, write_workspace=False)
         if direct and not resources["environment_resource"].get("tool_id"):
             raise RuntimeError("Cloud Sandbox Ready，但尚未返回 ToolId")
@@ -155,6 +163,7 @@ def create_resource_step(client, config, state, command, *, direct):
     elif command == "create-runtime-template":
         tool_id = ""
         if direct:
+            require_resource(resources, "harness", "Active", "create-harness")
             sandbox = require_resource(
                 resources, "environment_resource", "Ready", "create-environment"
             )
@@ -195,6 +204,22 @@ def direct_session(client, state, command, prompt):
         return
     if not runtime_id:
         raise RuntimeError("没有 RuntimeId，请先执行 create-runtime-template")
+    binding = {}
+    if command == "create-session":
+        harness = require_resource(
+            state["resources"], "harness", "Active", "create-harness"
+        )
+        environment = require_resource(
+            state["resources"], "environment", "Active", "create-environment"
+        )
+        workspace_id = state.get("workspace_id") or client.config.workspace_id
+        if not workspace_id:
+            raise RuntimeError("缺少 WorkspaceId，请在 config.yaml 中指定 workspace_id")
+        binding = {
+            "workspaceId": workspace_id,
+            "harnessId": harness["id"],
+            "environmentId": environment["id"],
+        }
     try:
         runtime = client.call("GetRuntime", {"RuntimeId": runtime_id})
     except HarnessInfraError as exc:
@@ -215,7 +240,27 @@ def direct_session(client, state, command, prompt):
             save_state(state)
         if session.get("deleted"):
             raise RuntimeError("会话已删除，请完成 cleanup 后重建")
-        app.create_session(session)
+        session["ready"] = False
+        save_state(state)
+        with app.call("GET", "/list-apps") as response:
+            apps = response.json()
+        if not isinstance(apps, list) or session["app_name"] not in apps:
+            raise RuntimeError("Runtime 未发布 harness_agent；检查部署镜像")
+        path = app.session_path(session)
+        with app.call("POST", path, json=binding, allowed=(400, 409)) as response:
+            duplicate = response.status_code in {400, 409}
+            created = None if duplicate else response.json()
+        if duplicate:
+            with app.call("GET", path) as response:
+                created = response.json()
+        saved = (created.get("state") or {}) if isinstance(created, dict) else {}
+        if not isinstance(saved, dict) or any(
+            saved.get(name) != value for name, value in binding.items()
+        ):
+            raise RuntimeError(
+                "会话未绑定本轮 Harness / Environment；请检查 Runtime 镜像，"
+                "旧会话需 cleanup 后重建"
+            )
         session["ready"] = True
         save_state(state)
         print(f"Harness App SessionId: {session['id']}")
@@ -252,6 +297,7 @@ def execute(mode):
         **steps,
         "create-session": (
             "Runtime GET /list-apps → POST /apps/{app}/users/{user}/sessions/{id}"
+            "（绑定 workspaceId / harnessId / environmentId）"
             if direct
             else "APIG POST /v1/sessions"
         ),
@@ -262,7 +308,7 @@ def execute(mode):
         ),
         "cleanup": (
             "删除 Harness App Session → DeleteRuntime → DeleteSessionStore → "
-            "DeleteEnvironmentResource → DeleteEnvironment；保留 Route / IAM 角色"
+            "DeleteEnvironmentResource → DeleteEnvironment → ArchiveHarness；保留 Route / IAM 角色"
             if direct
             else "删除 APIG Session → DeleteAPIKey → DeleteRuntime → DeleteSessionStore → "
             + ("回收 Cloud Sandbox → " if not selfhost else "")
