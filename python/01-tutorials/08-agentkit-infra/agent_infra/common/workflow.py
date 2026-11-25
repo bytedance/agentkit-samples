@@ -716,6 +716,10 @@ def _submit_runtime_template(
         "ClientToken": state["tokens"]["runtime_create"],
         "SessionStoreId": session_store_id,
     }
+    if config.runtime_template.network_configuration:
+        runtime_request["NetworkConfiguration"] = (
+            config.runtime_template.network_configuration
+        )
     if config.runtime_template.image_url is not None:
         runtime_request["ImageUrl"] = config.runtime_template.image_url
     if config.runtime_template.envs:
@@ -748,6 +752,7 @@ def _submit_runtime_template(
                 "Envs": dict.fromkeys(runtime_request.get("Envs", {}), "<redacted>"),
                 "Runtime": config.runtime_template.runtime,
                 "SessionStoreId": session_store_id,
+                "NetworkConfiguration": runtime_request.get("NetworkConfiguration", {}),
             },
             "status": runtime.get("Status"),
             "owned": True,

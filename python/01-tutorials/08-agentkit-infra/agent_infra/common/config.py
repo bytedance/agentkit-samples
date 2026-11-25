@@ -57,6 +57,7 @@ class RuntimeTemplateConfig:
     image_url: str | None
     envs: dict[str, str]
     runtime: dict[str, Any]
+    network_configuration: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -395,6 +396,64 @@ def _session_config(raw: dict[str, Any]) -> SessionConfig:
     )
 
 
+def _runtime_network_config(runtime: dict[str, Any]) -> dict[str, Any]:
+    """解析 Runtime 网络声明，转换为 CreateRuntimeTemplate 的 API 参数。
+
+    输入：runtime_template 映射；缺省为公网，启用 VPC 时默认只开启私网。
+    输出：NetworkConfiguration；公网模式不携带未启用的 VPC 占位信息。
+    校验：网络开关必须为布尔值，至少开启一种网络；私网必须填写真实
+    VPC 和单个子网 ID，安全组为可选的非空字符串列表。
+    """
+    label = "runtime_template.network"
+    network = _mapping(runtime.get("network", {}), label)
+    allowed = {
+        "use_private_network",
+        "use_public_network",
+        "vpc_id",
+        "subnet_id",
+        "security_group_ids",
+    }
+    unknown = set(network) - allowed
+    if unknown:
+        raise RuntimeError(f"{label} 包含不支持的字段：{', '.join(sorted(unknown))}")
+    private = network.get("use_private_network", False)
+    if not isinstance(private, bool):
+        raise TypeError(f"{label}.use_private_network 必须是布尔值")
+    public = network.get("use_public_network", not private)
+    if not isinstance(public, bool):
+        raise TypeError(f"{label}.use_public_network 必须是布尔值")
+    if not public and not private:
+        raise RuntimeError(f"{label} 必须至少启用公网或私网")
+    result: dict[str, Any] = {
+        "EnablePublicNetwork": public,
+        "EnablePrivateNetwork": private,
+    }
+    if private:
+        vpc_id = _reject_placeholder(
+            f"{label}.vpc_id", _string(network.get("vpc_id"), f"{label}.vpc_id")
+        )
+        subnet_id = _reject_placeholder(
+            f"{label}.subnet_id",
+            _string(network.get("subnet_id"), f"{label}.subnet_id"),
+        )
+        groups = _list(
+            network.get("security_group_ids", []), f"{label}.security_group_ids"
+        )
+        security_group_ids = [
+            _reject_placeholder(
+                f"{label}.security_group_ids[{index}]",
+                _string(group, f"{label}.security_group_ids[{index}]"),
+            )
+            for index, group in enumerate(groups)
+        ]
+        result["VpcConfiguration"] = {
+            "VpcId": vpc_id,
+            "SubnetIds": [subnet_id],
+            "SecurityGroupIds": security_group_ids,
+        }
+    return result
+
+
 def _runtime_template_config(raw: dict[str, Any]) -> RuntimeTemplateConfig:
     runtime = _mapping(raw.get("runtime_template"), "runtime_template")
     resources = _mapping(runtime.get("resources"), "runtime_template.resources")
@@ -435,6 +494,7 @@ def _runtime_template_config(raw: dict[str, Any]) -> RuntimeTemplateConfig:
         image_url=image_url,
         envs=dict(envs),
         runtime=_mapping(runtime.get("runtime", {}), "runtime_template.runtime"),
+        network_configuration=_runtime_network_config(runtime),
     )
 
 

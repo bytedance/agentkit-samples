@@ -103,6 +103,27 @@ Direct 的 `skills` 接受 Skill Hub slug、`ss-空间ID` 或 `ss-空间ID:s-技
 
 `runtime_template.envs` 用于其他 Runtime 设置。模型、MCP、Skill 的环境变量由配置适配器生成，重复配置会报错；不要把这些字段同时写入 `envs`。修改 YAML 后须清理并重新创建相应资源，已创建的 Runtime、Harness 和 Session 不会自动更新。
 
+`runtime_template.network` 会转换为 `CreateRuntimeTemplate.NetworkConfiguration`。
+缺省或 `use_private_network: false` 使用公网，不发送 VPC 字段。
+设置 `use_private_network: true` 时，必须填写真实的 `vpc_id` 和 `subnet_id`；
+`security_group_ids` 可省略或填写安全组 ID 列表。占位值、无效类型和未知网络字段会在请求前报错。
+私网模式默认关闭公网；如需同时启用两种网络，可设置 `use_public_network: true`。
+两个开关不能同时为 `false`。网络配置只作用于 `create-runtime-template` 创建的 Runtime，
+不会自动设置 SessionStore、Environment 或 Queue SelfHosted 的 Dispatcher 网络。
+
+```yaml
+runtime_template:
+  network:
+    use_private_network: true
+    # use_public_network: true # 需要同时启用公网时填写
+    vpc_id: vpc-real-id
+    subnet_id: subnet-real-id
+    security_group_ids: []
+```
+
+`subnet_id` 会发送为 `VpcConfiguration.SubnetIds: [subnet_id]`。
+私网 Runtime 对外部模型或 MCP 的访问取决于实际网络出口配置。
+
 ## 目录结构说明
 
 ```text

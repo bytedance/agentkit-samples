@@ -73,10 +73,11 @@ session_store:
 runtime_template:
   role_name: "AgentKitDefaultRuntimeAccess"
   network:
-    use_private_network: false # 是否使用 VPC
-    vpc_id: "your-vpc-id" # 可选
-    subnet_id: "your-subnet-id" # 可选
-    security_group_ids: ["your-security-group-id"] # 可选
+    use_private_network: false # true 启用 VPC；默认只开启私网
+    # use_public_network: true # 可选：显式允许公网；未填写时取 use_private_network 的反值
+    vpc_id: "" # 启用 VPC 时必填真实 ID
+    subnet_id: "" # 启用 VPC 时必填真实 ID，转换为 API 的 SubnetIds
+    security_group_ids: [] # 可选，启用 VPC 时填写真实安全组 ID
   resources:
     cpu_milli: 1000
     memory_mib: 2048
