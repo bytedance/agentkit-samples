@@ -35,11 +35,11 @@ source .venv/bin/activate
 账号凭据可通过环境变量提供：
 
 ```bash
-read -r -p '请输入账号 AK: ' VOLCENGINE_ACCESS_KEY
-read -r -s -p '请输入账号 SK: ' VOLCENGINE_SECRET_KEY
-printf '\n'
-export VOLCENGINE_ACCESS_KEY VOLCENGINE_SECRET_KEY
+export VOLCENGINE_ACCESS_KEY=
+export VOLCENGINE_SECRET_KEY=
 ```
+
+在等号后分别填写账号 AK 和 SK。
 
 也可以填写 `config.yaml` 中的 `control.access_key` 和 `control.secret_key`。
 环境变量优先；同一凭据无需在两处重复填写。
@@ -135,34 +135,7 @@ python run.py create-deployment
 新建 Runtime 时，脚本自动注入 Cloud `HARNESS_SANDBOX_TOOL_ID` 和模型配置，
 使用镜像默认入口。无需填写 `Runtime.Port` 或旧 Worker 的启动命令。
 
-## 4. 创建 Session 并检查首轮运行
-
-```bash
-python run.py create-session
-python run.py get-session
-python run.py verify-session
-python run.py list-deployment-runs
-```
-
-| 命令 | 做什么 |
-|---|---|
-| `create-session` | 调用 `RunDeployment` 触发首轮执行，等待并打印 Run 对应的 SessionId |
-| `get-session` | 只读获取这个 Runtime Session，展示 SessionId、用户标识和事件数 |
-| `verify-session` | 只读等待首轮完成，检查 Run.Error、真实 shell 调用、工具结果及最终回答 |
-| `list-deployment-runs` | 分页展示该 Deployment 的 Run 历史和错误类型 |
-
-**Cloud Deployment 的 Session 由 `RunDeployment` 创建。`create-session` 已经触发首轮，
-不会另建一个空 Session，也不需要随后再调用 `run-deployment`。**
-如果只希望提交 Run 而不等待 SessionId，可用 `python run.py run-deployment` 替代
-`create-session`。
-
-首轮检查完全只读，不额外发送消息。工具调用必须和唯一、同名的结果按 ID 配对；
-工具实际输出和最终回答都必须包含预期标识。当前 Runtime 的 shell 名称可能是
-`Execute` 或 `bash`，检查保留实际名称。
-
-Run HTTP 200、SessionId 存在或 SSE HTTP 200 均不能单独证明执行成功。
-
-## 5. 查看定时任务对应的 Session 并验证执行
+## 4. 查看定时任务对应的 Session 并验证执行
 
 **在第 3 节创建 Deployment 前**，在 `config.yaml` 中填写定时配置。例如每 5 分钟执行一次：
 
@@ -207,7 +180,13 @@ python run.py verify-session --run-id '替换为定时任务的 RunId'
 存在或 `error_type` 为空都不能单独证明任务完成。出现错误时，按原 RunId 核对；
 等待超时后可以重复同一条验收命令继续读取，无需新建 Run。
 
-## 6. 在同一 Session 中继续对话
+首轮检查完全只读，不额外发送消息。工具调用必须和唯一、同名的结果按 ID 配对；
+工具实际输出和最终回答都必须包含预期标识。当前 Runtime 的 shell 名称可能是
+`Execute` 或 `bash`，检查保留实际名称。
+
+Run HTTP 200、SessionId 存在或 SSE HTTP 200 均不能单独证明执行成功。
+
+## 5. 在同一 Session 中继续对话
 
 ```bash
 python run.py invoke-session
@@ -218,22 +197,14 @@ python run.py get-session
 上下文取回随机标识并执行真实 shell 命令；提示词不重复提供该标识。通过新增持久化
 事件检查上下文和工具结果。
 
-需要触发一个新的 Run 和 Session 时执行：
-
-```bash
-python run.py create-session --new-run
-python run.py verify-session
-python run.py invoke-session
-```
-
-默认重复 `create-session` 或 `run-deployment` 会复用最近一次 Run，避免重复执行任务；
-只有 `--new-run` 明确要求新建 Run。第二轮已完成时，重复 `invoke-session` 只读检查
-已有结果，不再次发送消息。
+需要切换到另一个定时 Run 时，先执行 `get-session --run-id <RunId>` 或
+`verify-session --run-id <RunId>` 选择对应 Session，再执行 `invoke-session`。
+第二轮已完成时，重复 `invoke-session` 只读检查已有结果，不再次发送消息。
 
 第二轮发送前先保存状态。连接中断后再次执行 `invoke-session` 只读取已有事件，
-不自动重发；若请求发送前即中断，需要核对 Session 后再用 `create-session --new-run` 开始新一轮。
+不自动重发；若请求发送前即中断，需要先核对该 Session 的持久化事件。
 
-## 7. 清理
+## 6. 清理
 
 ```bash
 python run.py cleanup
@@ -258,7 +229,7 @@ Cloud 执行事件使用 `GetRuntime.Endpoint` 和 Runtime `KeyAuth` 读取：
 平台重放窗口为 24 小时。SessionStore 创建不发送 ClientToken；若结果未知，脚本会停止
 再次创建，核对后填写真实 `session_store.id` 恢复。
 
-熟悉流程后，可使用 `python run.py all` 一次完成资源准备、首轮检查和同 Session 第二轮；
-清理仍单独执行。旧命令 `prepare`、`run`、`verify`、`second-round` 继续兼容。
+定时模式按资源创建、等待调度、选择 Run、只读验收和清理的顺序执行。
+旧命令 `prepare`、`run`、`verify`、`second-round` 继续兼容，但不是定时验收的必需步骤。
 
 本案例代码只有 `run.py`、`clients.py`；运行检查内置于 `run.py`。
