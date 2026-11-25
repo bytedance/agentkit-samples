@@ -1,0 +1,61 @@
+# 复制为 config.yaml；标注“必填”的字段需要检查，其他字段可保留默认值。
+control:
+  host: open.volcengineapi.com
+  region: cn-beijing
+  workspace_id: "" # 条件必填：账号开启 Workspace 隔离且无默认 Workspace 时，填目标 ACTIVE Workspace
+  access_key: "" # 必填：或设置 VOLCENGINE_ACCESS_KEY，两者选一
+  secret_key: "" # 必填：或设置 VOLCENGINE_SECRET_KEY，两者选一
+  session_token: "" # 可选 VOLCENGINE_SESSION_TOKEN
+route:
+  endpoint_id: "" # 条件必填：账号有多个 Endpoint 时，指定要复用的 Ready Endpoint
+  apig_gateway_id: "" # 条件必填：账号没有 Endpoint、需要 CreateRoute 时
+session_store:
+  id: "" # 选填：留空由 create-session-store 创建，填值则复用
+  project_name: default # 新建 SessionStore 的项目，可保留默认值
+model:
+  id: doubao-seed-evolving # 创建 Runtime/Harness 时必填，默认值需确认账号可用
+  base_url: https://ark.cn-beijing.volces.com/api/v3 # 必填，可保留默认北京地址
+  ark_api_key_name: "" # 必填：创建 Runtime/Harness/Deployment 时填已有方舟 Key 名称，不填明文 Key
+runtime:
+  id: "" # 优先复用 Ready Runtime；为空时创建
+  user_id: "" # 留空从本 sample 创建的 Harness creator 元数据解析；可显式填写触发者 UserId
+  app_name: harness_agent # 必须出现在 Runtime /list-apps 中
+  # 新建 Runtime 时，执行角色必须已存在且有权限；SessionStore 可由前一步命令创建。
+  session_store_id: "" # 兼容旧配置；优先使用 session_store.id，或 create-session-store 的结果
+  role_name: AgentKitDefaultRuntimeAccess # 条件必填：新建 Runtime 时确认该角色已存在并授权
+  image_url: enterprise-public-cn-beijing.cr.volces.com/vefaas-public/agentkit-runtime:loop-26112003
+  resources:
+    CpuMilli: 1000
+    MemoryMiB: 2048
+    MinReplicas: 1
+    MaxReplicas: 1
+  envs:
+    HARNESS_APP_ENABLED: "true"
+    STUDIO_ENABLED: "false"
+  settings: {} # 标准 TOP 使用镜像默认入口；Port 对象在当前线上入口会被拒绝
+environment:
+  id: "" # 留空创建 Cloud Environment；填值则只复用，不删除
+  resources:
+    CpuMilli: 2000
+    MemoryMb: 4096
+deployment:
+  name_prefix: deployment-cloud-sample
+  # 创建 Deployment 时必填；{nonce} 和 {marker} 由脚本替换为本次验收标识。
+  user_prompt: >-
+    请记住本次验收标识 {nonce}。必须调用 bash 执行 printf '{marker}\n'，
+    等待工具结果，然后只回复实际输出。不得模拟工具调用。
+  # 手动验收留空；定时示例 "*/5 * * * *"（每 5 分钟）；必须在创建 Deployment 前填写。
+  # 5 段表达式：分 时 日 月 星期；Schedule 创建后不可修改。
+  cron: ""
+  timezone: Asia/Shanghai
+verification:
+  # invoke-session / second-round / all 时必填；原样发送，不再次提供首轮随机标识。
+  second_round_prompt: >-
+    请从首轮上下文取回我要求记住的验收标识。必须调用 bash，
+    用 printf 输出 CONTEXT_OK_ 后接该标识并换行；等待工具结果后只回复实际输出。
+    本轮不会再次提供标识。不得猜测或模拟工具调用。
+  timeout_seconds: 900
+  poll_seconds: 3
+  dispatch_settle_seconds: 5
+cleanup:
+  endpoint_id: "" # 清理 AKX 逻辑 Session 引用时复用；为空则仅在账号有唯一 Ready Endpoint 时自动选择

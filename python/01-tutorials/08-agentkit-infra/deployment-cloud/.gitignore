@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+.ruff_cache/
+config.yaml
+.local/
+.agentkit/
+uv.lock

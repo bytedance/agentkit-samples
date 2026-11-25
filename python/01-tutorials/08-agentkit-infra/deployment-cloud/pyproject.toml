@@ -1,0 +1,6 @@
+[project]
+name = "agentkit-deployment-cloud-sample"
+version = "0.1.0"
+description = "独立的 AgentKit Cloud Deployment 创建、运行和两轮验收示例"
+requires-python = ">=3.12"
+dependencies = ["requests>=2.31,<3", "PyYAML>=6,<7"]
